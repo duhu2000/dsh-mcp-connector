@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # DSH 依赖由 Host 提供；legacy-peer-deps 避免 npm 尝试拼装一套不完整的 Host。
+      - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - run: npm run check

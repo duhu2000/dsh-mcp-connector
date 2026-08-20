@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "connectors": [
+    {
+      "id": "qcc-company",
+      "name": "企查查·企业工商",
+      "vendor": "企查查 Qichacha",
+      "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
+      "category": "企业数据",
+      "summary": "一站式企业工商 / 股权 / 经营信息查询",
+      "description": "覆盖工商注册、股东、实际控制人、对外投资、经营异常、行政处罚等企业全景数据，适用于尽调、风控、营销获客场景。",
+      "tags": ["工商", "风控", "尽调", "获客"],
+      "published": true,
+      "featured": true,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        { "serverKey": "company", "url": "https://agent.qcc.com/mcp/company/stream", "serverName": "qcc-company", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "risk", "url": "https://agent.qcc.com/mcp/risk/stream", "serverName": "qcc-risk", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "ipr", "url": "https://agent.qcc.com/mcp/ipr/stream", "serverName": "qcc-ipr", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "operation", "url": "https://agent.qcc.com/mcp/operation/stream", "serverName": "qcc-operation", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "history", "url": "https://agent.qcc.com/mcp/history/stream", "serverName": "qcc-history", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "executive", "url": "https://agent.qcc.com/mcp/executive/stream", "serverName": "qcc-executive", "transport": "streamable-http", "headers": {} }
+      ],
+      "prompts": [
+        { "title": "企业最新工商变更", "text": "查询 小米科技有限责任公司 的最新工商变更记录", "server": "company" },
+        { "title": "股东结构", "text": "查询 小米科技有限责任公司 的股东构成与出资信息", "server": "company" },
+        { "title": "实际控制人", "text": "查询 小米科技有限责任公司 的实际控制人信息", "server": "company" },
+        { "title": "主要人员（高管团队）", "text": "查询 小米科技有限责任公司 的主要人员信息", "server": "company" },
+        { "title": "对外投资", "text": "查询 小米科技有限责任公司 的对外投资信息", "server": "company" },
+        { "title": "受益所有人识别", "text": "查询 小米科技有限责任公司 的受益所有人识别信息", "server": "company" },
+        { "title": "企业风险全景扫描", "text": "对 小米科技有限责任公司 做一次企业风险全景扫描", "server": "risk" },
+        { "title": "失信信息", "text": "查询 小米科技有限责任公司 的失信信息", "server": "risk" },
+        { "title": "被执行人信息", "text": "查询 小米科技有限责任公司 的被执行人信息", "server": "risk" },
+        { "title": "经营异常", "text": "查询 小米科技有限责任公司 的经营异常信息", "server": "risk" },
+        { "title": "商标信息", "text": "查询 小米科技有限责任公司 的商标信息", "server": "ipr" },
+        { "title": "专利信息", "text": "查询 小米科技有限责任公司 的专利信息", "server": "ipr" },
+        { "title": "软件著作权", "text": "查询 小米科技有限责任公司 的软件著作权信息", "server": "ipr" },
+        { "title": "作品著作权", "text": "查询 小米科技有限责任公司 的作品著作权信息", "server": "ipr" },
+        { "title": "招投标信息", "text": "查询 小米科技有限责任公司 的招投标信息", "server": "operation" },
+        { "title": "资质证书", "text": "查询 小米科技有限责任公司 的资质证书信息", "server": "operation" },
+        { "title": "行政许可", "text": "查询 小米科技有限责任公司 的行政许可信息", "server": "operation" },
+        { "title": "新闻舆情", "text": "查询 小米科技有限责任公司 的新闻舆情信息", "server": "operation" },
+        { "title": "历史股东", "text": "查询 小米科技有限责任公司 的历史股东变动记录", "server": "history" },
+        { "title": "历史法定代表人", "text": "查询 小米科技有限责任公司 的历史法定代表人记录", "server": "history" },
+        { "title": "历史失信", "text": "查询 小米科技有限责任公司 的历史失信记录（已移出名单）", "server": "history" },
+        { "title": "历史行政处罚", "text": "查询 小米科技有限责任公司 的历史行政处罚记录", "server": "history" },
+        { "title": "董监高个人风险扫描", "text": "对 小米科技有限责任公司 的董监高 雷军 做一次个人风险全景扫描", "server": "executive" },
+        { "title": "担任法定代表人", "text": "查询 小米科技有限责任公司 的董监高 雷军 担任法定代表人的情况", "server": "executive" },
+        { "title": "在外任职", "text": "查询 小米科技有限责任公司 的董监高 雷军 的在外任职信息", "server": "executive" },
+        { "title": "全部关联企业", "text": "查询 小米科技有限责任公司 的董监高 雷军 的全部关联企业", "server": "executive" }
+      ]
+    },
+    {
+      "id": "qcc-legal",
+      "name": "企查查·法律数据",
+      "vendor": "企查查 Qichacha",
+      "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
+      "category": "企业数据",
+      "summary": "法规条文 / 司法案例检索与核验",
+      "description": "法律法规逐字条文、指导性/公报/典型案例检索、案号引用核验，面向法律意见书与类案检索场景。",
+      "tags": ["法律", "法规", "案例", "核验"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        { "serverKey": "regulation", "url": "https://agent.qcc.com/mcp/regulation/stream", "serverName": "qcc-regulation", "transport": "streamable-http", "headers": {} },
+        { "serverKey": "case", "url": "https://agent.qcc.com/mcp/case/stream", "serverName": "qcc-case", "transport": "streamable-http", "headers": {} }
+      ],
+      "prompts": [
+        { "title": "法规检索", "text": "检索与「劳动合同解除」相关的法律法规", "server": "regulation" },
+        { "title": "法条检索", "text": "检索与「劳动合同解除」相关的法条原文", "server": "regulation" },
+        { "title": "司法案例检索", "text": "检索与「劳动合同违法解除」相关的司法案例", "server": "case" },
+        { "title": "权威案例检索", "text": "检索与「劳动合同违法解除」相关的权威司法案例", "server": "case" }
+      ]
+    },
+    {
+      "id": "qcc-tender",
+      "name": "企查查·招投标",
+      "vendor": "企查查 Qichacha",
+      "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
+      "category": "企业数据",
+      "summary": "招投标公告 / 中标结果 / 采购信息",
+      "description": "覆盖全国招投标公告、中标结果、采购信息，适用于竞对分析、市场研究、销售线索挖掘场景。",
+      "tags": ["招投标", "采购", "中标", "竞对"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        { "serverKey": "tender", "url": "https://agent.qcc.com/mcp/tender/stream", "serverName": "qcc-tender", "transport": "streamable-http", "headers": {} }
+      ],
+      "prompts": [
+        { "title": "招投标检索", "text": "检索与「智慧城市」相关的招投标、采购和中标标讯", "server": "tender" },
+        { "title": "拟建项目检索", "text": "检索与「新能源汽车」相关的拟建项目", "server": "tender" },
+        { "title": "企业招投标检索", "text": "查询 华为技术有限公司 相关的招标、投标、中标和采购标讯", "server": "tender" }
+      ]
+    },
+    {
+      "id": "qcc-document",
+      "name": "企查查·文档报告",
+      "vendor": "企查查 Qichacha",
+      "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
+      "category": "企业数据",
+      "summary": "企业报告生成 / 文档分析",
+      "description": "基于企业数据自动生成分析报告、尽职调查文档，支持文档结构化解析与内容提取。",
+      "tags": ["文档", "报告", "分析"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        { "serverKey": "document", "url": "https://agent.qcc.com/mcp/document/stream", "serverName": "qcc-document", "transport": "streamable-http", "headers": {} }
+      ],
+      "prompts": []
+    },
+    {
+      "id": "legacy-internal",
+      "name": "内测·待上架连接器",
+      "vendor": "内部团队",
+      "category": "其他",
+      "summary": "下架示例：published=false 不出现在用户货架",
+      "description": "该条目用于演示「下架」语义——已装用户保留连接，但新用户刷新目录不可见。",
+      "tags": ["内测"],
+      "published": false,
+      "featured": false,
+      "auth": { "mode": "none" },
+      "servers": [
+        { "serverKey": "internal", "url": "https://mcp.internal.example.com/stream", "serverName": "internal-demo", "transport": "streamable-http", "headers": {} }
+      ]
+    }
+  ]
+}

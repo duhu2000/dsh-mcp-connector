@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP连接器 · 入口方案 Mockup</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --border:#e3e6ea; --border2:#d5d9df;
+    --text:#1a1d21; --text2:#5b6472; --text3:#8a93a1;
+    --brand:#3b6cf6; --brand-soft:#eef3ff; --green:#16a34a; --green-soft:#e9f9ef;
+    --orange:#f59e0b; --orange-soft:#fef4e2; --hover:#f0f2f5;
+    --sidebar:#fafbfc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+  .topbar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .topbar h1{font-size:15px;font-weight:600}
+  .scenes{display:flex;gap:6px;margin-left:8px}
+  .scene-btn{border:1px solid var(--border2);background:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--text2)}
+  .scene-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .hint{font-size:12px;color:var(--text3)}
+  .frame{display:none;height:calc(100vh - 64px);min-height:560px}
+  .frame.on{display:grid}
+  .frame.cols{grid-template-columns:220px 1fr 360px}
+  .frame.cols-c{grid-template-columns:220px 1fr 380px}
+
+  /* left sidebar */
+  .sidebar{background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 8px;gap:8px}
+  .side-head{display:flex;align-items:center;gap:8px;padding:4px 6px 10px;border-bottom:1px solid var(--border)}
+  .logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#3b6cf6,#7c5cff);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .brand-name{font-weight:600;font-size:13px}
+  .new-session{border:1px solid var(--border2);background:#fff;border-radius:10px;padding:7px 10px;font-size:12px;color:var(--text2);cursor:pointer;text-align:left}
+  .new-session:hover{background:var(--hover)}
+  .region{flex:1;overflow:auto;display:flex;flex-direction:column;gap:2px}
+  .ws-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .ws-row:hover{background:var(--hover)}
+  .ws-row.active{background:var(--brand-soft);color:var(--brand)}
+  .ws-dot{width:7px;height:7px;border-radius:50%;background:#c3c9d1;flex:none}
+  .ws-row.active .ws-dot{background:var(--brand)}
+  .section-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 8px 2px}
+  .foot{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--border);padding-top:6px}
+  .foot-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2)}
+  .foot-row:hover{background:var(--hover)}
+  .foot-row.hl{background:var(--brand-soft);color:var(--brand);font-weight:500}
+  .foot-row .ic{width:16px;text-align:center}
+
+  /* app rail (方案C) */
+  .app-rail{display:flex;flex-direction:column;gap:2px}
+  .app-item{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:9px;cursor:pointer;font-size:13px}
+  .app-item:hover{background:var(--hover)}
+  .app-item.on{background:var(--brand-soft);color:var(--brand);font-weight:500}
+  .app-item .ic{width:20px;height:20px;border-radius:6px;background:#e8ebef;display:flex;align-items:center;justify-content:center;font-size:12px}
+
+  /* center */
+  .center{border-right:1px solid var(--border);display:flex;flex-direction:column;background:#fff}
+  .center-head{padding:14px 18px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .center-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:6px;padding:20px}
+  .center-body .big{font-size:34px}
+  .composer{margin:16px;border:1px solid var(--border2);border-radius:14px;padding:12px 14px;color:var(--text3);display:flex;align-items:center;gap:10px;font-size:13px}
+  .composer .dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+
+  /* right panel */
+  .details{background:var(--panel);display:flex;flex-direction:column;min-width:0}
+  .tabstrip{display:flex;border-bottom:1px solid var(--border);background:#fafbfc;overflow:hidden}
+  .tab{padding:9px 13px;font-size:12px;color:var(--text2);border-right:1px solid var(--border);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .tab.on{background:#fff;color:var(--text);font-weight:600;box-shadow:inset 0 2px 0 var(--brand)}
+  .tab .x{margin-left:4px;color:var(--text3);font-size:11px}
+  .details-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+  .mtabs{display:flex;gap:4px}
+  .mtab{padding:6px 13px;border-radius:9px;cursor:pointer;font-size:12px;color:var(--text2)}
+  .mtab.on{background:var(--brand);color:#fff}
+  .refresh{border:1px solid var(--border2);background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;color:var(--text2);cursor:pointer}
+  .chips{display:flex;gap:6px;padding:10px 14px;flex-wrap:wrap}
+  .chip{border:1px solid var(--border2);border-radius:99px;padding:3px 11px;font-size:11px;color:var(--text2);cursor:pointer}
+  .chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+  .cards{padding:0 14px 16px;overflow:auto;flex:1;display:grid;grid-template-columns:1fr;gap:10px;align-content:start}
+  .card{border:1px solid var(--border);border-radius:13px;padding:12px;background:#fff;display:flex;flex-direction:column;gap:8px}
+  .card.featured{border-color:#b9c8fb;background:linear-gradient(180deg,#f7f9ff,#fff)}
+  .card-top{display:flex;align-items:center;gap:10px}
+  .card-icon{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#3b6cf6,#7c5cff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+  .card-title{font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+  .star{color:var(--orange);font-size:12px}
+  .badge{font-size:10px;padding:1px 7px;border-radius:99px;font-weight:500}
+  .badge.oauth{background:var(--brand-soft);color:var(--brand)}
+  .badge.key{background:var(--orange-soft);color:var(--orange)}
+  .badge.installed{background:var(--green-soft);color:var(--green)}
+  .card-meta{font-size:11px;color:var(--text3);display:flex;gap:8px}
+  .card-sum{font-size:12px;color:var(--text2)}
+  .card-actions{display:flex;gap:6px;margin-top:2px}
+  .btn{border-radius:8px;padding:5px 11px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:#fff;color:var(--text)}
+  .btn:hover{background:var(--hover)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.ghost{background:#fff}
+  .btn.danger{color:#dc2626;border-color:#f3c1c1}
+  .btn.danger:hover{background:#fef2f2}
+
+  /* annotations */
+  .anno{border:1.5px dashed var(--brand);border-radius:10px;position:relative}
+  .anno .tag{position:absolute;top:-10px;left:8px;background:var(--brand);color:#fff;font-size:10px;padding:1px 8px;border-radius:6px;line-height:18px}
+  .note{padding:12px 14px;background:var(--brand-soft);border-bottom:1px solid #dbe5fd;font-size:12px;color:#2749c2}
+
+  /* 右栏形态对比 */
+  .frame.compare{grid-template-columns:1fr 1fr;gap:0}
+  .compare-col{display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0}
+  .compare-title{font-size:12px;font-weight:600;padding:8px 12px;background:#f2f4f7;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MCP连接器 · 入口方案 Mockup</h1>
+  <div class="scenes">
+    <button class="scene-btn active" data-s="A">方案A：底部功能轨道（推荐）</button>
+    <button class="scene-btn" data-s="B">方案B：顶部入口</button>
+    <button class="scene-btn" data-s="C">方案C：自实现整栏</button>
+    <button class="scene-btn" data-s="D">右栏形态对比</button>
+  </div>
+  <span class="hint">点击左侧「MCP连接器」入口 → 右栏打开卡片市场页</span>
+</div>
+
+<!-- ================= 方案 A ================= -->
+<div class="frame cols on" id="sceneA">
+  <div class="sidebar">
+    <div class="side-head"><div class="logo">DS</div><div class="brand-name">DeepSeek Harness</div></div>
+    <button class="new-session">＋ 新会话</button>
+    <div class="region">
+      <div class="section-label">工作区</div>
+      <div class="ws-row active"><span class="ws-dot"></span>云聚接口文档</div>
+      <div class="ws-row"><span class="ws-dot"></span>风控尽调</div>
+      <div class="ws-row"><span class="ws-dot"></span>无分组会话</div>
+    </div>
+    <div class="foot">
+      <div class="foot-row hl anno"><span class="tag">入口A</span><span class="ic">🧩</span> MCP连接器</div>
+      <div class="foot-row"><span class="ic">⚙️</span> 设置</div>
+    </div>
+  </div>
+  <div class="center">
+    <div class="center-head">💬 当前会话</div>
+    <div class="center-body"><div class="big">🙂</div><div>对话区（占位）</div></div>
+    <div class="composer"><span class="dot"></span> 给 DeepSeek Harness 发送消息…</div>
+  </div>
+  <div class="details">
+    <div class="tabstrip">
+      <div class="tab">📁 文件</div>
+      <div class="tab">💻 终端</div>
+      <div class="tab on">🧩 MCP连接器</div>
+    </div>
+    <div class="details-head">
+      <div class="mtabs"><span class="mtab on">市场</span><span class="mtab">推荐</span><span class="mtab">已安装</span></div>
+      <button class="refresh">↻ 刷新市场</button>
+    </div>
+    <div class="chips"><span class="chip on">全部</span><span class="chip">企业数据</span><span class="chip">地图出行</span><span class="chip">开发工具</span></div>
+    <div class="cards" id="cardsA"></div>
+  </div>
+</div>
+
+<!-- ================= 方案 B ================= -->
+<div class="frame cols" id="sceneB">
+  <div class="sidebar">
+    <div class="side-head"><div class="logo">DS</div><div class="brand-name">DeepSeek Harness</div></div>
+    <button class="new-session">＋ 新会话</button>
+    <div class="anno" style="border-color:var(--brand)"><span class="tag">入口B</span>
+      <div class="ws-row" style="margin:6px 0"><span class="ic">🧩</span> MCP连接器</div>
+    </div>
+    <div class="region">
+      <div class="section-label">工作区</div>
+      <div class="ws-row active"><span class="ws-dot"></span>云聚接口文档</div>
+      <div class="ws-row"><span class="ws-dot"></span>风控尽调</div>
+      <div class="ws-row"><span class="ws-dot"></span>无分组会话</div>
+    </div>
+    <div class="foot"><div class="foot-row"><span class="ic">⚙️</span> 设置</div></div>
+  </div>
+  <div class="center">
+    <div class="center-head">💬 当前会话</div>
+    <div class="center-body"><div class="big">🙂</div><div>对话区（占位）</div></div>
+    <div class="composer"><span class="dot"></span> 给 DeepSeek Harness 发送消息…</div>
+  </div>
+  <div class="details">
+    <div class="tabstrip">
+      <div class="tab">📁 文件</div>
+      <div class="tab">💻 终端</div>
+      <div class="tab on">🧩 MCP连接器</div>
+    </div>
+    <div class="details-head">
+      <div class="mtabs"><span class="mtab on">市场</span><span class="mtab">推荐</span><span class="mtab">已安装</span></div>
+      <button class="refresh">↻ 刷新市场</button>
+    </div>
+    <div class="chips"><span class="chip on">全部</span><span class="chip">企业数据</span><span class="chip">地图出行</span><span class="chip">开发工具</span></div>
+    <div class="cards" id="cardsB"></div>
+  </div>
+</div>
+
+<!-- ================= 方案 C ================= -->
+<div class="frame cols-c" id="sceneC">
+  <div class="sidebar">
+    <div class="side-head"><div class="logo">DS</div><div class="brand-name">DeepSeek Harness</div></div>
+    <div class="app-rail">
+      <div class="section-label">应用</div>
+      <div class="app-item on anno"><span class="tag">入口C</span><span class="ic">🧩</span> MCP连接器</div>
+      <div class="app-item"><span class="ic">💬</span> 工作台</div>
+      <div class="app-item"><span class="ic">⚙️</span> 设置</div>
+    </div>
+    <div class="section-label">工作区</div>
+    <div class="region" style="border-top:1px solid var(--border);padding-top:6px">
+      <div class="ws-row"><span class="ws-dot"></span>云聚接口文档</div>
+      <div class="ws-row"><span class="ws-dot"></span>风控尽调</div>
+    </div>
+    <div class="foot"><div class="foot-row"><span class="ic">＋</span> 新会话</div></div>
+  </div>
+  <div class="center">
+    <div class="center-head">💬 会话（工作台被替换时仅保留在另一 tab）</div>
+    <div class="center-body"><div class="big">🙂</div><div>对话区（占位）</div></div>
+    <div class="composer"><span class="dot"></span> 给 DeepSeek Harness 发送消息…</div>
+  </div>
+  <div class="details">
+    <div class="note">方案C：左栏整块替换为「应用导航 + 工作区」，不再有 better-sidebar 页签，右栏为独占整页（成本最高，需重写会话树，不推荐）。</div>
+    <div class="details-head">
+      <div class="mtabs"><span class="mtab on">市场</span><span class="mtab">推荐</span><span class="mtab">已安装</span></div>
+      <button class="refresh">↻ 刷新市场</button>
+    </div>
+    <div class="chips"><span class="chip on">全部</span><span class="chip">企业数据</span><span class="chip">地图出行</span><span class="chip">开发工具</span></div>
+    <div class="cards" id="cardsC"></div>
+  </div>
+</div>
+
+<!-- ================= 右栏形态对比 ================= -->
+<div class="frame compare" id="sceneD">
+  <div class="compare-col">
+    <div class="compare-title">形态1：复用 better-sidebar 页签（推荐）</div>
+    <div class="details" style="flex:1">
+      <div class="tabstrip">
+        <div class="tab">📁 文件</div>
+        <div class="tab">💻 终端</div>
+        <div class="tab on">🧩 MCP连接器</div>
+      </div>
+      <div class="details-head">
+        <div class="mtabs"><span class="mtab on">市场</span><span class="mtab">推荐</span><span class="mtab">已安装</span></div>
+        <button class="refresh">↻ 刷新市场</button>
+      </div>
+      <div class="cards" id="cardsD1"></div>
+    </div>
+  </div>
+  <div class="compare-col">
+    <div class="compare-title">形态2：独立 details 面板（独占整栏，无其他页签）</div>
+    <div class="details" style="flex:1">
+      <div class="note">与已装的 better-sidebar 冲突（details 是 single slot，独占会 shadow 掉文件/终端等页签）。仅当目标环境未装 better-sidebar 时作为兜底。</div>
+      <div class="details-head">
+        <div class="mtabs"><span class="mtab on">市场</span><span class="mtab">推荐</span><span class="mtab">已安装</span></div>
+        <button class="refresh">↻ 刷新市场</button>
+      </div>
+      <div class="cards" id="cardsD2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cardsHTML = `
+    <div class="card featured">
+      <div class="card-top"><div class="card-icon">企</div>
+        <div><div class="card-title"><span class="star">⭐</span>企查查·企业工商 <span class="badge oauth">OAuth</span><span class="badge installed">已连接</span></div>
+        <div class="card-meta"><span>企业数据</span><span>·</span><span>企查查</span></div></div>
+      </div>
+      <div class="card-sum">工商/股权/经营全景 · company / risk / ipr 三个 MCP Server</div>
+      <div class="card-actions">
+        <button class="btn primary">✓ 已连接</button>
+        <button class="btn">查看详情</button>
+        <button class="btn">试一试</button>
+        <button class="btn danger">卸载</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="card-icon">法</div>
+        <div><div class="card-title">企查查·法律数据 <span class="badge oauth">OAuth</span></div>
+        <div class="card-meta"><span>企业数据</span><span>·</span><span>企查查</span></div></div>
+      </div>
+      <div class="card-sum">法规条文 / 司法案例 / 案号核验 · regulation / case</div>
+      <div class="card-actions">
+        <button class="btn primary">安装</button>
+        <button class="btn">查看详情</button>
+        <button class="btn">试一试</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="card-icon">高</div>
+        <div><div class="card-title">高德·地图出行 <span class="badge key">API Key</span></div>
+        <div class="card-meta"><span>地图出行</span><span>·</span><span>高德开放平台</span></div></div>
+      </div>
+      <div class="card-sum">地理编码 / POI / 路径规划（示例）</div>
+      <div class="card-actions">
+        <button class="btn primary">安装</button>
+        <button class="btn">查看详情</button>
+        <button class="btn">试一试</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div class="card-icon">开</div>
+        <div><div class="card-title">开源示例 MCP <span class="badge oauth">OAuth</span></div>
+        <div class="card-meta"><span>开发工具</span><span>·</span><span>社区</span></div></div>
+      </div>
+      <div class="card-sum">演示：社区上架的一个 OAuth 连通 MCP</div>
+      <div class="card-actions">
+        <button class="btn primary">安装</button>
+        <button class="btn">查看详情</button>
+      </div>
+    </div>`;
+  ['cardsA','cardsB','cardsC','cardsD1','cardsD2'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.innerHTML = cardsHTML;
+  });
+  document.querySelectorAll('.scene-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.scene-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      document.querySelectorAll('.frame').forEach(f=>f.classList.remove('on'));
+      document.getElementById('scene'+b.dataset.s).classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>

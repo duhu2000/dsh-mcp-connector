@@ -1,0 +1,166 @@
+{
+  "$comment": "MCP连接器内置目录示例。published=true 才出现在用户货架；registry 中禁止携带任何密钥（加载时校验剥离）。",
+  "meta": {
+    "schemaVersion": 1,
+    "categories": ["企业数据", "办公协作", "地图出行", "金融行情", "开发工具", "数据库", "AI 模型", "其他"]
+  },
+  "connectors": [
+    {
+      "id": "qcc-company",
+      "name": "企查查·企业工商",
+      "vendor": "企查查 Qichacha",
+      "icon": "https://qcc-static.oss-cn-hangzhou.aliyuncs.com/mcp/qcc.svg",
+      "category": "企业数据",
+      "summary": "一站式企业工商 / 股权 / 经营信息查询",
+      "description": "覆盖工商注册、股东、实际控制人、对外投资、经营异常、行政处罚等企业全景数据，适用于尽调、风控、营销获客场景。",
+      "tags": ["工商", "风控", "尽调", "获客"],
+      "published": true,
+      "featured": true,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        {
+          "serverKey": "company",
+          "url": "https://agent.qcc.com/mcp/company/stream",
+          "serverName": "qcc-company",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "risk",
+          "url": "https://agent.qcc.com/mcp/risk/stream",
+          "serverName": "qcc-risk",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "ipr",
+          "url": "https://agent.qcc.com/mcp/ipr/stream",
+          "serverName": "qcc-ipr",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    },
+    {
+      "id": "qcc-legal",
+      "name": "企查查·法律数据",
+      "vendor": "企查查 Qichacha",
+      "icon": "https://qcc-static.oss-cn-hangzhou.aliyuncs.com/mcp/qcc-legal.svg",
+      "category": "企业数据",
+      "summary": "法规条文 / 司法案例检索与核验",
+      "description": "法律法规逐字条文、指导性/公报/典型案例检索、案号引用核验，面向法律意见书与类案检索场景。",
+      "tags": ["法律", "法规", "案例", "核验"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://open.qcc.com",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
+      },
+      "servers": [
+        {
+          "serverKey": "regulation",
+          "url": "https://agent.qcc.com/mcp/regulation/stream",
+          "serverName": "qcc-regulation",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case",
+          "url": "https://agent.qcc.com/mcp/case/stream",
+          "serverName": "qcc-case",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    },
+    {
+      "id": "amap-geo",
+      "name": "高德·地图出行",
+      "vendor": "高德开放平台",
+      "icon": "https://webapi.amap.com/theme/v1.3/open_mac_color.png",
+      "category": "地图出行",
+      "summary": "地理编码 / 逆地理编码 / 路径规划 / POI 检索",
+      "description": "示例：api-key 型连接器。用户在自定义配置里填入厂商下发的 API Key，即可获得地图与位置类 MCP 工具。",
+      "tags": ["地图", "定位", "POI", "路线"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://lbs.amap.com",
+      "auth": {
+        "mode": "api-key",
+        "apiKeyHeader": "X-Api-Key",
+        "clientName": "DeepSeek Harness - MCP 连接器"
+      },
+      "servers": [
+        {
+          "serverKey": "geo",
+          "url": "https://mcp.amap.com/stream",
+          "serverName": "amap-geo",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    },
+    {
+      "id": "vendor-stock",
+      "name": "行情·示例厂商",
+      "vendor": "某金融数据厂商",
+      "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iLi4uIi8+",
+      "category": "金融行情",
+      "summary": "A 股 / 港股 / 美股行情与基本面（示例）",
+      "description": "示例：bearer 型连接器。用户在自定义配置里粘贴 Bearer Token 即可连接；目录仅含模板，不含密钥。",
+      "tags": ["行情", "选股", "基本面"],
+      "published": true,
+      "featured": false,
+      "homepage": "https://example.com/mcp",
+      "auth": {
+        "mode": "bearer",
+        "clientName": "DeepSeek Harness - MCP 连接器"
+      },
+      "servers": [
+        {
+          "serverKey": "market",
+          "url": "https://mcp.example.com/market/stream",
+          "serverName": "example-market",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    },
+    {
+      "id": "legacy-internal",
+      "name": "内测·待上架连接器",
+      "vendor": "内部团队",
+      "icon": "data:image/svg+xml;base64,PHN2Zy8+",
+      "category": "其他",
+      "summary": "下架示例：published=false 不出现在用户货架",
+      "description": "该条目用于演示「下架」语义——已装用户保留连接，但新用户刷新目录不可见。",
+      "tags": ["内测"],
+      "published": false,
+      "featured": false,
+      "homepage": "https://example.com",
+      "auth": { "mode": "none" },
+      "servers": [
+        {
+          "serverKey": "internal",
+          "url": "https://mcp.internal.example.com/stream",
+          "serverName": "internal-demo",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    }
+  ]
+}

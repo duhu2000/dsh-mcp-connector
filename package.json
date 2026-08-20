@@ -1,0 +1,79 @@
+{
+  "name": "dsh-mcp-connector",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 插件：MCP连接器 —— 连接器目录与上架、通用 OAuth / 自定义 / JSON 三通道连接外部 MCP Server / MCP Connector marketplace & connection manager",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "ui",
+    "catalog",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "install.sh"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/stores.js && node --check lib/oauth.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js",
+    "verify-pack": "node scripts/verify-pack.mjs",
+    "check": "npm run lint && npm test && npm run verify-pack",
+    "prepublishOnly": "npm run check"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "mcp",
+    "connector",
+    "oauth",
+    "pkce",
+    "marketplace"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duhu2000/dsh-mcp-connector.git"
+  },
+  "homepage": "https://github.com/duhu2000/dsh-mcp-connector#readme",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-runtime": "*",
+    "@deepseek-ai/dsh-client-ui-conversation": "*",
+    "@deepseek-ai/dsh-client-ui-layout": "*",
+    "@deepseek-ai/dsh-mcp-client": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-storage-domain": "*",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-storage": "^0.1.0-rc.7",
+    "@deepseek-ai/dsh-storage-domain": "^0.1.0-rc.7",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "zod": "^4.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

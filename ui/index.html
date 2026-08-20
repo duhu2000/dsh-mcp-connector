@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MCP连接器</title>
+<style>
+  :root {
+    --bg: #f8f9fb;
+    --card: #ffffff;
+    --line: #e5e7eb;
+    --text: #111827;
+    --text-2: #4b5563;
+    --muted: #9ca3af;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-light: #eef2ff;
+    --ok: #059669;
+    --ok-bg: #ecfdf5;
+    --warn: #d97706;
+    --warn-bg: #fffbeb;
+    --bad: #dc2626;
+    --bad-bg: #fef2f2;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .app { display: flex; flex-direction: column; height: 100vh; position: relative; }
+  .app.detail-open main { overflow: hidden; }
+
+  /* Header */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    background: var(--card); position: sticky; top: 0; z-index: 5;
+    flex-shrink: 0;
+  }
+  header .logo { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text); }
+  header .logo .puzzle { font-size: 22px; }
+  .tabs { display: flex; gap: 0; background: var(--bg); padding: 3px; border-radius: 10px; }
+  .tabs button {
+    border: 0; background: transparent; color: var(--text-2);
+    padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.active { background: var(--card); color: var(--accent); box-shadow: var(--shadow); font-weight: 600; }
+  .header-spacer { flex: 1; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px 12px; width: 260px; transition: border-color .15s;
+  }
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-box input {
+    border: 0; background: transparent; outline: none; font: inherit; font-size: 13px;
+    color: var(--text); width: 100%;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .icon-btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--text-2);
+    border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Main */
+  main { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* Stats bar */
+  .stats { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .stats .count { font-size: 13px; color: var(--text-2); }
+  .stats .count strong { color: var(--text); font-weight: 600; }
+
+  /* Grid - TraeWork 风格：3 列 */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+
+  /* Card - TraeWork 风格：标题上移，描述 2 行 */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; display: flex; align-items: flex-start; gap: 12px;
+    transition: border-color .15s, box-shadow .15s;
+    box-shadow: var(--shadow);
+    min-height: 90px;
+  }
+  .card:hover { border-color: #c7d2fe; box-shadow: var(--shadow-lg); }
+  .card.featured { border-color: #fbbf24; }
+  .card .icon {
+    width: 40px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; background: var(--bg); flex: 0 0 auto;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .card .icon img { width: 100%; height: 100%; object-fit: contain; }
+  .card .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .card .name { font-weight: 600; font-size: 14px; line-height: 1.4; }
+  .card .summary { color: var(--text-2); font-size: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; align-self: center; }
+
+  /* Buttons */
+  .btn {
+    border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: var(--accent); color: #fff; transition: background .15s;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text-2); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger { background: transparent; border: 1px solid #fecaca; color: var(--bad); }
+  .btn.danger:hover { border-color: var(--bad); background: var(--bad-bg); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Installed rows */
+  .rows { display: flex; flex-direction: column; gap: 12px; }
+  .row {
+    display: flex; align-items: center; gap: 14px; padding: 16px 20px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); transition: box-shadow .15s;
+  }
+  .row:hover { box-shadow: var(--shadow-lg); }
+  .row .info { flex: 1; min-width: 0; }
+  .row .rname { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .row .rmeta { font-size: 12px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .switch { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: .2s; }
+  .switch .slider::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+
+  /* Empty */
+  .empty { text-align: center; color: var(--muted); padding: 80px 0; font-size: 15px; }
+
+  /* Detail Overlay */
+  .detail-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .detail-overlay.active { opacity: 1; pointer-events: auto; }
+  .detail-modal {
+    background: var(--card); border-radius: 16px; width: min(700px, calc(100% - 32px));
+    max-height: calc(100% - 32px); display: flex; flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px); transition: transform .2s;
+    overflow: hidden;
+  }
+  .detail-overlay.active .detail-modal { transform: translateY(0); }
+  .detail-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; background: var(--card);
+    border-radius: 16px 16px 0 0; flex-shrink: 0;
+  }
+  .detail-header .icon {
+    width: 48px; height: 48px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-light); font-size: 24px; flex-shrink: 0;
+  }
+  .detail-header .icon img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+  .detail-header .info { flex: 1; min-width: 0; }
+  .detail-header .name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .detail-header .vendor { font-size: 13px; color: var(--muted); }
+  .detail-header .close-btn {
+    border: 1px solid var(--line); background: var(--bg); color: #374151; cursor: pointer;
+    width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 400; padding: 0 0 2px; line-height: 1;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .detail-header .close-btn:hover { color: #111827; background: #e5e7eb; border-color: #d1d5db; }
+  .detail-header .close-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .detail-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
+  .detail-desc { font-size: 14px; color: var(--text-2); line-height: 1.7; margin-bottom: 20px; }
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .detail-section-title {
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .detail-section-meta { color: var(--muted); font-size: 12px; font-weight: 400; }
+  .detail-section-spacer { flex: 1; }
+  .detail-section-title .emoji { font-size: 16px; }
+  .text-btn {
+    border: 0; background: transparent; color: var(--accent); cursor: pointer;
+    padding: 4px 6px; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600;
+  }
+  .text-btn:hover { background: var(--accent-light); }
+  .prompt-list { display: flex; flex-direction: column; gap: 8px; }
+  .prompt-item {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    min-height: 52px; padding: 10px 10px 10px 12px; display: flex; align-items: center; gap: 12px;
+    transition: border-color .15s;
+  }
+  .prompt-item:hover { border-color: var(--accent); }
+  .prompt-item .text { flex: 1; min-width: 0; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+  .prompt-item .send-btn {
+    border: 0; background: var(--accent); color: #fff; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 500;
+    transition: background .15s; flex-shrink: 0;
+  }
+  .prompt-item .send-btn:hover { background: var(--accent-hover); }
+  .prompt-item .send-btn:disabled, .btn-primary:disabled { opacity: .55; cursor: wait; }
+  .tools-disclosure { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+  .tools-disclosure > summary {
+    list-style: none; min-height: 48px; padding: 0 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+    background: var(--card); user-select: none;
+  }
+  .tools-disclosure > summary::-webkit-details-marker { display: none; }
+  .tools-disclosure > summary::after { content: "⌄"; margin-left: 4px; color: var(--muted); font-size: 18px; transition: transform .15s; }
+  .tools-disclosure[open] > summary { border-bottom: 1px solid var(--line); }
+  .tools-disclosure[open] > summary::after { transform: rotate(180deg); }
+  .tools-summary { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: auto; }
+  .tools-panel { background: var(--bg); padding: 12px; }
+  .tools-toolbar { margin-bottom: 10px; }
+  .tools-search {
+    width: 100%; height: 36px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text); padding: 0 11px; font: inherit; font-size: 12px;
+  }
+  .tools-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .tools-list { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+  .tools-server { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+  .tools-server-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 9px 12px; display: flex; align-items: center; gap: 6px; background: #f9fafb; border-bottom: 1px solid var(--line); }
+  .tools-server-header .count { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .tool-item { padding: 10px 12px; border-top: 1px solid #f0f1f3; }
+  .tool-item:first-child { border-top: 0; }
+  .tool-item:hover { background: #fafaff; }
+  .tool-name { color: var(--text); font: 600 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
+  .tool-description { color: var(--text-2); font-size: 12px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tool-description.empty { color: var(--muted); font-style: italic; }
+  .tools-loading, .tools-error { font-size: 13px; color: var(--muted); padding: 8px; }
+  .tools-error { color: var(--bad); }
+  .tools-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 24px 8px; }
+  .detail-actions { display: flex; gap: 12px; margin-top: 24px; }
+  .detail-actions button {
+    flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; border: 0; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: var(--card); color: var(--text-2); border: 1px solid var(--line); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--bad-bg); color: var(--bad); border: 0; }
+  .btn-danger:hover { background: #fee2e2; }
+
+  /* Toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--line); color: var(--text);
+    padding: 12px 20px; border-radius: 12px; box-shadow: var(--shadow-lg);
+    z-index: 50; max-width: 80vw; display: none; font-size: 13px;
+  }
+  .toast.show { display: block; }
+  .toast.ok { border-color: #a7f3d0; }
+  .toast.bad { border-color: #fecaca; }
+
+  /* Modal */
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 40; }
+  .modal-mask.show { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; width: 460px; max-width: 92vw; box-shadow: var(--shadow-lg); }
+  .modal h3 { margin: 0 0 16px; font-size: 16px; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; font-weight: 500; }
+  .modal input, .modal textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 13px;
+    transition: border-color .15s;
+  }
+  .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--accent); }
+  .modal .m-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* Scrollbar */
+  main::-webkit-scrollbar, .detail-body::-webkit-scrollbar, .tools-list::-webkit-scrollbar { width: 6px; }
+  main::-webkit-scrollbar-track, .detail-body::-webkit-scrollbar-track, .tools-list::-webkit-scrollbar-track { background: transparent; }
+  main::-webkit-scrollbar-thumb, .detail-body::-webkit-scrollbar-thumb, .tools-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  main::-webkit-scrollbar-thumb:hover, .detail-body::-webkit-scrollbar-thumb:hover, .tools-list::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="tabs" id="tabs">
+      <button data-view="market" class="active">市场</button>
+      <button data-view="installed">已安装</button>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search" type="text" placeholder="搜索连接器…" />
+    </div>
+    <button class="icon-btn" id="refresh">刷新</button>
+  </header>
+  <main id="main"></main>
+
+  <!-- Detail Overlay (inside .app so absolute covers header too) -->
+  <div id="detail-overlay" class="detail-overlay" aria-hidden="true">
+    <div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-name">
+      <div class="detail-header">
+        <div class="icon" id="detail-icon"></div>
+        <div class="info">
+          <div class="name" id="detail-name"></div>
+          <div class="vendor" id="detail-vendor"></div>
+        </div>
+        <button class="close-btn" id="detail-close" type="button" aria-label="关闭详情" title="关闭详情">×</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-desc" id="detail-desc"></div>
+        <div class="detail-section">
+          <div class="detail-section-head">
+            <div class="detail-section-title"><span class="emoji">💡</span> 试试这样用 <span class="detail-section-meta" id="prompt-meta"></span></div>
+            <div class="detail-section-spacer"></div>
+            <button class="text-btn" id="prompt-next" type="button" hidden>换一批</button>
+          </div>
+          <div class="prompt-list" id="detail-prompts"></div>
+        </div>
+        <details class="tools-disclosure" id="tools-disclosure">
+          <summary><span>🧰 工具详情</span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
+          <div class="tools-panel">
+            <div class="tools-toolbar">
+              <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
+            </div>
+            <div class="tools-list" id="detail-tools">
+              <div class="tools-loading">加载中...</div>
+            </div>
+          </div>
+        </details>
+        <div class="detail-actions">
+          <button class="btn-primary" id="detail-try-btn">💬 去试试</button>
+          <button class="btn-danger" id="detail-disconnect-btn">断开连接</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const API = '/mcp-connector/api';
+  const $ = (sel) => document.querySelector(sel);
+  const main = $('#main');
+  const toast = $('#toast');
+  const searchInput = $('#search');
+  let view = 'market';
+  let marketItems = {};
+  let searchQuery = '';
+  const PROMPT_PAGE_SIZE = 4;
+  let detailPrompts = [];
+  let promptPage = 0;
+  let detailToolServers = [];
+  let detailLoadId = 0;
+  const PROMPT_REQUEST_TYPE = 'mcp-connector:start-session';
+  const PROMPT_RESULT_TYPE = 'mcp-connector:start-session-result';
+  let promptRequestId = null;
+  let promptRequestTimer = null;
+
+  async function call(method, params) {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ method, params }),
+    });
+    return res.json();
+  }
+
+  function showToast(message, ok) {
+    toast.textContent = message;
+    toast.className = 'toast show ' + (ok === false ? 'bad' : 'ok');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { toast.className = 'toast'; }, 3200);
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function isImageIcon(value) {
+    return typeof value === 'string' && /^(?:https?:|data:image\/|\/)/.test(value);
+  }
+
+  function setPromptLaunchPending(pending) {
+    document.querySelectorAll('#detail-prompts .send-btn, #detail-try-btn').forEach((button) => {
+      button.disabled = pending;
+    });
+  }
+
+  function finishPromptLaunch(requestId, ok, message) {
+    if (requestId !== promptRequestId) return;
+    clearTimeout(promptRequestTimer);
+    promptRequestTimer = null;
+    promptRequestId = null;
+    setPromptLaunchPending(false);
+    showToast(message || (ok ? '已带入新会话' : '打开新会话失败，请重试'), ok);
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin || event.source !== window.parent) return;
+    if (event.data?.type !== PROMPT_RESULT_TYPE) return;
+    finishPromptLaunch(event.data.requestId, event.data.ok === true, event.data.message);
+  });
+
+  function notifyDetailState(open) {
+    if (window.parent === window) return;
+    window.parent.postMessage({ type: 'mcp-connector:detail-state', open: open === true }, window.location.origin);
+  }
+
+  function setDetailOpen(open) {
+    const overlay = $('#detail-overlay');
+    overlay.classList.toggle('active', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    $('.app').classList.toggle('detail-open', open);
+    notifyDetailState(open);
+    if (open) setTimeout(() => $('#detail-close').focus(), 0);
+  }
+
+  function closeDetail() {
+    detailLoadId += 1;
+    setDetailOpen(false);
+  }
+
+  function renderPromptPage() {
+    const total = detailPrompts.length;
+    const pageCount = Math.max(1, Math.ceil(total / PROMPT_PAGE_SIZE));
+    promptPage = ((promptPage % pageCount) + pageCount) % pageCount;
+    const start = promptPage * PROMPT_PAGE_SIZE;
+    const visible = detailPrompts.slice(start, start + PROMPT_PAGE_SIZE);
+    $('#prompt-meta').textContent = total > 0 ? `· 精选 ${visible.length} / 共 ${total} 条` : '';
+    $('#prompt-next').hidden = total <= PROMPT_PAGE_SIZE;
+    $('#detail-prompts').innerHTML = visible.length > 0
+      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${esc(prompt.text || prompt.title || '')}</div><button class="send-btn" type="button" data-prompt-index="${start + index}">发送</button></div>`).join('')
+      : '<div style="color:var(--muted);font-size:13px;">暂无预设 Prompt</div>';
+  }
+
+  function updateToolsSummary() {
+    const totalTools = detailToolServers.reduce((sum, server) => sum + (server.tools?.length || 0), 0);
+    $('#tools-summary').textContent = `${detailToolServers.length} SERVER · ${totalTools} 个工具`;
+    $('#tools-search').placeholder = totalTools > 0
+      ? `搜索 ${totalTools} 个工具的名称或描述…`
+      : '搜索工具名称或描述…';
+  }
+
+  function renderTools() {
+    const query = $('#tools-search').value.trim().toLowerCase();
+    if (detailToolServers.length === 0) {
+      updateToolsSummary();
+      $('#detail-tools').innerHTML = '<div class="tools-empty">暂无可用工具</div>';
+      return;
+    }
+    let matchedTools = 0;
+    const groups = detailToolServers.map((server) => {
+      const label = server.serverName || server.serverKey || 'MCP Server';
+      if (!server.ok) {
+        if (query) return '';
+        return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 加载失败</span></div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
+      }
+      const tools = (server.tools || []).filter((tool) => {
+        if (!query) return true;
+        return `${tool.name || ''}\n${tool.title || ''}\n${tool.description || ''}`.toLowerCase().includes(query);
+      });
+      if (query && tools.length === 0) return '';
+      matchedTools += tools.length;
+      const items = tools.length > 0
+        ? tools.map((tool) => {
+          const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
+          return `<div class="tool-item"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
+        }).join('')
+        : '<div class="tools-loading">暂无工具</div>';
+      return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· ${tools.length} 个工具</span></div>${items}</div>`;
+    }).filter(Boolean);
+    $('#detail-tools').innerHTML = groups.length > 0
+      ? groups.join('')
+      : `<div class="tools-empty">没有匹配“${esc($('#tools-search').value.trim())}”的工具</div>`;
+    if (query) $('#tools-summary').textContent = `匹配 ${matchedTools} 个工具`;
+    else updateToolsSummary();
+  }
+
+  function openModal(title, bodyHtml) {
+    $('#modal').innerHTML = `<h3>${esc(title)}</h3>${bodyHtml}`;
+    $('#modalMask').classList.add('show');
+  }
+  function closeModal() { $('#modalMask').classList.remove('show'); }
+  $('#modalMask').addEventListener('click', (e) => { if (e.target.id === 'modalMask') closeModal(); });
+
+  function matchesSearch(d) {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (d.name || '').toLowerCase().includes(q)
+      || (d.vendor || '').toLowerCase().includes(q)
+      || (d.summary || '').toLowerCase().includes(q)
+      || (d.tags || []).some(t => t.toLowerCase().includes(q));
+  }
+
+  async function loadMarket() {
+    main.innerHTML = '<div class="empty">加载中…</div>';
+    const r = await call('catalog', {});
+    if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
+    const items = r.detail?.items ?? [];
+    if (!items.length) { main.innerHTML = '<div class="empty">暂无已上架的连接器</div>'; return; }
+    marketItems = {};
+    items.forEach((d) => { marketItems[d.id] = d; });
+    const filtered = items.filter(matchesSearch);
+    const count = filtered.length;
+    main.innerHTML = `<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 点击「连接」完成一键授权并挂载 MCP 工具</span></div><div class="grid">${filtered.map(cardHtml).join('')}</div>`;
+  }
+
+  function cardHtml(d) {
+    const connected = d.connected?.length > 0;
+    const icon = isImageIcon(d.icon)
+      ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
+      : `<span>${esc(d.icon || '🔌')}</span>`;
+    const actions = actionHtml(d, connected);
+    const clickHandler = connected ? `onclick="window.__mcp.showDetail('${esc(d.id)}')"` : '';
+    return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" ${clickHandler}>
+      <div class="icon">${icon}</div>
+      <div class="content">
+        <div class="name">${esc(d.name)}</div>
+        <div class="summary">${esc(d.summary || '')}</div>
+      </div>
+      <div class="actions">${actions}</div>
+    </div>`;
+  }
+
+  function actionHtml(d, connected) {
+    const id = esc(d.id);
+    if (d.authMode === 'oauth2-pkce') {
+      if (connected) return `<button class="btn ghost" disabled>已连接</button>`;
+      return `<button class="btn" onclick="window.__mcp.connect('${id}')">连接</button>`;
+    }
+    if (d.authMode === 'none') {
+      if (connected) return `<button class="btn ghost" disabled>已连接</button>`;
+      return `<button class="btn" onclick="window.__mcp.connect('${id}')">连接</button>`;
+    }
+    return `<button class="btn ghost" onclick="window.__mcp.openConfig('${id}')">配置连接</button>`;
+  }
+
+  async function loadInstalled() {
+    main.innerHTML = '<div class="empty">加载中…</div>';
+    const r = await call('status', {});
+    if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
+    const items = r.detail?.items ?? [];
+    if (!items.length) { main.innerHTML = '<div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>'; return; }
+    const filtered = items.filter(matchesSearch);
+    main.innerHTML = `<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 停用后工具立即下线，断开会撤销 OAuth 授权</span></div><div class="rows">${filtered.map(rowHtml).join('')}</div>`;
+  }
+
+  function rowHtml(r) {
+    const key = esc(r.key);
+    const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
+    const enabled = r.enabled !== false;
+    return `<div class="row" data-key="${key}">
+      <div class="info">
+        <div class="rname">${esc(r.name)} ${authMode}</div>
+        <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.url || '')}</div>
+      </div>
+      <label class="switch" title="${enabled ? '停用' : '启用'}">
+        <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
+        <span class="slider"></span>
+      </label>
+      <button class="btn danger" onclick="window.__mcp.disconnect('${key}')">断开</button>
+    </div>`;
+  }
+
+  window.__mcp = {
+    async connect(connectorId) {
+      const r = await call('connect', { connectorId });
+      showToast(r.message, r.ok);
+      if (r.ok) await refresh();
+    },
+    toggle(key, enabled) {
+      call('setEnabled', { key, enabled }).then((r) => showToast(r.message, r.ok));
+    },
+    async disconnect(key) {
+      if (!confirm('确认断开该连接？OAuth 授权会被撤销。')) return;
+      const r = await call('disconnect', { key });
+      showToast(r.message, r.ok);
+      await refresh();
+    },
+    openConfig(connectorId) {
+      const d = marketItems[connectorId] || {};
+      const server = (d.servers || [{}])[0] || {};
+      openModal('配置连接', `
+        <p style="font-size:12px;color:var(--muted);margin:0 0 12px">该连接器需要密钥（${esc(d.authMode)}），目录不含凭据，请填写完整连接信息：</p>
+        <label>名称（必填）</label>
+        <input id="cfg-name" value="${esc(d.name || '')}" placeholder="连接显示名" />
+        <label>URL（必填）</label>
+        <input id="cfg-url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+        <label>serverName（必填，工具前缀）</label>
+        <input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" />
+        <label>认证头（可选，JSON 对象，如 {"Authorization":"Bearer …"}）</label>
+        <textarea id="cfg-headers" rows="2" placeholder='{"Authorization":"Bearer …"}'></textarea>
+        <div class="m-actions">
+          <button class="btn ghost" onclick="window.__mcp.closeModal()">取消</button>
+          <button class="btn" onclick="window.__mcp.submitConfig()">连接</button>
+        </div>`);
+    },
+    closeModal() { closeModal(); },
+    async submitConfig() {
+      const name = $('#cfg-name').value.trim();
+      const url = $('#cfg-url').value.trim();
+      const serverName = $('#cfg-sname').value.trim();
+      if (!name || !url || !serverName) { showToast('名称、URL 与 serverName 必填', false); return; }
+      let headersJson;
+      try { headersJson = JSON.parse($('#cfg-headers').value || '{}'); }
+      catch { showToast('认证头不是合法 JSON', false); return; }
+      closeModal();
+      const r = await call('configure', { name, url, serverName, headersJson });
+      showToast(r.message, r.ok);
+      if (r.ok) await refresh();
+    },
+    async showDetail(connectorId) {
+      const d = marketItems[connectorId];
+      if (!d) return;
+      const loadId = ++detailLoadId;
+      $('#detail-icon').innerHTML = isImageIcon(d.icon)
+        ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
+        : `<span style="font-size:24px;">${esc(d.icon || '')}</span>`;
+      $('#detail-name').textContent = d.name || '';
+      $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · 已连接 ${d.connected?.length || 0} 个服务` : `已连接 ${d.connected?.length || 0} 个服务`;
+      $('#detail-desc').textContent = d.description || d.summary || '';
+      detailPrompts = (d.prompts || []).filter((prompt) => prompt?.text || prompt?.title);
+      promptPage = 0;
+      renderPromptPage();
+      detailToolServers = [];
+      $('#tools-search').value = '';
+      $('#tools-disclosure').open = false;
+      $('#tools-summary').textContent = '加载中…';
+      $('#detail-tools').innerHTML = '<div class="tools-loading">正在读取可用工具及描述…</div>';
+      setDetailOpen(true);
+      $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
+      const toolsResult = await call('toolsList', { connectorId });
+      if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
+      if (!toolsResult.ok) {
+        $('#tools-summary').textContent = '工具加载失败';
+        $('#detail-tools').innerHTML = `<div class="tools-error">${esc(toolsResult.message)}</div>`;
+        return;
+      }
+      detailToolServers = toolsResult.detail?.servers || [];
+      updateToolsSummary();
+      renderTools();
+    },
+    sendPrompt(promptText) {
+      const prompt = String(promptText || '').trim();
+      if (!prompt) {
+        showToast('Prompt 不能为空', false);
+        return;
+      }
+      if (promptRequestId !== null) return;
+      if (window.parent === window) {
+        showToast('请在 DSH Desktop 中使用「发送到新会话」', false);
+        return;
+      }
+      const requestId = `prompt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      promptRequestId = requestId;
+      setPromptLaunchPending(true);
+      showToast('正在创建新会话…', true);
+      window.parent.postMessage({
+        type: PROMPT_REQUEST_TYPE,
+        requestId,
+        prompt
+      }, window.location.origin);
+      promptRequestTimer = setTimeout(() => {
+        finishPromptLaunch(requestId, false, '打开新会话超时，请重试');
+      }, 10000);
+    },
+    async disconnectCurrent() {
+      const name = $('#detail-name').textContent;
+      if (!confirm(`确认断开「${name}」的连接？OAuth 授权会被撤销。`)) return;
+      // Find connection keys for this connector
+      const r = await call('status', {});
+      if (r.ok) {
+        const items = r.detail?.items ?? [];
+        for (const item of items) {
+          if (item.connectorId && marketItems[item.connectorId]?.name === name) {
+            const dr = await call('disconnect', { key: item.key });
+            showToast(dr.message, dr.ok);
+          }
+        }
+      }
+      closeDetail();
+      await refresh();
+    },
+  };
+
+  $('#detail-close').addEventListener('click', closeDetail);
+  $('#detail-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'detail-overlay') closeDetail();
+  });
+  $('#prompt-next').addEventListener('click', () => {
+    promptPage += 1;
+    renderPromptPage();
+  });
+  $('#detail-prompts').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-prompt-index]');
+    if (!button) return;
+    const prompt = detailPrompts[Number(button.dataset.promptIndex)];
+    if (prompt) window.__mcp.sendPrompt(prompt.text || prompt.title || '');
+  });
+  $('#tools-search').addEventListener('input', renderTools);
+  $('#detail-try-btn').addEventListener('click', () => {
+    const prompt = detailPrompts[promptPage * PROMPT_PAGE_SIZE];
+    if (prompt) {
+      window.__mcp.sendPrompt(prompt.text || prompt.title || '');
+    } else {
+      showToast('暂无预设 Prompt', false);
+    }
+  });
+  $('#detail-disconnect-btn').addEventListener('click', () => {
+    window.__mcp.disconnectCurrent();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('#detail-overlay').classList.contains('active')) closeDetail();
+  });
+  window.addEventListener('pagehide', () => notifyDetailState(false));
+
+  function refresh() { return view === 'market' ? loadMarket() : loadInstalled(); }
+
+  $('#refresh').addEventListener('click', async () => {
+    const r = await call('refreshCatalog', {});
+    showToast(r.message, r.ok);
+    await refresh();
+  });
+
+  $('#tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    view = btn.dataset.view;
+    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+    refresh();
+  });
+
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    refresh();
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
