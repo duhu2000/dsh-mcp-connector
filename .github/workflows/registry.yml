@@ -1,6 +1,15 @@
 name: Registry health
 
 on:
+  push:
+    branches: ['feat/**']
+    paths:
+      - 'catalog/**'
+      - 'registry/**'
+      - 'lib/probe.js'
+      - 'lib/schema.js'
+      - 'scripts/*registry*.mjs'
+      - 'scripts/probe-connector.mjs'
   pull_request:
     paths:
       - 'catalog/**'
