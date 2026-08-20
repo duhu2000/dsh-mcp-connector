@@ -29,10 +29,10 @@
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | lint + 单元/集成测试 | 通过，29/29 |
 | npm 发布包校验 | 已配置，25 个白名单文件；含敏感内容与本机路径扫描 |
-| GitHub Actions CI/Release | 已配置 |
+| GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
-| GitHub 远端建仓、push、`v0.1.0` | 待执行 |
-| npm `dsh-mcp-connector@0.1.0` | 待执行；当前 npm CLI 未登录 |
+| GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
+| npm `dsh-mcp-connector@0.1.0` | 已公开发布并完成全新安装验证 |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -64,16 +64,15 @@ npm run check
 - `.github/workflows/`、`scripts/verify-pack.mjs`：发布门禁。
 - `CHANGELOG.md`：首发能力与后续版本变更记录。
 
-## 6. 首发流程
+## 6. 首发结果
 
-1. Desktop 验收通过。
-2. `npm run check` 再次全绿。
-3. 初始化 Git，首个 commit 推送到 `duhu2000/dsh-mcp-connector` 的 `main`。
-4. 确认 CI 在 Node 20/22/24 全绿。
-5. 配置仓库 Secret `NPM_TOKEN`，创建并推送 `v0.1.0` Tag。
-6. 验证 GitHub Release、npm 页面和全新 DSH profile 安装。
+1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
+2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0
+4. npm：https://www.npmjs.com/package/dsh-mcp-connector
+5. npm `latest`：`0.1.0`；从 registry 全新安装后 `lib/client.js`、`ui/index.html`、`CHANGELOG.md` 均存在。
 
-发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；没有 `NPM_TOKEN` 时会跳过 npm，只创建 GitHub Release。
+发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；本次 npm 使用本机已认证账号直接发布，Tag 工作流负责 GitHub Release。
 
 ## 7. 已知限制与风险
 

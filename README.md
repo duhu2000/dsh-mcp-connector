@@ -66,7 +66,7 @@ npm run check
 
 该命令依次执行语法检查、29 项测试和 npm 发布包白名单校验。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。仓库配置 `NPM_TOKEN` 后自动发布 npm，否则只创建 GitHub Release。
 
-首个公开版本规划为 `dsh-mcp-connector@0.1.0`。
+当前公开版本为 [`dsh-mcp-connector@0.1.0`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.1.0](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
