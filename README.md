@@ -68,6 +68,8 @@ npm run check
 
 首个公开版本规划为 `dsh-mcp-connector@0.1.0`。
 
+版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 安全与限制
 
 - 凭证只持久化在 DSH storage domain，不进入目录、Git 仓库或对话历史。

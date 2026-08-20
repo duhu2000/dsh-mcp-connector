@@ -31,10 +31,10 @@ MCP连接器
 
 | 项目 | 状态 | 发布门禁 |
 |---|---|---|
-| P0-0 左上角目标位置 | 开发完成，待 Desktop 人工验收 | 展开/收起均在新会话下、工作区上；无重复入口；点击正常 |
+| P0-0 左上角目标位置 | 已完成并通过 Desktop 验收 | 展开/收起均在新会话下、工作区上；无重复入口；点击正常 |
 | P0-1 产品与文档基线 | 已完成 | README、PLAN、HANDOFF 与实际实现一致 |
 | P0-2 发布工程 | 已完成 | `npm run check` 通过；包内容仅白名单；CI/Release 工作流就绪 |
-| P0-3 GitHub 首发 | 待执行 | 新建公开仓库、首个 commit、push main、CI 通过、Tag `v0.1.0` |
+| P0-3 GitHub 首发 | 本地 Git/基线提交已完成，远端待执行 | 新建公开仓库、push main、CI 通过、Tag `v0.1.0` |
 | P0-4 npm 首发 | 待执行 | npm 登录或仓库 `NPM_TOKEN` 可用，发布 `dsh-mcp-connector@0.1.0` |
 
 P0 完成定义：Desktop 验收通过、GitHub main/Tag 可访问、GitHub Actions 通过、npm 页面可安装、全新 profile 冒烟测试通过。
@@ -58,4 +58,4 @@ P0 完成定义：Desktop 验收通过、GitHub main/Tag 可访问、GitHub Acti
 - 包名与仓库名：`dsh-mcp-connector`。
 - 首发版本：`0.1.0`（npm 尚无历史版本，不人为跳号）。
 - 许可证：MIT，公开仓库。
-- 顶部入口为 P0 发布阻断项；未通过 Desktop 人工验收前不创建 `v0.1.0` Tag、不发布 npm。
+- 顶部入口 Desktop 验收已通过；当前发布阻断项只剩 GitHub 远端建仓/CI 与 npm 发布凭据。

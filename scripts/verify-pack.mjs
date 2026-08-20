@@ -2,11 +2,13 @@
  * 发布前校验 npm 包内容，防止测试、设计稿、工作流或本地文件被误发布。
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const WHITELIST = [
   /^package\.json$/,
   /^cordis\.patch\.yml$/,
   /^README\.md$/,
+  /^CHANGELOG\.md$/,
   /^LICENSE$/,
   /^install\.sh$/,
   /^catalog\/[^/]+\.json$/,
@@ -43,4 +45,31 @@ if (stray.length > 0) {
   process.exit(1);
 }
 
-console.log(`verify-pack 通过：${files.length} 个发布文件全部在白名单内`);
+const sensitivePatterns = [
+  ['私钥', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
+  ['npm token', /npm_[A-Za-z0-9]{20,}/],
+  ['GitHub token', /gh[pousr]_[A-Za-z0-9]{20,}/],
+  ['OpenAI 风格密钥', /sk-[A-Za-z0-9_-]{20,}/],
+  ['AWS access key', /AKIA[0-9A-Z]{16}/],
+  ['本机绝对路径', /(?:\/Users\/[^/\s]+\/|\/home\/[^/\s]+\/)/],
+];
+const sensitive = [];
+for (const file of files) {
+  const content = readFileSync(file, 'utf8');
+  for (const [label, pattern] of sensitivePatterns) {
+    if (pattern.test(content)) sensitive.push(`${file}: ${label}`);
+  }
+}
+if (sensitive.length > 0) {
+  console.error('verify-pack 失败：发布文件疑似包含凭证或本机信息：');
+  for (const item of sensitive) console.error(`  - ${item}`);
+  process.exit(1);
+}
+
+const installScript = readFileSync('install.sh', 'utf8');
+if (!/^PKG="dsh-mcp-connector"$/m.test(installScript)) {
+  console.error('verify-pack 失败：install.sh 未安装 dsh-mcp-connector');
+  process.exit(1);
+}
+
+console.log(`verify-pack 通过：${files.length} 个发布文件均在白名单内，且未发现凭证或本机路径`);

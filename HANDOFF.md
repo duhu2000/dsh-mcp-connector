@@ -26,16 +26,17 @@
 |---|---|
 | 入口、弹框、详情、Logo、Prompt 发送 | 已完成开发 |
 | 左上角目标位置自动测试 | 已通过 |
-| 左上角目标位置 Desktop 实机验收 | 待重启 DSH 后验证 |
+| 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | lint + 单元/集成测试 | 通过，29/29 |
-| npm 发布包校验 | 已配置，24 个白名单文件 |
+| npm 发布包校验 | 已配置，25 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置 |
-| Git 仓库、GitHub push、`v0.1.0` | 待执行 |
+| 本地 Git 仓库与首个基线提交 | 已完成 |
+| GitHub 远端建仓、push、`v0.1.0` | 待执行 |
 | npm `dsh-mcp-connector@0.1.0` | 待执行；当前 npm CLI 未登录 |
 
-## 4. Desktop 验收清单（P0 发布阻断）
+## 4. Desktop 验收清单（已通过）
 
-完全退出并重启 DSH Desktop 后验证：
+2026-08-20 已完成 Desktop 实机验证，后续版本继续按以下项目回归：
 
 1. 展开侧栏：MCP连接器位于新会话下、工作区上，社区插件市场仍在底部。
 2. 收起侧栏：显示单独的 🧩 圆形入口，不挤压其他入口。
@@ -61,6 +62,7 @@ npm run check
 - `catalog/catalog.json`：内置连接器和 Prompt。
 - `test/client.test.mjs`：Client 入口与 Prompt 桥接回归。
 - `.github/workflows/`、`scripts/verify-pack.mjs`：发布门禁。
+- `CHANGELOG.md`：首发能力与后续版本变更记录。
 
 ## 6. 首发流程
 

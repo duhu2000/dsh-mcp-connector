@@ -15,6 +15,7 @@
     "catalog",
     "cordis.patch.yml",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "install.sh"
   ],
@@ -36,11 +37,18 @@
     "marketplace"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/duhu2000/dsh-mcp-connector.git"
   },
   "homepage": "https://github.com/duhu2000/dsh-mcp-connector#readme",
+  "bugs": {
+    "url": "https://github.com/duhu2000/dsh-mcp-connector/issues"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
