@@ -1,7 +1,7 @@
 # MCP连接器插件移交文档
 
-> 更新：2026-08-21  
-> 源码：`/Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin`  
+> 更新：2026-08-21
+> 源码：`/Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin`
 > Desktop 安装副本：`/Users/qcc/.dsh/profiles/web/node_modules/dsh-mcp-connector`
 
 ## 1. 产品目标

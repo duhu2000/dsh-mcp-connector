@@ -1,6 +1,6 @@
 # MCP连接器项目计划
 
-> 基线日期：2026-08-21  
+> 基线日期：2026-08-21
 > 首发目标：GitHub `duhu2000/dsh-mcp-connector` + npm `dsh-mcp-connector@0.1.0`
 
 ## 项目目标
