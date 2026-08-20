@@ -1,6 +1,6 @@
 # MCP连接器插件移交文档
 
-> 更新：2026-08-20  
+> 更新：2026-08-21  
 > 源码：`/Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin`  
 > Desktop 安装副本：`/Users/qcc/.dsh/profiles/web/node_modules/dsh-mcp-connector`
 
@@ -30,8 +30,8 @@
 | 入口、弹框、详情、Logo、Prompt 发送 | 已完成开发 |
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
-| lint + 单元/集成测试 | 通过，29/29 |
-| npm 发布包校验 | 已配置，25 个白名单文件；含敏感内容与本机路径扫描 |
+| lint + 单元/集成测试 | 通过，39/39 |
+| npm 发布包校验 | 已配置，36 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |

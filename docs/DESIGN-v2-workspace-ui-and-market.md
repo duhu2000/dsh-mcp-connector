@@ -1,6 +1,6 @@
 # MCP连接器 · v2 设计：左侧工作区入口 + 右侧图形化页面 + 市场运营管线
 
-> 状态：已实现（2026-08-20 更新；顶部主导航位置进入 P0 Desktop 验收）
+> 状态：已实现（2026-08-21 更新；顶部主导航位置已通过 P0 Desktop 验收）
 > 前置：v1 MVP（P0）已跑通 —— 目录 / OAuth 一键连接 / 状态管理（对话工具面）
 
 ---
@@ -163,23 +163,13 @@ toolsSnapshot:    z.array(z.object({ serverKey: z.string(), tools: z.array(z.obj
 | **M7** | client 半 + host webServer + SPA 骨架（市场/已安装卡片，安装/卸载） | 左侧入口 + 右栏可交互页 |
 | **M8** | SPA 全量（详情/工具清单/试一试/使用）、API 补齐、信任围栏、与对话工具同源 | 图形页 MVP 完成 |
 | **M9** | 市场管线：`probe` CLI + registry 仓库 + CI（探针/合并/上架/巡检） | 市场可运营 |
-| **M10** | 加固：Playwright e2e、鉴权/围栏测试、i18n、迁移旧 qcc 插件 | 发布候选 |
+| **M10** | 加固：Desktop UI mock 测试壳、鉴权/围栏测试、i18n、迁移旧 qcc 插件 | 已完成开发，实机待发版验收 |
 
 ---
 
-## 9. 风险与待确认
+## 9. 已落地的评审决策
 
-1. **参考图未能读取**（本会话模型无图像输入，modlens 的 claude-cli provider 报错）——本设计按「workbuddy/traework/qwenwork 式左侧应用入口 + 右侧卡片市场」理解；若细节不同请文字描述。
-2. **左栏放置**：推荐方案 A（底部功能轨道图标），若要「左栏中部带标题常驻行」需改 shell，成本显著（见 §5）。
-3. **右栏依赖**：复用 `dsh-better-sidebar`（已装）；若目标环境无此插件，需自带 `details` 注册兜底（会与 better-sidebar 冲突，故作为可选降级）。
-4. **client 半的实现细节**：`registerTab` 描述符的 `render` vs `createTab`、`sidebar.footer.action` 的 props 形状，将在 M7 编码时对照 `.asar` 内源码逐项确认。
-5. **registry 托管**：GitHub 公开仓库（Tier 1）为默认；如需私有 registry 或内网托管需另定。
-
----
-
-## 10. 评审决策点（请确认后开工 M7）
-
-1. 左栏入口：**A 底部功能轨道图标（推荐）** / B 顶部 / C 自实现整栏？
-2. 右栏形态：**复用 better-sidebar 页签（推荐）** / 独立 details 面板？
-3. registry 托管：**GitHub 公开仓库（推荐）** / 私有/内网？
-4. 市场首版范围：先只做 **市场+已安装+安装/卸载**（M7），详情/工具清单/试一试放 M8？
+1. **左栏入口**：已选择“新会话下、工作区上”的主导航位置；由公开 footer slot 托管生命周期，Portal 定位，目标缺失时回退 footer。
+2. **主内容形态**：已选择插件自带 Overlay，不依赖 `dsh-better-sidebar`。
+3. **市场范围**：M7/M8 均已完成，包含市场、已安装、详情、工具、Prompt 和连接生命周期。
+4. **registry 托管**：仓库内 Tier 1 种子和 CI 已落地；是否拆分为新的公开仓库，留待发版验收时确认。
