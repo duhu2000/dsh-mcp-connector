@@ -16,12 +16,16 @@
     "lib",
     "ui",
     "catalog",
+    "registry",
+    "docs/DESKTOP-E2E.md",
     "cordis.patch.yml",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
     "install.sh",
-    "scripts/probe-connector.mjs"
+    "scripts/probe-connector.mjs",
+    "scripts/build-registry.mjs",
+    "scripts/ui-harness.mjs"
   ],
   "scripts": {
     "test": "node --test",

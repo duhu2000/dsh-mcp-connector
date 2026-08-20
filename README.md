@@ -76,6 +76,7 @@ npm run dev:ui
 当前公开版本为 [`dsh-mcp-connector@0.1.0`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.1.0](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 
 ## 安全与限制
 

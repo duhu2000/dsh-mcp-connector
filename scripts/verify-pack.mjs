@@ -14,7 +14,12 @@ const WHITELIST = [
   /^catalog\/[^/]+\.json$/,
   /^lib\/[^/]+\.js$/,
   /^lib\/connectors\/[^/]+\.js$/,
-  /^scripts\/probe-connector\.mjs$/,
+  /^scripts\/(?:probe-connector|build-registry|ui-harness)\.mjs$/,
+  /^registry\/README\.md$/,
+  /^registry\/catalog\.json$/,
+  /^registry\/connectors\/[^/]+\.json$/,
+  /^registry\/schema\/[^/]+\.json$/,
+  /^docs\/DESKTOP-E2E\.md$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
 ];
