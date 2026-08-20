@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { loadBundledCatalog, listCatalog, mergeCatalog, fetchRemoteCatalog } from '../lib/catalog.js';
+import { loadBundledCatalog, listCatalog, mergeCatalog, fetchRemoteCatalog, readLimitedJson } from '../lib/catalog.js';
 import { normalizeConnectorDescriptor } from '../lib/schema.js';
 
 function desc(id, { published = true, featured = false, category = '其他' } = {}) {
@@ -25,6 +25,9 @@ test('内置目录加载 + published 过滤', () => {
   const qccCards = published.filter((d) => d.id.startsWith('qcc-'));
   assert.equal(qccCards.length, 4, '内置目录应包含 4 张企查查卡片');
   assert.ok(qccCards.every((d) => d.icon === '/mcp-connector/ui/assets/qcc-logo.svg'), '4 张卡片统一使用内置企查查 Logo');
+  assert.ok(qccCards.every((d) => d.prompts.length > 0), '4 张卡片均应提供可快速体验的 Prompt');
+  assert.ok(qccCards.flatMap((d) => d.prompts).some((prompt) => prompt.text.includes('{{')), 'Prompt 应使用参数模板');
+  assert.ok(!qccCards.flatMap((d) => d.prompts).some((prompt) => /小米科技|华为技术|雷军/.test(prompt.text)), '目录不应再硬编码示例主体');
 });
 
 test('mergeCatalog 优先级 + 本地覆盖', () => {
@@ -62,4 +65,9 @@ test('fetchRemoteCatalog 拉取并解析 { connectors } 结构', async () => {
   } finally {
     server.close();
   }
+});
+
+test('readLimitedJson 拒绝超限目录响应', async () => {
+  const response = new Response(JSON.stringify({ value: '0123456789' }), { headers: { 'content-type': 'application/json' } });
+  await assert.rejects(() => readLimitedJson(response, 5), /超过 5 bytes/);
 });

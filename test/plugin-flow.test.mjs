@@ -239,7 +239,8 @@ test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
   await new Promise((r) => catalogSrv.listen(0, '127.0.0.1', r));
   const port = catalogSrv.address().port;
 
-  const { ctx, tools } = makePluginContext();
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const { ctx, tools, tables } = makePluginContext({ shared });
   const { apply } = await import('../lib/index.js');
   await apply(ctx, baseConfig());
 
@@ -250,6 +251,12 @@ test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
   assert.equal(cat.ok, true);
   assert.equal(cat.detail.items.length, 1);
   assert.equal(cat.detail.items[0].id, 'url-demo');
+  assert.equal((await tables.get('catalog').get('dynamic')).connectors[0].id, 'url-demo', 'URL 安装描述应持久化');
+
+  const restarted = makePluginContext({ shared });
+  await apply(restarted.ctx, baseConfig());
+  const restoredCatalog = await restarted.tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
+  assert.equal(restoredCatalog.detail.items[0].id, 'url-demo', '重启后应恢复 URL 安装的目录条目');
 
   const pub = await tools.defs.get('mcp_connector_publish').execute({ connectorId: 'url-demo', published: false });
   assert.equal(pub.ok, true);

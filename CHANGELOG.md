@@ -2,6 +2,34 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；首个公开版本从 `0.1.0` 开始。
 
+## [Unreleased]
+
+### Added
+
+- 图形化“添加连接”：手动配置、`mcpServers` JSON、连接器描述 URL，并提供错误修复提示。
+- 参数化 Prompt：发送前收集企业、人员或主题等变量，不再硬编码示例主体。
+- Tier 1 registry 种子：JSON Schema、确定性构建、无凭据 MCP/OAuth 探针和每周健康巡检。
+- 两个旧企查查 OAuth 插件的授权预览和幂等复制迁移；源插件与源凭据始终保留。
+- 本地 UI mock 测试壳和 Desktop 发版回归清单。
+
+### Changed
+
+- 未连接卡片也可查看详情；registry 提供 `toolsSnapshot` 时可在授权前预览工具。
+- 工具每批渲染 50 条、连接器每批 60 张，并保留搜索能力。
+- 增加基础中英文、系统深浅主题、焦点样式、Escape 关闭和弹框焦点循环。
+- URL 安装描述持久化，重启后仍在市场显示。
+
+### Security
+
+- 远程 JSON 响应限制 2 MiB，Web API 请求体限制 1 MiB。
+- 在 Schema 丢弃未知字段前扫描 token、API Key、secret 等夹带凭据。
+- OAuth 元数据和重定向终点执行 HTTPS/loopback 白名单；Web UI 增加 CSP、`nosniff`、`no-referrer`。
+
+### Fixed
+
+- 正确解析 `WWW-Authenticate: Bearer resource_metadata="…"` 首个参数。
+- 修复鉴权表单 `hidden` 被网格布局覆盖、无鉴权模式误显示 API Key 字段。
+
 ## [0.1.0] - 2026-08-20
 
 ### Added

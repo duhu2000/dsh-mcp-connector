@@ -14,6 +14,7 @@ const WHITELIST = [
   /^catalog\/[^/]+\.json$/,
   /^lib\/[^/]+\.js$/,
   /^lib\/connectors\/[^/]+\.js$/,
+  /^scripts\/probe-connector\.mjs$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
 ];

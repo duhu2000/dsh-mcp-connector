@@ -6,6 +6,7 @@
 <title>MCP连接器</title>
 <style>
   :root {
+    color-scheme: light dark;
     --bg: #f8f9fb;
     --card: #ffffff;
     --line: #e5e7eb;
@@ -25,7 +26,29 @@
     --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
     --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111318;
+      --card: #1b1e25;
+      --line: #30343d;
+      --text: #f3f4f6;
+      --text-2: #c4c8d0;
+      --muted: #8e96a3;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --accent-light: #252750;
+      --ok: #34d399;
+      --ok-bg: #0d3027;
+      --warn: #fbbf24;
+      --warn-bg: #35280b;
+      --bad: #f87171;
+      --bad-bg: #3b171b;
+      --shadow: 0 1px 3px rgba(0,0,0,.35);
+      --shadow-lg: 0 16px 35px rgba(0,0,0,.45);
+    }
+  }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { height: 100%; }
   body {
     margin: 0;
@@ -71,6 +94,8 @@
     transition: all .15s;
   }
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .icon-btn.primary:hover { background: var(--accent-hover); }
 
   /* Main */
   main { flex: 1; overflow-y: auto; padding: 24px; }
@@ -105,6 +130,11 @@
   .card .name { font-weight: 600; font-size: 14px; line-height: 1.4; }
   .card .summary { color: var(--text-2); font-size: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .card .actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; align-self: center; }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 7px; background: var(--bg); color: var(--muted); font-size: 10px; font-weight: 600; }
+  .badge.pass { color: var(--ok); background: var(--ok-bg); }
+  .badge.partial { color: var(--warn); background: var(--warn-bg); }
+  .badge.fail { color: var(--bad); background: var(--bad-bg); }
 
   /* Buttons */
   .btn {
@@ -138,6 +168,9 @@
 
   /* Empty */
   .empty { text-align: center; color: var(--muted); padding: 80px 0; font-size: 15px; }
+  .migration-banner { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 14px; border: 1px solid #fbbf24; background: var(--warn-bg); border-radius: 10px; color: var(--text-2); }
+  .migration-banner .copy { flex: 1; min-width: 0; font-size: 12px; }
+  .migration-banner strong { display: block; color: var(--text); font-size: 13px; }
 
   /* Detail Overlay */
   .detail-overlay {
@@ -229,17 +262,18 @@
   .tools-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
   .tools-list { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
   .tools-server { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
-  .tools-server-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 9px 12px; display: flex; align-items: center; gap: 6px; background: #f9fafb; border-bottom: 1px solid var(--line); }
+  .tools-server-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 9px 12px; display: flex; align-items: center; gap: 6px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .tools-server-header .count { font-size: 11px; color: var(--muted); font-weight: 400; }
   .tool-item { padding: 10px 12px; border-top: 1px solid #f0f1f3; }
   .tool-item:first-child { border-top: 0; }
-  .tool-item:hover { background: #fafaff; }
+  .tool-item:hover { background: var(--accent-light); }
   .tool-name { color: var(--text); font: 600 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
   .tool-description { color: var(--text-2); font-size: 12px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .tool-description.empty { color: var(--muted); font-style: italic; }
   .tools-loading, .tools-error { font-size: 13px; color: var(--muted); padding: 8px; }
   .tools-error { color: var(--bad); }
   .tools-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 24px 8px; }
+  .tools-more { width: 100%; margin-top: 10px; border: 1px dashed var(--line); background: var(--card); color: var(--accent); border-radius: 8px; padding: 8px; cursor: pointer; font: inherit; font-size: 12px; }
   .detail-actions { display: flex; gap: 12px; margin-top: 24px; }
   .detail-actions button {
     flex: 1; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 500;
@@ -266,16 +300,34 @@
   /* Modal */
   .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 40; }
   .modal-mask.show { display: flex; }
-  .modal { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; width: 460px; max-width: 92vw; box-shadow: var(--shadow-lg); }
+  .modal { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; width: 520px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
   .modal h3 { margin: 0 0 16px; font-size: 16px; }
   .modal label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; font-weight: 500; }
-  .modal input, .modal textarea {
+  .modal input, .modal textarea, .modal select {
     width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
     border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 13px;
     transition: border-color .15s;
   }
-  .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--accent); }
+  .modal input:focus, .modal textarea:focus, .modal select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
   .modal .m-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .modal-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--bg); padding: 4px; border-radius: 9px; margin-bottom: 14px; }
+  .modal-tabs button { border: 0; background: transparent; color: var(--text-2); border-radius: 7px; padding: 7px 4px; cursor: pointer; font: inherit; font-size: 12px; }
+  .modal-tabs button.active { background: var(--card); color: var(--accent); box-shadow: var(--shadow); font-weight: 600; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-help { color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.45; }
+  .inline-error { color: var(--bad); background: var(--bad-bg); border-radius: 7px; padding: 8px 10px; margin-top: 12px; font-size: 12px; display: none; }
+  .inline-error.show { display: block; }
+
+  @media (max-width: 620px) {
+    header { padding: 12px; flex-wrap: wrap; }
+    .header-spacer { display: none; }
+    .search-box { order: 3; width: 100%; }
+    main { padding: 14px; }
+    .grid { grid-template-columns: 1fr; }
+    .card { flex-wrap: wrap; }
+    .card .actions { width: 100%; justify-content: flex-end; }
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+  }
 
   /* Scrollbar */
   main::-webkit-scrollbar, .detail-body::-webkit-scrollbar, .tools-list::-webkit-scrollbar { width: 6px; }
@@ -288,15 +340,17 @@
 <div class="app">
   <header>
     <div class="tabs" id="tabs">
-      <button data-view="market" class="active">市场</button>
-      <button data-view="installed">已安装</button>
+      <button data-view="market" data-i18n="market" class="active">市场</button>
+      <button data-view="installed" data-i18n="installed">已安装</button>
     </div>
     <div class="header-spacer"></div>
     <div class="search-box">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="search" type="text" placeholder="搜索连接器…" />
+      <input id="search" type="text" placeholder="搜索连接器…" data-i18n-placeholder="search" />
     </div>
-    <button class="icon-btn" id="refresh">刷新</button>
+    <button class="icon-btn primary" id="add-connection" type="button" data-i18n="add">＋ 添加连接</button>
+    <button class="icon-btn" id="locale-toggle" type="button" aria-label="Switch language">EN</button>
+    <button class="icon-btn" id="refresh" data-i18n="refresh">刷新</button>
   </header>
   <main id="main"></main>
 
@@ -315,17 +369,17 @@
         <div class="detail-desc" id="detail-desc"></div>
         <div class="detail-section">
           <div class="detail-section-head">
-            <div class="detail-section-title"><span class="emoji">💡</span> 试试这样用 <span class="detail-section-meta" id="prompt-meta"></span></div>
+            <div class="detail-section-title"><span class="emoji">💡</span> <span data-i18n="tryExamples">试试这样用</span> <span class="detail-section-meta" id="prompt-meta"></span></div>
             <div class="detail-section-spacer"></div>
-            <button class="text-btn" id="prompt-next" type="button" hidden>换一批</button>
+            <button class="text-btn" id="prompt-next" type="button" data-i18n="next" hidden>换一批</button>
           </div>
           <div class="prompt-list" id="detail-prompts"></div>
         </div>
         <details class="tools-disclosure" id="tools-disclosure">
-          <summary><span>🧰 工具详情</span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
+          <summary><span>🧰 <span data-i18n="tools">工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
           <div class="tools-panel">
             <div class="tools-toolbar">
-              <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
+              <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" data-i18n-placeholder="toolSearch" autocomplete="off" />
             </div>
             <div class="tools-list" id="detail-tools">
               <div class="tools-loading">加载中...</div>
@@ -334,18 +388,18 @@
         </details>
         <div class="detail-actions">
           <button class="btn-primary" id="detail-try-btn">💬 去试试</button>
-          <button class="btn-danger" id="detail-disconnect-btn">断开连接</button>
+          <button class="btn-danger" id="detail-disconnect-btn" data-i18n="disconnect">断开连接</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal-mask" id="modalMask">
-  <div class="modal" id="modal"></div>
+<div class="modal-mask" id="modalMask" aria-hidden="true">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -354,26 +408,61 @@
   const main = $('#main');
   const toast = $('#toast');
   const searchInput = $('#search');
+  const I18N = {
+    zh: {
+      market: '市场', installed: '已安装', search: '搜索连接器…', add: '＋ 添加连接', refresh: '刷新',
+      tryExamples: '试试这样用', next: '换一批', tools: '工具详情', toolSearch: '搜索工具名称或描述…',
+      disconnect: '断开连接', details: '详情', connect: '连接', connected: '已连接', configure: '配置',
+      send: '发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', loading: '加载中…',
+    },
+    en: {
+      market: 'Marketplace', installed: 'Installed', search: 'Search connectors…', add: '+ Add connector', refresh: 'Refresh',
+      tryExamples: 'Try these prompts', next: 'Next', tools: 'Tool details', toolSearch: 'Search tool name or description…',
+      disconnect: 'Disconnect', details: 'Details', connect: 'Connect', connected: 'Connected', configure: 'Configure',
+      send: 'Send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', loading: 'Loading…',
+    },
+  };
+  let locale = 'zh';
+  try { locale = localStorage.getItem('mcp-connector:locale') === 'en' ? 'en' : 'zh'; } catch {}
+  const t = (key) => I18N[locale]?.[key] || I18N.zh[key] || key;
+
+  function applyLocale() {
+    document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
+    document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+    $('#locale-toggle').textContent = locale === 'zh' ? 'EN' : '中';
+  }
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
   const PROMPT_PAGE_SIZE = 4;
   let detailPrompts = [];
   let promptPage = 0;
+  let detailConnector = null;
   let detailToolServers = [];
+  let toolRenderLimit = 50;
   let detailLoadId = 0;
+  let catalogRenderLimit = 60;
+  let lastModalFocus = null;
+  let pendingPrompt = null;
   const PROMPT_REQUEST_TYPE = 'mcp-connector:start-session';
   const PROMPT_RESULT_TYPE = 'mcp-connector:start-session-result';
   let promptRequestId = null;
   let promptRequestTimer = null;
 
   async function call(method, params) {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ method, params }),
-    });
-    return res.json();
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ method, params }),
+      });
+      const data = await res.json();
+      if (!res.ok && data.ok !== false) return { ok: false, message: `请求失败（HTTP ${res.status}）` };
+      return data;
+    } catch (error) {
+      return { ok: false, message: `无法连接 MCP 连接器服务：${error?.message || error}` };
+    }
   }
 
   function showToast(message, ok) {
@@ -431,6 +520,36 @@
     setDetailOpen(false);
   }
 
+  function promptVariableNames(text) {
+    const names = [];
+    const seen = new Set();
+    const re = /\{\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}\}|\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}/g;
+    for (const match of String(text || '').matchAll(re)) {
+      const name = match[1] || match[2];
+      if (!seen.has(name)) { seen.add(name); names.push(name); }
+    }
+    return names;
+  }
+
+  function promptVariables(prompt) {
+    const definitions = [...(detailConnector?.promptVariables || []), ...(prompt.variables || [])];
+    const byName = Object.fromEntries(definitions.map((variable) => [variable.name, variable]));
+    return promptVariableNames(prompt.text || prompt.title || '').map((name) => byName[name] || {
+      name,
+      label: name,
+      placeholder: `请输入${name}`,
+      required: true,
+    });
+  }
+
+  function renderPromptText(prompt) {
+    const specs = Object.fromEntries(promptVariables(prompt).map((variable) => [variable.name, variable]));
+    return esc(prompt.text || prompt.title || '').replace(/\{\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}\}|\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}/g, (_token, a, b) => {
+      const variable = specs[a || b] || { label: a || b };
+      return `<mark style="color:var(--accent);background:var(--accent-light);border-radius:4px;padding:0 3px;">${esc(variable.label)}</mark>`;
+    });
+  }
+
   function renderPromptPage() {
     const total = detailPrompts.length;
     const pageCount = Math.max(1, Math.ceil(total / PROMPT_PAGE_SIZE));
@@ -440,7 +559,7 @@
     $('#prompt-meta').textContent = total > 0 ? `· 精选 ${visible.length} / 共 ${total} 条` : '';
     $('#prompt-next').hidden = total <= PROMPT_PAGE_SIZE;
     $('#detail-prompts').innerHTML = visible.length > 0
-      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${esc(prompt.text || prompt.title || '')}</div><button class="send-btn" type="button" data-prompt-index="${start + index}">发送</button></div>`).join('')
+      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${detailConnector?.connected?.length ? '' : 'disabled'}>${detailConnector?.connected?.length ? t('send') : t('connectToUse')}</button></div>`).join('')
       : '<div style="color:var(--muted);font-size:13px;">暂无预设 Prompt</div>';
   }
 
@@ -460,38 +579,53 @@
       return;
     }
     let matchedTools = 0;
+    let renderedTools = 0;
+    let remaining = toolRenderLimit;
     const groups = detailToolServers.map((server) => {
       const label = server.serverName || server.serverKey || 'MCP Server';
       if (!server.ok) {
         if (query) return '';
         return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 加载失败</span></div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
       }
-      const tools = (server.tools || []).filter((tool) => {
+      const matched = (server.tools || []).filter((tool) => {
         if (!query) return true;
         return `${tool.name || ''}\n${tool.title || ''}\n${tool.description || ''}`.toLowerCase().includes(query);
       });
-      if (query && tools.length === 0) return '';
-      matchedTools += tools.length;
+      if (query && matched.length === 0) return '';
+      matchedTools += matched.length;
+      const tools = matched.slice(0, Math.max(0, remaining));
+      remaining -= tools.length;
+      renderedTools += tools.length;
+      if (tools.length === 0 && matched.length > 0) return '';
       const items = tools.length > 0
         ? tools.map((tool) => {
           const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
           return `<div class="tool-item"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
         : '<div class="tools-loading">暂无工具</div>';
-      return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· ${tools.length} 个工具</span></div>${items}</div>`;
+      return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></div>${items}</div>`;
     }).filter(Boolean);
     $('#detail-tools').innerHTML = groups.length > 0
-      ? groups.join('')
+      ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">再显示 ${Math.min(50, matchedTools - renderedTools)} 个（剩余 ${matchedTools - renderedTools}）</button>` : ''}`
       : `<div class="tools-empty">没有匹配“${esc($('#tools-search').value.trim())}”的工具</div>`;
-    if (query) $('#tools-summary').textContent = `匹配 ${matchedTools} 个工具`;
+    if (query) $('#tools-summary').textContent = `匹配 ${matchedTools} 个工具 · 已渲染 ${renderedTools}`;
     else updateToolsSummary();
   }
 
   function openModal(title, bodyHtml) {
-    $('#modal').innerHTML = `<h3>${esc(title)}</h3>${bodyHtml}`;
+    lastModalFocus = document.activeElement;
+    $('#modal').innerHTML = `<h3 id="modal-title">${esc(title)}</h3>${bodyHtml}`;
     $('#modalMask').classList.add('show');
+    $('#modalMask').setAttribute('aria-hidden', 'false');
+    setTimeout(() => $('#modal').querySelector('input, textarea, select, button')?.focus(), 0);
   }
-  function closeModal() { $('#modalMask').classList.remove('show'); }
+  function closeModal() {
+    $('#modalMask').classList.remove('show');
+    $('#modalMask').setAttribute('aria-hidden', 'true');
+    pendingPrompt = null;
+    lastModalFocus?.focus?.();
+    lastModalFocus = null;
+  }
   $('#modalMask').addEventListener('click', (e) => { if (e.target.id === 'modalMask') closeModal(); });
 
   function matchesSearch(d) {
@@ -513,7 +647,8 @@
     items.forEach((d) => { marketItems[d.id] = d; });
     const filtered = items.filter(matchesSearch);
     const count = filtered.length;
-    main.innerHTML = `<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 点击「连接」完成一键授权并挂载 MCP 工具</span></div><div class="grid">${filtered.map(cardHtml).join('')}</div>`;
+    const visible = filtered.slice(0, catalogRenderLimit);
+    main.innerHTML = `<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 点击卡片查看能力，点击「连接」完成授权</span></div><div class="grid">${visible.map(cardHtml).join('')}</div>${visible.length < count ? `<button class="tools-more" id="catalog-more" type="button">再显示 ${Math.min(60, count - visible.length)} 个（剩余 ${count - visible.length}）</button>` : ''}`;
   }
 
   function cardHtml(d) {
@@ -522,11 +657,11 @@
       ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
       : `<span>${esc(d.icon || '🔌')}</span>`;
     const actions = actionHtml(d, connected);
-    const clickHandler = connected ? `onclick="window.__mcp.showDetail('${esc(d.id)}')"` : '';
-    return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" ${clickHandler}>
+    const probe = d.probeStatus && d.probeStatus !== 'unverified' ? `<span class="badge ${esc(d.probeStatus)}">${d.probeStatus}</span>` : '';
+    return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" role="button" tabindex="0" aria-label="查看 ${esc(d.name)} 详情" onclick="window.__mcp.showDetail('${esc(d.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.__mcp.showDetail('${esc(d.id)}')}">
       <div class="icon">${icon}</div>
       <div class="content">
-        <div class="name">${esc(d.name)}</div>
+        <div class="name">${esc(d.name)} ${probe}</div>
         <div class="summary">${esc(d.summary || '')}</div>
       </div>
       <div class="actions">${actions}</div>
@@ -536,24 +671,26 @@
   function actionHtml(d, connected) {
     const id = esc(d.id);
     if (d.authMode === 'oauth2-pkce') {
-      if (connected) return `<button class="btn ghost" disabled>已连接</button>`;
-      return `<button class="btn" onclick="window.__mcp.connect('${id}')">连接</button>`;
+      if (connected) return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.connect('${id}')">${t('connect')}</button>`;
     }
     if (d.authMode === 'none') {
-      if (connected) return `<button class="btn ghost" disabled>已连接</button>`;
-      return `<button class="btn" onclick="window.__mcp.connect('${id}')">连接</button>`;
+      if (connected) return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.connect('${id}')">${t('connect')}</button>`;
     }
-    return `<button class="btn ghost" onclick="window.__mcp.openConfig('${id}')">配置连接</button>`;
+    return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.openConfig('${id}')">${t('configure')}</button>`;
   }
 
   async function loadInstalled() {
     main.innerHTML = '<div class="empty">加载中…</div>';
-    const r = await call('status', {});
+    const [r, migration] = await Promise.all([call('status', {}), call('migrationPreview', { scanStored: false })]);
     if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     const items = r.detail?.items ?? [];
-    if (!items.length) { main.innerHTML = '<div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>'; return; }
+    const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
+    const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
+    if (!items.length) { main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`; return; }
     const filtered = items.filter(matchesSearch);
-    main.innerHTML = `<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 停用后工具立即下线，断开会撤销 OAuth 授权</span></div><div class="rows">${filtered.map(rowHtml).join('')}</div>`;
+    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 停用后工具立即下线，断开会撤销 OAuth 授权</span><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>`;
   }
 
   function rowHtml(r) {
@@ -565,12 +702,99 @@
         <div class="rname">${esc(r.name)} ${authMode}</div>
         <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.url || '')}</div>
       </div>
-      <label class="switch" title="${enabled ? '停用' : '启用'}">
+      <label class="switch" title="${enabled ? '停用' : '启用'}" aria-label="${enabled ? '停用' : '启用'} ${esc(r.name)}">
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
         <span class="slider"></span>
       </label>
       <button class="btn danger" onclick="window.__mcp.disconnect('${key}')">断开</button>
     </div>`;
+  }
+
+  function guidanceFor(message) {
+    const text = String(message || '未知错误');
+    if (/protocol not allowed|only https/i.test(text)) return `${text}。公网地址必须使用 HTTPS；HTTP 只允许 localhost/127.0.0.1。`;
+    if (/JSON/i.test(text)) return `${text}。请检查引号、逗号，并确认顶层是 mcpServers 或 connections。`;
+    if (/401|403|token|凭据|api.?key/i.test(text)) return `${text}。请核对鉴权方式、Token/API Key 是否有效以及 Header 名。`;
+    if (/timeout|timed out|fetch|连接|network/i.test(text)) return `${text}。请检查网络、端点是否可达以及 MCP URL 是否完整。`;
+    return text;
+  }
+
+  function showModalError(message) {
+    const node = $('#modal-error');
+    if (!node) { showToast(guidanceFor(message), false); return; }
+    node.textContent = guidanceFor(message);
+    node.classList.add('show');
+    node.focus?.();
+  }
+
+  function setModalBusy(busy) {
+    $('#modal')?.querySelectorAll('button, input, textarea, select').forEach((element) => { element.disabled = busy; });
+  }
+
+  function addTabs(active) {
+    return `<div class="modal-tabs" role="tablist" aria-label="添加连接方式">
+      <button type="button" class="${active === 'manual' ? 'active' : ''}" onclick="window.__mcp.openAdd('manual')">手动配置</button>
+      <button type="button" class="${active === 'json' ? 'active' : ''}" onclick="window.__mcp.openAdd('json')">导入 JSON</button>
+      <button type="button" class="${active === 'url' ? 'active' : ''}" onclick="window.__mcp.openAdd('url')">描述 URL</button>
+    </div>`;
+  }
+
+  function openAddConnection(mode = 'manual', preset = {}) {
+    const server = (preset.servers || [{}])[0] || {};
+    if (mode === 'json') {
+      openModal('添加 MCP 连接', `${addTabs(mode)}
+        <p class="field-help">兼容 Claude/Cursor 常见的 <code>mcpServers</code> 格式；stdio 条目会明确跳过，HTTP/SSE 条目会批量导入。</p>
+        <label for="import-json">MCP JSON（必填）</label>
+        <textarea id="import-json" rows="11" spellcheck="false" placeholder='{"mcpServers":{"my-server":{"type":"streamable-http","url":"https://example.com/mcp"}}}'></textarea>
+        <div class="inline-error" id="modal-error" tabindex="-1"></div>
+        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
+      return;
+    }
+    if (mode === 'url') {
+      openModal('添加 MCP 连接', `${addTabs(mode)}
+        <p class="field-help">粘贴厂商提供的连接器描述 JSON 地址。地址必须是 HTTPS（本机调试可使用 loopback HTTP），内容会先经过 Schema 与密钥审计。</p>
+        <label for="descriptor-url">连接器描述 URL（必填）</label>
+        <input id="descriptor-url" type="url" placeholder="https://example.com/dsh-connector.json" />
+        <div class="inline-error" id="modal-error" tabindex="-1"></div>
+        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitUrl()">验证并安装</button></div>`);
+      return;
+    }
+    const suggestedAuth = preset.authMode === 'bearer' || preset.authMode === 'api-key' ? preset.authMode : 'none';
+    openModal('添加 MCP 连接', `${addTabs(mode)}
+      <p class="field-help">适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。</p>
+      <div class="form-row"><div><label for="cfg-name">名称（必填）</label><input id="cfg-name" value="${esc(preset.name || '')}" placeholder="连接显示名" /></div>
+      <div><label for="cfg-sname">serverName（工具前缀）</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
+      <label for="cfg-url">MCP URL（必填）</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+      <div class="form-row"><div><label for="cfg-transport">传输方式</label><select id="cfg-transport"><option value="streamable-http">Streamable HTTP</option><option value="sse">SSE</option></select></div>
+      <div><label for="cfg-auth">鉴权方式</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>无鉴权</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select></div></div>
+      <div id="cfg-bearer"><label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在本机" /></div>
+      <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在本机" /></div></div>
+      <label for="cfg-headers">额外 Headers（可选 JSON）</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
+      <div class="inline-error" id="modal-error" tabindex="-1"></div>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接</button></div>`);
+    window.__mcp.syncAuthFields();
+  }
+
+  function renderResolvedPrompt(prompt, values) {
+    const specs = Object.fromEntries(promptVariables(prompt).map((variable) => [variable.name, variable]));
+    const missing = [];
+    const text = String(prompt.text || prompt.title || '').replace(/\{\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}\}|\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}/g, (_token, a, b) => {
+      const name = a || b;
+      const spec = specs[name] || { name, label: name, required: true };
+      const value = String(values[name] ?? spec.default ?? '').trim();
+      if (!value && spec.required !== false) missing.push(spec.label || name);
+      return value;
+    });
+    if (missing.length) throw new Error(`请填写：${[...new Set(missing)].join('、')}`);
+    return text.replace(/\s+([，。！？；：])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
+  }
+
+  function openPromptForm(prompt) {
+    const variables = promptVariables(prompt);
+    if (variables.length === 0) { window.__mcp.sendPrompt(prompt.text || prompt.title || ''); return; }
+    pendingPrompt = prompt;
+    const fields = variables.map((variable) => `<label for="prompt-${esc(variable.name)}">${esc(variable.label)}${variable.required === false ? '（可选）' : '（必填）'}</label><input id="prompt-${esc(variable.name)}" data-prompt-variable="${esc(variable.name)}" value="${esc(variable.default || '')}" placeholder="${esc(variable.placeholder || '')}" autocomplete="off" />${variable.description ? `<div class="field-help">${esc(variable.description)}</div>` : ''}`).join('');
+    openModal(prompt.title || '填写查询参数', `<p class="field-help">发送前补全参数，内容只用于本次新会话，不会写回连接器目录。</p>${fields}<div class="inline-error" id="modal-error" tabindex="-1"></div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitPromptVariables()">带入新会话</button></div>`);
   }
 
   window.__mcp = {
@@ -588,41 +812,76 @@
       showToast(r.message, r.ok);
       await refresh();
     },
-    openConfig(connectorId) {
-      const d = marketItems[connectorId] || {};
-      const server = (d.servers || [{}])[0] || {};
-      openModal('配置连接', `
-        <p style="font-size:12px;color:var(--muted);margin:0 0 12px">该连接器需要密钥（${esc(d.authMode)}），目录不含凭据，请填写完整连接信息：</p>
-        <label>名称（必填）</label>
-        <input id="cfg-name" value="${esc(d.name || '')}" placeholder="连接显示名" />
-        <label>URL（必填）</label>
-        <input id="cfg-url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
-        <label>serverName（必填，工具前缀）</label>
-        <input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" />
-        <label>认证头（可选，JSON 对象，如 {"Authorization":"Bearer …"}）</label>
-        <textarea id="cfg-headers" rows="2" placeholder='{"Authorization":"Bearer …"}'></textarea>
-        <div class="m-actions">
-          <button class="btn ghost" onclick="window.__mcp.closeModal()">取消</button>
-          <button class="btn" onclick="window.__mcp.submitConfig()">连接</button>
-        </div>`);
+    openAdd(mode) { openAddConnection(mode); },
+    openConfig(connectorId) { openAddConnection('manual', marketItems[connectorId] || {}); },
+    syncAuthFields() {
+      const mode = $('#cfg-auth')?.value || 'none';
+      if ($('#cfg-bearer')) $('#cfg-bearer').hidden = mode !== 'bearer';
+      if ($('#cfg-apikey')) $('#cfg-apikey').hidden = mode !== 'api-key';
     },
     closeModal() { closeModal(); },
     async submitConfig() {
       const name = $('#cfg-name').value.trim();
       const url = $('#cfg-url').value.trim();
       const serverName = $('#cfg-sname').value.trim();
-      if (!name || !url || !serverName) { showToast('名称、URL 与 serverName 必填', false); return; }
+      const authMode = $('#cfg-auth').value;
+      if (!name || !url) { showModalError('名称与 URL 必填'); return; }
       let headersJson;
       try { headersJson = JSON.parse($('#cfg-headers').value || '{}'); }
-      catch { showToast('认证头不是合法 JSON', false); return; }
-      closeModal();
-      const r = await call('configure', { name, url, serverName, headersJson });
+      catch { showModalError('额外 Headers 不是合法 JSON'); return; }
+      setModalBusy(true);
+      const r = await call('configure', {
+        name, url, serverName, headersJson,
+        transport: $('#cfg-transport').value,
+        authMode,
+        bearerToken: $('#cfg-token')?.value || undefined,
+        apiKeyHeader: $('#cfg-key-header')?.value || undefined,
+        apiKeyValue: $('#cfg-key-value')?.value || undefined,
+      });
+      setModalBusy(false);
+      if (!r.ok) { showModalError(r.message); return; }
+      closeModal(); showToast(r.message, true); await refresh();
+    },
+    async submitImport() {
+      const json = $('#import-json').value.trim();
+      if (!json) { showModalError('请粘贴 MCP JSON'); return; }
+      setModalBusy(true);
+      const r = await call('importJson', { json });
+      setModalBusy(false);
+      if (!r.ok) { showModalError(r.message); return; }
+      closeModal(); showToast(r.message, true); view = 'installed'; syncTabs(); await refresh();
+    },
+    async submitUrl() {
+      const url = $('#descriptor-url').value.trim();
+      if (!url) { showModalError('连接器描述 URL 必填'); return; }
+      setModalBusy(true);
+      const r = await call('installFromUrl', { url });
+      setModalBusy(false);
+      if (!r.ok) { showModalError(r.message); return; }
+      closeModal(); showToast(r.message, true); await refresh();
+    },
+    async migrateLegacy() {
+      if (!confirm('确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。')) return;
+      const r = await call('migrateLegacy', { candidateIds: [] });
       showToast(r.message, r.ok);
-      if (r.ok) await refresh();
+      await loadInstalled();
+    },
+    async scanLegacy() {
+      const preview = await call('migrationPreview', { scanStored: true });
+      if (!preview.ok || !preview.detail?.pendingCount) {
+        showToast(preview.message, preview.ok);
+        return;
+      }
+      const ids = (preview.detail.items || []).filter((item) => item.migratable && !item.alreadyMigrated).map((item) => item.id);
+      if (!confirm(`检测到 ${ids.length} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。`)) return;
+      const result = await call('migrateLegacy', { candidateIds: ids });
+      showToast(result.message, result.ok);
+      await loadInstalled();
     },
     async showDetail(connectorId) {
       const d = marketItems[connectorId];
       if (!d) return;
+      detailConnector = d;
       const loadId = ++detailLoadId;
       $('#detail-icon').innerHTML = isImageIcon(d.icon)
         ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
@@ -634,12 +893,14 @@
       promptPage = 0;
       renderPromptPage();
       detailToolServers = [];
+      toolRenderLimit = 50;
       $('#tools-search').value = '';
       $('#tools-disclosure').open = false;
       $('#tools-summary').textContent = '加载中…';
       $('#detail-tools').innerHTML = '<div class="tools-loading">正在读取可用工具及描述…</div>';
       setDetailOpen(true);
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
+      $('#detail-try-btn').textContent = d.connected?.length > 0 ? t('try') : t('connectTry');
       const toolsResult = await call('toolsList', { connectorId });
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
       if (!toolsResult.ok) {
@@ -650,6 +911,17 @@
       detailToolServers = toolsResult.detail?.servers || [];
       updateToolsSummary();
       renderTools();
+    },
+    submitPromptVariables() {
+      if (!pendingPrompt) return;
+      const values = {};
+      $('#modal').querySelectorAll('[data-prompt-variable]').forEach((input) => { values[input.dataset.promptVariable] = input.value; });
+      let prompt;
+      try { prompt = renderResolvedPrompt(pendingPrompt, values); }
+      catch (error) { showModalError(error.message); return; }
+      pendingPrompt = null;
+      closeModal();
+      window.__mcp.sendPrompt(prompt);
     },
     sendPrompt(promptText) {
       const prompt = String(promptText || '').trim();
@@ -676,14 +948,14 @@
       }, 10000);
     },
     async disconnectCurrent() {
-      const name = $('#detail-name').textContent;
+      const name = detailConnector?.name || $('#detail-name').textContent;
       if (!confirm(`确认断开「${name}」的连接？OAuth 授权会被撤销。`)) return;
       // Find connection keys for this connector
       const r = await call('status', {});
       if (r.ok) {
         const items = r.detail?.items ?? [];
         for (const item of items) {
-          if (item.connectorId && marketItems[item.connectorId]?.name === name) {
+          if (item.connectorId === detailConnector?.id) {
             const dr = await call('disconnect', { key: item.key });
             showToast(dr.message, dr.ok);
           }
@@ -706,13 +978,26 @@
     const button = e.target.closest('button[data-prompt-index]');
     if (!button) return;
     const prompt = detailPrompts[Number(button.dataset.promptIndex)];
-    if (prompt) window.__mcp.sendPrompt(prompt.text || prompt.title || '');
+    if (prompt && detailConnector?.connected?.length) openPromptForm(prompt);
   });
-  $('#tools-search').addEventListener('input', renderTools);
-  $('#detail-try-btn').addEventListener('click', () => {
+  $('#tools-search').addEventListener('input', () => { toolRenderLimit = 50; renderTools(); });
+  $('#detail-tools').addEventListener('click', (event) => {
+    if (!event.target.closest('#tools-more')) return;
+    toolRenderLimit += 50;
+    renderTools();
+  });
+  $('#detail-try-btn').addEventListener('click', async () => {
+    if (!detailConnector?.connected?.length) {
+      const id = detailConnector?.id;
+      if (!id) return;
+      const r = await call('connect', { connectorId: id });
+      showToast(r.message, r.ok);
+      if (r.ok) { closeDetail(); await refresh(); }
+      return;
+    }
     const prompt = detailPrompts[promptPage * PROMPT_PAGE_SIZE];
     if (prompt) {
-      window.__mcp.sendPrompt(prompt.text || prompt.title || '');
+      openPromptForm(prompt);
     } else {
       showToast('暂无预设 Prompt', false);
     }
@@ -721,11 +1006,39 @@
     window.__mcp.disconnectCurrent();
   });
   document.addEventListener('keydown', (e) => {
+    if ($('#modalMask').classList.contains('show')) {
+      if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+      if (e.key === 'Tab') {
+        const focusable = [...$('#modal').querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled])')];
+        if (!focusable.length) return;
+        const first = focusable[0]; const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      return;
+    }
     if (e.key === 'Escape' && $('#detail-overlay').classList.contains('active')) closeDetail();
   });
   window.addEventListener('pagehide', () => notifyDetailState(false));
 
   function refresh() { return view === 'market' ? loadMarket() : loadInstalled(); }
+  function syncTabs() {
+    document.querySelectorAll('#tabs button').forEach((button) => button.classList.toggle('active', button.dataset.view === view));
+  }
+
+  $('#add-connection').addEventListener('click', () => openAddConnection('manual'));
+  $('#locale-toggle').addEventListener('click', () => {
+    locale = locale === 'zh' ? 'en' : 'zh';
+    try { localStorage.setItem('mcp-connector:locale', locale); } catch {}
+    applyLocale();
+    refresh();
+    if ($('#detail-overlay').classList.contains('active')) renderPromptPage();
+  });
+  main.addEventListener('click', (event) => {
+    if (!event.target.closest('#catalog-more')) return;
+    catalogRenderLimit += 60;
+    loadMarket();
+  });
 
   $('#refresh').addEventListener('click', async () => {
     const r = await call('refreshCatalog', {});
@@ -737,15 +1050,17 @@
     const btn = e.target.closest('button[data-view]');
     if (!btn) return;
     view = btn.dataset.view;
-    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+    syncTabs();
     refresh();
   });
 
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
+    catalogRenderLimit = 60;
     refresh();
   });
 
+  applyLocale();
   refresh();
 })();
 </script>

@@ -18,6 +18,9 @@
 - UI：市场/已安装、搜索、4 个企查查连接器、包内 QCC Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
+- P1 UI：统一“添加连接”支持手动、JSON、描述 URL；Prompt 变量表单；基础中英、深浅主题和键盘操作。
+- Registry：`registry/` 种子、Schema、构建器、无凭据探针与定时巡检 workflow 已完成。
+- 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
 
 ## 3. P0 状态
@@ -77,6 +80,7 @@ npm run check
 ## 7. 已知限制与风险
 
 - DSH rc.7 没有目标位置的公开插槽，顶部入口依赖稳定 `data-slot` + Portal；已提供 footer 降级，但 DSH 大版本升级后应复测。
-- Prompt 示例仍含固定企业名，参数化列入 P1。
-- 首版目录只有企查查连接器，通用 registry 与多厂商生态列入 P1。
+- 公开 npm `latest` 仍是 `0.1.0`；P1/P2 位于开发分支，待 Desktop 验收后决定版本号与发布。
+- 独立 registry GitHub 仓库仍需从当前 `registry/` 种子拆出并配置公开 catalog URL。
+- 真实 OAuth、DSH 重启和旧凭据迁移必须在 Desktop 实机由用户确认；自动测试不使用真实凭据。
 - stdio MCP 不在首版范围；支持 streamable-http 与 SSE。

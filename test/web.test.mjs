@@ -127,6 +127,8 @@ test('ui 路由：返回 SPA 首页 / 目录穿越 404', async () => {
   await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/ui/', headers: { host: '127.0.0.1:62929' } }), res);
   assert.equal(res.status, 200);
   assert.match(res.headers['content-type'], /text\/html/);
+  assert.match(res.headers['content-security-policy'], /frame-ancestors 'self'/);
+  assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.match(res.body, /MCP连接器/);
 
   const logoRes = new FakeRes();

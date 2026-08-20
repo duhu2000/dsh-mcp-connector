@@ -4,6 +4,7 @@ import { normalizeConnectorDescriptor } from '../lib/schema.js';
 import { auditDescriptor } from '../lib/catalog.js';
 import { normalizeJsonImport } from '../lib/connectors/json-connector.js';
 import { buildManualRecord } from '../lib/connectors/manual-connector.js';
+import { resourceMetadataUrlFallback } from '../lib/oauth.js';
 
 test('normalizeConnectorDescriptor 补齐默认值', () => {
   const d = normalizeConnectorDescriptor({
@@ -20,6 +21,23 @@ test('normalizeConnectorDescriptor 补齐默认值', () => {
   assert.equal(d.auth.scope, 'mcp:tools');
   assert.equal(d.auth.clientName, 'DeepSeek Harness - MCP 连接器');
   assert.equal(d.servers[0].transport, 'streamable-http');
+  assert.equal(d.probeStatus, 'unverified');
+  assert.deepEqual(d.promptVariables, []);
+  assert.deepEqual(d.toolsSnapshot, []);
+});
+
+test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () => {
+  const d = normalizeConnectorDescriptor({
+    id: 'templated', name: 'Templated',
+    promptVariables: [{ name: 'company', label: '企业名称', required: true }],
+    prompts: [{ title: '查询', text: '查询 {{company}}' }],
+    probeStatus: 'pass',
+    toolsSnapshot: [{ serverKey: 'main', tools: [{ name: 'search', description: '查询' }] }],
+    servers: [{ serverKey: 'main', url: 'https://mcp.example.com/stream', serverName: 'templated' }],
+  });
+  assert.equal(d.promptVariables[0].name, 'company');
+  assert.equal(d.probeStatus, 'pass');
+  assert.equal(d.toolsSnapshot[0].tools[0].name, 'search');
 });
 
 test('normalizeConnectorDescriptor 拒绝缺 servers 的描述', () => {
@@ -113,4 +131,11 @@ test('buildManualRecord: 拒绝非 https 且非回环 http', () => {
 test('buildManualRecord: serverName 归一化', () => {
   const r = buildManualRecord({ name: 'My DB', url: 'https://mcp.example.com/stream', serverName: 'My-DB 2' });
   assert.equal(r.serverName, 'my-db-2');
+});
+
+test('OAuth protected resource metadata fallback 保留 MCP 路径', () => {
+  assert.equal(
+    resourceMetadataUrlFallback('https://agent.example.com/mcp/company/stream'),
+    'https://agent.example.com/mcp/.well-known/oauth-protected-resource/company/stream',
+  );
 });

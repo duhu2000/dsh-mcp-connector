@@ -124,6 +124,6 @@ Tier 3  自服务（用户侧直加）        自定义配置 / 粘贴 JSON / UR
 **选型 = 三层（Tier 0 + Tier 1 + Tier 3），以「PR 注册表 + CI 自动探测」为主路径（替代 dshmarket 的人工审核），以「自服务直加」兜底长尾；企查查等一厂走 Tier 0 官方内置；Tier 2 自动发现暂不做。因为连接器只是描述 JSON，我们能把千问/WorkBuddy 上的「平台适配开发」降成「填一张 JSON」。**
 
 配套改动：
-- 新增远程注册表仓库 `dsh-mcp-connector-registry`（Tier 1）
+- 当前仓库已新增 `registry/` 可执行种子、JSON Schema、构建/探针脚本和健康巡检 workflow；验证后拆分为 `dsh-mcp-connector-registry`（Tier 1）
 - 插件工具面新增 `mcp_connector_install_from_url`（Tier 3 的 URL 安装）
 - 目录来源在 PLAN §3.1 基础上明确：远程 registry 上游 = PR 注册表（Tier 2 crawler 暂不接入）

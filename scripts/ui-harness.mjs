@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+/** 本地 UI 契约测试壳：不读凭据、不连接真实 MCP，只提供可交互的 mock API。 */
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { normalizeConnectorDescriptor } from '../lib/schema.js';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const catalog = JSON.parse(await readFile(join(root, 'catalog/catalog.json'), 'utf8')).connectors
+  .filter((item) => item.published !== false)
+  .map(normalizeConnectorDescriptor);
+const connected = new Set(['qcc-company']);
+
+function json(res, value, status = 200) {
+  const body = JSON.stringify(value);
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body) });
+  res.end(body);
+}
+
+const server = createServer(async (req, res) => {
+  if (req.method === 'GET' && (req.url === '/' || req.url === '/mcp-connector/ui/')) {
+    const body = await readFile(join(root, 'ui/index.html'));
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/ui/assets/qcc-logo.svg') {
+    const body = await readFile(join(root, 'ui/assets/qcc-logo.svg'));
+    res.writeHead(200, { 'content-type': 'image/svg+xml' }); res.end(body); return;
+  }
+  if (req.method !== 'POST' || req.url !== '/mcp-connector/api') { res.writeHead(404); res.end(); return; }
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const { method, params = {} } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  if (method === 'catalog') {
+    json(res, { ok: true, detail: { items: catalog.map((item) => ({
+      ...item,
+      authMode: item.auth.mode,
+      connected: connected.has(item.id) ? [`${item.id}-main`] : [],
+    })) } }); return;
+  }
+  if (method === 'status') { json(res, { ok: true, detail: { items: [] } }); return; }
+  if (method === 'migrationPreview') { json(res, { ok: true, detail: { pendingCount: 0, items: [] } }); return; }
+  if (method === 'toolsList') {
+    const tools = Array.from({ length: 125 }, (_, index) => ({ name: `tool_${String(index + 1).padStart(3, '0')}`, title: `工具 ${index + 1}`, description: `用于验证分批渲染与搜索的第 ${index + 1} 个工具。` }));
+    json(res, { ok: true, detail: { totalTools: tools.length, servers: [{ serverKey: 'company', serverName: 'qcc-company', ok: true, tools }] } }); return;
+  }
+  if (method === 'connect') { connected.add(params.connectorId); json(res, { ok: true, message: 'Mock 连接成功' }); return; }
+  if (method === 'configure') { json(res, { ok: true, message: `Mock 已配置 ${params.name}` }); return; }
+  if (method === 'importJson') {
+    try { JSON.parse(params.json); }
+    catch (error) { json(res, { ok: false, message: `导入失败: JSON 解析失败: ${error.message}` }); return; }
+    json(res, { ok: true, message: 'Mock JSON 导入成功' }); return;
+  }
+  if (method === 'installFromUrl') { json(res, { ok: true, message: 'Mock 描述 URL 安装成功' }); return; }
+  if (method === 'refreshCatalog') { json(res, { ok: true, message: 'Mock 目录已刷新' }); return; }
+  if (method === 'migrateLegacy') { json(res, { ok: true, message: 'Mock 迁移成功' }); return; }
+  json(res, { ok: false, message: `Mock 未实现 ${method}` }, 400);
+});
+
+server.listen(Number(process.env.MCP_CONNECTOR_UI_PORT ?? 4173), '127.0.0.1', () => {
+  const address = server.address();
+  console.log(`MCP connector UI harness: http://127.0.0.1:${address.port}/mcp-connector/ui/`);
+});

@@ -187,3 +187,11 @@ test('没有工作空间时给出明确错误，不静默失败', async () => {
   const props = registrations.get('shell.overlay').options.inject();
   await assert.rejects(() => props.startPromptSession('示例'), /请先选择一个工作空间/);
 });
+
+test('市场弹框具备主题与键盘可访问性样式', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.match(source, /prefers-color-scheme: dark/);
+  assert.match(source, /aria-modal/);
+  assert.match(source, /event\.key === "Escape"/);
+  assert.match(source, /mcpConnectorMarketClose:focus-visible/);
+});
