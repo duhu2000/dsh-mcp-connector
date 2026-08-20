@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/duhu2000/dsh-mcp-connector/registry/schema/connector.schema.json",
+  "title": "DSH MCP Connector Descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "servers"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "vendor": { "type": "string" },
+    "icon": { "type": "string" },
+    "category": { "type": "string" },
+    "summary": { "type": "string" },
+    "description": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "published": { "type": "boolean" },
+    "featured": { "type": "boolean" },
+    "homepage": { "type": "string" },
+    "probeStatus": { "enum": ["pass", "partial", "fail", "unverified"] },
+    "probeCheckedAt": { "type": "integer" },
+    "probeReportUrl": { "type": "string" },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["oauth2-pkce", "bearer", "api-key", "none"] },
+        "issuer": { "type": "string" },
+        "scope": { "type": "string" },
+        "clientName": { "type": "string" },
+        "tokenEndpointAuthMethod": { "type": "string" },
+        "apiKeyHeader": { "type": "string" },
+        "grantSharing": { "type": "string" }
+      }
+    },
+    "servers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["serverKey", "url", "serverName"],
+        "properties": {
+          "serverKey": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "minLength": 1 },
+          "serverName": { "type": "string", "minLength": 1 },
+          "transport": { "enum": ["streamable-http", "sse"] },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
+    "promptVariables": { "$ref": "#/$defs/variables" },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "text"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "minLength": 1 },
+          "server": { "type": "string" },
+          "variables": { "$ref": "#/$defs/variables" }
+        }
+      }
+    },
+    "toolsSnapshot": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["serverKey", "tools"],
+        "properties": {
+          "serverKey": { "type": "string" },
+          "serverName": { "type": "string" },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name"],
+              "properties": {
+                "name": { "type": "string" },
+                "title": { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "label"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+          "label": { "type": "string", "minLength": 1 },
+          "placeholder": { "type": "string" },
+          "description": { "type": "string" },
+          "required": { "type": "boolean" },
+          "default": { "type": "string" }
+        }
+      }
+    }
+  }
+}

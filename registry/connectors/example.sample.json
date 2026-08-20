@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "vendor-service",
+  "name": "厂商·服务名称",
+  "vendor": "厂商名称",
+  "icon": "https://example.com/icon.svg",
+  "category": "开发工具",
+  "summary": "一句话说明连接器能力",
+  "description": "完整说明、适用场景和数据范围。",
+  "tags": ["示例"],
+  "published": true,
+  "featured": false,
+  "homepage": "https://example.com",
+  "probeStatus": "unverified",
+  "auth": {
+    "mode": "oauth2-pkce",
+    "issuer": "https://auth.example.com",
+    "scope": "mcp:tools",
+    "clientName": "DeepSeek Harness - MCP 连接器",
+    "tokenEndpointAuthMethod": "none"
+  },
+  "servers": [
+    {
+      "serverKey": "main",
+      "url": "https://mcp.example.com/stream",
+      "serverName": "vendor-service",
+      "transport": "streamable-http"
+    }
+  ],
+  "promptVariables": [
+    {
+      "name": "topic",
+      "label": "查询主题",
+      "placeholder": "例如：季度经营分析",
+      "required": true
+    }
+  ],
+  "prompts": [
+    {
+      "title": "快速查询",
+      "text": "帮我查询 {{topic}}"
+    }
+  ]
+}
