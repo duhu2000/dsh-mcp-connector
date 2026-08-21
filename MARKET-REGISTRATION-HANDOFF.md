@@ -21,7 +21,7 @@
 
 | 项目 | 结果 |
 |---|---|
-| npm 当前版本 | `0.2.2`，已通过 GitHub OIDC Trusted Publishing 发布 |
+| npm 当前版本 | `0.2.3`，已通过 GitHub OIDC Trusted Publishing 发布 |
 | 自动化测试 | 58 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |

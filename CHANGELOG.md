@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 更新 `0.2.3` 发布、npm latest 与 DSH Desktop 实机回归记录。
+
 ## [0.2.3] - 2026-08-21
 
 ### Added
