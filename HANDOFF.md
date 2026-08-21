@@ -40,7 +40,7 @@
 | `v0.2.0` / npm `0.2.0` | 已公开发布并通过公共 registry 全新安装验证 |
 | 独立远程 Registry | 已建仓、push 并通过 CI；插件默认 URL 已纳入 0.2.1 |
 | `v0.2.1` / npm `0.2.1` | 已由 GitHub OIDC Trusted Publishing 自动发布，Provenance 与全新下载包验证通过 |
-| `v0.2.2` / npm `0.2.2` | 文档、产品定位与市场注册元数据收口版本 |
+| `v0.2.2` / npm `0.2.2` | 已由 GitHub OIDC 发布；通用产品定位、中英文 README 与市场注册元数据已收口，Provenance 和下载包验证通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 
 ## 4. Desktop 验收清单（已通过）
@@ -77,9 +77,9 @@ npm run check
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.1
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.2
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.1`；发布包共 42 个文件，SLSA Provenance attestations 已生成，全新下载包的版本与远程 Registry 默认 URL 验证通过。
+5. npm `latest`：`0.2.2`；发布包共 43 个文件，SLSA Provenance attestations 已生成，中英文 README、通用 description/keywords 与远程 Registry 默认 URL 验证通过。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 

@@ -21,13 +21,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| npm 当前基线 | `0.2.1`，目标发布 `0.2.2` |
+| npm 当前版本 | `0.2.2`，已通过 GitHub OIDC Trusted Publishing 发布 |
 | 自动化测试 | 57 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |
-| Git 提交数 | 23，满足外部目录至少 10 个提交要求 |
-| GitHub Topics | 待增加 |
-| awesome-dsh-plugin | 待提交 PR |
+| Git 提交数 | 已超过 10 个，满足外部目录要求 |
+| GitHub Topics | 已增加 `dsh-plugin`、`deepseek-harness`、`mcp`、`mcp-connector`、`oauth` |
+| awesome-dsh-plugin | fork 注册分支已准备并通过本地门禁；待仓龄满足后提交 PR |
 
 随包第 1–4 张为企查查连接器，第 5 张为北大法宝，第 6 张为 Wind。目录内容可以通过独立 Registry 更新，新增市场卡片不再依赖重新发布 npm。
 
@@ -59,8 +59,8 @@
 - [x] CHANGELOG 记录 0.2.2 文档和元数据变更；
 - [x] `npm run check` 全部通过（57/57）；
 - [x] npm 发布包为 43 个白名单文件，不含测试、规划文档、凭证或本机路径；
-- [ ] 推送 `v0.2.2` 标签并由 GitHub OIDC Trusted Publishing 自动发布；
-- [ ] 验证 npm latest、Provenance、GitHub Release 和全新安装。
+- [x] 推送 `v0.2.2` 标签并由 GitHub OIDC Trusted Publishing 自动发布；
+- [x] npm latest、Provenance、GitHub Release 和全新下载包均已验证。
 
 ### 明确不做
 
@@ -105,7 +105,7 @@
 | 一个插件一个 YAML | 使用 `data/plugins/duhu2000__dsh-mcp-connector.yml` |
 | 仓库至少 1 天 | 2026-08-21 23:14:05（北京时间）后满足 |
 | 至少 10 个提交 | 已满足，23 个提交 |
-| GitHub Topic `dsh-plugin` | 待添加 |
+| GitHub Topic `dsh-plugin` | 已添加，并补充 4 个相关 Topic |
 | `package.json` 声明 `dsh.bundle` | 已满足 |
 | DSH 官方包使用 peerDependencies | 已满足 |
 | 分类合法 | `tools` |
@@ -188,11 +188,11 @@ git push origin v0.2.2
 
 ## 8. 验收清单
 
-- [ ] GitHub Topics 已添加；
-- [ ] README 中文、英文定位一致；
-- [ ] npm description/keywords 已在 0.2.2 生效；
-- [ ] npm 0.2.2 含 Provenance 且可全新安装；
-- [ ] GitHub Release v0.2.2 已生成；
+- [x] GitHub Topics 已添加；
+- [x] README 中文、英文定位一致；
+- [x] npm description/keywords 已在 0.2.2 生效；
+- [x] npm 0.2.2 含 Provenance 且可全新下载；
+- [x] GitHub Release v0.2.2 已生成；
 - [ ] awesome-dsh-plugin PR 已提交且 CI 通过；
 - [ ] PR 合并后 `awesome-dsh-plugin.com/plugins.json` 可检索到仓库；
 - [ ] dsh-market 同步后可检索到插件；
