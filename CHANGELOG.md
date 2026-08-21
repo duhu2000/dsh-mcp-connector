@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-21
+
 ### Added
 
 - 公共市场新增第 5 张“北大法宝·法律检索”第三方卡片，以一个 Bearer Token 批量配置官网公开的 9 个 MCP Server。
@@ -67,4 +69,6 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0

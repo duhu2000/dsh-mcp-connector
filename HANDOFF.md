@@ -30,12 +30,14 @@
 | 入口、弹框、详情、Logo、Prompt 发送 | 已完成开发 |
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
+| Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
 | lint + 单元/集成测试 | 通过，55/55 |
 | npm 发布包校验 | 已配置，42 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
 | npm `dsh-mcp-connector@0.1.0` | 已公开发布并完成全新安装验证 |
+| `v0.2.0` / npm `0.2.0` | 发布中 |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -67,20 +69,20 @@ npm run check
 - `.github/workflows/`、`scripts/verify-pack.mjs`：发布门禁。
 - `CHANGELOG.md`：首发能力与后续版本变更记录。
 
-## 6. 首发结果
+## 6. 发布结果
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.0
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.1.0`；从 registry 全新安装后 `lib/client.js`、`ui/index.html`、`CHANGELOG.md` 均存在。
+5. npm `latest`：本次发布目标为 `0.2.0`；发布后需从 registry 全新安装并检查 `lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`。
 
 发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；本次 npm 使用本机已认证账号直接发布，Tag 工作流负责 GitHub Release。
 
 ## 7. 已知限制与风险
 
 - DSH rc.7 没有目标位置的公开插槽，顶部入口依赖稳定 `data-slot` + Portal；已提供 footer 降级，但 DSH 大版本升级后应复测。
-- 公开 npm `latest` 仍是 `0.1.0`；P1/P2 位于开发分支，待 Desktop 验收后决定版本号与发布。
+- 独立 registry 尚未上线前，新市场卡片仍需随插件版本发布。
 - 独立 registry GitHub 仓库仍需从当前 `registry/` 种子拆出并配置公开 catalog URL。
 - 真实 OAuth、DSH 重启和旧凭据迁移必须在 Desktop 实机由用户确认；自动测试不使用真实凭据。
 - stdio MCP 不在首版范围；支持 streamable-http 与 SSE。
