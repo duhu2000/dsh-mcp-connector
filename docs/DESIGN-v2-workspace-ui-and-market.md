@@ -172,4 +172,4 @@ toolsSnapshot:    z.array(z.object({ serverKey: z.string(), tools: z.array(z.obj
 1. **左栏入口**：已选择“新会话下、工作区上”的主导航位置；由公开 footer slot 托管生命周期，Portal 定位，目标缺失时回退 footer。
 2. **主内容形态**：已选择插件自带 Overlay，不依赖 `dsh-better-sidebar`。
 3. **市场范围**：M7/M8 均已完成，包含市场、已安装、详情、工具、Prompt 和连接生命周期。
-4. **registry 托管**：仓库内 Tier 1 种子和 CI 已落地；是否拆分为新的公开仓库，留待发版验收时确认。
+4. **registry 托管**：Tier 1 已拆分到公开仓库 `duhu2000/dsh-mcp-connector-registry`；插件默认读取 Raw `main/catalog.json`，使用 ETag/TTL 并在失败时回退缓存/内置目录。

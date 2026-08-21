@@ -19,7 +19,7 @@
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
 - P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；基础中英、深浅主题和键盘操作。
-- Registry：`registry/` 种子、Schema、构建器、无凭据探针与定时巡检 workflow 已完成。
+- Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
 
@@ -38,6 +38,8 @@
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
 | npm `dsh-mcp-connector@0.1.0` | 已公开发布并完成全新安装验证 |
 | `v0.2.0` / npm `0.2.0` | 已公开发布并通过公共 registry 全新安装验证 |
+| 独立远程 Registry | 已建仓、push 并通过 CI；插件默认 URL 已纳入 0.2.1 |
+| npm Trusted Publishing | GitHub OIDC 工作流已纳入 0.2.1，待首次 Tag 发布验证 |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -75,14 +77,16 @@ npm run check
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
 3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.0
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.0`；已从公共 registry 全新安装，`lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`及第三方 Logo 均存在。
+5. npm `latest`：`0.2.0`；已从 npm registry 全新安装，`lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`及第三方 Logo 均存在。
+6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
+7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 
-发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；本次 npm 使用本机已认证账号直接发布，Tag 工作流负责 GitHub Release。
+发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；0.2.1 起使用 npm Trusted Publishing，GitHub-hosted runner 通过 OIDC 发布 npm 并创建 GitHub Release，不再需要长期 `NPM_TOKEN`。
 
 ## 7. 已知限制与风险
 
 - DSH rc.7 没有目标位置的公开插槽，顶部入口依赖稳定 `data-slot` + Portal；已提供 footer 降级，但 DSH 大版本升级后应复测。
-- 独立 registry 尚未上线前，新市场卡片仍需随插件版本发布。
-- 独立 registry GitHub 仓库仍需从当前 `registry/` 种子拆出并配置公开 catalog URL。
+- Raw GitHub 目录默认缓存约 5 分钟，合并新卡片后客户端刷新可能需等待 CDN 缓存更新。
+- 随 npm 包的 `catalog/catalog.json` 仍作为离线/故障回退；独立 Registry 不应包含任何用户凭据。
 - 真实 OAuth、DSH 重启和旧凭据迁移必须在 Desktop 实机由用户确认；自动测试不使用真实凭据。
 - stdio MCP 不在首版范围；支持 streamable-http 与 SSE。

@@ -5,7 +5,7 @@
     - id: mcp-connector
       name: 'dsh-mcp-connector'
       config:
-        catalogUrl: ''
+        catalogUrl: 'https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json'
         persistSecrets: true
         entryPrefix: 'mcp'
         refreshSkewMs: 300000

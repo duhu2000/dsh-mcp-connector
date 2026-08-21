@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 上线独立公共 `dsh-mcp-connector-registry`，新市场卡片合并后无需重发 npm 即可被客户端刷新获取。
+- npm 发布流程切换为 GitHub Actions OIDC Trusted Publishing。
+
+### Changed
+
+- `catalogUrl` 默认指向公共 Registry，显式空字符串仍可关闭远程目录；拉取失败时保留缓存/内置目录回退。
+
 ## [0.2.0] - 2026-08-21
 
 ### Added

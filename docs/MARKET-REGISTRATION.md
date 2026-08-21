@@ -20,12 +20,12 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 
 ## 3. 提交公共市场
 
-1. 在 `registry/connectors/<id>.json` 新增一个描述文件，一个连接器一个文件。
-2. 运行 `npm run registry:build` 和 `npm run registry:validate`。
+1. Fork 公开仓库 [`duhu2000/dsh-mcp-connector-registry`](https://github.com/duhu2000/dsh-mcp-connector-registry)，在 `connectors/<id>.json` 新增一个描述文件，一个连接器一个文件。
+2. 运行 `npm install --legacy-peer-deps` 和 `npm run check`。
 3. 提交 PR。CI 会检查 Schema、重复 id/serverName、密钥、URL、MCP initialize、OAuth 元数据和图标。
-4. 合并后生成远程 `catalog.json`；客户端刷新目录后可见。
+4. 合并后 CI 重建根目录 `catalog.json`；客户端点击“刷新”后可见，无需重新发布 `dsh-mcp-connector` npm 包。
 
-公开 registry 独立仓库未拆分前，先向 `duhu2000/dsh-mcp-connector` 开发分支提交描述；拆分后流程不变。
+插件默认读取 `https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json`；远程不可用时自动回退上次缓存或随包内置目录。
 
 ## 4. OAuth 一键授权要求
 

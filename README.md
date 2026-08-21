@@ -17,6 +17,7 @@
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 Server 通过后才持久化凭据并进入“已安装”。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
+- 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；不删除原插件或原凭据。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
@@ -56,12 +57,14 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 - id: mcp-connector
   name: dsh-mcp-connector
   config:
-    catalogUrl: ''
+    catalogUrl: 'https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json'
     persistSecrets: true
     entryPrefix: mcp
     refreshSkewMs: 300000
     openBrowser: true
 ```
+
+`catalogUrl` 默认指向公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；拉取失败时继续使用上次缓存或随包内置目录。需要离线/私有模式时可将其显式设为空字符串。
 
 ## 开发与发布门禁
 
@@ -72,7 +75,7 @@ npm run registry:validate
 npm run dev:ui
 ```
 
-`check` 执行语法检查、自动测试和 npm 发布包白名单校验；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。仓库配置 `NPM_TOKEN` 后自动发布 npm，否则只创建 GitHub Release。
+`check` 执行语法检查、自动测试和 npm 发布包白名单校验；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
 当前公开版本为 [`dsh-mcp-connector@0.2.0`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.0](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.0)。
 
