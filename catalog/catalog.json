@@ -179,7 +179,11 @@
         { "name": "citation", "label": "法律引用", "default": "《民法典》第五百七十七条", "placeholder": "例如：《民法典》第五百七十七条", "required": true }
       ],
       "auth": {
-        "mode": "bearer"
+        "mode": "bearer",
+        "credentialName": "北大法宝 Access Token",
+        "credentialPlaceholder": "请输入您的北大法宝 Access Token",
+        "credentialDescription": "用于访问北大法宝 MCP；仅保存在 DSH 本机。",
+        "credentialHelpLabel": "如何获取北大法宝 Token？"
       },
       "servers": [
         { "serverKey": "law-search", "url": "https://apim-gateway.pkulaw.com/mcp-law-search-service", "serverName": "pkulaw-law-search", "transport": "streamable-http", "headers": {} },
@@ -215,7 +219,11 @@
         { "name": "stock", "label": "股票名称或代码", "default": "贵州茅台（600519.SH）", "placeholder": "例如：贵州茅台（600519.SH）", "required": true }
       ],
       "auth": {
-        "mode": "bearer"
+        "mode": "bearer",
+        "credentialName": "Wind API Key（个人密钥）",
+        "credentialPlaceholder": "请输入您的个人 Wind API Key",
+        "credentialDescription": "用于访问 Wind MCP 的个人访问令牌；仅保存在 DSH 本机。",
+        "credentialHelpLabel": "如何获取 Wind API Key？"
       },
       "servers": [
         {

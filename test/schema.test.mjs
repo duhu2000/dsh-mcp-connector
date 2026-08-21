@@ -29,6 +29,13 @@ test('normalizeConnectorDescriptor 补齐默认值', () => {
 test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () => {
   const d = normalizeConnectorDescriptor({
     id: 'templated', name: 'Templated',
+    auth: {
+      mode: 'bearer',
+      credentialName: 'Vendor Access Token',
+      credentialPlaceholder: '请输入 Token',
+      credentialDescription: '仅保存在本机',
+      credentialHelpLabel: '如何获取 Token？',
+    },
     promptVariables: [{ name: 'company', label: '企业名称', required: true }],
     prompts: [{ title: '查询', text: '查询 {{company}}' }],
     probeStatus: 'pass',
@@ -36,6 +43,10 @@ test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () =
     servers: [{ serverKey: 'main', url: 'https://mcp.example.com/stream', serverName: 'templated' }],
   });
   assert.equal(d.promptVariables[0].name, 'company');
+  assert.equal(d.auth.credentialName, 'Vendor Access Token');
+  assert.equal(d.auth.credentialPlaceholder, '请输入 Token');
+  assert.equal(d.auth.credentialDescription, '仅保存在本机');
+  assert.equal(d.auth.credentialHelpLabel, '如何获取 Token？');
   assert.equal(d.probeStatus, 'pass');
   assert.equal(d.toolsSnapshot[0].tools[0].name, 'search');
 });

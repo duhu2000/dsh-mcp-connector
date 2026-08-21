@@ -16,7 +16,11 @@
     { "name": "stock", "label": "股票名称或代码", "default": "贵州茅台（600519.SH）", "placeholder": "例如：贵州茅台（600519.SH）", "required": true }
   ],
   "auth": {
-    "mode": "bearer"
+    "mode": "bearer",
+    "credentialName": "Wind API Key（个人密钥）",
+    "credentialPlaceholder": "请输入您的个人 Wind API Key",
+    "credentialDescription": "用于访问 Wind MCP 的个人访问令牌；仅保存在 DSH 本机。",
+    "credentialHelpLabel": "如何获取 Wind API Key？"
   },
   "servers": [
     {

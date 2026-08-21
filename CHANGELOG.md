@@ -36,7 +36,9 @@
 ### Fixed
 
 - Bearer/API Key 市场卡片配置成功后，市场操作按钮正确切换为“已连接”。
-- 北大法宝卡片改用官网提供的本地品牌图标，不再显示通用天平 Emoji。
+- Bearer/API Key 连接器的详情页按钮直接打开凭据录入弹框，不再显示面向开发者的 `mcp_connector_configure` 错误。
+- 工具详情加载时正确携带已保存的 Bearer Token/API Key，避免连接成功后仍返回 401。
+- 北大法宝卡片改用用户确认的北大法宝印章 Logo，不再显示通用天平 Emoji。
 - 参数补全弹框和发送状态提示现在始终位于连接器详情弹框之上。
 - 正确解析 `WWW-Authenticate: Bearer resource_metadata="…"` 首个参数。
 - 修复鉴权表单 `hidden` 被网格布局覆盖、无鉴权模式误显示 API Key 字段。

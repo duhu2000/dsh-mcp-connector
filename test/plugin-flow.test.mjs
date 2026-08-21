@@ -254,6 +254,45 @@ test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { tim
   assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connected.length, 2);
 });
 
+test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeout: 15000 }, async () => {
+  const seen = {};
+  const mcpServer = createServer(async (req, res) => {
+    seen.authorization = req.headers.authorization;
+    seen.accept = req.headers.accept;
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
+  });
+  await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
+  const port = mcpServer.address().port;
+
+  try {
+    const connectors = [{
+      id: 'wind-demo',
+      name: 'Wind Demo',
+      auth: { mode: 'bearer' },
+      servers: [{ serverKey: 'stock', url: `http://127.0.0.1:${port}/mcp`, serverName: 'wind-demo', headers: {} }],
+    }];
+    const { ctx, tools } = makePluginContext();
+    const { apply } = await import('../lib/index.js');
+    await apply(ctx, baseConfig({ connectors }));
+
+    const configured = await tools.defs.get('mcp_connector_configure').execute({
+      connectorId: 'wind-demo',
+      bearerToken: 'wind-key',
+    });
+    assert.equal(configured.ok, true, configured.message);
+
+    const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'wind-demo' });
+    assert.equal(listed.ok, true, listed.message);
+    assert.equal(listed.detail.totalTools, 1);
+    assert.equal(seen.authorization, 'Bearer wind-key');
+    assert.equal(seen.accept, 'application/json, text/event-stream');
+  } finally {
+    await new Promise((resolve) => mcpServer.close(resolve));
+  }
+});
+
 test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
   const catalogSrv = createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });

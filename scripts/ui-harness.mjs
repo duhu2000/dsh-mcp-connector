@@ -41,6 +41,11 @@ const server = createServer(async (req, res) => {
     json(res, { ok: true, detail: { items: catalog.map((item) => ({
       ...item,
       authMode: item.auth.mode,
+      apiKeyHeader: item.auth.apiKeyHeader,
+      credentialName: item.auth.credentialName,
+      credentialPlaceholder: item.auth.credentialPlaceholder,
+      credentialDescription: item.auth.credentialDescription,
+      credentialHelpLabel: item.auth.credentialHelpLabel,
       connected: connected.has(item.id) ? [`${item.id}-main`] : [],
     })) } }); return;
   }

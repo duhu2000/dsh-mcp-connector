@@ -35,8 +35,20 @@ test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /function openCatalogCredentialForm\(preset\)/);
   assert.match(uiSource, /一次配置 \$\{servers\.length\} 个 MCP Server/);
-  assert.match(uiSource, /尚无凭据？[\s\S]*?官网获取/);
+  assert.match(uiSource, /preset\.credentialName/);
+  assert.match(uiSource, /preset\.credentialPlaceholder/);
+  assert.match(uiSource, /preset\.credentialDescription/);
+  assert.match(uiSource, /preset\.credentialHelpLabel/);
   assert.match(uiSource, /connectorId,\s*authMode,\s*bearerToken/);
+});
+
+test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
+  const trySource = uiSource.match(/\$\('#detail-try-btn'\)\.addEventListener\('click', async \(\) => \{[\s\S]*?\n  \}\);/)?.[0] ?? '';
+  assert.match(trySource, /\['bearer', 'api-key'\]\.includes\(detailConnector\.authMode\)/);
+  assert.match(trySource, /openAddConnection\('manual', detailConnector\)/);
+  assert.ok(trySource.indexOf("openAddConnection('manual', detailConnector)") < trySource.indexOf("call('connect'"));
+  assert.match(uiSource, /configureConnect: '🔑 录入凭据并连接'/);
+  assert.match(uiSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
 });
 
 test('Bearer/API Key 市场卡片配置成功后显示已连接', () => {

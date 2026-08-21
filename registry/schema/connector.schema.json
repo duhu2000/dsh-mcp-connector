@@ -32,7 +32,11 @@
         "clientName": { "type": "string" },
         "tokenEndpointAuthMethod": { "type": "string" },
         "apiKeyHeader": { "type": "string" },
-        "grantSharing": { "type": "string" }
+        "grantSharing": { "type": "string" },
+        "credentialName": { "type": "string" },
+        "credentialPlaceholder": { "type": "string" },
+        "credentialDescription": { "type": "string" },
+        "credentialHelpLabel": { "type": "string" }
       }
     },
     "servers": {

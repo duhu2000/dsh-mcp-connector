@@ -428,13 +428,13 @@
       market: '市场', installed: '已安装', search: '搜索连接器…', add: '＋ 添加连接', refresh: '刷新',
       tryExamples: '试试这样用', next: '换一批', tools: '工具详情', toolSearch: '搜索工具名称或描述…',
       disconnect: '断开连接', details: '详情', connect: '连接', connected: '已连接', configure: '配置',
-      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', loading: '加载中…',
+      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接', loading: '加载中…',
     },
     en: {
       market: 'Marketplace', installed: 'Installed', search: 'Search connectors…', add: '+ Add connector', refresh: 'Refresh',
       tryExamples: 'Try these prompts', next: 'Next', tools: 'Tool details', toolSearch: 'Search tool name or description…',
       disconnect: 'Disconnect', details: 'Details', connect: 'Connect', connected: 'Connected', configure: 'Configure',
-      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', loading: 'Loading…',
+      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', configureConnect: '🔑 Add key & connect', loading: 'Loading…',
     },
   };
   let locale = 'zh';
@@ -780,17 +780,21 @@
     const authMode = preset.authMode === 'api-key' ? 'api-key' : 'bearer';
     const servers = preset.servers || [];
     const homepage = /^https:\/\//i.test(preset.homepage || '') ? preset.homepage : '';
+    const credentialName = preset.credentialName || (authMode === 'bearer' ? 'Bearer Token' : 'API Key');
+    const credentialPlaceholder = preset.credentialPlaceholder || '仅保存在 DSH 本机';
+    const credentialDescription = preset.credentialDescription || '凭据仅保存在 DSH 本机，不会写入市场目录或对话。';
+    const credentialHelpLabel = preset.credentialHelpLabel || `前往 ${preset.vendor || preset.name} 官网获取`;
     const credentialFields = authMode === 'bearer'
-      ? `<label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" />`
-      : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" /></div></div>`;
+      ? `<label for="cfg-token">${esc(credentialName)}（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
+      : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
     const serverPreview = servers.map((server) => `<div>${esc(server.serverName)} · ${esc(server.url)}</div>`).join('');
     openModal(`配置 ${preset.name}`, `
       <input id="cfg-connector-id" type="hidden" value="${esc(preset.id)}" />
       <input id="cfg-auth" type="hidden" value="${esc(authMode)}" />
-      <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一个 ${authMode === 'bearer' ? 'Bearer Token' : 'API Key'}；凭据仅保存在本机，不会写入市场目录。</div>
+      <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一份 ${esc(credentialName)}；凭据仅保存在本机，不会写入市场目录。</div>
       <div class="server-preview">${serverPreview}</div>
       ${credentialFields}
-      ${homepage ? `<div class="field-help">尚无凭据？<a href="${esc(homepage)}" target="_blank" rel="noopener noreferrer">前往 ${esc(preset.vendor || preset.name)} 官网获取</a></div>` : ''}
+      ${homepage ? `<div class="field-help"><a href="${esc(homepage)}" target="_blank" rel="noopener noreferrer">${esc(credentialHelpLabel)}</a></div>` : ''}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接 ${servers.length} 个 Server</button></div>`);
   }
@@ -910,7 +914,10 @@
         });
         setModalBusy(false);
         if (!r.ok) { showModalError(r.message); return; }
-        closeModal(); showToast(r.message, true); await refresh();
+        const configuredFromDetail = detailConnector?.id === connectorId && $('#detail-overlay').classList.contains('active');
+        closeModal();
+        if (configuredFromDetail) closeDetail();
+        showToast(r.message, true); await refresh();
         return;
       }
       const name = $('#cfg-name').value.trim();
@@ -998,7 +1005,8 @@
       $('#detail-tools').innerHTML = '<div class="tools-loading">正在读取可用工具及描述…</div>';
       setDetailOpen(true);
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
-      $('#detail-try-btn').textContent = d.connected?.length > 0 ? t('try') : t('connectTry');
+      const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
+      $('#detail-try-btn').textContent = d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry');
       const toolsResult = await call('toolsList', { connectorId });
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
       if (!toolsResult.ok) {
@@ -1088,6 +1096,10 @@
     if (!detailConnector?.connected?.length) {
       const id = detailConnector?.id;
       if (!id) return;
+      if (['bearer', 'api-key'].includes(detailConnector.authMode)) {
+        openAddConnection('manual', detailConnector);
+        return;
+      }
       const r = await call('connect', { connectorId: id });
       showToast(r.message, r.ok);
       if (r.ok) { closeDetail(); await refresh(); }

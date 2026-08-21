@@ -31,10 +31,12 @@ test('内置目录加载 + published 过滤', () => {
   assert.ok(qccCards.every((d) => d.promptVariables.every((variable) => variable.required === false || variable.default)), '内置 Prompt 必填参数应提供可直接试用的默认示例');
   const pkulaw = published.find((d) => d.id === 'pkulaw-legal');
   assert.equal(pkulaw?.auth.mode, 'bearer', '北大法宝应以 Bearer Token 方式接入');
+  assert.equal(pkulaw?.auth.credentialName, '北大法宝 Access Token');
   assert.equal(pkulaw?.servers.length, 9, '北大法宝卡片应一次配置官网公开的 9 个 Server');
   assert.equal(pkulaw?.icon, '/mcp-connector/ui/assets/pkulaw-logo.png', '北大法宝应使用内置官网 Logo');
   const wind = published.find((d) => d.id === 'wind-stock-data');
   assert.equal(wind?.auth.mode, 'bearer', 'Wind 股票数据应以 Bearer Wind Key 接入');
+  assert.equal(wind?.auth.credentialName, 'Wind API Key（个人密钥）');
   assert.equal(wind?.servers.length, 1, 'Wind 股票数据卡片只接入官网当前公开的股票 MCP Server');
   assert.equal(wind?.servers[0]?.url, 'https://mcp.wind.com.cn/vserver_stock_data/mcp/');
   assert.equal(wind?.servers[0]?.headers.Accept, 'application/json, text/event-stream');
