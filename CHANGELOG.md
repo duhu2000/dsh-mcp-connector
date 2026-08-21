@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-08-21
+
 ### Documentation
 
 - 记录 `0.2.5` GitHub/npm 发布、DSH Desktop 精确版本安装、孤立 grant 自动清理与 19/19 Server 健康回归结果。
@@ -145,7 +147,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...v0.2.3
