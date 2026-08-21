@@ -61,11 +61,16 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.match(uiSource, /正在验证凭据与连接…/);
   assert.match(uiSource, /detailNeedsReconfigure[\s\S]*?reconfigureCredential/);
   assert.match(uiSource, /detailConnector\?\.connected\?\.length > 0 && !detailNeedsReconfigure/);
-  assert.match(uiSource, /当前连接不可用/);
+  assert.match(uiSource, /当前连接异常/);
+  assert.match(uiSource, /授权已失效/);
+  assert.match(uiSource, /重新检查/);
 });
 
-test('Bearer/API Key 市场卡片配置成功后显示已连接', () => {
-  const actionSource = uiSource.match(/function actionHtml\(d, connected\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
-  assert.match(actionSource, /if \(connected\)[\s\S]*?t\('connected'\)/);
-  assert.ok(actionSource.indexOf('if (connected)') < actionSource.lastIndexOf("t('configure')"));
+test('市场卡片区分已配置、已连接、重新授权和连接异常', () => {
+  const actionSource = uiSource.match(/function actionHtml\(d\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.match(actionSource, /state === 'healthy'[\s\S]*?t\('connected'\)/);
+  assert.match(actionSource, /state === 'configured'[\s\S]*?t\('configured'\)/);
+  assert.match(actionSource, /state === 'reauth'[\s\S]*?t\('reauthorize'\)/);
+  assert.match(actionSource, /state === 'unavailable'[\s\S]*?t\('connectionError'\)/);
+  assert.match(uiSource, /call\('healthCheck', \{\}\)/);
 });

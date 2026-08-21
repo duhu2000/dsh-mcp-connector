@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "General-purpose MCP Connector Marketplace for DeepSeek Harness with OAuth 2.0 PKCE, API key/URL, JSON import, tool discovery, prompt templates, and connection management.",
   "type": "module",
   "main": "lib/index.js",

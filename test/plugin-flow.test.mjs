@@ -274,6 +274,7 @@ test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { tim
     assert.equal(status.detail.items.filter((item) => item.connectorId === 'legal-market').length, 2);
     const catalog = await tools.defs.get('mcp_connector_catalog').execute({});
     assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connected.length, 2);
+    assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connectionState, 'healthy');
   } finally {
     await new Promise((resolve) => marketServer.close(resolve));
   }
@@ -378,6 +379,15 @@ test('历史凭据失效导致所有 Server 失败时 toolsList 明确返回不�
     assert.equal(listed.detail.availableServers, 0);
     assert.equal(listed.detail.failedServers, 1);
     assert.match(listed.detail.servers[0].error, /凭据无效|权限/);
+    assert.equal(listed.detail.connectionState, 'reauth');
+    const health = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'wind-expired' });
+    assert.equal(health.ok, true);
+    assert.equal(health.detail.items[0].connectionState, 'reauth');
+    const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'Wind Expired' });
+    assert.equal(catalog.detail.items[0].connectionState, 'reauth');
+    assert.equal(catalog.detail.items[0].connectionLabel, '需重新授权');
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(status.detail.items[0].connectionState, 'reauth');
   } finally {
     await new Promise((resolve) => mcpServer.close(resolve));
   }

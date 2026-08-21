@@ -4,9 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-08-21
+
+### Added
+
+- 新增主动连接健康检查，支持 OAuth grant、Bearer/API Key 与无鉴权 MCP initialize 握手，并以 4 并发、5 秒单连接上限避免刷新风暴。
+- 新增 `mcp_connector_health_check` 对话工具和同源 Web API，可检查单个或全部已配置连接器。
+
 ### Changed
 
-- 更新 `0.2.3` 发布、npm latest 与 DSH Desktop 实机回归记录。
+- 市场卡片和“已安装”列表不再把“本机存在配置”等同于“当前可用”，改为展示已配置、已连接、需重新授权、部分异常、连接异常或已停用。
+- 首次打开市场会在后台执行一次限流健康检查；用户点击“刷新”时同步刷新目录和连接状态。
+
+### Fixed
+
+- OAuth 过期/缺失或历史 Key 失效后，不再继续显示“已连接”；详情页会暂停 Prompt 发送并提供重新授权/重新配置入口。
+- 网络、DNS、TLS 或服务端异常与凭据异常分开呈现，避免误导用户重复录入 Key。
 
 ## [0.2.3] - 2026-08-21
 
@@ -106,7 +119,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...v0.2.1

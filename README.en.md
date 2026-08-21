@@ -13,7 +13,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 ## Features
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
-- Searchable Marketplace and Installed views with connection status and catalog refresh.
+- Searchable Marketplace and Installed views with catalog refresh and active health checks that distinguish Configured, Connected, Reauthorization Required, Partially Unavailable, and Connection Error states.
 - OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated URL configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
 - Credential and MCP initialize validation before API-key connectors are saved as installed.
@@ -97,7 +97,7 @@ npm run dev:ui
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
-The current public version is [`dsh-mcp-connector@0.2.3`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.3](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.3).
+The current public version is [`dsh-mcp-connector@0.2.4`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.4](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.4).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

@@ -11,6 +11,7 @@ const catalog = JSON.parse(await readFile(join(root, 'catalog/catalog.json'), 'u
   .filter((item) => item.published !== false)
   .map(normalizeConnectorDescriptor);
 const connected = new Set(['qcc-company']);
+const healthStates = new Map();
 const bundledAssets = new Map([
   ['qcc-logo.svg', 'image/svg+xml'],
   ['pkulaw-logo.png', 'image/png'],
@@ -47,13 +48,21 @@ const server = createServer(async (req, res) => {
       credentialDescription: item.auth.credentialDescription,
       credentialHelpLabel: item.auth.credentialHelpLabel,
       connected: connected.has(item.id) ? [`${item.id}-main`] : [],
+      connectionState: connected.has(item.id) ? (healthStates.get(item.id) ?? 'configured') : 'disconnected',
+      connectionLabel: healthStates.get(item.id) === 'healthy' ? '已连接' : connected.has(item.id) ? '已配置' : '未连接',
     })) } }); return;
   }
   if (method === 'status') { json(res, { ok: true, detail: { items: [] } }); return; }
   if (method === 'migrationPreview') { json(res, { ok: true, detail: { pendingCount: 0, items: [] } }); return; }
   if (method === 'toolsList') {
     const tools = Array.from({ length: 125 }, (_, index) => ({ name: `tool_${String(index + 1).padStart(3, '0')}`, title: `工具 ${index + 1}`, description: `用于验证分批渲染与搜索的第 ${index + 1} 个工具。` }));
-    json(res, { ok: true, detail: { totalTools: tools.length, servers: [{ serverKey: 'company', serverName: 'qcc-company', ok: true, tools }] } }); return;
+    healthStates.set(params.connectorId, 'healthy');
+    json(res, { ok: true, detail: { totalTools: tools.length, connectionState: 'healthy', servers: [{ serverKey: 'company', serverName: 'qcc-company', ok: true, tools }] } }); return;
+  }
+  if (method === 'healthCheck') {
+    const ids = params.connectorId ? [params.connectorId] : [...connected];
+    ids.forEach((id) => healthStates.set(id, 'healthy'));
+    json(res, { ok: true, message: `已检查 ${ids.length} 个连接器：${ids.length} 个正常`, detail: { items: ids.map((connectorId) => ({ connectorId, connectionState: 'healthy' })) } }); return;
   }
   if (method === 'connect') { connected.add(params.connectorId); json(res, { ok: true, message: 'Mock 连接成功' }); return; }
   if (method === 'configure') {

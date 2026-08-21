@@ -66,6 +66,30 @@ test('MCP 连接校验将 401 分类为凭据错误', async () => {
   }
 });
 
+test('MCP 健康检查可使用 OAuth grant 组装鉴权头', async () => {
+  let seenAuthorization;
+  const { server, url } = await listen(async (req, res) => {
+    seenAuthorization = req.headers.authorization;
+    for await (const _chunk of req) {}
+    res.writeHead(seenAuthorization === 'Bearer oauth-token' ? 200 : 401, { 'content-type': 'application/json' });
+    res.end(seenAuthorization === 'Bearer oauth-token' ? JSON.stringify({
+      jsonrpc: '2.0', id: 1,
+      result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'oauth', version: '1' } },
+    }) : '');
+  });
+  try {
+    const record = { ...bearerRecord(url, ''), auth: { mode: 'oauth', grantKey: 'grant-1' } };
+    const result = await validateConnectionRecord(record, {
+      timeoutMs: 2000,
+      grants: new Map([['grant-1', { accessToken: 'oauth-token' }]]),
+    });
+    assert.equal(result.ok, true, result.message);
+    assert.equal(seenAuthorization, 'Bearer oauth-token');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('连接错误将 TLS reset 转为可操作的用户提示', () => {
   const cause = Object.assign(new Error('Client network socket disconnected before secure TLS connection was established'), { code: 'ECONNRESET' });
   const error = new TypeError('fetch failed', { cause });
