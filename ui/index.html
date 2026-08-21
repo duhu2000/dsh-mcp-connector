@@ -428,13 +428,13 @@
       market: '市场', installed: '已安装', search: '搜索连接器…', add: '＋ 添加连接', refresh: '刷新',
       tryExamples: '试试这样用', next: '换一批', tools: '工具详情', toolSearch: '搜索工具名称或描述…',
       disconnect: '断开连接', details: '详情', connect: '连接', connected: '已连接', configure: '配置',
-      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接', loading: '加载中…',
+      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接', reconfigureCredential: '🔑 重新配置凭据', loading: '加载中…',
     },
     en: {
       market: 'Marketplace', installed: 'Installed', search: 'Search connectors…', add: '+ Add connector', refresh: 'Refresh',
       tryExamples: 'Try these prompts', next: 'Next', tools: 'Tool details', toolSearch: 'Search tool name or description…',
       disconnect: 'Disconnect', details: 'Details', connect: 'Connect', connected: 'Connected', configure: 'Configure',
-      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', configureConnect: '🔑 Add key & connect', loading: 'Loading…',
+      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', configureConnect: '🔑 Add key & connect', reconfigureCredential: '🔑 Reconfigure key', loading: 'Loading…',
     },
   };
   let locale = 'zh';
@@ -464,6 +464,7 @@
   let promptPage = 0;
   let detailConnector = null;
   let detailToolServers = [];
+  let detailNeedsReconfigure = false;
   let toolRenderLimit = 50;
   let detailLoadId = 0;
   let catalogRenderLimit = 60;
@@ -594,8 +595,9 @@
     const visible = detailPrompts.slice(start, start + PROMPT_PAGE_SIZE);
     $('#prompt-meta').textContent = total > 0 ? `· 精选 ${visible.length} / 共 ${total} 条` : '';
     $('#prompt-next').hidden = total <= PROMPT_PAGE_SIZE;
+    const usable = detailConnector?.connected?.length > 0 && !detailNeedsReconfigure;
     $('#detail-prompts').innerHTML = visible.length > 0
-      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${detailConnector?.connected?.length ? '' : 'disabled'}>${detailConnector?.connected?.length ? t(promptNeedsInput(prompt) ? 'fillSend' : 'send') : t('connectToUse')}</button></div>`).join('')
+      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${usable ? '' : 'disabled'}>${usable ? t(promptNeedsInput(prompt) ? 'fillSend' : 'send') : t('connectToUse')}</button></div>`).join('')
       : '<div style="color:var(--muted);font-size:13px;">暂无预设 Prompt</div>';
   }
 
@@ -749,10 +751,11 @@
 
   function guidanceFor(message) {
     const text = String(message || '未知错误');
-    if (/protocol not allowed|only https/i.test(text)) return `${text}。公网地址必须使用 HTTPS；HTTP 只允许 localhost/127.0.0.1。`;
-    if (/JSON/i.test(text)) return `${text}。请检查引号、逗号，并确认顶层是 mcpServers 或 connections。`;
-    if (/401|403|token|凭据|api.?key/i.test(text)) return `${text}。请核对鉴权方式、Token/API Key 是否有效以及 Header 名。`;
-    if (/timeout|timed out|fetch|连接|network/i.test(text)) return `${text}。请检查网络、端点是否可达以及 MCP URL 是否完整。`;
+    const withAdvice = (advice) => `${text.replace(/[。！？.!?\s]+$/, '')}。${advice}`;
+    if (/protocol not allowed|only https/i.test(text)) return withAdvice('公网地址必须使用 HTTPS；HTTP 只允许 localhost/127.0.0.1。');
+    if (/JSON/i.test(text)) return withAdvice('请检查引号、逗号，并确认顶层是 mcpServers 或 connections。');
+    if (/401|403|token|凭据|api.?key/i.test(text)) return withAdvice('请核对鉴权方式、Token/API Key 是否有效以及 Header 名。');
+    if (/timeout|timed out|fetch|连接|network/i.test(text)) return withAdvice('请检查网络、端点是否可达以及 MCP URL 是否完整。');
     return text;
   }
 
@@ -764,8 +767,19 @@
     node.focus?.();
   }
 
-  function setModalBusy(busy) {
-    $('#modal')?.querySelectorAll('button, input, textarea, select').forEach((element) => { element.disabled = busy; });
+  function setModalBusy(busy, busyLabel = '') {
+    const modal = $('#modal');
+    if (!modal) return;
+    modal.setAttribute('aria-busy', busy ? 'true' : 'false');
+    const primary = modal.querySelector('.m-actions .btn:not(.ghost)');
+    if (busy && primary) {
+      primary.dataset.idleLabel = primary.textContent;
+      primary.textContent = busyLabel || '处理中…';
+    } else if (!busy && primary?.dataset.idleLabel) {
+      primary.textContent = primary.dataset.idleLabel;
+      delete primary.dataset.idleLabel;
+    }
+    modal.querySelectorAll('button, input, textarea, select').forEach((element) => { element.disabled = busy; });
   }
 
   function addTabs(active) {
@@ -904,7 +918,7 @@
       const connectorId = $('#cfg-connector-id')?.value.trim();
       const authMode = $('#cfg-auth').value;
       if (connectorId) {
-        setModalBusy(true);
+        setModalBusy(true, '正在验证凭据与连接…');
         const r = await call('configure', {
           connectorId,
           authMode,
@@ -987,6 +1001,7 @@
       const d = marketItems[connectorId];
       if (!d) return;
       detailConnector = d;
+      detailNeedsReconfigure = false;
       const loadId = ++detailLoadId;
       $('#detail-icon').innerHTML = isImageIcon(d.icon)
         ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
@@ -1012,6 +1027,12 @@
       if (!toolsResult.ok) {
         $('#tools-summary').textContent = '工具加载失败';
         $('#detail-tools').innerHTML = `<div class="tools-error">${esc(toolsResult.message)}</div>`;
+        if (needsCredential && d.connected?.length > 0) {
+          detailNeedsReconfigure = true;
+          $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · 当前连接不可用` : '当前连接不可用';
+          $('#detail-try-btn').textContent = t('reconfigureCredential');
+          renderPromptPage();
+        }
         return;
       }
       detailToolServers = toolsResult.detail?.servers || [];
@@ -1084,7 +1105,7 @@
     const button = e.target.closest('button[data-prompt-index]');
     if (!button) return;
     const prompt = detailPrompts[Number(button.dataset.promptIndex)];
-    if (prompt && detailConnector?.connected?.length) openPromptForm(prompt);
+    if (prompt && detailConnector?.connected?.length && !detailNeedsReconfigure) openPromptForm(prompt);
   });
   $('#tools-search').addEventListener('input', () => { toolRenderLimit = 50; renderTools(); });
   $('#detail-tools').addEventListener('click', (event) => {
@@ -1093,6 +1114,10 @@
     renderTools();
   });
   $('#detail-try-btn').addEventListener('click', async () => {
+    if (detailNeedsReconfigure && ['bearer', 'api-key'].includes(detailConnector?.authMode)) {
+      openAddConnection('manual', detailConnector);
+      return;
+    }
     if (!detailConnector?.connected?.length) {
       const id = detailConnector?.id;
       if (!id) return;

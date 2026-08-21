@@ -49,6 +49,10 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.ok(trySource.indexOf("openAddConnection('manual', detailConnector)") < trySource.indexOf("call('connect'"));
   assert.match(uiSource, /configureConnect: '🔑 录入凭据并连接'/);
   assert.match(uiSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
+  assert.match(uiSource, /正在验证凭据与连接…/);
+  assert.match(uiSource, /detailNeedsReconfigure[\s\S]*?reconfigureCredential/);
+  assert.match(uiSource, /detailConnector\?\.connected\?\.length > 0 && !detailNeedsReconfigure/);
+  assert.match(uiSource, /当前连接不可用/);
 });
 
 test('Bearer/API Key 市场卡片配置成功后显示已连接', () => {

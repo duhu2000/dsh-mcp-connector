@@ -192,66 +192,120 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
 });
 
 test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, async () => {
+  const manualServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'manual', version: '1' } } }));
+  });
+  await new Promise((resolve) => manualServer.listen(0, '127.0.0.1', resolve));
+  const manualUrl = `http://127.0.0.1:${manualServer.address().port}/mcp`;
   const { ctx, loader, tools } = makePluginContext();
   const { apply } = await import('../lib/index.js');
   await apply(ctx, baseConfig());
 
-  const conf = await tools.defs.get('mcp_connector_configure').execute({
-    name: '我的数据源',
-    url: 'https://mcp.example.com/stream',
-    serverName: 'my',
-    authMode: 'bearer',
-    bearerToken: 'tok',
-  });
-  assert.equal(conf.ok, true, conf.message);
-  const key = conf.detail.key;
-  assert.equal(key, 'custom-my');
-  assert.equal(loader.entries.get('mcp-custom-my').options.config.headers.Authorization, 'Bearer tok');
+  try {
+    const conf = await tools.defs.get('mcp_connector_configure').execute({
+      name: '我的数据源',
+      url: manualUrl,
+      serverName: 'my',
+      authMode: 'bearer',
+      bearerToken: 'tok',
+    });
+    assert.equal(conf.ok, true, conf.message);
+    const key = conf.detail.key;
+    assert.equal(key, 'custom-my');
+    assert.equal(loader.entries.get('mcp-custom-my').options.config.headers.Authorization, 'Bearer tok');
 
-  const imp = await tools.defs.get('mcp_connector_import_json').execute({
-    json: JSON.stringify({ mcpServers: { vendor: { type: 'streamable-http', url: 'https://vendor.example.com/mcp/stream', headers: { Authorization: 'Bearer vtok' } } } }),
-  });
-  assert.equal(imp.ok, true, imp.message);
-  assert.equal(imp.detail.keys.length, 1);
-  assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
+    const imp = await tools.defs.get('mcp_connector_import_json').execute({
+      json: JSON.stringify({ mcpServers: { vendor: { type: 'streamable-http', url: 'https://vendor.example.com/mcp/stream', headers: { Authorization: 'Bearer vtok' } } } }),
+    });
+    assert.equal(imp.ok, true, imp.message);
+    assert.equal(imp.detail.keys.length, 1);
+    assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
 
-  const off = await tools.defs.get('mcp_connector_set_enabled').execute({ key, enabled: false });
-  assert.equal(off.ok, true);
-  assert.equal(loader.entries.get(`mcp-${key}`).disabled, true);
+    const off = await tools.defs.get('mcp_connector_set_enabled').execute({ key, enabled: false });
+    assert.equal(off.ok, true);
+    assert.equal(loader.entries.get(`mcp-${key}`).disabled, true);
 
-  const dis = await tools.defs.get('mcp_connector_disconnect').execute({ key }, { signal: undefined });
-  assert.equal(dis.ok, true);
-  assert.equal(loader.entries.has(`mcp-${key}`), false);
+    const dis = await tools.defs.get('mcp_connector_disconnect').execute({ key }, { signal: undefined });
+    assert.equal(dis.ok, true);
+    assert.equal(loader.entries.has(`mcp-${key}`), false);
+  } finally {
+    await new Promise((resolve) => manualServer.close(resolve));
+  }
 });
 
 test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { timeout: 15000 }, async () => {
+  const marketServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    if (req.headers.authorization !== 'Bearer shared-token') {
+      res.writeHead(401); res.end(); return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'legal', version: '1' } } }));
+  });
+  await new Promise((resolve) => marketServer.listen(0, '127.0.0.1', resolve));
+  const marketBase = `http://127.0.0.1:${marketServer.address().port}`;
   const connectors = [{
     id: 'legal-market',
     name: '法律数据市场',
     auth: { mode: 'bearer' },
     servers: [
-      { serverKey: 'law', url: 'https://legal.example.com/mcp-law', serverName: 'legal-law', headers: { Accept: 'application/json, text/event-stream' } },
-      { serverKey: 'case', url: 'https://legal.example.com/mcp-case', serverName: 'legal-case' },
+      { serverKey: 'law', url: `${marketBase}/mcp-law`, serverName: 'legal-law', headers: { Accept: 'application/json, text/event-stream' } },
+      { serverKey: 'case', url: `${marketBase}/mcp-case`, serverName: 'legal-case' },
     ],
   }];
   const { ctx, loader, tools } = makePluginContext();
   const { apply } = await import('../lib/index.js');
   await apply(ctx, baseConfig({ connectors }));
 
-  const configured = await tools.defs.get('mcp_connector_configure').execute({
-    connectorId: 'legal-market',
-    bearerToken: 'shared-token',
-  });
-  assert.equal(configured.ok, true, configured.message);
-  assert.deepEqual(configured.detail.keys, ['legal-market-law', 'legal-market-case']);
-  assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Authorization, 'Bearer shared-token');
-  assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Accept, 'application/json, text/event-stream');
-  assert.equal(loader.entries.get('mcp-legal-market-case').options.config.headers.Authorization, 'Bearer shared-token');
+  try {
+    const configured = await tools.defs.get('mcp_connector_configure').execute({
+      connectorId: 'legal-market',
+      bearerToken: 'shared-token',
+    });
+    assert.equal(configured.ok, true, configured.message);
+    assert.deepEqual(configured.detail.keys, ['legal-market-law', 'legal-market-case']);
+    assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Authorization, 'Bearer shared-token');
+    assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Accept, 'application/json, text/event-stream');
+    assert.equal(loader.entries.get('mcp-legal-market-case').options.config.headers.Authorization, 'Bearer shared-token');
 
-  const status = await tools.defs.get('mcp_connector_status').execute({});
-  assert.equal(status.detail.items.filter((item) => item.connectorId === 'legal-market').length, 2);
-  const catalog = await tools.defs.get('mcp_connector_catalog').execute({});
-  assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connected.length, 2);
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(status.detail.items.filter((item) => item.connectorId === 'legal-market').length, 2);
+    const catalog = await tools.defs.get('mcp_connector_catalog').execute({});
+    assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connected.length, 2);
+  } finally {
+    await new Promise((resolve) => marketServer.close(resolve));
+  }
+});
+
+test('市场凭据校验失败时不进入已安装、不持久化 Key', { timeout: 15000 }, async () => {
+  const authServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(401); res.end();
+  });
+  await new Promise((resolve) => authServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${authServer.address().port}/mcp`;
+  const connectors = [{
+    id: 'wind-invalid',
+    name: 'Wind Invalid',
+    auth: { mode: 'bearer' },
+    servers: [{ serverKey: 'stock', url, serverName: 'wind-invalid', headers: {} }],
+  }];
+  const { ctx, loader, tools, tables } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+  try {
+    const configured = await tools.defs.get('mcp_connector_configure').execute({ connectorId: 'wind-invalid', bearerToken: 'wrong-key' });
+    assert.equal(configured.ok, false);
+    assert.match(configured.message, /连接验证失败/);
+    assert.match(configured.message, /未保存连接/);
+    assert.equal(loader.entries.size, 0);
+    assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
+    assert.equal([...tables.get('connections').entries()].length, 0);
+  } finally {
+    await new Promise((resolve) => authServer.close(resolve));
+  }
 });
 
 test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeout: 15000 }, async () => {
@@ -259,9 +313,13 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
   const mcpServer = createServer(async (req, res) => {
     seen.authorization = req.headers.authorization;
     seen.accept = req.headers.accept;
-    for await (const _chunk of req) {}
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const method = JSON.parse(Buffer.concat(chunks).toString('utf8')).method;
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
+    res.end(JSON.stringify(method === 'initialize'
+      ? { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'wind', version: '1' } } }
+      : { jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
   });
   await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
   const port = mcpServer.address().port;
@@ -291,6 +349,48 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
   } finally {
     await new Promise((resolve) => mcpServer.close(resolve));
   }
+});
+
+test('历史凭据失效导致所有 Server 失败时 toolsList 明确返回不可用', { timeout: 15000 }, async () => {
+  let allow = true;
+  const mcpServer = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    if (!allow) { res.writeHead(401); res.end(); return; }
+    const method = JSON.parse(Buffer.concat(chunks).toString('utf8')).method;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(method === 'initialize'
+      ? { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'wind', version: '1' } } }
+      : { jsonrpc: '2.0', id: 1, result: { tools: [] } }));
+  });
+  await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${mcpServer.address().port}/mcp`;
+  const connectors = [{ id: 'wind-expired', name: 'Wind Expired', auth: { mode: 'bearer' }, servers: [{ serverKey: 'stock', url, serverName: 'wind-expired', headers: {} }] }];
+  const { ctx, tools } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+  try {
+    const configured = await tools.defs.get('mcp_connector_configure').execute({ connectorId: 'wind-expired', bearerToken: 'initially-valid' });
+    assert.equal(configured.ok, true, configured.message);
+    allow = false;
+    const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'wind-expired' });
+    assert.equal(listed.ok, false);
+    assert.equal(listed.detail.availableServers, 0);
+    assert.equal(listed.detail.failedServers, 1);
+    assert.match(listed.detail.servers[0].error, /凭据无效|权限/);
+  } finally {
+    await new Promise((resolve) => mcpServer.close(resolve));
+  }
+});
+
+test('未配置远程目录时刷新市场也返回正常用户提示', async () => {
+  const { ctx, tools } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+  const refreshed = await tools.defs.get('mcp_connector_refresh_catalog').execute({});
+  assert.equal(refreshed.ok, true);
+  assert.match(refreshed.message, /^市场已刷新，共 \d+ 个连接器$/);
+  assert.doesNotMatch(refreshed.message, /catalogUrl|无远程目录/);
 });
 
 test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {

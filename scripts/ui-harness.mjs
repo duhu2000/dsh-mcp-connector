@@ -57,6 +57,9 @@ const server = createServer(async (req, res) => {
   }
   if (method === 'connect') { connected.add(params.connectorId); json(res, { ok: true, message: 'Mock 连接成功' }); return; }
   if (method === 'configure') {
+    if (params.connectorId === 'wind-stock-data' && params.bearerToken !== 'valid-wind-key') {
+      json(res, { ok: false, message: '连接验证失败：wind_stock_data：Key/Token 无效、已过期或当前账号没有该 Server 权限（HTTP 401）。未保存连接，请修正后重试。' }); return;
+    }
     if (params.connectorId) connected.add(params.connectorId);
     json(res, { ok: true, message: `Mock 已配置 ${params.connectorId || params.name}` }); return;
   }
@@ -66,7 +69,7 @@ const server = createServer(async (req, res) => {
     json(res, { ok: true, message: 'Mock JSON 导入成功' }); return;
   }
   if (method === 'installFromUrl') { json(res, { ok: true, message: 'Mock 描述 URL 安装成功' }); return; }
-  if (method === 'refreshCatalog') { json(res, { ok: true, message: 'Mock 目录已刷新' }); return; }
+  if (method === 'refreshCatalog') { json(res, { ok: true, message: `市场已刷新，共 ${catalog.length} 个连接器` }); return; }
   if (method === 'migrateLegacy') { json(res, { ok: true, message: 'Mock 迁移成功' }); return; }
   json(res, { ok: false, message: `Mock 未实现 ${method}` }, 400);
 });

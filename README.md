@@ -14,6 +14,7 @@
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
 - 三种接入：OAuth 2.0 PKCE、自定义 URL/鉴权、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。
+- 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 Server 通过后才持久化凭据并进入“已安装”。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
@@ -82,6 +83,7 @@ Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 ## 安全与限制
 
 - 凭证只持久化在 DSH storage domain，不进入目录、Git 仓库或对话历史。
+- 市场 Key/Token 校验失败时不写入 storage domain；鉴权、超时、DNS、TLS/网络错误会分类提示。
 - 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
 - 当前以 streamable-http 为主并兼容 SSE；stdio 配置会被明确跳过。
