@@ -18,7 +18,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Install npm with Trusted Publishing support
-        run: npm install --global npm@11.12.1
+        run: npm install --global npm@11.19.0
       - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Verify tag matches package version
         run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version)throw new Error('tag '+process.env.GITHUB_REF_NAME+' != v'+p.version)"
