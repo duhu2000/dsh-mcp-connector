@@ -6,7 +6,7 @@
       "id": "pkulaw-legal",
       "name": "北大法宝·法律检索",
       "vendor": "北大法宝 PKULaw",
-      "icon": "⚖️",
+      "icon": "/mcp-connector/ui/assets/pkulaw-logo.png",
       "category": "法律数据",
       "summary": "法规 / 法条 / 司法案例检索与引用核验",
       "description": "接入北大法宝法律法规、司法案例、法条识别与引用核验能力。需使用北大法宝 Access Token，相关服务可能需要单独开通或购买。",
@@ -140,6 +140,80 @@
           "serverName": "pkulaw-doc-link",
           "transport": "streamable-http",
           "headers": {}
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wind-stock-data",
+      "name": "Wind·股票数据",
+      "vendor": "Wind 万得",
+      "icon": "/mcp-connector/ui/assets/wind-logo.png",
+      "category": "金融数据",
+      "summary": "全球股票档案 / 行情 / 技术指标 / 财务与公司事件",
+      "description": "接入万得股票数据服务，覆盖公司档案、股本与股东、行情报价、技术指标、基本面财务、公司事件及风险波动性数据。需使用 Wind Key，服务权限以万得账户实际开通范围为准。",
+      "tags": [
+        "股票",
+        "行情",
+        "财务",
+        "技术指标",
+        "第三方收录"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://aifinmarket.wind.com.cn/#/market?tab=mcps&detailType=mcp&detailId=wind_stock_data-0",
+      "promptVariables": [
+        {
+          "name": "stock",
+          "label": "股票名称或代码",
+          "placeholder": "例如：贵州茅台（600519.SH）",
+          "required": true,
+          "default": "贵州茅台（600519.SH）"
+        }
+      ],
+      "prompts": [
+        {
+          "title": "公司档案与行业",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 的公司档案、主营业务和所属行业",
+          "server": "stock-data"
+        },
+        {
+          "title": "最新行情",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 的最新价格、成交量、换手率和买卖报价",
+          "server": "stock-data"
+        },
+        {
+          "title": "技术与波动指标",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 最近 20 个交易日的 MACD、RSI、波动率和涨跌幅",
+          "server": "stock-data"
+        },
+        {
+          "title": "核心财务指标",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 最新报告期的营业收入、净利润、ROE 和现金流",
+          "server": "stock-data"
+        }
+      ],
+      "probeStatus": "unverified",
+      "probeReportUrl": "",
+      "toolsSnapshot": [],
+      "auth": {
+        "mode": "bearer",
+        "issuer": "",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "apiKeyHeader": "X-Api-Key",
+        "grantSharing": ""
+      },
+      "servers": [
+        {
+          "serverKey": "stock-data",
+          "url": "https://mcp.wind.com.cn/vserver_stock_data/mcp/",
+          "serverName": "wind_stock_data",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
         }
       ]
     }

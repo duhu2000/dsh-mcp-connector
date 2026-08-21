@@ -38,3 +38,9 @@ test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /尚无凭据？[\s\S]*?官网获取/);
   assert.match(uiSource, /connectorId,\s*authMode,\s*bearerToken/);
 });
+
+test('Bearer/API Key 市场卡片配置成功后显示已连接', () => {
+  const actionSource = uiSource.match(/function actionHtml\(d, connected\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.match(actionSource, /if \(connected\)[\s\S]*?t\('connected'\)/);
+  assert.ok(actionSource.indexOf('if (connected)') < actionSource.lastIndexOf("t('configure')"));
+});

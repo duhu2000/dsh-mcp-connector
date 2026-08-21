@@ -88,3 +88,20 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 
 - https://mcp.pkulaw.com/docs?doc=authentication
 - https://mcp.pkulaw.com/docs?doc=mcp-integration
+
+## 6. Wind 股票数据当前适配结论
+
+万得 AIFin Market 的“万得股票数据服务”详情页公开了标准 MCP 手工配置：
+
+- MCP URL：`https://mcp.wind.com.cn/vserver_stock_data/mcp/`；
+- 鉴权：`Authorization: Bearer YOUR_WIND_KEY`；
+- 响应协商：`Accept: application/json, text/event-stream`；
+- 当前公开能力范围：公司档案、股本与股东、行情报价、技术指标、基本面财务、公司事件、风险与波动性，共 10 个工具。
+
+因此该服务可按 **Tier 1 / 第三方 Bearer 连接器**上架市场：用户填写一次 Wind Key 后建立一条股票数据连接。卡片只描述官网当前公开的股票 MCP 能力，不扩展宣称基金、债券、新闻或宏观数据；实际数据权限以用户的万得账户开通范围为准。
+
+当前公开页面没有展示可由通用客户端自动发现的 OAuth Authorization Code + PKCE 流程，因此本卡片不标注“OAuth 一键授权”。如万得后续开放标准 OAuth 元数据，可再升级为 OAuth 连接器。
+
+参考：
+
+- https://aifinmarket.wind.com.cn/#/market?tab=mcps&detailType=mcp&detailId=wind_stock_data-0

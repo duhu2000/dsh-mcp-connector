@@ -230,7 +230,7 @@ test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { tim
     name: '法律数据市场',
     auth: { mode: 'bearer' },
     servers: [
-      { serverKey: 'law', url: 'https://legal.example.com/mcp-law', serverName: 'legal-law' },
+      { serverKey: 'law', url: 'https://legal.example.com/mcp-law', serverName: 'legal-law', headers: { Accept: 'application/json, text/event-stream' } },
       { serverKey: 'case', url: 'https://legal.example.com/mcp-case', serverName: 'legal-case' },
     ],
   }];
@@ -245,10 +245,13 @@ test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { tim
   assert.equal(configured.ok, true, configured.message);
   assert.deepEqual(configured.detail.keys, ['legal-market-law', 'legal-market-case']);
   assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Authorization, 'Bearer shared-token');
+  assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Accept, 'application/json, text/event-stream');
   assert.equal(loader.entries.get('mcp-legal-market-case').options.config.headers.Authorization, 'Bearer shared-token');
 
   const status = await tools.defs.get('mcp_connector_status').execute({});
   assert.equal(status.detail.items.filter((item) => item.connectorId === 'legal-market').length, 2);
+  const catalog = await tools.defs.get('mcp_connector_catalog').execute({});
+  assert.equal(catalog.detail.items.find((item) => item.id === 'legal-market')?.connected.length, 2);
 });
 
 test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {

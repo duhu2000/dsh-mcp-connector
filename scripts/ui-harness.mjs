@@ -11,6 +11,11 @@ const catalog = JSON.parse(await readFile(join(root, 'catalog/catalog.json'), 'u
   .filter((item) => item.published !== false)
   .map(normalizeConnectorDescriptor);
 const connected = new Set(['qcc-company']);
+const bundledAssets = new Map([
+  ['qcc-logo.svg', 'image/svg+xml'],
+  ['pkulaw-logo.png', 'image/png'],
+  ['wind-logo.png', 'image/png'],
+]);
 
 function json(res, value, status = 200) {
   const body = JSON.stringify(value);
@@ -23,9 +28,10 @@ const server = createServer(async (req, res) => {
     const body = await readFile(join(root, 'ui/index.html'));
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(body); return;
   }
-  if (req.method === 'GET' && req.url === '/mcp-connector/ui/assets/qcc-logo.svg') {
-    const body = await readFile(join(root, 'ui/assets/qcc-logo.svg'));
-    res.writeHead(200, { 'content-type': 'image/svg+xml' }); res.end(body); return;
+  const assetName = req.url?.match(/^\/mcp-connector\/ui\/assets\/([^/?#]+)$/)?.[1];
+  if (req.method === 'GET' && assetName && bundledAssets.has(assetName)) {
+    const body = await readFile(join(root, 'ui/assets', assetName));
+    res.writeHead(200, { 'content-type': bundledAssets.get(assetName) }); res.end(body); return;
   }
   if (req.method !== 'POST' || req.url !== '/mcp-connector/api') { res.writeHead(404); res.end(); return; }
   const chunks = [];
@@ -45,7 +51,10 @@ const server = createServer(async (req, res) => {
     json(res, { ok: true, detail: { totalTools: tools.length, servers: [{ serverKey: 'company', serverName: 'qcc-company', ok: true, tools }] } }); return;
   }
   if (method === 'connect') { connected.add(params.connectorId); json(res, { ok: true, message: 'Mock 连接成功' }); return; }
-  if (method === 'configure') { json(res, { ok: true, message: `Mock 已配置 ${params.name}` }); return; }
+  if (method === 'configure') {
+    if (params.connectorId) connected.add(params.connectorId);
+    json(res, { ok: true, message: `Mock 已配置 ${params.connectorId || params.name}` }); return;
+  }
   if (method === 'importJson') {
     try { JSON.parse(params.json); }
     catch (error) { json(res, { ok: false, message: `导入失败: JSON 解析失败: ${error.message}` }); return; }

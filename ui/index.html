@@ -714,6 +714,7 @@
       if (connected) return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
       return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.connect('${id}')">${t('connect')}</button>`;
     }
+    if (connected) return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
     return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.openConfig('${id}')">${t('configure')}</button>`;
   }
 

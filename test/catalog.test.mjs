@@ -32,7 +32,13 @@ test('内置目录加载 + published 过滤', () => {
   const pkulaw = published.find((d) => d.id === 'pkulaw-legal');
   assert.equal(pkulaw?.auth.mode, 'bearer', '北大法宝应以 Bearer Token 方式接入');
   assert.equal(pkulaw?.servers.length, 9, '北大法宝卡片应一次配置官网公开的 9 个 Server');
-  assert.deepEqual(published.slice(0, 5).map((d) => d.id), ['qcc-company', 'qcc-legal', 'qcc-tender', 'qcc-document', 'pkulaw-legal']);
+  assert.equal(pkulaw?.icon, '/mcp-connector/ui/assets/pkulaw-logo.png', '北大法宝应使用内置官网 Logo');
+  const wind = published.find((d) => d.id === 'wind-stock-data');
+  assert.equal(wind?.auth.mode, 'bearer', 'Wind 股票数据应以 Bearer Wind Key 接入');
+  assert.equal(wind?.servers.length, 1, 'Wind 股票数据卡片只接入官网当前公开的股票 MCP Server');
+  assert.equal(wind?.servers[0]?.url, 'https://mcp.wind.com.cn/vserver_stock_data/mcp/');
+  assert.equal(wind?.servers[0]?.headers.Accept, 'application/json, text/event-stream');
+  assert.deepEqual(published.slice(0, 6).map((d) => d.id), ['qcc-company', 'qcc-legal', 'qcc-tender', 'qcc-document', 'pkulaw-legal', 'wind-stock-data']);
 });
 
 test('mergeCatalog 优先级 + 本地覆盖', () => {

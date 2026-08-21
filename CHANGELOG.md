@@ -7,6 +7,7 @@
 ### Added
 
 - 公共市场新增第 5 张“北大法宝·法律检索”第三方卡片，以一个 Bearer Token 批量配置官网公开的 9 个 MCP Server。
+- 公共市场新增第 6 张“Wind·股票数据”第三方卡片，按万得 AIFin Market 官方配置接入股票数据 MCP Server。
 - 图形化“添加连接”：手动配置、`mcpServers` JSON、连接器描述 URL，并提供错误修复提示。
 - JSON 导入提供多行缩进示例、粘贴/手动格式化，并明确区分本机连接与市场卡片。
 - Bearer/API Key 市场连接器支持一次填写凭据后批量连接卡片下所有 Server。
@@ -34,6 +35,8 @@
 
 ### Fixed
 
+- Bearer/API Key 市场卡片配置成功后，市场操作按钮正确切换为“已连接”。
+- 北大法宝卡片改用官网提供的本地品牌图标，不再显示通用天平 Emoji。
 - 参数补全弹框和发送状态提示现在始终位于连接器详情弹框之上。
 - 正确解析 `WWW-Authenticate: Bearer resource_metadata="…"` 首个参数。
 - 修复鉴权表单 `hidden` 被网格布局覆盖、无鉴权模式误显示 API Key 字段。
