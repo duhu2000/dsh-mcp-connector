@@ -1,8 +1,10 @@
-# MCP Connector Marketplace for DeepSeek Harness
+# MCP Connector and Connection Manager Marketplace for DeepSeek Harness
 
-> A general-purpose MCP connector marketplace initiated and maintained by the Qichacha team
+> A general-purpose MCP connector, plugin extension, and integration marketplace initiated and maintained by the Qichacha (QCC) team
 
-Browse and install MCP connectors from different providers in DeepSeek Harness Desktop. Connect through OAuth, API key/URL configuration, JSON import, or a connector descriptor URL; discover tools, start a new conversation from an example prompt, and manage installed connections.
+Browse and install MCP connectors from different providers in DeepSeek Harness Desktop. Connect MCP servers through OAuth, API key/URL configuration, JSON import, or a connector descriptor URL; discover tools and prompts, extend agent skills, start a new conversation, and manage installed connections.
+
+> Here, “skill extension” means extending an agent through MCP tools and prompts; this package does not present itself as a standalone DSH Skill.
 
 [简体中文](README.md)
 

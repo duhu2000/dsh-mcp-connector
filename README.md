@@ -1,8 +1,10 @@
-# MCP 连接器市场（DeepSeek Harness 插件）
+# MCP连接器与连接管理市场（DeepSeek Harness 插件 / 扩展）
 
-> 通用 MCP Connector Marketplace，由企查查团队发起并维护
+> 通用 MCP Connector / Connection Manager / Integration Marketplace，由企查查（Qichacha/QCC）团队发起并维护
 
-在 DeepSeek Harness Desktop 中浏览和安装不同厂商的 MCP 连接器，通过 OAuth、API Key/URL 或 JSON 接入服务，发现工具、使用示例 Prompt 发起新会话，并管理已安装连接。
+在 DeepSeek Harness Desktop 中浏览和安装不同厂商的 MCP连接器，连接 MCP Server，通过 OAuth、API Key/URL 或 JSON 接入服务，发现工具与 Prompt，扩展 AI 技能，并管理已安装连接。
+
+> 注：“技能扩展”指通过 MCP 工具和 Prompt 扩展智能体能力，本包不会伪装成独立 DSH Skill。
 
 [English](README.en.md)
 

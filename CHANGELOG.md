@@ -7,6 +7,8 @@
 ### Documentation
 
 - 记录 `0.2.5` GitHub/npm 发布、DSH Desktop 精确版本安装、孤立 grant 自动清理与 19/19 Server 健康回归结果。
+- 扩充 GitHub Topic、仓库简介、README 和 npm 关键词，覆盖 MCP连接器、连接管理、插件/扩展、集成、Qichacha/QCC 和企查查等真实检索入口。
+- 明确“技能扩展”指 MCP 工具与 Prompt 对智能体能力的扩展，不将本包标记为独立 DSH Skill。
 
 ## [0.2.5] - 2026-08-21
 
