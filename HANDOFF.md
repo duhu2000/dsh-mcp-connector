@@ -37,7 +37,7 @@
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
 | npm `dsh-mcp-connector@0.1.0` | 已公开发布并完成全新安装验证 |
-| `v0.2.0` / npm `0.2.0` | 发布中 |
+| `v0.2.0` / npm `0.2.0` | 已公开发布并通过公共 registry 全新安装验证 |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -75,7 +75,7 @@ npm run check
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
 3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.0
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：本次发布目标为 `0.2.0`；发布后需从 registry 全新安装并检查 `lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`。
+5. npm `latest`：`0.2.0`；已从公共 registry 全新安装，`lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`及第三方 Logo 均存在。
 
 发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；本次 npm 使用本机已认证账号直接发布，Tag 工作流负责 GitHub Release。
 
