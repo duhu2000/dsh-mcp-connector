@@ -39,7 +39,8 @@
 | npm `dsh-mcp-connector@0.1.0` | 已公开发布并完成全新安装验证 |
 | `v0.2.0` / npm `0.2.0` | 已公开发布并通过公共 registry 全新安装验证 |
 | 独立远程 Registry | 已建仓、push 并通过 CI；插件默认 URL 已纳入 0.2.1 |
-| npm Trusted Publishing | GitHub OIDC 工作流已纳入 0.2.1，待首次 Tag 发布验证 |
+| `v0.2.1` / npm `0.2.1` | 已由 GitHub OIDC Trusted Publishing 自动发布，Provenance 与全新下载包验证通过 |
+| npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -75,13 +76,13 @@ npm run check
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.0
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.1
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.0`；已从 npm registry 全新安装，`lib/client.js`、`lib/mcp-validation.js`、`ui/index.html`、`CHANGELOG.md`及第三方 Logo 均存在。
+5. npm `latest`：`0.2.1`；发布包共 42 个文件，SLSA Provenance attestations 已生成，全新下载包的版本与远程 Registry 默认 URL 验证通过。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 
-发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；0.2.1 起使用 npm Trusted Publishing，GitHub-hosted runner 通过 OIDC 发布 npm 并创建 GitHub Release，不再需要长期 `NPM_TOKEN`。
+发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；0.2.1 起使用 npm Trusted Publishing，GitHub-hosted runner 通过 OIDC 发布 npm 并创建 GitHub Release，不再需要长期 `NPM_TOKEN`。当前 npm CLI 与 Release runner 固定为 11.19.0，以支持必填的 Trusted Publisher `allowed_actions`。
 
 ## 7. 已知限制与风险
 
