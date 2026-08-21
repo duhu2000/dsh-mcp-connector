@@ -1,7 +1,7 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.1",
-  "description": "DeepSeek Harness 插件：MCP连接器 —— 连接器目录与上架、通用 OAuth / 自定义 / JSON 三通道连接外部 MCP Server / MCP Connector marketplace & connection manager",
+  "version": "0.2.2",
+  "description": "General-purpose MCP Connector Marketplace for DeepSeek Harness with OAuth 2.0 PKCE, API key/URL, JSON import, tool discovery, prompt templates, and connection management.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -21,6 +21,7 @@
     "docs/MARKET-REGISTRATION.md",
     "cordis.patch.yml",
     "README.md",
+    "README.en.md",
     "CHANGELOG.md",
     "LICENSE",
     "install.sh",
@@ -41,12 +42,22 @@
   "keywords": [
     "deepseek-harness",
     "dsh",
+    "dsh-plugin",
     "cordis",
     "mcp",
+    "mcp-client",
+    "mcp-connector",
     "connector",
+    "marketplace",
     "oauth",
+    "oauth2",
     "pkce",
-    "marketplace"
+    "json-import",
+    "enterprise-data",
+    "qichacha",
+    "qcc",
+    "tools",
+    "prompts"
   ],
   "license": "MIT",
   "publishConfig": {

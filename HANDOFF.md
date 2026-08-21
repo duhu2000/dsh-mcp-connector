@@ -31,8 +31,8 @@
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
-| lint + 单元/集成测试 | 通过，55/55 |
-| npm 发布包校验 | 已配置，42 个白名单文件；含敏感内容与本机路径扫描 |
+| lint + 单元/集成测试 | 通过，57 项 |
+| npm 发布包校验 | 已通过，43 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
@@ -40,6 +40,7 @@
 | `v0.2.0` / npm `0.2.0` | 已公开发布并通过公共 registry 全新安装验证 |
 | 独立远程 Registry | 已建仓、push 并通过 CI；插件默认 URL 已纳入 0.2.1 |
 | `v0.2.1` / npm `0.2.1` | 已由 GitHub OIDC Trusted Publishing 自动发布，Provenance 与全新下载包验证通过 |
+| `v0.2.2` / npm `0.2.2` | 文档、产品定位与市场注册元数据收口版本 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 
 ## 4. Desktop 验收清单（已通过）

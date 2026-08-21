@@ -1,6 +1,10 @@
-# MCP连接器（DeepSeek Harness 插件）
+# MCP 连接器市场（DeepSeek Harness 插件）
 
-在 DeepSeek Harness Desktop 中提供类似 WorkBuddy 的 MCP 连接器市场与连接管理：浏览连接器、OAuth 授权、查看工具、快速发起对话，并管理已安装连接。
+> 通用 MCP Connector Marketplace，由企查查团队发起并维护
+
+在 DeepSeek Harness Desktop 中浏览和安装不同厂商的 MCP 连接器，通过 OAuth、API Key/URL 或 JSON 接入服务，发现工具、使用示例 Prompt 发起新会话，并管理已安装连接。
+
+[English](README.en.md)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
@@ -77,7 +81,7 @@ npm run dev:ui
 
 `check` 执行语法检查、自动测试和 npm 发布包白名单校验；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.1`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.1](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.1)。
+当前公开版本为 [`dsh-mcp-connector@0.2.2`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.2](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.2)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

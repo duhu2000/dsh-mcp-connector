@@ -8,6 +8,7 @@ const WHITELIST = [
   /^package\.json$/,
   /^cordis\.patch\.yml$/,
   /^README\.md$/,
+  /^README\.en\.md$/,
   /^CHANGELOG\.md$/,
   /^LICENSE$/,
   /^install\.sh$/,

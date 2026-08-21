@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-21
+
+### Added
+
+- 新增英文版 README，便于国际用户了解安装、连接方式、市场目录和发布流程。
+
+### Changed
+
+- 产品名称和介绍统一为通用 MCP Connector Marketplace；企查查作为项目发起方、维护方和首批连接器提供方，不限定可接入厂商。
+- 重构 npm 关键词，保留 DSH、Cordis、MCP、OAuth/PKCE 和企查查检索入口，并补充 `dsh-plugin`、`mcp-client`、`oauth2`、`enterprise-data`。
+- 更新市场注册移交文档、测试数量和 awesome-dsh-plugin 注册描述，移除易过期的工具与 Prompt 数量。
+
 ## [0.2.1] - 2026-08-21
 
 ### Added
@@ -80,7 +92,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0
