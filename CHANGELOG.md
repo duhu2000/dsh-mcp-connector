@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- 记录 `0.2.4` GitHub/npm 发布、DSH Desktop 精确版本安装和连接健康状态实机回归结果。
+
 ## [0.2.4] - 2026-08-21
 
 ### Added

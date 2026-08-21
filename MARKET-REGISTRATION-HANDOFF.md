@@ -1,7 +1,7 @@
 # MCP Connector Marketplace 外部市场注册移交文档
 
 > 更新：2026-08-21
-> 目标版本：`dsh-mcp-connector@0.2.2`
+> 当前版本：`dsh-mcp-connector@0.2.4`
 > GitHub：https://github.com/duhu2000/dsh-mcp-connector
 > npm：https://www.npmjs.com/package/dsh-mcp-connector
 
@@ -21,7 +21,7 @@
 
 | 项目 | 结果 |
 |---|---|
-| npm 当前版本 | `0.2.3`，已通过 GitHub OIDC Trusted Publishing 发布 |
+| npm 当前版本 | `0.2.4`，已通过 GitHub OIDC Trusted Publishing 发布 |
 | 自动化测试 | 59 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |
@@ -55,9 +55,9 @@
 - [x] keywords 保留 `cordis`、`mcp`、`oauth`、`pkce`；
 - [x] keywords 增加 `dsh-plugin`、`mcp-client`、`oauth2`、`qichacha`、`enterprise-data`；
 - [x] awesome-dsh-plugin YAML 使用通用、可验证且无易过期数量的描述；
-- [x] HANDOFF 测试数量由 55 修正为当前 58 项；
+- [x] HANDOFF 测试数量由 55 修正为当前 59 项；
 - [x] CHANGELOG 记录 0.2.2 文档和元数据变更；
-- [x] `npm run check` 全部通过（58/58）；
+- [x] `npm run check` 全部通过（59/59）；
 - [x] npm 发布包为 43 个白名单文件，不含测试、规划文档、凭证或本机路径；
 - [x] 推送 `v0.2.2` 标签并由 GitHub OIDC Trusted Publishing 自动发布；
 - [x] npm latest、Provenance、GitHub Release 和全新下载包均已验证。

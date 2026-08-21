@@ -42,8 +42,9 @@
 | `v0.2.1` / npm `0.2.1` | 已由 GitHub OIDC Trusted Publishing 自动发布，Provenance 与全新下载包验证通过 |
 | `v0.2.2` / npm `0.2.2` | 已由 GitHub OIDC 发布；通用产品定位、中英文 README 与市场注册元数据已收口，Provenance 和下载包验证通过 |
 | `v0.2.3` / npm `0.2.3` | 已由 GitHub OIDC 发布；运行界面固定中文并移除 `EN` 切换，58/58 测试与 43 文件发布门禁通过 |
+| `v0.2.4` / npm `0.2.4` | 已由 GitHub OIDC 发布；新增主动连接健康检查与分级状态，59/59 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
-| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.3`；依赖树与安装副本均为 `0.2.3`，仅有一个实例；安装动作未改写连接存储，完全重启后运行时刷新了存储，但 19 条既有连接记录均恢复且保持启用 |
+| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.4`；依赖树与安装副本均为 `0.2.4`，仅有一个实例；19 条既有 Server 连接和 4 组授权记录均保留 |
 | 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游并更新为提交 `be027d85`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
@@ -56,8 +57,9 @@
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
 | 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 2 项自动测试；校验器已对齐 `0.2.2` |
 | 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
-| 连接健康状态 | `0.2.4` 已完成开发与本地 UI 回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
+| 连接健康状态 | `0.2.4` 已发布并通过 Desktop 实机回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |
+| 0.2.4 Desktop 回归 | 完全重启并刷新后，企查查企业工商和北大法宝显示“已连接”，3 张过期/异常卡片显示“需要重新授权”，Wind 未配置显示“配置”；中文界面、入口位置和配置存储均正常 |
 
 ## 5. Desktop 验收清单（已通过）
 
@@ -77,7 +79,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.3`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.4`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 
@@ -92,10 +94,10 @@ npm run check
 ## 7. 发布结果
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
-2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.3
+2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32468802416
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.4
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.3`；发布包共 43 个文件，SLSA Provenance attestations 已生成，中文单语言运行界面与远程 Registry 默认 URL 验证通过。
+5. npm `latest`：`0.2.4`；发布包共 43 个文件，GitHub OIDC 发布与 CI 均通过，中文单语言界面、连接健康状态和远程 Registry 默认 URL 验证通过。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 
@@ -107,5 +109,5 @@ npm run check
 - Raw GitHub 目录默认缓存约 5 分钟，合并新卡片后客户端刷新可能需等待 CDN 缓存更新。
 - 随 npm 包的 `catalog/catalog.json` 仍作为离线/故障回退；独立 Registry 不应包含任何用户凭据。
 - 真实 OAuth、DSH 重启和旧凭据迁移必须在 Desktop 实机由用户确认；自动测试不使用真实凭据。
-- 0.2.3 回归时企查查法律、招投标的既有 OAuth grant 返回 401，文档服务在当前网络超时；0.2.4 已能主动识别并引导重新授权/重试，但真实凭据修复仍需用户在 Desktop 中完成。
+- 0.2.4 Desktop 回归时，企查查法律、招投标和文档卡片显示“需要重新授权”；插件已能主动识别并引导重新授权/重试，但真实凭据修复仍需用户在 Desktop 中完成。
 - stdio MCP 不在首版范围；支持 streamable-http 与 SSE。
