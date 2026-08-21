@@ -1,7 +1,7 @@
 # MCP Connector Marketplace 外部市场注册移交文档
 
 > 更新：2026-08-21
-> 当前版本：`dsh-mcp-connector@0.2.4`
+> 当前版本：`dsh-mcp-connector@0.2.6`
 > GitHub：https://github.com/duhu2000/dsh-mcp-connector
 > npm：https://www.npmjs.com/package/dsh-mcp-connector
 
@@ -21,13 +21,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| npm 当前版本 | `0.2.4`，已通过 GitHub OIDC Trusted Publishing 发布 |
-| 自动化测试 | 59 项 |
+| npm 当前版本 | `0.2.6`，已通过 GitHub OIDC Trusted Publishing 发布 |
+| 自动化测试 | 62 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |
 | Git 提交数 | 已超过 10 个，满足外部目录要求 |
 | GitHub Topics | 已增加 `dsh-plugin`、`deepseek-harness`、`mcp`、`mcp-connector`、`oauth` |
-| awesome-dsh-plugin | fork 注册分支已重基最新上游 `a45b85d2`，提交 `597c404e`；README 生成、站点构建与 lint 已通过；待仓龄满足后提交 PR |
+| awesome-dsh-plugin | [PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交；分支提交 `88985578`，README 生成、站点构建与 lint 已通过；PR check 成功且当前可合并 |
 
 随包第 1–4 张为企查查连接器，第 5 张为北大法宝，第 6 张为 Wind。目录内容可以通过独立 Registry 更新，新增市场卡片不再依赖重新发布 npm。
 
@@ -111,9 +111,9 @@
 | 分类合法 | `tools` |
 | 生成中英文 README | 提交 PR 前在上游执行 |
 
-截至 2026-08-21 18:10（北京时间），fork 分支
+截至 2026-08-21 23:17（北京时间），fork 分支
 `duhu2000:add-dsh-mcp-connector` 已重基到上游 `main@a45b85d2`，远端提交为
-`597c404e`。分支相对上游只包含两个生成 README 的索引行和
+`88985578`。分支相对上游只包含两个生成 README 的索引行和
 `data/plugins/duhu2000__dsh-mcp-connector.yml`，已通过：
 
 - `npm ci`；
@@ -121,8 +121,9 @@
 - `SKIP_PUBLISH_CHECKS=1 node scripts/build-site.mjs`；
 - `npx awesome-lint`（0 error；44 个 warning 均来自上游现有条目）。
 
-官方仓库更新频繁，创建 PR 前仍需再拉取一次 `upstream/main`，如有新提交则重新
-rebase 并重复以上校验。
+PR 已创建为 [awesome-dsh-plugin#2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633)，
+GitHub PR check 已通过，`mergeable_state` 为 `clean`。后续若维护者要求调整，在同一分支
+提交修复即可，无需重开 PR。
 
 建议 GitHub Topics：
 
@@ -134,7 +135,7 @@ mcp-connector
 oauth
 ```
 
-不得早于北京时间 **2026-08-21 23:14:05** 提交 PR。
+仓龄门槛已于北京时间 **2026-08-21 23:14:05** 满足，PR 于门槛后提交。
 
 ### 注册文件
 
@@ -206,7 +207,7 @@ git push origin v0.2.2
 - [x] npm description/keywords 已在 0.2.2 生效；
 - [x] npm 0.2.2 含 Provenance 且可全新下载；
 - [x] GitHub Release v0.2.2 已生成；
-- [ ] awesome-dsh-plugin PR 已提交且 CI 通过；
+- [x] awesome-dsh-plugin PR #2633 已提交且 CI 通过；
 - [ ] PR 合并后 `awesome-dsh-plugin.com/plugins.json` 可检索到仓库；
 - [ ] dsh-market 同步后可检索到插件；
 - [ ] 合并完成后再决定是否增加外部市场徽章。

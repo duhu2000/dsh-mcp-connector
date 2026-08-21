@@ -70,7 +70,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 ## 当前发布决策
 
 - 包名与仓库名：`dsh-mcp-connector`。
-- 当前公开版本：`0.2.5`，已通过 npm Trusted Publishing 发布并完成 Desktop 实机回归。
+- 当前公开版本：`0.2.6`，已通过 npm Trusted Publishing 发布；Desktop 实机运行基线仍为已验收的 `0.2.5`。
 - 许可证：MIT，公开仓库。
 - P0 首发已于 2026-08-20 完成；P1 核心市场能力和独立 Registry 已并入 `main`。
-- 下一 P0 是在仓库满一天后提交 `awesome-dsh-plugin` 外部市场 PR；随后跟踪 CI、合并和下游市场同步。已有版本 Tag 不回写。
+- `awesome-dsh-plugin` 外部市场 PR #2633 已提交且 CI 通过；下一 P0 是跟踪维护者审核合并、外部目录生成和 DSH Desktop 下游市场同步。已有版本 Tag 不回写。

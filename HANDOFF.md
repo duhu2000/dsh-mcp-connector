@@ -44,9 +44,10 @@
 | `v0.2.3` / npm `0.2.3` | 已由 GitHub OIDC 发布；运行界面固定中文并移除 `EN` 切换，58/58 测试与 43 文件发布门禁通过 |
 | `v0.2.4` / npm `0.2.4` | 已由 GitHub OIDC 发布；新增主动连接健康检查与分级状态，59/59 测试和 43 文件发布门禁通过 |
 | `v0.2.5` / npm `0.2.5` | 已由 GitHub OIDC 发布；OAuth 重复点击合并、重新授权旧 grant 回收与启动历史孤立 grant 清理已完成；62/62 测试和 43 文件发布门禁通过 |
+| `v0.2.6` / npm `0.2.6` | 已由 GitHub OIDC 发布；扩充 MCP连接器、连接管理、插件/扩展、Qichacha/QCC 与企查查等真实搜索元数据；62/62 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 | Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.5`；依赖树与安装副本均为 `0.2.5`；启动自动删除 6 条未引用历史 grant，19 条既有 Server 连接和 4 组有效授权记录均保留 |
-| 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游 `a45b85d2` 并更新为提交 `597c404e`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
+| 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交；注册分支提交 `88985578`，README 生成、站点构建和 lint 均通过，PR check 成功且当前可合并；待维护者审核合并和下游目录刷新 |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
 ## 4. P1 状态
@@ -97,12 +98,13 @@ npm run check
 ## 7. 发布结果
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
-2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32481885662
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.5
+2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32494600132
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.6
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.5`；发布包共 43 个文件，GitHub OIDC Release 与 CI 均通过，中文单语言界面、连接健康状态、OAuth grant 清理和远程 Registry 默认 URL 验证通过。
+5. npm `latest`：`0.2.6`；发布包共 43 个文件，GitHub OIDC Release 与 CI 均通过；本次为搜索发现与产品元数据版本，不改变运行逻辑、连接权限或依赖。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
+8. 外部市场 PR：https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633
 
 发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；0.2.1 起使用 npm Trusted Publishing，GitHub-hosted runner 通过 OIDC 发布 npm 并创建 GitHub Release，不再需要长期 `NPM_TOKEN`。当前 npm CLI 与 Release runner 固定为 11.19.0，以支持必填的 Trusted Publisher `allowed_actions`。
 
