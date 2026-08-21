@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- 记录 `0.2.5` GitHub/npm 发布、DSH Desktop 精确版本安装、孤立 grant 自动清理与 19/19 Server 健康回归结果。
+
 ## [0.2.5] - 2026-08-21
 
 ### Changed
