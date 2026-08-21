@@ -43,7 +43,7 @@
 | `v0.2.2` / npm `0.2.2` | 已由 GitHub OIDC 发布；通用产品定位、中英文 README 与市场注册元数据已收口，Provenance 和下载包验证通过 |
 | `v0.2.3` / npm `0.2.3` | 已由 GitHub OIDC 发布；运行界面固定中文并移除 `EN` 切换，58/58 测试与 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
-| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.3`；依赖树与安装副本均为 `0.2.3`，仅有一个实例；升级前后 `~/.dsh/storages/mcp_connector.json` SHA-256 一致 |
+| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.3`；依赖树与安装副本均为 `0.2.3`，仅有一个实例；安装动作未改写连接存储，完全重启后运行时刷新了存储，但 19 条既有连接记录均恢复且保持启用 |
 | 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游并更新为提交 `be027d85`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
