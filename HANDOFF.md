@@ -31,7 +31,7 @@
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
-| lint + 单元/集成测试 | 通过，59 项 |
+| lint + 单元/集成测试 | 通过，62 项 |
 | npm 发布包校验 | 已通过，43 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
@@ -43,6 +43,7 @@
 | `v0.2.2` / npm `0.2.2` | 已由 GitHub OIDC 发布；通用产品定位、中英文 README 与市场注册元数据已收口，Provenance 和下载包验证通过 |
 | `v0.2.3` / npm `0.2.3` | 已由 GitHub OIDC 发布；运行界面固定中文并移除 `EN` 切换，58/58 测试与 43 文件发布门禁通过 |
 | `v0.2.4` / npm `0.2.4` | 已由 GitHub OIDC 发布；新增主动连接健康检查与分级状态，59/59 测试和 43 文件发布门禁通过 |
+| `v0.2.5` / npm `0.2.5` | OAuth 重复点击合并、重新授权旧 grant 回收与启动历史孤立 grant 清理已完成；62/62 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 | Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.4`；依赖树与安装副本均为 `0.2.4`，仅有一个实例；19 条既有 Server 连接和 4 组授权记录均保留 |
 | 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游 `a45b85d2` 并更新为提交 `597c404e`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |

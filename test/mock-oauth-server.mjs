@@ -40,10 +40,12 @@ function readBody(req) {
  * @param {object} [options]
  * @param {number} [options.expiresIn=3600]
  * @param {string[]} [options.tokenResources] 若提供，签发的 access_token 为带 resource claim 的 JWT（值传 server key 数组，如 ['company','risk',...]，模拟企业认证授权范围）
+ * @param {boolean} [options.uniqueClientIds=false] 每次动态注册签发不同 client_id，用于验证重新授权后的旧 grant 清理
  */
-export function createMockQccServer({ expiresIn = 3600, tokenResources } = {}) {
+export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueClientIds = false } = {}) {
   const state = {
     clientId: 'wb_dyn_mock_0001',
+    registrationCount: 0,
     registered: null,             // { clientName, redirectUris, grantTypes, responseTypes }
     codes: new Map(),             // code -> { clientId, redirectUri, challenge, resource, used }
     refreshTokens: new Map(),     // refreshToken -> { accessToken, clientId, expiresIn }
@@ -121,6 +123,8 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources } = {}) {
         grantTypes,
         responseTypes: body.response_types ?? ['code'],
       };
+      state.registrationCount += 1;
+      if (uniqueClientIds) state.clientId = `wb_dyn_mock_${String(state.registrationCount).padStart(4, '0')}`;
       return json(res, 200, {
         client_id: state.clientId,
         client_id_issued_at: Math.floor(Date.now() / 1000),

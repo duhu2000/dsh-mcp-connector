@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-08-21
+
+### Changed
+
+- 同一连接器已有 OAuth 授权流程进行中时，后续重复点击复用同一 Promise，不再重复打开授权页或创建重复 grant。
+
+### Security
+
+- OAuth 重新授权成功后，撤销并删除已不再被连接引用的旧 refresh token/grant；插件启动时同步清理历史孤立 grant，仅保留当前连接仍引用的本机凭据。
+- 授权流程中途失败时清理未被连接引用的临时 grant，避免失败重试累积敏感记录。
+
+### Fixed
+
+- 修复连续或并发 OAuth 重新授权后，本机可能残留重复且未被连接引用的授权记录。
+
 ### Documentation
 
 - 记录 `0.2.4` GitHub/npm 发布、DSH Desktop 精确版本安装和连接健康状态实机回归结果。
@@ -124,7 +139,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...v0.2.2

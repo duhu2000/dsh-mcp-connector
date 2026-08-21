@@ -113,8 +113,19 @@ function extractAuthorizeUrl(logs) {
   return line.slice(line.indexOf('opening authorization page:') + 'opening authorization page:'.length).trim();
 }
 
+function extractAuthorizeUrls(logs) {
+  return logs
+    .filter((line) => line.includes('opening authorization page:'))
+    .map((line) => line.slice(line.indexOf('opening authorization page:') + 'opening authorization page:'.length).trim());
+}
+
 async function autoApprove(logs) {
   const authorizeUrl = await waitFor(() => (logs.some((l) => l.includes('opening authorization page:')) ? extractAuthorizeUrl(logs) : null));
+  await fetch(`${authorizeUrl}&auto=1`, { redirect: 'follow' });
+}
+
+async function autoApproveAt(logs, index) {
+  const authorizeUrl = await waitFor(() => extractAuthorizeUrls(logs)[index]);
   await fetch(`${authorizeUrl}&auto=1`, { redirect: 'follow' });
 }
 
@@ -159,6 +170,116 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   assert.equal(status.detail.items[0].authMode, 'oauth');
 
   await oauth.close();
+});
+
+test('同一连接器并发点击 OAuth 连接时只发起一次授权', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company'] });
+  const { ctx, tools, logs, tables } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const connector = {
+    id: 'oauth-concurrent',
+    name: '并发授权演示',
+    category: '开发工具',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'test-client' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'oauth-concurrent-company', transport: 'streamable-http', headers: {} }],
+  };
+
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const connect = tools.defs.get('mcp_connector_connect');
+    const first = connect.execute({ connectorId: connector.id }, { signal: undefined });
+    const second = connect.execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApproveAt(logs, 0);
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    assert.equal(firstResult.ok, true, firstResult.message);
+    assert.equal(secondResult.ok, true, secondResult.message);
+    assert.equal(firstResult.detail.grantKey, secondResult.detail.grantKey);
+    assert.equal(extractAuthorizeUrls(logs).length, 1, '只应打开一个授权页面');
+    assert.equal([...tables.get('grants').entries()].length, 1, '只应保存一组 grant');
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('重新 OAuth 授权成功后撤销并删除已不再引用的旧 grant', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company'], uniqueClientIds: true });
+  const { ctx, tools, logs, tables } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const connector = {
+    id: 'oauth-reauth',
+    name: '重新授权演示',
+    category: '开发工具',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'test-client' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'oauth-reauth-company', transport: 'streamable-http', headers: {} }],
+  };
+
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const connect = tools.defs.get('mcp_connector_connect');
+
+    const first = connect.execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApproveAt(logs, 0);
+    const firstResult = await first;
+    assert.equal(firstResult.ok, true, firstResult.message);
+
+    const second = connect.execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApproveAt(logs, 1);
+    const secondResult = await second;
+    assert.equal(secondResult.ok, true, secondResult.message);
+    assert.notEqual(secondResult.detail.grantKey, firstResult.detail.grantKey);
+    assert.equal(secondResult.detail.retiredGrantCount, 1);
+    assert.equal(await tables.get('grants').get(firstResult.detail.grantKey), undefined, '旧 grant 应从本地存储删除');
+    assert.equal([...tables.get('grants').entries()].length, 1, '重新授权后只保留当前 grant');
+    assert.equal(oauth.state.revokedRefresh.size, 1, '旧 refresh token 应尽力撤销');
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('启动时自动清理历史孤立 grant，并保留连接仍引用的 grant', async () => {
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const now = Date.now();
+  const referencedKey = 'grant:default:referenced';
+  const orphanKey = 'grant:default:orphan';
+  const grantBase = {
+    issuer: 'https://oauth.example.com',
+    clientName: 'startup-prune-test',
+    scope: 'mcp:tools',
+    account: 'default',
+    accessToken: 'test-access-token',
+    accessTokenExpiresAt: now + 60_000,
+    refreshToken: 'test-refresh-token',
+    authorizedResources: ['https://mcp.example.com/stream'],
+    connectorIds: ['startup-prune'],
+    updatedAt: now,
+  };
+  await shared.tables.get('grants').put(referencedKey, { ...grantBase, key: referencedKey, clientId: 'referenced-client' });
+  await shared.tables.get('grants').put(orphanKey, { ...grantBase, key: orphanKey, clientId: 'orphan-client' });
+  await shared.tables.get('connections').put('startup-prune-server', {
+    key: 'startup-prune-server',
+    connectorId: 'startup-prune',
+    kind: 'oauth',
+    name: '启动清理演示',
+    serverKey: 'server',
+    transport: 'streamable-http',
+    url: 'https://mcp.example.com/stream',
+    serverName: 'startup-prune-server',
+    headers: {},
+    auth: { mode: 'oauth', grantKey: referencedKey },
+    enabled: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const { ctx, logs } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+
+  assert.ok(await shared.tables.get('grants').get(referencedKey), '连接仍引用的 grant 必须保留');
+  assert.equal(await shared.tables.get('grants').get(orphanKey), undefined, '历史孤立 grant 应删除');
+  assert.equal([...shared.tables.get('grants').entries()].length, 1);
+  assert.ok(logs.some((line) => line.includes('removed 1 unreferenced OAuth grant(s)')));
 });
 
 test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', { timeout: 15000 }, async () => {
