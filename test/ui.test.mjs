@@ -23,6 +23,14 @@ test('JSON 导入提供缩进示例、格式化和市场分流说明', () => {
   assert.match(uiSource, />市场卡片<\/button>/);
 });
 
+test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
+  assert.match(uiSource, /function openAddConnection\(mode = 'json'/);
+  assert.match(uiSource, /#add-connection'\)\.addEventListener\('click', \(\) => openAddConnection\('json'\)\)/);
+  assert.ok(uiSource.indexOf('>导入 JSON</button>') < uiSource.indexOf('>手动配置</button>'));
+  assert.match(uiSource, /id="import-json" rows="8"/);
+  assert.match(uiSource, /\.modal \.m-actions \{[\s\S]*?position: sticky; bottom: 0;/);
+});
+
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /function openCatalogCredentialForm\(preset\)/);
   assert.match(uiSource, /一次配置 \$\{servers\.length\} 个 MCP Server/);

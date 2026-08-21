@@ -25,7 +25,7 @@ MCP连接器
 - Desktop 市场 UI：市场/已安装、4 个企查查卡片、统一 Logo、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
 - 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
-- 自动化：语法检查、44 项测试、37 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 自动化：语法检查、45 项测试、37 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
 
 ## P0：首发基线收口
 

@@ -72,11 +72,19 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 北大法宝当前公开文档的主路径是在控制台生成 Access Token，然后通过 `Authorization: Bearer ...` 访问多个 MCP Server。因此：
 
 - JSON 导入：可直接使用，显示在「已安装」；
-- 市场卡片：可用 `auth.mode: "bearer"` 注册，用户一次填写 Token 后批量连接所有 Server；
+- 公共市场：**技术评估为“有条件通过（Tier 1 / 第三方）”**。可用 `auth.mode: "bearer"` 注册，用户一次填写 Token 后批量连接所有 Server；
 - 真正 OAuth 一键授权：需北大法宝提供第 4 节所列的标准端点，或与 DSH 进行预注册客户端集成；仅凭当前 `mcpServers` JSON 无法自动获得此能力。
+
+正式发布公共卡片前还需完成以下门槛：
+
+- 由北大法宝确认可公开使用的产品名称、Logo、描述和支持地址；未确认前必须标识为“第三方/非官方收录”；
+- 描述文件不得内置 Token，并明确提示用户需自行注册、购买或开通相应服务；
+- 对官网列出的全部 Server 执行 Schema、HTTPS、MCP initialize 和共享 Token 批量连接验证；
+- 如要宣称“OAuth 一键授权”，必须补齐并验证标准发现元数据、Authorization Code + PKCE、动态客户端注册、刷新与撤销流程。
+
+因此当前建议是：**可以准备并提交 Bearer 型公共市场卡片；暂不作为“官方精选”或“OAuth 一键授权”卡片发布。**
 
 参考：
 
 - https://mcp.pkulaw.com/docs?doc=authentication
 - https://mcp.pkulaw.com/docs?doc=mcp-integration
-
