@@ -31,7 +31,7 @@
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
-| lint + 单元/集成测试 | 通过，57 项 |
+| lint + 单元/集成测试 | 通过，58 项 |
 | npm 发布包校验 | 已通过，43 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
@@ -54,6 +54,7 @@
 | 市场截图 | 已通过无凭据 UI harness 采集 4 张核心页面，保存在 `docs/screenshots/` |
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
 | 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 2 项自动测试；校验器已对齐 `0.2.2` |
+| 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
 
 ## 5. Desktop 验收清单（已通过）
 

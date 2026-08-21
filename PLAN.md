@@ -25,7 +25,7 @@ MCP连接器
 - Desktop 市场 UI：市场/已安装、前 4 个企查查卡片、第 5 个北大法宝第三方卡片、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
 - 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
-- 自动化：语法检查、57 项测试、43 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 自动化：语法检查、58 项测试、43 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
 - 市场运营资产：独立远程 Registry 已上线；4 张无凭据 UI 截图和约 30 秒演示 GIF 已纳入中英文 README。
 
 ## P0：首发基线收口
@@ -53,6 +53,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 | 独立 registry GitHub 仓库 | 已完成 | `duhu2000/dsh-mcp-connector-registry` 已公开；Raw `catalogUrl`、CI 与每周巡检已启用 |
 | 市场截图与演示 | 已完成 | 4 张 16:9 核心界面截图；约 30 秒演示 GIF；中英文 README 可直接预览 |
 | 第三方自助上架闭环 | 已完成 | Registry 提供贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与自动测试 |
+| 中国市场单语言界面 | 已完成 | 运行界面固定中文，移除 EN 按钮、英文 UI 字典及语言偏好持久化 |
 
 ## P2：体验与质量
 

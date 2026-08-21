@@ -355,17 +355,16 @@
 <div class="app">
   <header>
     <div class="tabs" id="tabs">
-      <button data-view="market" data-i18n="market" class="active">市场</button>
-      <button data-view="installed" data-i18n="installed">已安装</button>
+      <button data-view="market" class="active">市场</button>
+      <button data-view="installed">已安装</button>
     </div>
     <div class="header-spacer"></div>
     <div class="search-box">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="search" type="text" placeholder="搜索连接器…" data-i18n-placeholder="search" />
+      <input id="search" type="text" placeholder="搜索连接器…" />
     </div>
-    <button class="icon-btn primary" id="add-connection" type="button" data-i18n="add">＋ 添加连接</button>
-    <button class="icon-btn" id="locale-toggle" type="button" aria-label="Switch language">EN</button>
-    <button class="icon-btn" id="refresh" data-i18n="refresh">刷新</button>
+    <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
+    <button class="icon-btn" id="refresh">刷新</button>
   </header>
   <main id="main"></main>
 
@@ -384,17 +383,17 @@
         <div class="detail-desc" id="detail-desc"></div>
         <div class="detail-section">
           <div class="detail-section-head">
-            <div class="detail-section-title"><span class="emoji">💡</span> <span data-i18n="tryExamples">试试这样用</span> <span class="detail-section-meta" id="prompt-meta"></span></div>
+            <div class="detail-section-title"><span class="emoji">💡</span> <span>试试这样用</span> <span class="detail-section-meta" id="prompt-meta"></span></div>
             <div class="detail-section-spacer"></div>
-            <button class="text-btn" id="prompt-next" type="button" data-i18n="next" hidden>换一批</button>
+            <button class="text-btn" id="prompt-next" type="button" hidden>换一批</button>
           </div>
           <div class="prompt-list" id="detail-prompts"></div>
         </div>
         <details class="tools-disclosure" id="tools-disclosure">
-          <summary><span>🧰 <span data-i18n="tools">工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
+          <summary><span>🧰 <span>工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
           <div class="tools-panel">
             <div class="tools-toolbar">
-              <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" data-i18n-placeholder="toolSearch" autocomplete="off" />
+              <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
             </div>
             <div class="tools-list" id="detail-tools">
               <div class="tools-loading">加载中...</div>
@@ -403,7 +402,7 @@
         </details>
         <div class="detail-actions">
           <button class="btn-primary" id="detail-try-btn">💬 去试试</button>
-          <button class="btn-danger" id="detail-disconnect-btn" data-i18n="disconnect">断开连接</button>
+          <button class="btn-danger" id="detail-disconnect-btn">断开连接</button>
         </div>
       </div>
     </div>
@@ -423,23 +422,13 @@
   const main = $('#main');
   const toast = $('#toast');
   const searchInput = $('#search');
-  const I18N = {
-    zh: {
-      market: '市场', installed: '已安装', search: '搜索连接器…', add: '＋ 添加连接', refresh: '刷新',
-      tryExamples: '试试这样用', next: '换一批', tools: '工具详情', toolSearch: '搜索工具名称或描述…',
-      disconnect: '断开连接', details: '详情', connect: '连接', connected: '已连接', configure: '配置',
-      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接', reconfigureCredential: '🔑 重新配置凭据', loading: '加载中…',
-    },
-    en: {
-      market: 'Marketplace', installed: 'Installed', search: 'Search connectors…', add: '+ Add connector', refresh: 'Refresh',
-      tryExamples: 'Try these prompts', next: 'Next', tools: 'Tool details', toolSearch: 'Search tool name or description…',
-      disconnect: 'Disconnect', details: 'Details', connect: 'Connect', connected: 'Connected', configure: 'Configure',
-      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', configureConnect: '🔑 Add key & connect', reconfigureCredential: '🔑 Reconfigure key', loading: 'Loading…',
-    },
+  const LABELS = {
+    details: '详情', connect: '连接', connected: '已连接', configure: '配置',
+    send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
+    connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
+    reconfigureCredential: '🔑 重新配置凭据', loading: '加载中…',
   };
-  let locale = 'zh';
-  try { locale = localStorage.getItem('mcp-connector:locale') === 'en' ? 'en' : 'zh'; } catch {}
-  const t = (key) => I18N[locale]?.[key] || I18N.zh[key] || key;
+  const t = (key) => LABELS[key] || key;
   const MCP_JSON_EXAMPLE = JSON.stringify({
     mcpServers: {
       'my-server': {
@@ -450,12 +439,6 @@
     },
   }, null, 2);
 
-  function applyLocale() {
-    document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
-    document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
-    $('#locale-toggle').textContent = locale === 'zh' ? 'EN' : '中';
-  }
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
@@ -510,7 +493,7 @@
       button.disabled = pending;
       if (pending) {
         button.dataset.idleLabel = button.textContent;
-        button.textContent = locale === 'en' ? 'Sending…' : '正在发送…';
+        button.textContent = '正在发送…';
       } else if (button.dataset.idleLabel) {
         button.textContent = button.dataset.idleLabel;
         delete button.dataset.idleLabel;
@@ -1162,13 +1145,6 @@
   }
 
   $('#add-connection').addEventListener('click', () => openAddConnection('json'));
-  $('#locale-toggle').addEventListener('click', () => {
-    locale = locale === 'zh' ? 'en' : 'zh';
-    try { localStorage.setItem('mcp-connector:locale', locale); } catch {}
-    applyLocale();
-    refresh();
-    if ($('#detail-overlay').classList.contains('active')) renderPromptPage();
-  });
   main.addEventListener('click', (event) => {
     if (!event.target.closest('#catalog-more')) return;
     catalogRenderLimit += 60;
@@ -1195,7 +1171,6 @@
     refresh();
   });
 
-  applyLocale();
   refresh();
 })();
 </script>

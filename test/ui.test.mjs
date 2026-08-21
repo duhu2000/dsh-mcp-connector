@@ -4,6 +4,15 @@ import assert from 'node:assert/strict';
 
 const uiSource = await readFile(new URL('../ui/index.html', import.meta.url), 'utf8');
 
+test('界面固定为中文且不提供语言切换入口', () => {
+  assert.match(uiSource, /<html lang="zh-CN">/);
+  assert.doesNotMatch(uiSource, /id="locale-toggle"/);
+  assert.doesNotMatch(uiSource, /mcp-connector:locale/);
+  assert.doesNotMatch(uiSource, /Switch language|>EN<\/button>|Sending…/);
+  assert.doesNotMatch(uiSource, /data-i18n/);
+  assert.match(uiSource, /const LABELS = \{[\s\S]*?details: '详情'/);
+});
+
 test('内置 Prompt 有默认值时直接发送，无默认值才补全参数', () => {
   assert.match(uiSource, /function promptNeedsInput\(prompt\)/);
   assert.match(uiSource, /if \(!promptNeedsInput\(prompt\)\) \{\s*window\.__mcp\.sendPrompt\(renderResolvedPrompt\(prompt, \{\}\)\)/);
