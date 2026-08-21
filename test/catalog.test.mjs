@@ -29,6 +29,10 @@ test('内置目录加载 + published 过滤', () => {
   assert.ok(qccCards.flatMap((d) => d.prompts).some((prompt) => prompt.text.includes('{{')), 'Prompt 应使用参数模板');
   assert.ok(!qccCards.flatMap((d) => d.prompts).some((prompt) => /小米科技|华为技术|雷军/.test(prompt.text)), '目录不应再硬编码示例主体');
   assert.ok(qccCards.every((d) => d.promptVariables.every((variable) => variable.required === false || variable.default)), '内置 Prompt 必填参数应提供可直接试用的默认示例');
+  const pkulaw = published.find((d) => d.id === 'pkulaw-legal');
+  assert.equal(pkulaw?.auth.mode, 'bearer', '北大法宝应以 Bearer Token 方式接入');
+  assert.equal(pkulaw?.servers.length, 9, '北大法宝卡片应一次配置官网公开的 9 个 Server');
+  assert.deepEqual(published.slice(0, 5).map((d) => d.id), ['qcc-company', 'qcc-legal', 'qcc-tender', 'qcc-document', 'pkulaw-legal']);
 });
 
 test('mergeCatalog 优先级 + 本地覆盖', () => {
@@ -49,6 +53,11 @@ test('listCatalog 分类/关键词/精选排序', () => {
   assert.equal(featured.id, 'y', 'featured 置顶');
   const kw = listCatalog(list, { keyword: '地图' });
   assert.equal(kw.length, 1);
+});
+
+test('listCatalog 同级连接器保留市场声明顺序', () => {
+  const list = [desc('first'), desc('second'), desc('third')];
+  assert.deepEqual(listCatalog(list, {}).map((item) => item.id), ['first', 'second', 'third']);
 });
 
 test('fetchRemoteCatalog 拉取并解析 { connectors } 结构', async () => {

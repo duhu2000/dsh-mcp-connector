@@ -323,6 +323,8 @@
   .field-label-row label { margin: 0; }
   #import-json { height: 180px; min-height: 132px; max-height: 240px; resize: vertical; }
   .field-help { color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.45; }
+  .field-help a { color: var(--accent); text-decoration: none; }
+  .field-help a:hover { text-decoration: underline; }
   .form-note { color: var(--text-2); background: var(--accent-light); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 11px; line-height: 1.55; }
   .form-note strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 2px; }
   .server-preview { max-height: 132px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
@@ -776,6 +778,7 @@
   function openCatalogCredentialForm(preset) {
     const authMode = preset.authMode === 'api-key' ? 'api-key' : 'bearer';
     const servers = preset.servers || [];
+    const homepage = /^https:\/\//i.test(preset.homepage || '') ? preset.homepage : '';
     const credentialFields = authMode === 'bearer'
       ? `<label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" />`
       : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" /></div></div>`;
@@ -786,6 +789,7 @@
       <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一个 ${authMode === 'bearer' ? 'Bearer Token' : 'API Key'}；凭据仅保存在本机，不会写入市场目录。</div>
       <div class="server-preview">${serverPreview}</div>
       ${credentialFields}
+      ${homepage ? `<div class="field-help">尚无凭据？<a href="${esc(homepage)}" target="_blank" rel="noopener noreferrer">前往 ${esc(preset.vendor || preset.name)} 官网获取</a></div>` : ''}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接 ${servers.length} 个 Server</button></div>`);
   }
@@ -798,10 +802,9 @@
     }
     if (mode === 'json') {
       openModal('添加 MCP 连接', `${addTabs(mode)}
-        <p class="field-help">兼容 Claude/Cursor 常见的 <code>mcpServers</code> 格式；stdio 条目会明确跳过，HTTP/SSE 条目会批量导入。</p>
-        <div class="form-note"><strong>JSON 导入后进入「已安装」</strong>这是含用户凭据的本机连接配置，不会自动成为市场卡片。如需市场展示，请使用「市场卡片」安装无密钥的连接器描述。</div>
-        <div class="field-label-row"><label for="import-json">MCP JSON（必填）</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
+        <div class="field-label-row"><label for="import-json">粘贴 MCP JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
         <textarea id="import-json" rows="8" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
+        <div class="field-help">支持常见的 <code>mcpServers</code> 格式，配置和凭据仅保存在 DSH 本机。</div>
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
       return;

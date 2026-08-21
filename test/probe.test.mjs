@@ -51,10 +51,12 @@ test('OAuth 连接器公开元数据探针可判定 pass', async () => {
     const report = await probeConnector({
       id: 'probe-pass',
       name: 'Probe Pass',
+      icon: '⚖️',
       auth: { mode: 'oauth2-pkce', issuer: base },
       servers: [{ serverKey: 'main', url: `${base}/mcp`, serverName: 'probe-pass' }],
     }, { timeoutMs: 2000 });
     assert.equal(report.status, 'pass');
+    assert.equal(report.icon.kind, 'text');
     assert.equal(report.servers[0].reachable, true);
     assert.equal(report.servers[0].oauth, 'pass');
   } finally {

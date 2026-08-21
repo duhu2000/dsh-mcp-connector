@@ -1,4 +1,147 @@
 {
   "schemaVersion": 1,
-  "connectors": []
+  "connectors": [
+    {
+      "schemaVersion": 1,
+      "id": "pkulaw-legal",
+      "name": "北大法宝·法律检索",
+      "vendor": "北大法宝 PKULaw",
+      "icon": "⚖️",
+      "category": "法律数据",
+      "summary": "法规 / 法条 / 司法案例检索与引用核验",
+      "description": "接入北大法宝法律法规、司法案例、法条识别与引用核验能力。需使用北大法宝 Access Token，相关服务可能需要单独开通或购买。",
+      "tags": [
+        "法律",
+        "法规",
+        "案例",
+        "法条",
+        "第三方收录"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://mcp.pkulaw.com/",
+      "promptVariables": [
+        {
+          "name": "topic",
+          "label": "法律主题",
+          "placeholder": "例如：劳动合同解除",
+          "required": true,
+          "default": "劳动合同解除"
+        },
+        {
+          "name": "caseTopic",
+          "label": "案例主题",
+          "placeholder": "例如：竞业限制违约",
+          "required": true,
+          "default": "竞业限制违约"
+        },
+        {
+          "name": "citation",
+          "label": "法律引用",
+          "placeholder": "例如：《民法典》第五百七十七条",
+          "required": true,
+          "default": "《民法典》第五百七十七条"
+        }
+      ],
+      "prompts": [
+        {
+          "title": "法规与法条检索",
+          "text": "用北大法宝 MCP 检索与「{{topic}}」相关的现行法律规定，并给出法条原文和效力信息",
+          "server": "law-search"
+        },
+        {
+          "title": "典型司法案例",
+          "text": "用北大法宝 MCP 检索与「{{caseTopic}}」相关的典型司法案例，并列出案号和裁判要点",
+          "server": "case-semantic-search"
+        },
+        {
+          "title": "法律引用识别",
+          "text": "用北大法宝 MCP 识别并核验 {{citation}} 的标准出处和现行法条原文",
+          "server": "law-recognition"
+        },
+        {
+          "title": "法律引用核验",
+          "text": "用北大法宝 MCP 核验 {{citation}} 是否准确，并说明当前效力状态",
+          "server": "citation-validator"
+        }
+      ],
+      "probeStatus": "unverified",
+      "probeReportUrl": "",
+      "toolsSnapshot": [],
+      "auth": {
+        "mode": "bearer",
+        "issuer": "",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "apiKeyHeader": "X-Api-Key",
+        "grantSharing": ""
+      },
+      "servers": [
+        {
+          "serverKey": "law-search",
+          "url": "https://apim-gateway.pkulaw.com/mcp-law-search-service",
+          "serverName": "pkulaw-law-search",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-law",
+          "serverName": "pkulaw-law-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-semantic-search",
+          "url": "https://apim-gateway.pkulaw.com/mcp-case-search-service",
+          "serverName": "pkulaw-case-semantic-search",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-case",
+          "serverName": "pkulaw-case-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-item-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-fatiao",
+          "serverName": "pkulaw-law-item-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-recognition",
+          "url": "https://apim-gateway.pkulaw.com/law_recognition",
+          "serverName": "pkulaw-law-recognition",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-number-recognition",
+          "url": "https://apim-gateway.pkulaw.com/case_number_recognition",
+          "serverName": "pkulaw-case-number-recognition",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "citation-validator",
+          "url": "https://apim-gateway.pkulaw.com/pku_citation_validator",
+          "serverName": "pkulaw-citation-validator",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "doc-link",
+          "url": "https://apim-gateway.pkulaw.com/add-doc-link",
+          "serverName": "pkulaw-doc-link",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ]
+    }
+  ]
 }

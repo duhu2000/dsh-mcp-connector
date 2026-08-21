@@ -20,7 +20,7 @@
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；不删除原插件或原凭据。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
 
-首版内置 4 个企查查连接器，卡片统一使用包内企查查 Logo；插件架构本身不限定厂商。
+当前市场前 4 张为企查查连接器，第 5 张为“北大法宝·法律检索”第三方连接器；插件架构不限定厂商。
 
 ## 安装
 

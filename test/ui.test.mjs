@@ -16,10 +16,11 @@ test('参数弹框与发送提示位于详情弹框之上', () => {
   assert.match(uiSource, /\.toast \{[\s\S]*?z-index: 300;/);
 });
 
-test('JSON 导入提供缩进示例、格式化和市场分流说明', () => {
+test('JSON 导入提供缩进示例、格式化和简洁的本机安全说明', () => {
   assert.match(uiSource, /const MCP_JSON_EXAMPLE = JSON\.stringify\([\s\S]*?null, 2\)/);
   assert.match(uiSource, /formatImportJson\(silent = false\)/);
-  assert.match(uiSource, /JSON 导入后进入「已安装」/);
+  assert.match(uiSource, /配置和凭据仅保存在 DSH 本机/);
+  assert.doesNotMatch(uiSource, /JSON 导入后进入「已安装」/);
   assert.match(uiSource, />市场卡片<\/button>/);
 });
 
@@ -34,5 +35,6 @@ test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /function openCatalogCredentialForm\(preset\)/);
   assert.match(uiSource, /一次配置 \$\{servers\.length\} 个 MCP Server/);
+  assert.match(uiSource, /尚无凭据？[\s\S]*?官网获取/);
   assert.match(uiSource, /connectorId,\s*authMode,\s*bearerToken/);
 });
