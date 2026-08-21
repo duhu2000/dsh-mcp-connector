@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新增 4 张由无真实凭据 UI harness 生成的核心界面截图，以及约 30 秒的演示 GIF；中英文 README 均可直接预览市场、详情 Prompt、工具发现和 JSON 导入体验。
+
 ## [0.2.2] - 2026-08-21
 
 ### Added

@@ -25,7 +25,8 @@ MCP连接器
 - Desktop 市场 UI：市场/已安装、前 4 个企查查卡片、第 5 个北大法宝第三方卡片、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
 - 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
-- 自动化：语法检查、46 项测试、38 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 自动化：语法检查、57 项测试、43 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 市场运营资产：独立远程 Registry 已上线；4 张无凭据 UI 截图和约 30 秒演示 GIF 已纳入中英文 README。
 
 ## P0：首发基线收口
 
@@ -49,7 +50,9 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 | 图形化三通道接入 | 已完成开发 | 手动、格式化 JSON、市场卡片 URL；失败保留表单并给修复建议 |
 | 凭据型市场卡片 | 已完成开发 | Bearer/API Key 一次填写，批量连接卡片下所有 Server；凭据不进目录 |
 | Prompt 参数化 | 已完成开发 | 内置示例有默认值时直接发送；社区 Prompt 缺少必填值时才置顶显示参数补全弹框 |
-| 独立 registry GitHub 仓库 | 待外部发布 | 从当前种子拆分并配置 Pages/raw `catalogUrl` |
+| 独立 registry GitHub 仓库 | 已完成 | `duhu2000/dsh-mcp-connector-registry` 已公开；Raw `catalogUrl`、CI 与每周巡检已启用 |
+| 市场截图与演示 | 已完成 | 4 张 16:9 核心界面截图；约 30 秒演示 GIF；中英文 README 可直接预览 |
+| 第三方自助上架闭环 | 已完成 | Registry 提供贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与自动测试 |
 
 ## P2：体验与质量
 
@@ -65,7 +68,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 ## 当前发布决策
 
 - 包名与仓库名：`dsh-mcp-connector`。
-- 首发版本：`0.1.0`（npm 尚无历史版本，不人为跳号）。
+- 当前公开版本：`0.2.2`，npm Trusted Publishing 已启用。
 - 许可证：MIT，公开仓库。
-- P0 首发已于 2026-08-20 完成，后续进入 P1 通用市场能力建设。
-- P1/P2 位于 `feat/p1-p2-completion`；不修改 `0.1.0` Tag，不在验收前发布新 npm 版本。
+- P0 首发已于 2026-08-20 完成；P1 核心市场能力和独立 Registry 已并入 `main`。
+- 后续 P1 聚焦第三方厂商自助上架、市场运营素材和外部目录分发；已有版本 Tag 不回写。

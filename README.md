@@ -28,6 +28,18 @@
 
 当前市场前 4 张为企查查连接器，第 5 张为“北大法宝·法律检索”，第 6 张为“Wind·股票数据”；插件架构不限定厂商。
 
+## 界面与演示
+
+![MCP 连接器 30 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+
+| 市场总览 | 连接器详情与精选 Prompt |
+|---|---|
+| ![市场总览](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/01-market-overview.jpg) | ![连接器详情](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/02-connector-detail.jpg) |
+| 工具发现、描述与独立滚动 | JSON 导入 |
+| ![工具发现](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON 导入](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
+
+素材由无真实凭据的本地 UI harness 生成，详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
+
 ## 安装
 
 要求：DeepSeek Harness Desktop/web profile，Node.js 20 或更高版本。

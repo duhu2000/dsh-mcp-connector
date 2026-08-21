@@ -26,6 +26,18 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 
 The first four bundled cards are Qichacha connectors. The public catalog also includes PKULaw and Wind connectors; the architecture is provider-neutral.
 
+## Interface and demo
+
+![30-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+
+| Marketplace overview | Connector details and curated prompts |
+|---|---|
+| ![Marketplace overview](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/01-market-overview.jpg) | ![Connector details](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/02-connector-detail.jpg) |
+| Tool discovery, descriptions, and scrolling | JSON import |
+| ![Tool discovery](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON import](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
+
+The assets are captured from the credential-free local UI harness. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
+
 ## Installation
 
 Requirements: DeepSeek Harness Desktop or web profile, and Node.js 20 or later.

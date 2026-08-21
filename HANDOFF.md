@@ -46,7 +46,16 @@
 | 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游并更新为提交 `be027d85`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
-## 4. Desktop 验收清单（已通过）
+## 4. P1 状态
+
+| 节点 | 状态 |
+|---|---|
+| 通用市场能力 | 多厂商目录、三通道接入、凭据预检、参数 Prompt、独立 Registry 均已完成并进入 `main` |
+| 市场截图 | 已通过无凭据 UI harness 采集 4 张核心页面，保存在 `docs/screenshots/` |
+| 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
+| 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 2 项自动测试；校验器已对齐 `0.2.2` |
+
+## 5. Desktop 验收清单（已通过）
 
 2026-08-20 已完成 Desktop 实机验证，后续版本继续按以下项目回归：
 
@@ -57,7 +66,7 @@
 5. 点击示例 Prompt 可打开新会话并写入草稿。
 6. 若人为模拟找不到 `sidebar.workspaces`，底部入口仍可点击。
 
-## 5. 开发与同步
+## 6. 开发与同步
 
 ```bash
 cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin
@@ -76,7 +85,7 @@ npm run check
 - `.github/workflows/`、`scripts/verify-pack.mjs`：发布门禁。
 - `CHANGELOG.md`：首发能力与后续版本变更记录。
 
-## 6. 发布结果
+## 7. 发布结果
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32384979218
@@ -88,7 +97,7 @@ npm run check
 
 发布工作流会校验 Tag 必须等于 `v` + `package.json.version`；0.2.1 起使用 npm Trusted Publishing，GitHub-hosted runner 通过 OIDC 发布 npm 并创建 GitHub Release，不再需要长期 `NPM_TOKEN`。当前 npm CLI 与 Release runner 固定为 11.19.0，以支持必填的 Trusted Publisher `allowed_actions`。
 
-## 7. 已知限制与风险
+## 8. 已知限制与风险
 
 - DSH rc.7 没有目标位置的公开插槽，顶部入口依赖稳定 `data-slot` + Portal；已提供 footer 降级，但 DSH 大版本升级后应复测。
 - Raw GitHub 目录默认缓存约 5 分钟，合并新卡片后客户端刷新可能需等待 CDN 缓存更新。
