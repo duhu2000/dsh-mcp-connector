@@ -27,7 +27,7 @@
 | 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |
 | Git 提交数 | 已超过 10 个，满足外部目录要求 |
 | GitHub Topics | 已增加 `dsh-plugin`、`deepseek-harness`、`mcp`、`mcp-connector`、`oauth` |
-| awesome-dsh-plugin | fork 注册分支已准备并通过本地门禁；待仓龄满足后提交 PR |
+| awesome-dsh-plugin | fork 注册分支已重基最新上游，提交 `be027d85`；README 生成、站点构建与 lint 已通过；待仓龄满足后提交 PR |
 
 随包第 1–4 张为企查查连接器，第 5 张为北大法宝，第 6 张为 Wind。目录内容可以通过独立 Registry 更新，新增市场卡片不再依赖重新发布 npm。
 
@@ -110,6 +110,19 @@
 | DSH 官方包使用 peerDependencies | 已满足 |
 | 分类合法 | `tools` |
 | 生成中英文 README | 提交 PR 前在上游执行 |
+
+截至 2026-08-21 15:10（北京时间），fork 分支
+`duhu2000:add-dsh-mcp-connector` 已重基到上游 `main@7f79f9c1`，远端提交为
+`be027d85`。分支相对上游只包含两个生成 README 的索引行和
+`data/plugins/duhu2000__dsh-mcp-connector.yml`，已通过：
+
+- `npm ci`；
+- `node scripts/generate-readme.mjs --check`；
+- `SKIP_PUBLISH_CHECKS=1 node scripts/build-site.mjs`；
+- `npx awesome-lint`（0 error；44 个 warning 均来自上游现有条目）。
+
+官方仓库更新频繁，创建 PR 前仍需再拉取一次 `upstream/main`，如有新提交则重新
+rebase 并重复以上校验。
 
 建议 GitHub Topics：
 

@@ -42,6 +42,9 @@
 | `v0.2.1` / npm `0.2.1` | 已由 GitHub OIDC Trusted Publishing 自动发布，Provenance 与全新下载包验证通过 |
 | `v0.2.2` / npm `0.2.2` | 已由 GitHub OIDC 发布；通用产品定位、中英文 README 与市场注册元数据已收口，Provenance 和下载包验证通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
+| Desktop 本机版本对齐 | 已将 `web` profile 从本地 `file:` 依赖切换为 npm 精确版本 `dsh-mcp-connector@0.2.2`；依赖树与安装副本均为 `0.2.2`，仅有一个实例；`~/.dsh/storages/mcp_connector.json` 未被安装过程改写 |
+| 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游并更新为提交 `be027d85`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
+| 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
 ## 4. Desktop 验收清单（已通过）
 
@@ -61,7 +64,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-开发副本修改后需同步到 Desktop 安装副本，并完全重启 DSH Desktop。同步必须保持文件内容一致，不要只改安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.2`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 
