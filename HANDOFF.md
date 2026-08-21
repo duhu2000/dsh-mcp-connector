@@ -18,7 +18,7 @@
 - UI：市场/已安装、搜索、4 个企查查连接器、包内 QCC Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
-- P1 UI：统一“添加连接”支持手动、JSON、描述 URL；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；基础中英、深浅主题和键盘操作。
+- P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；基础中英、深浅主题和键盘操作。
 - Registry：`registry/` 种子、Schema、构建器、无凭据探针与定时巡检 workflow 已完成。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
@@ -30,8 +30,8 @@
 | 入口、弹框、详情、Logo、Prompt 发送 | 已完成开发 |
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
-| lint + 单元/集成测试 | 通过，41/41 |
-| npm 发布包校验 | 已配置，36 个白名单文件；含敏感内容与本机路径扫描 |
+| lint + 单元/集成测试 | 通过，44/44 |
+| npm 发布包校验 | 已配置，37 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |

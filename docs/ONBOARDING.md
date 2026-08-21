@@ -1,5 +1,7 @@
 # MCP连接器 · 上架选型与开发者接入机制
 
+> 面向实际提交的简化操作步骤见 [MARKET-REGISTRATION.md](MARKET-REGISTRATION.md)。
+
 > 回答：MCP 开发者如何把自家 MCP Server 上架到「MCP连接器」市场？对比三个 DSH 插件市场与千问/WorkBuddy 连接器后，给出选型。
 > 版本：v1.0 ｜ 日期：2026-08
 

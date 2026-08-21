@@ -224,6 +224,33 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
   assert.equal(loader.entries.has(`mcp-${key}`), false);
 });
 
+test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { timeout: 15000 }, async () => {
+  const connectors = [{
+    id: 'legal-market',
+    name: '法律数据市场',
+    auth: { mode: 'bearer' },
+    servers: [
+      { serverKey: 'law', url: 'https://legal.example.com/mcp-law', serverName: 'legal-law' },
+      { serverKey: 'case', url: 'https://legal.example.com/mcp-case', serverName: 'legal-case' },
+    ],
+  }];
+  const { ctx, loader, tools } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+
+  const configured = await tools.defs.get('mcp_connector_configure').execute({
+    connectorId: 'legal-market',
+    bearerToken: 'shared-token',
+  });
+  assert.equal(configured.ok, true, configured.message);
+  assert.deepEqual(configured.detail.keys, ['legal-market-law', 'legal-market-case']);
+  assert.equal(loader.entries.get('mcp-legal-market-law').options.config.headers.Authorization, 'Bearer shared-token');
+  assert.equal(loader.entries.get('mcp-legal-market-case').options.config.headers.Authorization, 'Bearer shared-token');
+
+  const status = await tools.defs.get('mcp_connector_status').execute({});
+  assert.equal(status.detail.items.filter((item) => item.connectorId === 'legal-market').length, 2);
+});
+
 test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
   const catalogSrv = createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });

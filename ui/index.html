@@ -314,7 +314,14 @@
   .modal-tabs button { border: 0; background: transparent; color: var(--text-2); border-radius: 7px; padding: 7px 4px; cursor: pointer; font: inherit; font-size: 12px; }
   .modal-tabs button.active { background: var(--card); color: var(--accent); box-shadow: var(--shadow); font-weight: 600; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+  .field-label-row label { margin: 0; }
   .field-help { color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.45; }
+  .form-note { color: var(--text-2); background: var(--accent-light); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 11px; line-height: 1.55; }
+  .form-note strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 2px; }
+  .server-preview { max-height: 132px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
+  .server-preview div { padding: 7px 10px; border-top: 1px solid var(--line); color: var(--text-2); font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
+  .server-preview div:first-child { border-top: 0; }
   .inline-error { color: var(--bad); background: var(--bad-bg); border-radius: 7px; padding: 8px 10px; margin-top: 12px; font-size: 12px; display: none; }
   .inline-error.show { display: block; }
 
@@ -425,6 +432,15 @@
   let locale = 'zh';
   try { locale = localStorage.getItem('mcp-connector:locale') === 'en' ? 'en' : 'zh'; } catch {}
   const t = (key) => I18N[locale]?.[key] || I18N.zh[key] || key;
+  const MCP_JSON_EXAMPLE = JSON.stringify({
+    mcpServers: {
+      'my-server': {
+        type: 'streamable-http',
+        url: 'https://example.com/mcp',
+        headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
+      },
+    },
+  }, null, 2);
 
   function applyLocale() {
     document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
@@ -747,24 +763,47 @@
     return `<div class="modal-tabs" role="tablist" aria-label="添加连接方式">
       <button type="button" class="${active === 'manual' ? 'active' : ''}" onclick="window.__mcp.openAdd('manual')">手动配置</button>
       <button type="button" class="${active === 'json' ? 'active' : ''}" onclick="window.__mcp.openAdd('json')">导入 JSON</button>
-      <button type="button" class="${active === 'url' ? 'active' : ''}" onclick="window.__mcp.openAdd('url')">描述 URL</button>
+      <button type="button" class="${active === 'url' ? 'active' : ''}" onclick="window.__mcp.openAdd('url')">市场卡片</button>
     </div>`;
+  }
+
+  function openCatalogCredentialForm(preset) {
+    const authMode = preset.authMode === 'api-key' ? 'api-key' : 'bearer';
+    const servers = preset.servers || [];
+    const credentialFields = authMode === 'bearer'
+      ? `<label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" />`
+      : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在 DSH 本机" /></div></div>`;
+    const serverPreview = servers.map((server) => `<div>${esc(server.serverName)} · ${esc(server.url)}</div>`).join('');
+    openModal(`配置 ${preset.name}`, `
+      <input id="cfg-connector-id" type="hidden" value="${esc(preset.id)}" />
+      <input id="cfg-auth" type="hidden" value="${esc(authMode)}" />
+      <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一个 ${authMode === 'bearer' ? 'Bearer Token' : 'API Key'}；凭据仅保存在本机，不会写入市场目录。</div>
+      <div class="server-preview">${serverPreview}</div>
+      ${credentialFields}
+      <div class="inline-error" id="modal-error" tabindex="-1"></div>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接 ${servers.length} 个 Server</button></div>`);
   }
 
   function openAddConnection(mode = 'manual', preset = {}) {
     const server = (preset.servers || [{}])[0] || {};
+    if (mode === 'manual' && preset.id && ['bearer', 'api-key'].includes(preset.authMode)) {
+      openCatalogCredentialForm(preset);
+      return;
+    }
     if (mode === 'json') {
       openModal('添加 MCP 连接', `${addTabs(mode)}
         <p class="field-help">兼容 Claude/Cursor 常见的 <code>mcpServers</code> 格式；stdio 条目会明确跳过，HTTP/SSE 条目会批量导入。</p>
-        <label for="import-json">MCP JSON（必填）</label>
-        <textarea id="import-json" rows="11" spellcheck="false" placeholder='{"mcpServers":{"my-server":{"type":"streamable-http","url":"https://example.com/mcp"}}}'></textarea>
+        <div class="form-note"><strong>JSON 导入后进入「已安装」</strong>这是含用户凭据的本机连接配置，不会自动成为市场卡片。如需市场展示，请使用「市场卡片」安装无密钥的连接器描述。</div>
+        <div class="field-label-row"><label for="import-json">MCP JSON（必填）</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
+        <textarea id="import-json" rows="14" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
       return;
     }
     if (mode === 'url') {
       openModal('添加 MCP 连接', `${addTabs(mode)}
-        <p class="field-help">粘贴厂商提供的连接器描述 JSON 地址。地址必须是 HTTPS（本机调试可使用 loopback HTTP），内容会先经过 Schema 与密钥审计。</p>
+        <p class="field-help">粘贴厂商提供的 ConnectorDescriptor JSON 地址。安装成功后会作为卡片显示在本机「市场」。</p>
+        <div class="form-note"><strong>公共市场如何上架</strong>向 <code>dsh-mcp-connector</code> registry 提交无 Token/API Key 的描述 JSON；Schema、URL、MCP 和 OAuth 探针通过后才会分发给所有用户。真正一键 OAuth 需厂商支持 Authorization Code + PKCE、标准元数据和动态客户端注册。</div>
         <label for="descriptor-url">连接器描述 URL（必填）</label>
         <input id="descriptor-url" type="url" placeholder="https://example.com/dsh-connector.json" />
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
@@ -830,6 +869,17 @@
     },
     openAdd(mode) { openAddConnection(mode); },
     openConfig(connectorId) { openAddConnection('manual', marketItems[connectorId] || {}); },
+    formatImportJson(silent = false) {
+      const input = $('#import-json');
+      const value = input?.value.trim();
+      if (!input || !value) return;
+      try {
+        input.value = JSON.stringify(JSON.parse(value), null, 2);
+        $('#modal-error')?.classList.remove('show');
+      } catch (error) {
+        if (!silent) showModalError(`JSON 格式化失败: ${error.message}`);
+      }
+    },
     syncAuthFields() {
       const mode = $('#cfg-auth')?.value || 'none';
       if ($('#cfg-bearer')) $('#cfg-bearer').hidden = mode !== 'bearer';
@@ -837,10 +887,25 @@
     },
     closeModal() { closeModal(); },
     async submitConfig() {
+      const connectorId = $('#cfg-connector-id')?.value.trim();
+      const authMode = $('#cfg-auth').value;
+      if (connectorId) {
+        setModalBusy(true);
+        const r = await call('configure', {
+          connectorId,
+          authMode,
+          bearerToken: $('#cfg-token')?.value || undefined,
+          apiKeyHeader: $('#cfg-key-header')?.value || undefined,
+          apiKeyValue: $('#cfg-key-value')?.value || undefined,
+        });
+        setModalBusy(false);
+        if (!r.ok) { showModalError(r.message); return; }
+        closeModal(); showToast(r.message, true); await refresh();
+        return;
+      }
       const name = $('#cfg-name').value.trim();
       const url = $('#cfg-url').value.trim();
       const serverName = $('#cfg-sname').value.trim();
-      const authMode = $('#cfg-auth').value;
       if (!name || !url) { showModalError('名称与 URL 必填'); return; }
       let headersJson;
       try { headersJson = JSON.parse($('#cfg-headers').value || '{}'); }
@@ -859,8 +924,15 @@
       closeModal(); showToast(r.message, true); await refresh();
     },
     async submitImport() {
-      const json = $('#import-json').value.trim();
+      let json = $('#import-json').value.trim();
       if (!json) { showModalError('请粘贴 MCP JSON'); return; }
+      try {
+        json = JSON.stringify(JSON.parse(json), null, 2);
+        $('#import-json').value = json;
+      } catch (error) {
+        showModalError(`MCP JSON 不合法: ${error.message}`);
+        return;
+      }
       setModalBusy(true);
       const r = await call('importJson', { json });
       setModalBusy(false);

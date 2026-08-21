@@ -7,10 +7,13 @@
 ### Added
 
 - 图形化“添加连接”：手动配置、`mcpServers` JSON、连接器描述 URL，并提供错误修复提示。
+- JSON 导入提供多行缩进示例、粘贴/手动格式化，并明确区分本机连接与市场卡片。
+- Bearer/API Key 市场连接器支持一次填写凭据后批量连接卡片下所有 Server。
 - 参数化 Prompt：发送前收集企业、人员或主题等变量，不再硬编码示例主体。
 - Tier 1 registry 种子：JSON Schema、确定性构建、无凭据 MCP/OAuth 探针和每周健康巡检。
 - 两个旧企查查 OAuth 插件的授权预览和幂等复制迁移；源插件与源凭据始终保留。
 - 本地 UI mock 测试壳和 Desktop 发版回归清单。
+- 市场注册指南，覆盖 ConnectorDescriptor、公共 registry 与 OAuth 一键授权服务端要求。
 
 ### Changed
 
