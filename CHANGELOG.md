@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-21
+
 ### Added
 
 - 上线独立公共 `dsh-mcp-connector-registry`，新市场卡片合并后无需重发 npm 即可被客户端刷新获取。
@@ -78,6 +80,7 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.1.0

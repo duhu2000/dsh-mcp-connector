@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DeepSeek Harness 插件：MCP连接器 —— 连接器目录与上架、通用 OAuth / 自定义 / JSON 三通道连接外部 MCP Server / MCP Connector marketplace & connection manager",
   "type": "module",
   "main": "lib/index.js",
