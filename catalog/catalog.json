@@ -14,8 +14,8 @@
       "featured": true,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
-        { "name": "company", "label": "企业名称", "placeholder": "例如：小米科技有限责任公司", "required": true },
-        { "name": "person", "label": "人员姓名", "placeholder": "例如：雷军", "required": true }
+        { "name": "company", "label": "企业名称", "default": "小米科技有限责任公司", "placeholder": "例如：小米科技有限责任公司", "required": true },
+        { "name": "person", "label": "人员姓名", "default": "雷军", "placeholder": "例如：雷军", "required": true }
       ],
       "auth": {
         "mode": "oauth2-pkce",
@@ -75,7 +75,7 @@
       "featured": false,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
-        { "name": "topic", "label": "法律主题", "placeholder": "例如：劳动合同解除", "required": true }
+        { "name": "topic", "label": "法律主题", "default": "劳动合同解除", "placeholder": "例如：劳动合同解除", "required": true }
       ],
       "auth": {
         "mode": "oauth2-pkce",
@@ -109,8 +109,8 @@
       "featured": false,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
-        { "name": "keyword", "label": "项目关键词", "placeholder": "例如：智慧城市", "required": true },
-        { "name": "company", "label": "企业名称", "placeholder": "例如：华为技术有限公司", "required": true }
+        { "name": "keyword", "label": "项目关键词", "default": "智慧城市", "placeholder": "例如：智慧城市", "required": true },
+        { "name": "company", "label": "企业名称", "default": "华为技术有限公司", "placeholder": "例如：华为技术有限公司", "required": true }
       ],
       "auth": {
         "mode": "oauth2-pkce",
@@ -142,7 +142,7 @@
       "featured": false,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
-        { "name": "company", "label": "企业名称", "placeholder": "例如：小米科技有限责任公司", "required": true }
+        { "name": "company", "label": "企业名称", "default": "小米科技有限责任公司", "placeholder": "例如：小米科技有限责任公司", "required": true }
       ],
       "auth": {
         "mode": "oauth2-pkce",

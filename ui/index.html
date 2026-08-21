@@ -291,14 +291,14 @@
     position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
     background: var(--card); border: 1px solid var(--line); color: var(--text);
     padding: 12px 20px; border-radius: 12px; box-shadow: var(--shadow-lg);
-    z-index: 50; max-width: 80vw; display: none; font-size: 13px;
+    z-index: 300; max-width: 80vw; display: none; font-size: 13px;
   }
   .toast.show { display: block; }
   .toast.ok { border-color: #a7f3d0; }
   .toast.bad { border-color: #fecaca; }
 
   /* Modal */
-  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 40; }
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.52); display: none; align-items: center; justify-content: center; z-index: 200; }
   .modal-mask.show { display: flex; }
   .modal { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; width: 520px; max-width: 92vw; max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
   .modal h3 { margin: 0 0 16px; font-size: 16px; }
@@ -413,13 +413,13 @@
       market: '市场', installed: '已安装', search: '搜索连接器…', add: '＋ 添加连接', refresh: '刷新',
       tryExamples: '试试这样用', next: '换一批', tools: '工具详情', toolSearch: '搜索工具名称或描述…',
       disconnect: '断开连接', details: '详情', connect: '连接', connected: '已连接', configure: '配置',
-      send: '发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', loading: '加载中…',
+      send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试', connectTry: '🔗 连接后试用', loading: '加载中…',
     },
     en: {
       market: 'Marketplace', installed: 'Installed', search: 'Search connectors…', add: '+ Add connector', refresh: 'Refresh',
       tryExamples: 'Try these prompts', next: 'Next', tools: 'Tool details', toolSearch: 'Search tool name or description…',
       disconnect: 'Disconnect', details: 'Details', connect: 'Connect', connected: 'Connected', configure: 'Configure',
-      send: 'Send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', loading: 'Loading…',
+      send: 'Send', fillSend: 'Fill & send', connectToUse: 'Connect to use', try: '💬 Try it', connectTry: '🔗 Connect to try', loading: 'Loading…',
     },
   };
   let locale = 'zh';
@@ -483,6 +483,13 @@
   function setPromptLaunchPending(pending) {
     document.querySelectorAll('#detail-prompts .send-btn, #detail-try-btn').forEach((button) => {
       button.disabled = pending;
+      if (pending) {
+        button.dataset.idleLabel = button.textContent;
+        button.textContent = locale === 'en' ? 'Sending…' : '正在发送…';
+      } else if (button.dataset.idleLabel) {
+        button.textContent = button.dataset.idleLabel;
+        delete button.dataset.idleLabel;
+      }
     });
   }
 
@@ -546,8 +553,13 @@
     const specs = Object.fromEntries(promptVariables(prompt).map((variable) => [variable.name, variable]));
     return esc(prompt.text || prompt.title || '').replace(/\{\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}\}|\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}/g, (_token, a, b) => {
       const variable = specs[a || b] || { label: a || b };
-      return `<mark style="color:var(--accent);background:var(--accent-light);border-radius:4px;padding:0 3px;">${esc(variable.label)}</mark>`;
+      const displayValue = String(variable.default || '').trim() || variable.label;
+      return `<mark style="color:var(--accent);background:var(--accent-light);border-radius:4px;padding:0 3px;">${esc(displayValue)}</mark>`;
     });
+  }
+
+  function promptNeedsInput(prompt) {
+    return promptVariables(prompt).some((variable) => variable.required !== false && !String(variable.default || '').trim());
   }
 
   function renderPromptPage() {
@@ -559,7 +571,7 @@
     $('#prompt-meta').textContent = total > 0 ? `· 精选 ${visible.length} / 共 ${total} 条` : '';
     $('#prompt-next').hidden = total <= PROMPT_PAGE_SIZE;
     $('#detail-prompts').innerHTML = visible.length > 0
-      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${detailConnector?.connected?.length ? '' : 'disabled'}>${detailConnector?.connected?.length ? t('send') : t('connectToUse')}</button></div>`).join('')
+      ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${detailConnector?.connected?.length ? '' : 'disabled'}>${detailConnector?.connected?.length ? t(promptNeedsInput(prompt) ? 'fillSend' : 'send') : t('connectToUse')}</button></div>`).join('')
       : '<div style="color:var(--muted);font-size:13px;">暂无预设 Prompt</div>';
   }
 
@@ -792,6 +804,10 @@
   function openPromptForm(prompt) {
     const variables = promptVariables(prompt);
     if (variables.length === 0) { window.__mcp.sendPrompt(prompt.text || prompt.title || ''); return; }
+    if (!promptNeedsInput(prompt)) {
+      window.__mcp.sendPrompt(renderResolvedPrompt(prompt, {}));
+      return;
+    }
     pendingPrompt = prompt;
     const fields = variables.map((variable) => `<label for="prompt-${esc(variable.name)}">${esc(variable.label)}${variable.required === false ? '（可选）' : '（必填）'}</label><input id="prompt-${esc(variable.name)}" data-prompt-variable="${esc(variable.name)}" value="${esc(variable.default || '')}" placeholder="${esc(variable.placeholder || '')}" autocomplete="off" />${variable.description ? `<div class="field-help">${esc(variable.description)}</div>` : ''}`).join('');
     openModal(prompt.title || '填写查询参数', `<p class="field-help">发送前补全参数，内容只用于本次新会话，不会写回连接器目录。</p>${fields}<div class="inline-error" id="modal-error" tabindex="-1"></div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitPromptVariables()">带入新会话</button></div>`);

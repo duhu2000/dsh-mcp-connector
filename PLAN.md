@@ -25,7 +25,7 @@ MCP连接器
 - Desktop 市场 UI：市场/已安装、4 个企查查卡片、统一 Logo、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
 - 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
-- 自动化：语法检查、39 项测试、36 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 自动化：语法检查、41 项测试、36 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
 
 ## P0：首发基线收口
 
@@ -47,7 +47,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 | Tier 1 registry 工程 | 已完成仓库种子 | `registry/` 一连接器一文件、JSON Schema、确定性构建、PR 门禁 |
 | 连通性探针与巡检 | 已完成开发 | Schema/密钥/URL/MCP/OAuth/图标；每周 workflow 上传报告 |
 | 图形化三通道接入 | 已完成开发 | 手动、JSON、描述 URL；失败保留表单并给修复建议 |
-| Prompt 参数化 | 已完成开发 | 发送前填写主体；目录不再硬编码小米/华为/雷军 |
+| Prompt 参数化 | 已完成开发 | 内置示例有默认值时直接发送；社区 Prompt 缺少必填值时才置顶显示参数补全弹框 |
 | 独立 registry GitHub 仓库 | 待外部发布 | 从当前种子拆分并配置 Pages/raw `catalogUrl` |
 
 ## P2：体验与质量

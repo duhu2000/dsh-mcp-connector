@@ -28,6 +28,7 @@ test('内置目录加载 + published 过滤', () => {
   assert.ok(qccCards.every((d) => d.prompts.length > 0), '4 张卡片均应提供可快速体验的 Prompt');
   assert.ok(qccCards.flatMap((d) => d.prompts).some((prompt) => prompt.text.includes('{{')), 'Prompt 应使用参数模板');
   assert.ok(!qccCards.flatMap((d) => d.prompts).some((prompt) => /小米科技|华为技术|雷军/.test(prompt.text)), '目录不应再硬编码示例主体');
+  assert.ok(qccCards.every((d) => d.promptVariables.every((variable) => variable.required === false || variable.default)), '内置 Prompt 必填参数应提供可直接试用的默认示例');
 });
 
 test('mergeCatalog 优先级 + 本地覆盖', () => {
