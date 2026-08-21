@@ -45,7 +45,7 @@
 | `v0.2.4` / npm `0.2.4` | 已由 GitHub OIDC 发布；新增主动连接健康检查与分级状态，59/59 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 | Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.4`；依赖树与安装副本均为 `0.2.4`，仅有一个实例；19 条既有 Server 连接和 4 组授权记录均保留 |
-| 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游并更新为提交 `be027d85`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
+| 外部 DSH 市场注册 | `duhu2000/awesome-dsh-plugin:add-dsh-mcp-connector` 已重基到 2026-08-21 最新上游 `a45b85d2` 并更新为提交 `597c404e`；README 生成、站点构建和 lint 均通过，待北京时间 2026-08-21 23:14:05 后提交 PR |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
 ## 4. P1 状态
