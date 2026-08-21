@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-21
+
 ### Added
 
 - 新增 4 张由无真实凭据 UI harness 生成的核心界面截图，以及约 30 秒的演示 GIF；中英文 README 均可直接预览市场、详情 Prompt、工具发现和 JSON 导入体验。
@@ -100,7 +102,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.1.0...v0.2.0
