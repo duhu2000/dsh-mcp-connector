@@ -123,23 +123,28 @@ QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp
 通过 `Authorization: Bearer <QVERIS_API_KEY>` 鉴权，与本插件现有的 Bearer
 凭据表单、持久化前 `initialize` 校验和 Streamable HTTP 传输完全兼容。
 
-市场卡片只列出 QVeris 对 MCP 暴露的 6 个路由/审计工具：`discover`、
-`inspect`、`probe`、`call`、`usage_history` 和 `credits_ledger`。官方宣传的
-上万项能力是经 `discover` 找到的下游能力，不写成上万个 MCP 工具。
+2026-08-22 使用真实 API Key 完成只读 `tools/list` 验收，QVeris 托管端实际返回
+8 个 MCP 工具：`discover`、`inspect`、`call`、`usage_history`、
+`credits_ledger`，以及 3 个兼容旧客户端的弃用别名 `search_tools`、
+`get_tools_by_ids`、`execute_tool`。当前运行时没有官网文档所列的 `probe`；
+市场快照以实际端点为准。官方宣传的上万项能力是经 `discover` 找到的下游能力，
+不写成上万个 MCP 工具。
 
 由于 `call` 可能消耗 Credits，且查询内容可能由第三方服务商处理，
 该卡片保持 `featured: false`，并执行以下产品约束：
 
-- Prompt 默认只执行免费 `discover`/`inspect` 和零成本询价 `probe`；
-- 未经用户明确确认，不执行付费 `call`；
+- Prompt 默认只执行 `discover`/`inspect` 和用量审计工具；
+- 未经用户明确确认，不执行可能消耗 Credits 的 `call` 或弃用别名 `execute_tool`；
 - 卡片明确提醒用户不要提交未获授权的个人信息、商业秘密或敏感业务数据；
 - 市场使用用户指定的 QVeris 官方 Logo；由于官网原图返回
   `Cross-Origin-Resource-Policy: same-origin`，在 DSH Desktop 中直链会被浏览器拦截，
   Registry 因此保留官方原图像素并自托管于
   `assets/qveris-logo.png`，对外提供可跨域嵌入的 Raw GitHub URL。
 
-公共无凭据探针已确认端点可达并正确返回 HTTP 401；完整的
-`tools/list` 和免费发现/询价回归需要用户在 DSH 本机输入自有 API Key。
+公共无凭据探针已确认端点可达并正确返回 HTTP 401；使用 DSH 本机自有 API Key
+执行完整 `initialize → notifications/initialized → tools/list` 后，服务返回
+`Mcp-Session-Id`、协议版本 `2025-03-26` 和 8 个工具。验收未执行 `call` 或
+`execute_tool`，没有产生付费能力调用。
 
 参考：
 

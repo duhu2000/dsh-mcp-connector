@@ -431,17 +431,37 @@ test('市场凭据校验失败时不进入已安装、不持久化 Key', { timeo
 });
 
 test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeout: 15000 }, async () => {
-  const seen = {};
+  const seen = { methods: [], authorization: [], sessionIds: [], protocolVersions: [] };
+  const sessionId = 'session-for-tools-list';
   const mcpServer = createServer(async (req, res) => {
-    seen.authorization = req.headers.authorization;
-    seen.accept = req.headers.accept;
+    seen.authorization.push(req.headers.authorization);
+    seen.sessionIds.push(req.headers['mcp-session-id']);
+    seen.protocolVersions.push(req.headers['mcp-protocol-version']);
+    if (req.method === 'DELETE') {
+      seen.methods.push('DELETE');
+      res.writeHead(req.headers['mcp-session-id'] === sessionId ? 204 : 400);
+      res.end();
+      return;
+    }
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const method = JSON.parse(Buffer.concat(chunks).toString('utf8')).method;
+    seen.methods.push(method);
+    if (method === 'initialize') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Mcp-Session-Id': sessionId });
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'wind', version: '1' } } }));
+      return;
+    }
+    if (req.headers['mcp-session-id'] !== sessionId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'missing session id' }));
+      return;
+    }
+    if (method === 'notifications/initialized') {
+      res.writeHead(202); res.end(); return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(method === 'initialize'
-      ? { jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'wind', version: '1' } } }
-      : { jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
   });
   await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
   const port = mcpServer.address().port;
@@ -466,8 +486,11 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
     const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'wind-demo' });
     assert.equal(listed.ok, true, listed.message);
     assert.equal(listed.detail.totalTools, 1);
-    assert.equal(seen.authorization, 'Bearer wind-key');
-    assert.equal(seen.accept, 'application/json, text/event-stream');
+    assert.deepEqual(seen.methods, ['initialize', 'initialize', 'notifications/initialized', 'tools/list', 'DELETE']);
+    assert.ok(seen.authorization.every((header) => header === 'Bearer wind-key'));
+    assert.equal(seen.sessionIds[2], sessionId, 'initialized 通知必须携带会话头');
+    assert.equal(seen.sessionIds[3], sessionId, 'tools/list 必须携带会话头');
+    assert.equal(seen.protocolVersions[3], '2025-03-26');
   } finally {
     await new Promise((resolve) => mcpServer.close(resolve));
   }

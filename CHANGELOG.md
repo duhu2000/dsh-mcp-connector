@@ -4,10 +4,27 @@
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-08-22
+
+### Fixed
+
+- 工具详情改为执行完整的 Streamable HTTP MCP 会话流程：`initialize` 后保存 `Mcp-Session-Id`，发送 `notifications/initialized`，再携带会话、协议版本和凭据请求 `tools/list`，修复 QVeris 等有状态 MCP Server 返回 HTTP 400 的问题。
+- 会话结束后尽力发送 `DELETE` 释放服务端资源；鉴权失败、限流、HTTP/协议错误继续按类型更新连接健康状态。
+
+### Registry
+
+- 将 QVeris 工具快照校正为托管端实际返回的 8 个工具；移除当前运行时不存在的 `probe`，补充 3 个兼容旧客户端的弃用别名。
+- QVeris 精选 Prompt 仅使用实际可用的 `discover`、`inspect` 和用量审计工具；未经用户明确确认仍不执行可能消耗 Credits 的 `call`/`execute_tool`。
+
 ### Documentation
 
 - 统一 QVerisMCP 品牌名称，记录官方 Logo 因 `same-origin` 策略需由 Registry 自托管的 Desktop 兼容方案。
 - 将已于 `0.1.0`–`0.2.0` 完成的 v2 详情页实施计划标记为已完成/归档，避免与当前待办混淆。
+
+### Verification
+
+- 69 项自动测试、lint 与 44 个 npm 发布文件白名单/敏感内容扫描通过。
+- 使用 DSH 本机已保存的 QVeris API Key 完成真实只读验收：协议版本 `2025-03-26`、有状态会话建立成功、`tools/list` 返回 8 个工具；未执行任何付费能力调用。
 
 ## [0.2.7] - 2026-08-22
 
@@ -170,7 +187,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...v0.2.5

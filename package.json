@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "General-purpose MCP connector, connection manager, plugin extension, and integration marketplace for DeepSeek Harness, initiated and maintained by Qichacha/QCC.",
   "type": "module",
   "main": "lib/index.js",
@@ -31,7 +31,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "lint": "node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/mcp-validation.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/oauth.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check scripts/probe-connector.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs",
+    "lint": "node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/mcp-validation.js && node --check lib/mcp-http.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/oauth.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check scripts/probe-connector.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs",
     "registry:build": "node scripts/build-registry.mjs",
     "registry:validate": "node scripts/probe-connector.mjs catalog/catalog.json --validate-only",
     "dev:ui": "node scripts/ui-harness.mjs",

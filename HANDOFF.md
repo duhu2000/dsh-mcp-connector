@@ -32,7 +32,7 @@
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
 | lint + 单元/集成测试 | 通过，69 项 |
-| npm 发布包校验 | 已通过，43 个白名单文件；含敏感内容与本机路径扫描 |
+| npm 发布包校验 | 已通过，44 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
 | GitHub 远端建仓、push、`v0.1.0`、Release | 已完成 |
@@ -59,7 +59,7 @@
 | 市场截图 | 已通过无凭据 UI harness 采集 4 张核心页面，保存在 `docs/screenshots/` |
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
 | 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 6 项自动测试；校验器已对齐 `0.2.2`，远程 Logo 额外检查图像类型与 Desktop 跨域兼容响应头 |
-| QVerisMCP | 已作为非精选 Bearer 卡片加入远程 Registry；使用官方 Logo 的自托管副本，规避官网 `same-origin` 跨域限制；Hosted MCP 端点无凭据探针正确返回 401，6 个路由/审计工具已登记，Prompt 默认不执行付费 `call` |
+| QVerisMCP | 已作为非精选 Bearer 卡片加入远程 Registry；使用官方 Logo 的自托管副本，规避官网 `same-origin` 跨域限制；已用本机 API Key 完成真实有状态会话与 `tools/list` 验收，托管端返回 8 个工具；Prompt 默认不执行付费 `call`/`execute_tool` |
 | 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
 | 连接健康状态 | `0.2.4` 已发布并通过 Desktop 实机回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |
