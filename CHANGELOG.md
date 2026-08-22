@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- 统一 QVerisMCP 品牌名称，记录官方 Logo 因 `same-origin` 策略需由 Registry 自托管的 Desktop 兼容方案。
+- 将已于 `0.1.0`–`0.2.0` 完成的 v2 详情页实施计划标记为已完成/归档，避免与当前待办混淆。
+
 ## [0.2.7] - 2026-08-22
 
 ### Added

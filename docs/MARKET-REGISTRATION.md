@@ -117,7 +117,7 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 
 - https://aifinmarket.wind.com.cn/#/market?tab=mcps&detailType=mcp&detailId=wind_stock_data-0
 
-## 8. QVeris 通用能力网络适配结论
+## 8. QVerisMCP 适配结论
 
 QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp`，
 通过 `Authorization: Bearer <QVERIS_API_KEY>` 鉴权，与本插件现有的 Bearer
@@ -133,7 +133,10 @@ QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp
 - Prompt 默认只执行免费 `discover`/`inspect` 和零成本询价 `probe`；
 - 未经用户明确确认，不执行付费 `call`；
 - 卡片明确提醒用户不要提交未获授权的个人信息、商业秘密或敏感业务数据；
-- 未取得品牌授权前使用市场默认中性图标，不内置第三方商标资产。
+- 市场使用用户指定的 QVeris 官方 Logo；由于官网原图返回
+  `Cross-Origin-Resource-Policy: same-origin`，在 DSH Desktop 中直链会被浏览器拦截，
+  Registry 因此保留官方原图像素并自托管于
+  `assets/qveris-logo.png`，对外提供可跨域嵌入的 Raw GitHub URL。
 
 公共无凭据探针已确认端点可达并正确返回 HTTP 401；完整的
 `tools/list` 和免费发现/询价回归需要用户在 DSH 本机输入自有 API Key。

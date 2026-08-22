@@ -1,4 +1,7 @@
-# MCP 连接器 v2 完善计划
+# MCP 连接器 v2 详情页计划（已完成/归档）
+
+> 状态：已在 `0.1.0`–`0.2.0` 完成。本文档仅保留原始设计与实施历史，
+> 不再作为当前待办清单。当前进度以 `PLAN.md` 和 `HANDOFF.md` 为准。
 
 ## 目标
 参考 WorkBuddy / TraeWork / QwenWork 的连接器详情体验，完善 MCP 连接器插件。
@@ -131,26 +134,26 @@ async sendPrompt({ prompt }) {
 ### 5. 实施步骤
 
 **Phase 1: 数据准备**
-- [ ] 为 4 个企查查连接器编写 `samplePrompts`
-- [ ] 为 4 个企查查连接器编写 `tools` 列表（或实现动态获取）
-- [ ] 更新 catalog.json schema
+- [x] 为 4 个企查查连接器编写 `samplePrompts`
+- [x] 实现连接后动态获取工具，并支持 `toolsSnapshot` 授权前预览
+- [x] 更新 catalog.json schema
 
 **Phase 2: API 扩展**
-- [ ] 实现 `detail` API
-- [ ] 实现 `sendPrompt` API（需要 DSH 支持）
-- [ ] 更新 lib/index.js
+- [x] 实现 `detail` API
+- [x] 实现 Prompt 发送到 DSH 新会话
+- [x] 更新 lib/index.js
 
 **Phase 3: UI 实现**
-- [ ] 设计 DetailOverlay 组件
-- [ ] 实现工具列表展示
-- [ ] 实现 samplePrompts 展示
-- [ ] 实现「去试试」按钮
-- [ ] 更新 ui/index.html
+- [x] 设计 DetailOverlay 组件
+- [x] 实现工具列表展示、描述、搜索、滚动和分批渲染
+- [x] 实现 samplePrompts 展示与参数化
+- [x] 实现「去试试」与一键带入新会话
+- [x] 更新 ui/index.html
 
 **Phase 4: 测试优化**
-- [ ] DSH Desktop 测试
-- [ ] Web 浏览器测试
-- [ ] 样式微调
+- [x] DSH Desktop 测试
+- [x] Web 浏览器测试
+- [x] 样式微调
 
 ### 6. 当前连接器清单
 
