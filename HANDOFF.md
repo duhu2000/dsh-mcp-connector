@@ -15,11 +15,11 @@
 - 目录：内置、远程 registry、配置注入、URL 动态安装、本地上下架覆盖。
 - 连接：OAuth 2.0 Authorization Code + PKCE、自定义 Bearer/API Key/无鉴权、`mcpServers` JSON 导入。
 - 管理：storage domain 持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
-- UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、前 4 个企查查连接器、第 5 个北大法宝、第 6 个 Wind 第三方连接器、本地品牌 Logo、详情弹框。
+- UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、4 个企查查连接器与北大法宝、Wind、盈米、QVeris 第三方连接器、本地品牌 Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
 - P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；固定中文界面、深浅主题和键盘操作。
-- Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
+- Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，当前包含北大法宝、Wind、盈米和 QVeris 4 张第三方卡片、12 个 Server 与 16 个 Prompt；Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
 
@@ -45,6 +45,7 @@
 | `v0.2.4` / npm `0.2.4` | 已由 GitHub OIDC 发布；新增主动连接健康检查与分级状态，59/59 测试和 43 文件发布门禁通过 |
 | `v0.2.5` / npm `0.2.5` | 已由 GitHub OIDC 发布；OAuth 重复点击合并、重新授权旧 grant 回收与启动历史孤立 grant 清理已完成；62/62 测试和 43 文件发布门禁通过 |
 | `v0.2.6` / npm `0.2.6` | 已由 GitHub OIDC 发布；扩充 MCP连接器、连接管理、插件/扩展、Qichacha/QCC 与企查查等真实搜索元数据；62/62 测试和 43 文件发布门禁通过 |
+| `v0.2.7` / npm `0.2.7` | 版本内容已收口；包含服务商/接入方式组合筛选、外部市场自动验收与远程 Registry 口径对齐，69/69 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 | Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.6`；依赖树与安装副本均为 `0.2.6`；升级前后存储哈希不变，19 条 Server 连接和 4 组授权记录均保留 |
 | 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交且 CI 通过；新增每小时自动验收，PR 合并后会继续检查上游 YAML 与 DSH 实际 `plugins.json`，直到目录可搜索 |
@@ -57,7 +58,8 @@
 | 通用市场能力 | 多厂商目录、三通道接入、凭据预检、参数 Prompt、独立 Registry 均已完成并进入 `main` |
 | 市场截图 | 已通过无凭据 UI harness 采集 4 张核心页面，保存在 `docs/screenshots/` |
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
-| 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 2 项自动测试；校验器已对齐 `0.2.2` |
+| 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 4 项自动测试；校验器已对齐 `0.2.2` |
+| QVeris 通用能力网络 | 已作为非精选 Bearer 卡片加入远程 Registry；Hosted MCP 端点无凭据探针正确返回 401，6 个路由/审计工具已登记，Prompt 默认不执行付费 `call` |
 | 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
 | 连接健康状态 | `0.2.4` 已发布并通过 Desktop 实机回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |

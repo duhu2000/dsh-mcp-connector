@@ -116,3 +116,32 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 参考：
 
 - https://aifinmarket.wind.com.cn/#/market?tab=mcps&detailType=mcp&detailId=wind_stock_data-0
+
+## 8. QVeris 通用能力网络适配结论
+
+QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp`，
+通过 `Authorization: Bearer <QVERIS_API_KEY>` 鉴权，与本插件现有的 Bearer
+凭据表单、持久化前 `initialize` 校验和 Streamable HTTP 传输完全兼容。
+
+市场卡片只列出 QVeris 对 MCP 暴露的 6 个路由/审计工具：`discover`、
+`inspect`、`probe`、`call`、`usage_history` 和 `credits_ledger`。官方宣传的
+上万项能力是经 `discover` 找到的下游能力，不写成上万个 MCP 工具。
+
+由于 `call` 可能消耗 Credits，且查询内容可能由第三方服务商处理，
+该卡片保持 `featured: false`，并执行以下产品约束：
+
+- Prompt 默认只执行免费 `discover`/`inspect` 和零成本询价 `probe`；
+- 未经用户明确确认，不执行付费 `call`；
+- 卡片明确提醒用户不要提交未获授权的个人信息、商业秘密或敏感业务数据；
+- 未取得品牌授权前使用市场默认中性图标，不内置第三方商标资产。
+
+公共无凭据探针已确认端点可达并正确返回 HTTP 401；完整的
+`tools/list` 和免费发现/询价回归需要用户在 DSH 本机输入自有 API Key。
+
+参考：
+
+- https://qveris.ai/hosted-mcp
+- https://qveris.ai/docs/mcp-server
+- https://qveris.ai/pricing
+- https://qveris.ai/privacy
+- https://qveris.ai/terms

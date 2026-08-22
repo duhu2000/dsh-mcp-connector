@@ -4,15 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-08-22
+
 ### Added
 
 - 市场新增“服务商 + 接入方式”组合筛选，可快速查看 OAuth、Key/Token 或免密连接器，并可与全文搜索叠加。
 - 新增 DSH 外部市场注册自动验收：每小时跟踪 PR #2633，合并后继续验证上游 YAML 与 DSH 实际 `plugins.json` 均已生效。
 
+### Registry
+
+- 独立远程 Registry 已扩展为 4 张第三方卡片、12 个 Server 和 16 个 Prompt；与随包目录合并后共 8 张已发布市场卡片。
+- 新增“盈米·基金投顾”与“QVeris·通用能力网络”；QVeris 默认先做免费发现、参数检查与零成本询价，付费 `call` 需用户明确确认。
+
 ### Verification
 
-- DSH Desktop `web` profile 已对齐 `dsh-mcp-connector@0.2.6`；完全重启后中文单语界面、6 张市场卡片、19/19 历史连接恢复均通过。
-- 真实 `tools/list` 回归通过：企查查企业工商 6/6 Server、185 个工具；北大法宝 9/9 Server、10 个工具。Wind 当前未在本机配置，本轮未触碰其凭据。
+- 自动化门禁通过 69 项测试与 43 个 npm 发布文件白名单/敏感内容扫描。
+- QVeris Hosted MCP 无凭据公网探针返回预期的 HTTP 401，确认端点可达且正确要求 Bearer Key；未进行付费 `call`。
 
 ## [0.2.6] - 2026-08-21
 
@@ -157,7 +164,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.3...v0.2.4

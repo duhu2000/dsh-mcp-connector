@@ -1,7 +1,7 @@
 # MCP Connector Marketplace 外部市场注册移交文档
 
 > 更新：2026-08-21
-> 当前版本：`dsh-mcp-connector@0.2.6`
+> 当前版本：`dsh-mcp-connector@0.2.7`
 > GitHub：https://github.com/duhu2000/dsh-mcp-connector
 > npm：https://www.npmjs.com/package/dsh-mcp-connector
 
@@ -21,15 +21,16 @@
 
 | 项目 | 结果 |
 |---|---|
-| npm 当前版本 | `0.2.6`，已通过 GitHub OIDC Trusted Publishing 发布 |
-| 自动化测试 | 62 项 |
+| npm 当前版本 | `0.2.7`，通过 GitHub OIDC Trusted Publishing 发布 |
+| 自动化测试 | 69 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
-| 独立远程 Registry | 2 张第三方卡片、10 个 Server、8 个 Prompt |
+| 独立远程 Registry | 4 张第三方卡片、12 个 Server、16 个 Prompt |
+| 合并后市场 | 8 张已发布卡片；北大法宝和 Wind 由远程同 ID 卡片覆盖更新 |
 | Git 提交数 | 已超过 10 个，满足外部目录要求 |
 | GitHub Topics | 已增加 `dsh-plugin`、`deepseek-harness`、`mcp`、`mcp-connector`、`oauth` |
 | awesome-dsh-plugin | [PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交；分支提交 `88985578`，README 生成、站点构建与 lint 已通过；PR check 成功且当前可合并 |
 
-随包第 1–4 张为企查查连接器，第 5 张为北大法宝，第 6 张为 Wind。目录内容可以通过独立 Registry 更新，新增市场卡片不再依赖重新发布 npm。
+随包第 1–4 张为企查查连接器，第 5 张为北大法宝，第 6 张为 Wind。远程 Registry 还提供盈米和 QVeris，合并后市场共 8 张已发布卡片。新增远程卡片不再依赖重新发布 npm。
 
 ## 3. 可对外描述的能力
 
