@@ -430,8 +430,8 @@ test('市场凭据校验失败时不进入已安装、不持久化 Key', { timeo
   }
 });
 
-test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeout: 15000 }, async () => {
-  const seen = { methods: [], authorization: [], sessionIds: [], protocolVersions: [] };
+test('凭据型连接器在有状态会话中携带 Bearer Token 并加载全部工具分页', { timeout: 15000 }, async () => {
+  const seen = { methods: [], authorization: [], sessionIds: [], protocolVersions: [], cursors: [] };
   const sessionId = 'session-for-tools-list';
   const mcpServer = createServer(async (req, res) => {
     seen.authorization.push(req.headers.authorization);
@@ -445,7 +445,8 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
     }
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
-    const method = JSON.parse(Buffer.concat(chunks).toString('utf8')).method;
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const method = body.method;
     seen.methods.push(method);
     if (method === 'initialize') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Mcp-Session-Id': sessionId });
@@ -460,8 +461,11 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
     if (method === 'notifications/initialized') {
       res.writeHead(202); res.end(); return;
     }
+    seen.cursors.push(body.params?.cursor);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ jsonrpc: '2.0', id: 2, result: { tools: [{ name: 'quote', description: '查询行情' }] } }));
+    res.end(JSON.stringify(body.params?.cursor
+      ? { jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'history', description: '查询历史行情' }] } }
+      : { jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'quote', description: '查询行情' }], nextCursor: 'page-2' } }));
   });
   await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
   const port = mcpServer.address().port;
@@ -485,12 +489,15 @@ test('凭据型连接器加载工具时携带已保存的 Bearer Token', { timeo
 
     const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'wind-demo' });
     assert.equal(listed.ok, true, listed.message);
-    assert.equal(listed.detail.totalTools, 1);
-    assert.deepEqual(seen.methods, ['initialize', 'initialize', 'notifications/initialized', 'tools/list', 'DELETE']);
+    assert.equal(listed.detail.totalTools, 2);
+    assert.deepEqual(listed.detail.servers[0].tools.map((tool) => tool.name), ['quote', 'history']);
+    assert.deepEqual(seen.methods, ['initialize', 'initialize', 'notifications/initialized', 'tools/list', 'tools/list', 'DELETE']);
+    assert.deepEqual(seen.cursors, [undefined, 'page-2']);
     assert.ok(seen.authorization.every((header) => header === 'Bearer wind-key'));
     assert.equal(seen.sessionIds[2], sessionId, 'initialized 通知必须携带会话头');
     assert.equal(seen.sessionIds[3], sessionId, 'tools/list 必须携带会话头');
     assert.equal(seen.protocolVersions[3], '2025-03-26');
+    assert.equal(seen.protocolVersions[4], '2025-03-26');
   } finally {
     await new Promise((resolve) => mcpServer.close(resolve));
   }

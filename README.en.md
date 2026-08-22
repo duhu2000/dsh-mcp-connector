@@ -110,7 +110,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - Failed API key/token validation is not persisted; authentication, timeout, DNS, and TLS/network errors are reported separately.
 - External URLs must use HTTPS; HTTP is allowed only for loopback development.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
-- Streamable HTTP is the primary transport with SSE compatibility. stdio entries are explicitly skipped.
+- Streamable HTTP is the primary transport. Legacy SSE entries can still be provisioned to the DSH Host, while live health checks, tool discovery, and pagination in the connector UI target Streamable HTTP. stdio entries are explicitly skipped.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
 
 ## License

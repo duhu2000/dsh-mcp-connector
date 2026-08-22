@@ -290,7 +290,9 @@
   .tool-item { padding: 10px 12px; border-top: 1px solid #f0f1f3; }
   .tool-item:first-child { border-top: 0; }
   .tool-item:hover { background: var(--accent-light); }
+  .tool-name-row { display: flex; align-items: center; gap: 7px; }
   .tool-name { color: var(--text); font: 600 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
+  .tool-deprecated { color: var(--warn); background: var(--warn-bg); border-radius: 999px; padding: 1px 6px; font-size: 10px; line-height: 1.5; flex: 0 0 auto; }
   .tool-description { color: var(--text-2); font-size: 12px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .tool-description.empty { color: var(--muted); font-style: italic; }
   .tools-loading, .tools-error { font-size: 13px; color: var(--muted); padding: 8px; }
@@ -617,10 +619,14 @@
 
   function updateToolsSummary() {
     const totalTools = detailToolServers.reduce((sum, server) => sum + (server.tools?.length || 0), 0);
-    $('#tools-summary').textContent = `${detailToolServers.length} SERVER · ${totalTools} 个工具`;
+    $('#tools-summary').textContent = `${detailToolServers.length} 个服务 · ${totalTools} 个工具`;
     $('#tools-search').placeholder = totalTools > 0
       ? `搜索 ${totalTools} 个工具的名称或描述…`
       : '搜索工具名称或描述…';
+  }
+
+  function isDeprecatedTool(tool) {
+    return /(?:\bdeprecated\b|已弃用|已废弃|不再推荐)/i.test(`${tool?.title || ''}\n${tool?.description || ''}`);
   }
 
   function renderTools() {
@@ -642,7 +648,7 @@
       const matched = (server.tools || []).filter((tool) => {
         if (!query) return true;
         return `${tool.name || ''}\n${tool.title || ''}\n${tool.description || ''}`.toLowerCase().includes(query);
-      });
+      }).sort((left, right) => Number(isDeprecatedTool(left)) - Number(isDeprecatedTool(right)));
       if (query && matched.length === 0) return '';
       matchedTools += matched.length;
       const tools = matched.slice(0, Math.max(0, remaining));
@@ -652,7 +658,8 @@
       const items = tools.length > 0
         ? tools.map((tool) => {
           const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
-          return `<div class="tool-item"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
+          const deprecated = isDeprecatedTool(tool);
+          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
         : '<div class="tools-loading">暂无工具</div>';
       return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></div>${items}</div>`;

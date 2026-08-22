@@ -85,3 +85,12 @@ test('市场支持服务商与接入方式组合筛选', () => {
   assert.match(uiSource, /id="market-filter-reset"/);
   assert.match(uiSource, /main\.addEventListener\('change',[\s\S]*?market-vendor-filter/);
 });
+
+test('工具清单使用中文计数并标记服务商弃用工具', () => {
+  assert.match(uiSource, /\$\('#tools-summary'\)\.textContent = `\$\{detailToolServers\.length\} 个服务 · \$\{totalTools\} 个工具`/);
+  assert.match(uiSource, /function isDeprecatedTool\(tool\)/);
+  assert.match(uiSource, /deprecated/);
+  assert.match(uiSource, /已弃用\|已废弃\|不再推荐/);
+  assert.match(uiSource, /<span class="tool-deprecated">已弃用<\/span>/);
+  assert.match(uiSource, /Number\(isDeprecatedTool\(left\)\) - Number\(isDeprecatedTool\(right\)\)/);
+});

@@ -108,7 +108,7 @@ Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 - 市场 Key/Token 校验失败时不写入 storage domain；鉴权、超时、DNS、TLS/网络错误会分类提示。
 - 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
-- 当前以 streamable-http 为主并兼容 SSE；stdio 配置会被明确跳过。
+- 当前以 Streamable HTTP 为主；可把旧 SSE 条目交给 DSH Host 兼容运行，但详情页的实时健康检查、工具枚举和分页仅面向 Streamable HTTP。stdio 配置会被明确跳过。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。
 

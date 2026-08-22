@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-08-22
+
+### Added
+
+- `tools/list` 现在在同一 MCP 会话内自动跟随 `nextCursor` 加载全部分页，并对重复游标、超过 100 页或 10,000 个工具的异常目录执行安全阻断。
+- 工具详情统一使用中文服务计数；自动识别服务商返回的 deprecated 描述，将弃用别名排到末尾并标注“已弃用”。
+
 ## [0.2.8] - 2026-08-22
 
 ### Fixed
@@ -187,7 +194,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.5...v0.2.6

@@ -22,7 +22,7 @@
 | 项目 | 结果 |
 |---|---|
 | npm 当前版本 | `0.2.7`，通过 GitHub OIDC Trusted Publishing 发布 |
-| 自动化测试 | 69 项 |
+| 自动化测试 | 72 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 4 张第三方卡片、12 个 Server、16 个 Prompt |
 | 合并后市场 | 8 张已发布卡片；北大法宝和 Wind 由远程同 ID 卡片覆盖更新 |
@@ -59,7 +59,7 @@
 - [x] HANDOFF 测试数量由 55 修正为当前 59 项；
 - [x] CHANGELOG 记录 0.2.2 文档和元数据变更；
 - [x] `npm run check` 全部通过（59/59）；
-- [x] npm 发布包为 43 个白名单文件，不含测试、规划文档、凭证或本机路径；
+- [x] npm 发布包为 44 个白名单文件，不含测试、规划文档、凭证或本机路径；
 - [x] 推送 `v0.2.2` 标签并由 GitHub OIDC Trusted Publishing 自动发布；
 - [x] npm latest、Provenance、GitHub Release 和全新下载包均已验证。
 
