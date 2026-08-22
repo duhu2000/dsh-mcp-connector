@@ -28,7 +28,7 @@
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；不删除原插件或原凭据。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`health_check`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
 
-随包目录前 4 张为企查查连接器，另含“北大法宝·法律检索”和“Wind·股票数据”。远程 Registry 刷新后还会加入“盈米·基金投顾”和“QVeris·通用能力网络”，当前共 8 张已发布市场卡片；插件架构不限定厂商。
+随包目录前 4 张为企查查连接器，另含“北大法宝·法律检索”和“Wind·股票数据”。远程 Registry 刷新后还会加入“盈米·基金投顾”和“QVerisMCP”，当前共 8 张已发布市场卡片；插件架构不限定厂商。
 
 ## 界面与演示
 
