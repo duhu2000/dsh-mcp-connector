@@ -1,0 +1,32 @@
+name: DSH marketplace acceptance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/market-registration.yml'
+      - 'scripts/check-market-registration.mjs'
+      - 'test/market-registration.test.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dsh-marketplace-acceptance
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check PR merge and live DSH registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-market-registration.mjs --strict-after-merge

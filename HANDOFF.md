@@ -1,6 +1,6 @@
 # MCP连接器插件移交文档
 
-> 更新：2026-08-21
+> 更新：2026-08-22
 > 源码：`/Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin`
 > Desktop 安装副本：`/Users/qcc/.dsh/profiles/web/node_modules/dsh-mcp-connector`
 
@@ -15,10 +15,10 @@
 - 目录：内置、远程 registry、配置注入、URL 动态安装、本地上下架覆盖。
 - 连接：OAuth 2.0 Authorization Code + PKCE、自定义 Bearer/API Key/无鉴权、`mcpServers` JSON 导入。
 - 管理：storage domain 持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
-- UI：市场/已安装、搜索、前 4 个企查查连接器、第 5 个北大法宝、第 6 个 Wind 第三方连接器、本地品牌 Logo、详情弹框。
+- UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、前 4 个企查查连接器、第 5 个北大法宝、第 6 个 Wind 第三方连接器、本地品牌 Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
-- P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；基础中英、深浅主题和键盘操作。
+- P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；固定中文界面、深浅主题和键盘操作。
 - Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
@@ -31,7 +31,7 @@
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
-| lint + 单元/集成测试 | 通过，62 项 |
+| lint + 单元/集成测试 | 通过，69 项 |
 | npm 发布包校验 | 已通过，43 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
@@ -46,8 +46,8 @@
 | `v0.2.5` / npm `0.2.5` | 已由 GitHub OIDC 发布；OAuth 重复点击合并、重新授权旧 grant 回收与启动历史孤立 grant 清理已完成；62/62 测试和 43 文件发布门禁通过 |
 | `v0.2.6` / npm `0.2.6` | 已由 GitHub OIDC 发布；扩充 MCP连接器、连接管理、插件/扩展、Qichacha/QCC 与企查查等真实搜索元数据；62/62 测试和 43 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
-| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.5`；依赖树与安装副本均为 `0.2.5`；启动自动删除 6 条未引用历史 grant，19 条既有 Server 连接和 4 组有效授权记录均保留 |
-| 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交；注册分支提交 `88985578`，README 生成、站点构建和 lint 均通过，PR check 成功且当前可合并；待维护者审核合并和下游目录刷新 |
+| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.6`；依赖树与安装副本均为 `0.2.6`；升级前后存储哈希不变，19 条 Server 连接和 4 组授权记录均保留 |
+| 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交且 CI 通过；新增每小时自动验收，PR 合并后会继续检查上游 YAML 与 DSH 实际 `plugins.json`，直到目录可搜索 |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
 ## 4. P1 状态
@@ -63,6 +63,8 @@
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |
 | 0.2.4 Desktop 回归 | 完全重启并刷新后，企查查企业工商和北大法宝显示“已连接”，3 张过期/异常卡片显示“需要重新授权”，Wind 未配置显示“配置”；中文界面、入口位置和配置存储均正常 |
 | 0.2.5 Desktop 回归 | 完全重启后插件日志确认清理 6 条历史孤立 grant；健康检查中企查查企业工商 6/6、法律数据 2/2、招投标 1/1、文档报告 1/1、北大法宝 9/9 均正常，共 5 个连接器、19/19 Server 健康；Wind 保持未配置 |
+| 0.2.6 Desktop 回归 | 已完全重启；左侧入口客户端模块、中文单语市场、6 张卡片、详情弹框和 19 条已安装连接正常；企查查企业工商 `tools/list` 为 6/6 Server、185 工具，北大法宝为 9/9 Server、10 工具；Wind 当前未配置 |
+| 市场筛选体验 | 已完成下一轮开发与无凭据 UI 回归；服务商、OAuth/Key·Token/免密可组合筛选，与搜索叠加，含清除入口和无结果状态 |
 | 旧插件凭据迁移执行 | 已获用户明确确认并在 Desktop 实机执行；检测到企业工商、法律数据各 1 组旧授权，但对应目标连接均已存在，幂等迁移安全跳过；待迁移数为 0，旧插件源文件与新插件存储哈希均未变化 |
 
 ## 5. Desktop 验收清单（已通过）
@@ -83,7 +85,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.5`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.6`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 

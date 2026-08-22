@@ -15,7 +15,7 @@
 ## 功能
 
 - 左侧主导航入口：目标位置为“新会话”下方、“工作区/会话列表”上方；若 DSH DOM 结构不兼容，自动回退到底部公开插槽。
-- 图形化市场：市场/已安装、搜索、刷新与主动健康检查；区分“已配置”、“已连接”、“需重新授权”、“部分异常”和“连接异常”。
+- 图形化市场：市场/已安装、全文搜索、服务商/接入方式组合筛选、刷新与主动健康检查；区分“已配置”、“已连接”、“需重新授权”、“部分异常”和“连接异常”。
 - 图形化添加：手动 URL/鉴权、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
@@ -90,10 +90,11 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 npm run check
 npm run registry:build
 npm run registry:validate
+npm run market:check
 npm run dev:ui
 ```
 
-`check` 执行语法检查、自动测试和 npm 发布包白名单校验；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
+`check` 执行语法检查、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
 当前公开版本为 [`dsh-mcp-connector@0.2.6`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.6](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.6)。
 

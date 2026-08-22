@@ -74,3 +74,14 @@ test('市场卡片区分已配置、已连接、重新授权和连接异常', ()
   assert.match(actionSource, /state === 'unavailable'[\s\S]*?t\('connectionError'\)/);
   assert.match(uiSource, /call\('healthCheck', \{\}\)/);
 });
+
+test('市场支持服务商与接入方式组合筛选', () => {
+  assert.match(uiSource, /aria-label="市场筛选"/);
+  assert.match(uiSource, /id="market-vendor-filter" aria-label="按服务商筛选"/);
+  assert.match(uiSource, /const AUTH_FILTERS = \[[\s\S]*?OAuth[\s\S]*?Key \/ Token[\s\S]*?免密/);
+  assert.match(uiSource, /if \(marketAuth === 'credential'\) return \['bearer', 'api-key'\]\.includes\(d\.authMode\)/);
+  assert.match(uiSource, /items\.filter\(matchesMarketFilters\)/);
+  assert.match(uiSource, /data-auth-filter=/);
+  assert.match(uiSource, /id="market-filter-reset"/);
+  assert.match(uiSource, /main\.addEventListener\('change',[\s\S]*?market-vendor-filter/);
+});

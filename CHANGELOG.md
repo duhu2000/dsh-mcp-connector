@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- 市场新增“服务商 + 接入方式”组合筛选，可快速查看 OAuth、Key/Token 或免密连接器，并可与全文搜索叠加。
+- 新增 DSH 外部市场注册自动验收：每小时跟踪 PR #2633，合并后继续验证上游 YAML 与 DSH 实际 `plugins.json` 均已生效。
+
+### Verification
+
+- DSH Desktop `web` profile 已对齐 `dsh-mcp-connector@0.2.6`；完全重启后中文单语界面、6 张市场卡片、19/19 历史连接恢复均通过。
+- 真实 `tools/list` 回归通过：企查查企业工商 6/6 Server、185 个工具；北大法宝 9/9 Server、10 个工具。Wind 当前未在本机配置，本轮未触碰其凭据。
+
 ## [0.2.6] - 2026-08-21
 
 ### Documentation

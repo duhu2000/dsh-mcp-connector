@@ -1,6 +1,6 @@
 # MCP连接器项目计划
 
-> 基线日期：2026-08-21
+> 基线日期：2026-08-22
 > 首发目标：GitHub `duhu2000/dsh-mcp-connector` + npm `dsh-mcp-connector@0.1.0`
 
 ## 项目目标
@@ -22,10 +22,10 @@ MCP连接器
 ## 当前完成节点
 
 - 通用 Host 能力：目录合并、OAuth PKCE、自定义配置、JSON/URL 导入、持久化恢复、启停/断开、远程 registry。
-- Desktop 市场 UI：市场/已安装、前 4 个企查查卡片、第 5 个北大法宝第三方卡片、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
+- Desktop 市场 UI：市场/已安装、全文搜索、服务商/接入方式筛选、前 4 个企查查卡片、北大法宝与 Wind 第三方卡片、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
 - 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
-- 自动化：语法检查、62 项测试、43 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release。
+- 自动化：语法检查、69 项测试、43 个 npm 包白名单文件；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release，每小时自动验收外部市场注册。
 - 市场运营资产：独立远程 Registry 已上线；4 张无凭据 UI 截图和约 30 秒演示 GIF 已纳入中英文 README。
 
 ## P0：首发基线收口
@@ -54,6 +54,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 | 市场截图与演示 | 已完成 | 4 张 16:9 核心界面截图；约 30 秒演示 GIF；中英文 README 可直接预览 |
 | 第三方自助上架闭环 | 已完成 | Registry 提供贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与自动测试 |
 | 中国市场单语言界面 | 已完成 | 运行界面固定中文，移除 EN 按钮、英文 UI 字典及语言偏好持久化 |
+| 市场组合筛选 | 已完成开发 | 服务商 + OAuth/Key·Token/免密；与全文搜索叠加；有清除和空状态 |
 
 ## P2：体验与质量
 
@@ -61,7 +62,8 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 |---|---|---|
 | 自动测试 | 已完成开发 | 单元/集成测试 + 本地 UI mock 测试壳 |
 | 连接健康状态 | 已完成开发 | 已配置/已连接/需重新授权/部分异常/连接异常/已停用；OAuth 与 Key 均支持 initialize 检查 |
-| Desktop E2E | 0.2.5 实机回归已通过 | 完全重启、入口与中文市场视觉验收；启动清理 6 条历史孤立 grant 后保留 19 条连接和 4 组有效授权，5 个已配置连接器、19/19 Server 健康；Wind 保持未配置 |
+| Desktop E2E | 0.2.6 实机回归已通过 | 完全重启、中文单语界面、6 张卡片、详情弹框、19 条连接恢复；企查查 6/6 Server·185 工具和北大法宝 9/9 Server·10 工具真实回归通过；Wind 保持未配置 |
+| 外部市场合并后验收 | 已完成开发 | PR #2633 未合并时不误报；合并后检查上游 YAML 和实际 plugins.json；每小时执行 |
 | 可访问性与主题 | 已完成开发 | Dialog、焦点、Escape、Tab 循环、深浅主题、固定中文界面 |
 | 大目录性能 | 已完成开发 | 连接器每批 60；工具每批 50；搜索重置批次 |
 | 旧插件迁移 | 已完成开发并实机执行 | 用户明确确认后扫描到 2 组旧授权；对应目标连接均已存在并幂等跳过，待迁移数 0，源凭据与现有连接均保留 |
@@ -70,7 +72,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 ## 当前发布决策
 
 - 包名与仓库名：`dsh-mcp-connector`。
-- 当前公开版本：`0.2.6`，已通过 npm Trusted Publishing 发布；Desktop 实机运行基线仍为已验收的 `0.2.5`。
+- 当前公开版本：`0.2.6`，已通过 npm Trusted Publishing 发布；Desktop `web` profile 已对齐并验收 `0.2.6`。
 - 许可证：MIT，公开仓库。
 - P0 首发已于 2026-08-20 完成；P1 核心市场能力和独立 Registry 已并入 `main`。
-- `awesome-dsh-plugin` 外部市场 PR #2633 已提交且 CI 通过；下一 P0 是跟踪维护者审核合并、外部目录生成和 DSH Desktop 下游市场同步。已有版本 Tag 不回写。
+- `awesome-dsh-plugin` 外部市场 PR #2633 已提交且 CI 通过；维护者审核与下游目录同步已由每小时工作流自动验收，无需暂停功能开发。已有版本 Tag 不回写。

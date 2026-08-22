@@ -27,7 +27,18 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 
 插件默认读取 `https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json`；远程不可用时自动回退上次缓存或随包内置目录。
 
-## 4. OAuth 一键授权要求
+## 4. DSH 外部插件市场验收
+
+`dsh-mcp-connector` 在 `awesome-dsh-plugin` 的注册 PR 为 [#2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633)。仓库每小时自动执行 `.github/workflows/market-registration.yml`：
+
+1. PR 未合并时记录为 `awaiting-merge`，不误报构建失败；
+2. PR 合并后检查上游 `data/plugins/duhu2000__dsh-mcp-connector.yml` 已进入 `main`；
+3. 继续检查 DSH Market 实际使用的 `https://awesome-dsh-plugin.com/plugins.json`；
+4. YAML 与线上目录均生效后状态为 `accepted`，否则在合并后明确报告目录同步未完成。
+
+本地可运行 `npm run market:check`查看状态；CI 使用 `--strict-after-merge` 让“已合并但尚未可搜索”成为可见的验收信号。此检查仅需 GitHub Actions 默认的只读 `GITHUB_TOKEN`，不需要新增长期密钥。
+
+## 5. OAuth 一键授权要求
 
 `auth.mode: "oauth2-pkce"` 不是将现有 Bearer Token 改个名称。厂商服务端必须支持：
 
@@ -67,7 +78,7 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 }
 ```
 
-## 5. 北大法宝当前适配结论
+## 6. 北大法宝当前适配结论
 
 北大法宝当前公开文档的主路径是在控制台生成 Access Token，然后通过 `Authorization: Bearer ...` 访问多个 MCP Server。因此：
 
@@ -89,7 +100,7 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 - https://mcp.pkulaw.com/docs?doc=authentication
 - https://mcp.pkulaw.com/docs?doc=mcp-integration
 
-## 6. Wind 股票数据当前适配结论
+## 7. Wind 股票数据当前适配结论
 
 万得 AIFin Market 的“万得股票数据服务”详情页公开了标准 MCP 手工配置：
 
