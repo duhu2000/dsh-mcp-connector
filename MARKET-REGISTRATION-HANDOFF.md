@@ -22,7 +22,7 @@
 | 项目 | 结果 |
 |---|---|
 | npm 当前版本 | `0.2.7`，通过 GitHub OIDC Trusted Publishing 发布 |
-| 自动化测试 | 72 项 |
+| 自动化测试 | 73 项 |
 | 随包市场 | 6 张已发布卡片、20 个 Server、44 个 Prompt |
 | 独立远程 Registry | 4 张第三方卡片、12 个 Server、16 个 Prompt |
 | 合并后市场 | 8 张已发布卡片；北大法宝和 Wind 由远程同 ID 卡片覆盖更新 |

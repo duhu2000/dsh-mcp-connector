@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.10] - 2026-08-22
+
+### Fixed
+
+- 工具发现遇到瞬时网络断开或 MCP 5xx 时自动重试一次；鉴权、协议、4xx 和超时仍直接返回，减少 QVeris 等远程服务偶发 TLS reset 导致的连接状态误报。
+
 ## [0.2.9] - 2026-08-22
 
 ### Added
@@ -194,7 +200,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.10...HEAD
+[0.2.10]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.6...v0.2.7

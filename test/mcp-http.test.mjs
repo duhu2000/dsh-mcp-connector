@@ -65,3 +65,31 @@ test('initialized 通知被服务端拒绝时停止 tools/list', async () => {
   );
   assert.deepEqual(methods, ['initialize', 'notifications/initialized']);
 });
+
+test('tools/list 遇到瞬时网络错误时自动重试一次', async () => {
+  let requests = 0;
+  const fetchImpl = async (_url, options) => {
+    requests += 1;
+    if (requests === 1) {
+      const cause = new Error('connection reset');
+      cause.code = 'ECONNRESET';
+      throw new TypeError('fetch failed', { cause });
+    }
+    if (options.method === 'DELETE') return new Response(undefined, { status: 204 });
+    const body = JSON.parse(options.body);
+    if (body.method === 'initialize') {
+      return jsonResponse({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'retry', version: '1' } },
+      });
+    }
+    if (body.method === 'notifications/initialized') return new Response(undefined, { status: 202 });
+    return jsonResponse({ jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'discover' }] } });
+  };
+
+  const listed = await listMcpTools(record, { fetchImpl, retryDelayMs: 0 });
+  assert.equal(listed.attempts, 2);
+  assert.deepEqual(listed.tools.map((tool) => tool.name), ['discover']);
+  assert.equal(requests, 4);
+});
