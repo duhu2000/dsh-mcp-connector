@@ -62,7 +62,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 |---|---|---|
 | 自动测试 | 已完成开发 | 73 项单元/集成测试 + 本地 UI mock 测试壳 |
 | 连接健康状态 | 已完成开发 | 已配置/已连接/需重新授权/部分异常/连接异常/已停用；OAuth 与 Key 均支持 initialize 检查；工具发现对瞬时网络错误和 5xx 自动重试一次 |
-| Desktop E2E | 0.2.8 实机回归已通过 | 完全重启、中文单语界面、组合筛选、8 张卡片和 20 条连接恢复通过；QVeris 为 1 Server·4 Prompt·8 工具，真实 `tools/list` 与健康状态通过 |
+| Desktop E2E | 0.2.10 实机回归已通过 | 完全重启、中文单语界面、8 张卡片、20 条连接与 4 组授权恢复通过；QVeris 为 1 个服务·4 个 Prompt·8 个工具，真实 `tools/list` 返回 healthy |
 | 外部市场合并后验收 | 已完成开发 | PR #2633 未合并时不误报；合并后检查上游 YAML 和实际 plugins.json；每小时执行 |
 | 可访问性与主题 | 已完成开发 | Dialog、焦点、Escape、Tab 循环、深浅主题、固定中文界面 |
 | 大目录性能 | 已完成开发 | 连接器每批 60；工具每批 50；搜索重置批次；`tools/list` 自动跟随分页游标并设 100 页/10,000 工具安全上限 |
@@ -72,7 +72,7 @@ P0 完成定义已满足：Desktop 验收通过、GitHub main/Tag/Release 可访
 ## 当前发布决策
 
 - 包名与仓库名：`dsh-mcp-connector`。
-- 当前公开版本：`0.2.9`，已通过 npm Trusted Publishing 发布并完成 Desktop 精确版本安装；当前开发版本 `0.2.10` 为瞬时网络误报修复，73 项测试和 npm 发布门禁已通过。
+- 当前公开版本：`0.2.10`，已通过 npm Trusted Publishing 发布并完成 Desktop 精确版本安装、完全重启和 QVeris 回归；73 项测试与 44 文件发布门禁通过。
 - 许可证：MIT，公开仓库。
 - P0 首发已于 2026-08-20 完成；P1 核心市场能力和独立 Registry 已并入 `main`。
 - `awesome-dsh-plugin` 外部市场 PR #2633 已提交且 CI 通过；维护者审核与下游目录同步已由每小时工作流自动验收，无需暂停功能开发。已有版本 Tag 不回写。

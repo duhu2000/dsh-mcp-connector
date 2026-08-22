@@ -48,9 +48,9 @@
 | `v0.2.7` / npm `0.2.7` | 已由 GitHub OIDC 发布；包含服务商/接入方式组合筛选、外部市场自动验收与远程 Registry 口径对齐，69/69 测试和 43 文件发布门禁通过 |
 | `v0.2.8` / npm `0.2.8` | 已由 GitHub OIDC 发布；补齐有状态 Streamable HTTP MCP 会话，修复 QVeris `tools/list` HTTP 400；69/69 测试和 44 文件发布门禁通过 |
 | `v0.2.9` / npm `0.2.9` | 已由 GitHub OIDC 发布；`tools/list` 支持完整分页与安全上限，详情页使用中文服务计数并标注弃用工具；72/72 测试和 44 文件发布门禁通过 |
-| `v0.2.10` / npm `0.2.10` | 发布候选已完成；工具发现遇到瞬时网络断开或 MCP 5xx 时自动重试一次，减少远程服务抖动造成的连接异常误报；73/73 测试和 44 文件发布门禁通过 |
+| `v0.2.10` / npm `0.2.10` | 已由 GitHub OIDC 发布；工具发现遇到瞬时网络断开或 MCP 5xx 时自动重试一次，减少远程服务抖动造成的连接异常误报；73/73 测试和 44 文件发布门禁通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
-| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.9`；依赖树与安装副本均为 `0.2.9`；安装前后存储哈希不变，20 条 Server 连接均保留；待 `0.2.10` 发布后再次精确升级 |
+| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.10`；依赖树与安装副本均为 `0.2.10`；安装前后存储哈希不变，完全重启后 20 条 Server 连接和 4 组授权均保留 |
 | 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交且 CI 通过；新增每小时自动验收，PR 合并后会继续检查上游 YAML 与 DSH 实际 `plugins.json`，直到目录可搜索 |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
@@ -72,6 +72,7 @@
 | 0.2.7 Desktop 回归 | 已完全重启；左侧入口位置、中文单语界面、服务商/接入方式筛选和 8 张市场卡片通过。QVeris 显示为非精选 Bearer 卡片，1 Server / 4 Prompt / 6 工具，当前未配置；19 条连接和 4 组授权均保留 |
 | 0.2.8 Desktop 回归 | 已完全重启；QVeris 本机 Bearer 配置恢复，通过 Desktop 同源 API 完成有状态握手与 `tools/list`，返回 1 Server / 8 Tools，状态更新为“已连接”；用户随后确认 `discover`/`inspect` 等真实 MCP 工具执行成功 |
 | 0.2.9 Desktop 回归 | 已完全重启；20 条连接恢复且存储哈希不变；QVeris 首次 `tools/list` 遇到远端瞬时 TLS reset，立即复测返回 1 Server / 8 Tools，由此形成 `0.2.10` 有限重试修复 |
+| 0.2.10 Desktop 回归 | 已完全重启；8 张市场卡片、20 条连接和 4 组授权恢复；QVeris 只读 `tools/list` 返回 1 个服务 / 8 个工具并更新为 healthy；安装前后存储哈希一致，启动后的哈希变化仅发生于目录缓存刷新 |
 | 市场筛选体验 | 已完成下一轮开发与无凭据 UI 回归；服务商、OAuth/Key·Token/免密可组合筛选，与搜索叠加，含清除入口和无结果状态 |
 | 旧插件凭据迁移执行 | 已获用户明确确认并在 Desktop 实机执行；检测到企业工商、法律数据各 1 组旧授权，但对应目标连接均已存在，幂等迁移安全跳过；待迁移数为 0，旧插件源文件与新插件存储哈希均未变化 |
 
@@ -93,7 +94,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定为 `dsh-mcp-connector@0.2.9`，`0.2.10` 发布后需精确升级并完全重启回归。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定并验收 `dsh-mcp-connector@0.2.10`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 
@@ -109,9 +110,9 @@ npm run check
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
 2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32573225681
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.9
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.10
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.9`；发布包共 44 个文件，GitHub OIDC Release（run `32578332493`）与 CI（run `32577582630`）均通过；本次正式发布工具分页和弃用工具标识。
+5. npm `latest`：`0.2.10`；发布包共 44 个文件，GitHub OIDC Release（run `32579704699`）与 CI（run `32579649569`）均通过；本次正式发布瞬时网络与 MCP 5xx 的有限重试修复。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 8. 外部市场 PR：https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633
