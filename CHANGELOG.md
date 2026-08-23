@@ -13,6 +13,7 @@
 
 - 历史 `sse` 与 `type: "http"` 配置统一归一为 `streamable-http`，最终向底层只透传 `stdio` 或 `streamable-http`。
 - 状态、健康检查和详情页识别 stdio 托管连接；目录审计禁止 stdio `env` 携带 token、secret、API Key、password 等密钥类变量。
+- 同一连接切换 HTTP/stdio 传输时会清除上一种传输的 URL、Header、命令与环境变量，避免旧配置或凭据残留。
 
 ### Security
 

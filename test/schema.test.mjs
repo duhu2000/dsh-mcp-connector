@@ -154,6 +154,10 @@ test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
   const stdio = normalizeConnectionRecord({ ...base, transport: 'stdio', command: 'uvx', args: ['server'], env: { MODE: 'test' } });
   assert.equal(stdio.command, 'uvx');
   assert.deepEqual(stdio.env, { MODE: 'test' });
+  const staleAuth = normalizeConnectionRecord({
+    ...base, transport: 'stdio', command: 'uvx', auth: { mode: 'bearer', bearerToken: 'must-not-pass' },
+  });
+  assert.equal(staleAuth.auth, undefined);
 });
 
 test('buildManualRecord: bearer / api-key / none', () => {

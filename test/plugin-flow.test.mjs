@@ -392,6 +392,25 @@ test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-cl
     env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: false,
   });
 
+  const switchedToHttp = await tools.defs.get('mcp_connector_configure').execute({
+    name: 'Local Files', transport: 'streamable-http', serverName: 'local-files',
+    url: 'https://mcp.example.com/stream', authMode: 'none',
+  });
+  assert.equal(switchedToHttp.ok, true, switchedToHttp.message);
+  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+    transport: 'streamable-http', serverName: 'local-files', url: 'https://mcp.example.com/stream',
+    headers: {}, failOnStartupError: false,
+  });
+
+  const switchedBackToStdio = await tools.defs.get('mcp_connector_configure').execute({
+    name: 'Local Files', transport: 'stdio', serverName: 'local-files', command: 'uvx', args: ['trusted-server'],
+  });
+  assert.equal(switchedBackToStdio.ok, true, switchedBackToStdio.message);
+  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+    transport: 'stdio', serverName: 'local-files', command: 'uvx', args: ['trusted-server'],
+    env: {}, cwd: process.cwd(), failOnStartupError: false,
+  });
+
   const imported = await tools.defs.get('mcp_connector_import_json').execute({
     json: JSON.stringify({ mcpServers: { memory: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory'] } } }),
   });
