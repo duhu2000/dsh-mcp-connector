@@ -41,6 +41,16 @@ test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
   assert.match(uiSource, /\.modal \.m-actions \{[\s\S]*?position: sticky; bottom: 0;/);
 });
 
+test('手动配置支持 stdio 并区分 URL 与本地进程字段', () => {
+  assert.match(uiSource, /<option value="stdio">stdio（本地进程）<\/option>/);
+  assert.match(uiSource, /id="cfg-command"/);
+  assert.match(uiSource, /id="cfg-args"/);
+  assert.match(uiSource, /id="cfg-env"/);
+  assert.match(uiSource, /function|syncTransportFields/);
+  assert.match(uiSource, /transport === 'stdio' \? 'none' : authMode/);
+  assert.match(uiSource, /stdio 工具已由 DSH Host 注册；当前市场详情没有目录快照/);
+});
+
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /function openCatalogCredentialForm\(preset\)/);
   assert.match(uiSource, /一次配置 \$\{servers\.length\} 个 MCP Server/);

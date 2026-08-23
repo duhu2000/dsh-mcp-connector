@@ -356,6 +356,50 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
   }
 });
 
+test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-client', { timeout: 15000 }, async () => {
+  const { ctx, loader, tools } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({
+    connectors: [{
+      id: 'local-market', name: 'Local Market', auth: { mode: 'none' },
+      servers: [{
+        serverKey: 'main', transport: 'stdio', serverName: 'local-market', command: 'uvx',
+        args: ['trusted-local-server'], env: { LOG_LEVEL: 'info' }, cwd: '/tmp',
+      }],
+    }],
+  }));
+
+  const connected = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'local-market' }, { signal: undefined });
+  assert.equal(connected.ok, true, connected.message);
+  assert.deepEqual(loader.entries.get('mcp-local-market-main').options.config, {
+    transport: 'stdio', serverName: 'local-market', command: 'uvx', args: ['trusted-local-server'],
+    env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: false,
+  });
+  const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'local-market' });
+  assert.equal(listed.ok, true, listed.message);
+  assert.equal(listed.detail.managedWithoutSnapshot, 1);
+  assert.match(listed.message, /工具由 DSH Host 注册/);
+
+  const configured = await tools.defs.get('mcp_connector_configure').execute({
+    name: 'Local Files', transport: 'stdio', serverName: 'local-files', command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+    envJson: JSON.stringify({ LOG_LEVEL: 'info' }), cwd: '/tmp',
+  });
+  assert.equal(configured.ok, true, configured.message);
+  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+    transport: 'stdio', serverName: 'local-files', command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+    env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: false,
+  });
+
+  const imported = await tools.defs.get('mcp_connector_import_json').execute({
+    json: JSON.stringify({ mcpServers: { memory: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory'] } } }),
+  });
+  assert.equal(imported.ok, true, imported.message);
+  assert.equal(loader.entries.get('mcp-json-memory').options.config.transport, 'stdio');
+  assert.equal(loader.entries.get('mcp-json-memory').options.config.command, 'npx');
+});
+
 test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { timeout: 15000 }, async () => {
   const marketServer = createServer(async (req, res) => {
     for await (const _chunk of req) {}

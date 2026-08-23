@@ -97,3 +97,13 @@ test('连接错误将 TLS reset 转为可操作的用户提示', () => {
   assert.equal(result.kind, 'tls');
   assert.match(result.message, /专线|VPN|IP 白名单/);
 });
+
+test('stdio 健康检查交给 dsh-mcp-client 管理且不发 HTTP 请求', async () => {
+  let fetched = false;
+  const result = await validateConnectionRecord({
+    ...bearerRecord(undefined, ''), transport: 'stdio', command: 'npx', args: ['server'], auth: undefined,
+  }, { fetchImpl: async () => { fetched = true; throw new Error('不应调用'); } });
+  assert.equal(result.ok, true);
+  assert.equal(result.kind, 'managed');
+  assert.equal(fetched, false);
+});

@@ -16,7 +16,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
 - Searchable Marketplace and Installed views, provider and connection-method filters, catalog refresh, and active health checks that distinguish Configured, Connected, Reauthorization Required, Partially Unavailable, and Connection Error states.
-- OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated URL configuration, and `mcpServers` JSON import.
+- OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
 - Credential and MCP initialize validation before API-key connectors are saved as installed.
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
@@ -70,6 +70,7 @@ Connected tools are exposed to the model with the `mcp__<serverName>__*` prefix.
 The package contains a bundled fallback catalog. By default, it refreshes from the public [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry); cached or bundled data remains available if the remote registry cannot be reached.
 
 The public connector registration process and descriptor requirements are documented in [docs/MARKET-REGISTRATION.md](docs/MARKET-REGISTRATION.md).
+The stdio architecture, passthrough boundary, and security constraints are documented in [docs/STDIO-SUPPORT.md](docs/STDIO-SUPPORT.md).
 
 ## Configuration
 
@@ -110,7 +111,8 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - Failed API key/token validation is not persisted; authentication, timeout, DNS, and TLS/network errors are reported separately.
 - External URLs must use HTTPS; HTTP is allowed only for loopback development.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
-- Streamable HTTP is the primary transport. Legacy SSE entries can still be provisioned to the DSH Host, while live health checks, tool discovery, and pagination in the connector UI target Streamable HTTP. stdio entries are explicitly skipped.
+- Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. The connector passes stdio `command/args/env/cwd` to `@deepseek-ai/dsh-mcp-client` instead of reimplementing process transport.
+- stdio starts a local process. Import or connect only trusted commands and packages; catalog descriptors may not contain token/secret-shaped environment variables.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
 
 ## License

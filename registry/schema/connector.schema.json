@@ -45,14 +45,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["serverKey", "url", "serverName"],
+        "required": ["serverKey", "serverName"],
         "properties": {
           "serverKey": { "type": "string", "minLength": 1 },
           "url": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "env": { "type": "object", "additionalProperties": { "type": "string" } },
+          "cwd": { "type": "string" },
           "serverName": { "type": "string", "minLength": 1 },
-          "transport": { "enum": ["streamable-http", "sse"] },
+          "transport": { "enum": ["streamable-http", "stdio"] },
           "headers": { "type": "object", "additionalProperties": { "type": "string" } }
-        }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "transport": { "const": "stdio" } }, "required": ["transport"] },
+            "then": { "required": ["command"] },
+            "else": { "required": ["url"] }
+          }
+        ]
       }
     },
     "promptVariables": { "$ref": "#/$defs/variables" },

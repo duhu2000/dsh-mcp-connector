@@ -16,10 +16,10 @@
 
 - 左侧主导航入口：目标位置为“新会话”下方、“工作区/会话列表”上方；若 DSH DOM 结构不兼容，自动回退到底部公开插槽。
 - 图形化市场：市场/已安装、全文搜索、服务商/接入方式组合筛选、刷新与主动健康检查；区分“已配置”、“已连接”、“需重新授权”、“部分异常”和“连接异常”。
-- 图形化添加：手动 URL/鉴权、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
+- 图形化添加：手动 HTTP/stdio、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
-- 三种接入：OAuth 2.0 PKCE、自定义 URL/鉴权、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。
+- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 Server 通过后才持久化凭据并进入“已安装”。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
@@ -101,6 +101,7 @@ npm run dev:ui
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 市场卡片、公共 registry 与 OAuth 一键授权要求见 [docs/MARKET-REGISTRATION.md](docs/MARKET-REGISTRATION.md)。
+stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](docs/STDIO-SUPPORT.md)。
 
 ## 安全与限制
 
@@ -108,7 +109,8 @@ Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 - 市场 Key/Token 校验失败时不写入 storage domain；鉴权、超时、DNS、TLS/网络错误会分类提示。
 - 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
-- 当前以 Streamable HTTP 为主；可把旧 SSE 条目交给 DSH Host 兼容运行，但详情页的实时健康检查、工具枚举和分页仅面向 Streamable HTTP。stdio 配置会被明确跳过。
+- 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
+- stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录不得携带 token/secret 类环境变量；用户凭据只允许在本机配置。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。
 

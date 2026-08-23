@@ -21,6 +21,16 @@ test('registry 校验拒绝重复 serverName 与未知字段夹带的凭据', ()
   ]), /禁止携带凭证/);
 });
 
+test('stdio registry 校验通过但探针绝不执行本地命令', async () => {
+  const report = await probeConnector({
+    id: 'stdio-safe', name: 'Stdio Safe', icon: '🔌', auth: { mode: 'none' },
+    servers: [{ serverKey: 'main', transport: 'stdio', command: 'definitely-do-not-run', args: ['--danger'], serverName: 'stdio-safe' }],
+  });
+  assert.equal(report.status, 'pass');
+  assert.equal(report.servers[0].transport, 'stdio');
+  assert.match(report.servers[0].skipped, /不会执行|不会.*命令/);
+});
+
 test('OAuth 连接器公开元数据探针可判定 pass', async () => {
   let base;
   const { server, base: serverBase } = await listen((req, res) => {

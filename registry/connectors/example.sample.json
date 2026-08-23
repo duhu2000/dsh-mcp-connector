@@ -13,11 +13,7 @@
   "homepage": "https://example.com",
   "probeStatus": "unverified",
   "auth": {
-    "mode": "oauth2-pkce",
-    "issuer": "https://auth.example.com",
-    "scope": "mcp:tools",
-    "clientName": "DeepSeek Harness - MCP 连接器",
-    "tokenEndpointAuthMethod": "none"
+    "mode": "none"
   },
   "servers": [
     {
@@ -25,6 +21,16 @@
       "url": "https://mcp.example.com/stream",
       "serverName": "vendor-service",
       "transport": "streamable-http"
+    },
+    {
+      "serverKey": "local-example",
+      "serverName": "vendor-local-example",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@vendor/example-mcp-server"],
+      "env": {
+        "LOG_LEVEL": "info"
+      }
     }
   ],
   "promptVariables": [

@@ -465,6 +465,11 @@
         url: 'https://example.com/mcp',
         headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
       },
+      'local-server': {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@vendor/example-mcp-server'],
+      },
     },
   }, null, 2);
 
@@ -661,7 +666,9 @@
           const deprecated = isDeprecatedTool(tool);
           return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
-        : '<div class="tools-loading">暂无工具</div>';
+        : server.managed
+          ? '<div class="tools-loading">stdio 工具已由 DSH Host 注册；当前市场详情没有目录快照，可直接在对话中调用。</div>'
+          : '<div class="tools-loading">暂无工具</div>';
       return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></div>${items}</div>`;
     }).filter(Boolean);
     $('#detail-tools').innerHTML = groups.length > 0
@@ -804,7 +811,7 @@
     return `<div class="row" data-key="${key}">
       <div class="info">
         <div class="rname">${esc(r.name)} ${authMode} ${healthBadge}</div>
-        <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.url || '')}</div>
+        <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.endpoint || r.url || '')}</div>
       </div>
       <label class="switch" title="${enabled ? '停用' : '启用'}" aria-label="${enabled ? '停用' : '启用'} ${esc(r.name)}">
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
@@ -888,7 +895,7 @@
       openModal('添加 MCP 连接', `${addTabs(mode)}
         <div class="field-label-row"><label for="import-json">粘贴 MCP JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
         <textarea id="import-json" rows="8" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
-        <div class="field-help">支持常见的 <code>mcpServers</code> 格式，配置和凭据仅保存在 DSH 本机。</div>
+        <div class="field-help">支持 <code>mcpServers</code> 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。</div>
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
       return;
@@ -908,15 +915,24 @@
       <p class="field-help">适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。</p>
       <div class="form-row"><div><label for="cfg-name">名称（必填）</label><input id="cfg-name" value="${esc(preset.name || '')}" placeholder="连接显示名" /></div>
       <div><label for="cfg-sname">serverName（工具前缀）</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
-      <label for="cfg-url">MCP URL（必填）</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
-      <div class="form-row"><div><label for="cfg-transport">传输方式</label><select id="cfg-transport"><option value="streamable-http">Streamable HTTP</option><option value="sse">SSE</option></select></div>
-      <div><label for="cfg-auth">鉴权方式</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>无鉴权</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select></div></div>
-      <div id="cfg-bearer"><label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在本机" /></div>
-      <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在本机" /></div></div>
-      <label for="cfg-headers">额外 Headers（可选 JSON）</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
+      <label for="cfg-transport">传输方式</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">Streamable HTTP（兼容 SSE）</option><option value="stdio">stdio（本地进程）</option></select>
+      <div id="cfg-http-fields">
+        <label for="cfg-url">MCP URL（必填）</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+        <label for="cfg-auth">鉴权方式</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>无鉴权</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
+        <div id="cfg-bearer"><label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在本机" /></div>
+        <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在本机" /></div></div>
+        <label for="cfg-headers">额外 Headers（可选 JSON）</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
+      </div>
+      <div id="cfg-stdio-fields" hidden>
+        <label for="cfg-command">启动命令（必填）</label><input id="cfg-command" placeholder="npx" autocomplete="off" />
+        <label for="cfg-args">参数（JSON 数组）</label><textarea id="cfg-args" rows="2" spellcheck="false" placeholder='["-y","@modelcontextprotocol/server-filesystem","/path"]'></textarea>
+        <label for="cfg-env">环境变量（JSON 对象）</label><textarea id="cfg-env" rows="2" spellcheck="false" placeholder='{"SERVICE_TOKEN":"仅保存在本机"}'></textarea>
+        <label for="cfg-cwd">工作目录（可选）</label><input id="cfg-cwd" placeholder="默认使用 DSH 当前目录" autocomplete="off" />
+        <div class="field-help">stdio 会在本机启动进程；请只使用可信命令和软件包。环境变量不会写入市场目录。</div>
+      </div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接</button></div>`);
-    window.__mcp.syncAuthFields();
+    window.__mcp.syncTransportFields();
   }
 
   function renderResolvedPrompt(prompt, values) {
@@ -981,6 +997,12 @@
       if ($('#cfg-bearer')) $('#cfg-bearer').hidden = mode !== 'bearer';
       if ($('#cfg-apikey')) $('#cfg-apikey').hidden = mode !== 'api-key';
     },
+    syncTransportFields() {
+      const stdio = $('#cfg-transport')?.value === 'stdio';
+      if ($('#cfg-http-fields')) $('#cfg-http-fields').hidden = stdio;
+      if ($('#cfg-stdio-fields')) $('#cfg-stdio-fields').hidden = !stdio;
+      window.__mcp.syncAuthFields();
+    },
     closeModal() { closeModal(); },
     async submitConfig() {
       const connectorId = $('#cfg-connector-id')?.value.trim();
@@ -1003,17 +1025,29 @@
         return;
       }
       const name = $('#cfg-name').value.trim();
-      const url = $('#cfg-url').value.trim();
       const serverName = $('#cfg-sname').value.trim();
-      if (!name || !url) { showModalError('名称与 URL 必填'); return; }
+      const transport = $('#cfg-transport').value;
+      const url = $('#cfg-url')?.value.trim() || '';
+      const command = $('#cfg-command')?.value.trim() || '';
+      if (!name || (transport === 'stdio' ? !command : !url)) { showModalError(transport === 'stdio' ? '名称与启动命令必填' : '名称与 URL 必填'); return; }
+      let args;
+      let envJson;
+      if (transport === 'stdio') {
+        try {
+          args = JSON.parse($('#cfg-args').value || '[]');
+          envJson = JSON.parse($('#cfg-env').value || '{}');
+          if (!Array.isArray(args)) throw new Error('参数必须是 JSON 数组');
+          if (!envJson || Array.isArray(envJson) || typeof envJson !== 'object') throw new Error('环境变量必须是 JSON 对象');
+        } catch (error) { showModalError(`stdio 配置错误: ${error.message}`); return; }
+      }
       let headersJson;
-      try { headersJson = JSON.parse($('#cfg-headers').value || '{}'); }
+      try { headersJson = JSON.parse($('#cfg-headers')?.value || '{}'); }
       catch { showModalError('额外 Headers 不是合法 JSON'); return; }
       setModalBusy(true);
       const r = await call('configure', {
-        name, url, serverName, headersJson,
-        transport: $('#cfg-transport').value,
-        authMode,
+        name, url: url || undefined, serverName, headersJson,
+        transport, command: command || undefined, args, envJson, cwd: $('#cfg-cwd')?.value.trim() || undefined,
+        authMode: transport === 'stdio' ? 'none' : authMode,
         bearerToken: $('#cfg-token')?.value || undefined,
         apiKeyHeader: $('#cfg-key-header')?.value || undefined,
         apiKeyValue: $('#cfg-key-value')?.value || undefined,
