@@ -96,6 +96,21 @@ test('市场支持服务商与接入方式组合筛选', () => {
   assert.match(uiSource, /main\.addEventListener\('change',[\s\S]*?market-vendor-filter/);
 });
 
+test('市场支持分类筛选与推荐位（9 分类 + 推荐）', () => {
+  assert.match(uiSource, /const CATEGORIES = \[/);
+  assert.match(uiSource, /value: 'recommended', label: '推荐'/);
+  assert.match(uiSource, /value: '企业数据', label: '企业数据'/);
+  assert.match(uiSource, /value: '金融投资', label: '金融投资'/);
+  assert.match(uiSource, /value: '效率工具', label: '效率工具'/);
+  assert.match(uiSource, /function normalizeCategory\(c\)/);
+  assert.match(uiSource, /CATEGORY_MAP\[c\] \|\| '其他'/);
+  assert.match(uiSource, /marketCategory === 'recommended' && !d\.featured/);
+  assert.match(uiSource, /normalizeCategory\(d\.category\) !== marketCategory/);
+  assert.match(uiSource, /data-category-filter=/);
+  assert.match(uiSource, /\.category-chips/);
+  assert.match(uiSource, /let marketCategory = '';/);
+});
+
 test('工具清单使用中文计数并标记服务商弃用工具', () => {
   assert.match(uiSource, /\$\('#tools-summary'\)\.textContent = `\$\{detailToolServers\.length\} 个服务 · \$\{totalTools\} 个工具`/);
   assert.match(uiSource, /function isDeprecatedTool\(tool\)/);
