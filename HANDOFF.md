@@ -49,9 +49,9 @@
 | `v0.2.8` / npm `0.2.8` | 已由 GitHub OIDC 发布；补齐有状态 Streamable HTTP MCP 会话，修复 QVeris `tools/list` HTTP 400；69/69 测试和 44 文件发布门禁通过 |
 | `v0.2.9` / npm `0.2.9` | 已由 GitHub OIDC 发布；`tools/list` 支持完整分页与安全上限，详情页使用中文服务计数并标注弃用工具；72/72 测试和 44 文件发布门禁通过 |
 | `v0.2.10` / npm `0.2.10` | 已由 GitHub OIDC 发布；工具发现遇到瞬时网络断开或 MCP 5xx 时自动重试一次，减少远程服务抖动造成的连接异常误报；73/73 测试和 44 文件发布门禁通过 |
-| `v0.2.11` / npm `0.2.11` | 发布候选；合并 OAuth/OIDC 发现元数据并允许无撤销端点服务，支持八爪鱼标准 OAuth 2.1 + PKCE 动态注册；75/75 测试通过，待 GitHub/npm 发布与 Desktop 授权验收 |
+| `v0.2.11` / npm `0.2.11` | 已由 GitHub OIDC 发布；合并 OAuth/OIDC 发现元数据并允许无撤销端点服务，支持八爪鱼标准 OAuth 2.1 + PKCE 动态注册；75/75 测试与 Desktop 真实授权验收通过 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
-| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.10`；依赖树与安装副本均为 `0.2.10`；安装前后存储哈希不变，完全重启后 20 条 Server 连接和 4 组授权均保留 |
+| Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.11`；安装前后存储哈希不变，原 20 条 Server 连接和 4 组授权均保留；八爪鱼授权后为 21 条连接、5 组授权 |
 | 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交且 CI 通过；新增每小时自动验收，PR 合并后会继续检查上游 YAML 与 DSH 实际 `plugins.json`，直到目录可搜索 |
 | 本地草案清理 | 两份未跟踪旧草案已移至 `workspace/_archive/mcp-connector-plugin/2026-08-21/`，源码仓库已恢复干净 |
 
@@ -64,7 +64,7 @@
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
 | 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 6 项自动测试；校验器已对齐 `0.2.2`，远程 Logo 额外检查图像类型与 Desktop 跨域兼容响应头 |
 | QVerisMCP | 已作为非精选 Bearer 卡片加入远程 Registry；使用官方 Logo 的自托管副本，规避官网 `same-origin` 跨域限制；已用本机 API Key 完成真实有状态会话与 `tools/list` 验收，托管端返回 8 个工具；Prompt 默认不执行付费 `call`/`execute_tool` |
-| 八爪鱼·云采集 | 已完成第三方 OAuth 市场描述、官方 Logo 自托管、10 个工具快照和 5 个安全 Prompt；公网 MCP/OAuth/OIDC/DCR/PKCE 探针通过，待 Desktop 登录授权与只读工具调用验收 |
+| 八爪鱼·云采集 | 已完成第三方 OAuth 市场描述、官方 Logo 自托管、12 个工具快照和 5 个安全 Prompt；公网探针、Desktop OAuth 登录、1 Server / 12 Tools 枚举与 `list_platforms` 只读调用均通过；调用返回 902 个平台且未创建或修改任务 |
 | 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
 | 连接健康状态 | `0.2.4` 已发布并通过 Desktop 实机回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |
@@ -75,6 +75,7 @@
 | 0.2.8 Desktop 回归 | 已完全重启；QVeris 本机 Bearer 配置恢复，通过 Desktop 同源 API 完成有状态握手与 `tools/list`，返回 1 Server / 8 Tools，状态更新为“已连接”；用户随后确认 `discover`/`inspect` 等真实 MCP 工具执行成功 |
 | 0.2.9 Desktop 回归 | 已完全重启；20 条连接恢复且存储哈希不变；QVeris 首次 `tools/list` 遇到远端瞬时 TLS reset，立即复测返回 1 Server / 8 Tools，由此形成 `0.2.10` 有限重试修复 |
 | 0.2.10 Desktop 回归 | 已完全重启；8 张市场卡片、20 条连接和 4 组授权恢复；QVeris 只读 `tools/list` 返回 1 个服务 / 8 个工具并更新为 healthy；安装前后存储哈希一致，启动后的哈希变化仅发生于目录缓存刷新 |
+| 0.2.11 Desktop 回归 | 已完全重启并固定 npm 精确版本；9 张市场卡片正常，八爪鱼通过 OAuth 2.1 + PKCE 动态注册完成一键授权，真实返回 1 Server / 12 Tools；`list_platforms` 只读调用成功（902 个平台），未创建、启动、停止或修改任务；授权后本机为 21 条连接、5 组授权 |
 | 市场筛选体验 | 已完成下一轮开发与无凭据 UI 回归；服务商、OAuth/Key·Token/免密可组合筛选，与搜索叠加，含清除入口和无结果状态 |
 | 旧插件凭据迁移执行 | 已获用户明确确认并在 Desktop 实机执行；检测到企业工商、法律数据各 1 组旧授权，但对应目标连接均已存在，幂等迁移安全跳过；待迁移数为 0，旧插件源文件与新插件存储哈希均未变化 |
 
@@ -96,7 +97,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定并验收 `dsh-mcp-connector@0.2.10`，下一目标为 `0.2.11`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定并验收 `dsh-mcp-connector@0.2.11`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 
@@ -111,10 +112,10 @@ npm run check
 ## 7. 发布结果
 
 1. GitHub：https://github.com/duhu2000/dsh-mcp-connector
-2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32573225681
-3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.10
+2. CI：https://github.com/duhu2000/dsh-mcp-connector/actions/runs/32612629670
+3. Release：https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.11
 4. npm：https://www.npmjs.com/package/dsh-mcp-connector
-5. npm `latest`：`0.2.10`；发布包共 44 个文件，GitHub OIDC Release（run `32579704699`）与 CI（run `32579649569`）均通过；本次正式发布瞬时网络与 MCP 5xx 的有限重试修复。
+5. npm `latest`：`0.2.11`；发布包共 44 个文件，GitHub OIDC Release（run `32612712824`）与 CI（run `32612629670`）均通过；本次正式发布八爪鱼标准 OAuth 2.1 + PKCE 动态注册兼容。
 6. 独立市场 Registry：https://github.com/duhu2000/dsh-mcp-connector-registry
 7. 远程 Catalog：https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json
 8. 外部市场 PR：https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633

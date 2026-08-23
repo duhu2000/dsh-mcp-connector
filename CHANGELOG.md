@@ -18,7 +18,7 @@
 ### Verification
 
 - 75 项自动测试与 lint 通过；新增 OAuth/OIDC 元数据合并及无撤销端点兼容回归。
-- 八爪鱼公开 MCP 端点、Protected Resource Metadata、Authorization Server Metadata、OIDC Discovery、PKCE S256 与动态客户端注册端点探针通过；真实账户授权和工具调用留待 Desktop 用户登录验收。
+- 八爪鱼公开 MCP 端点、Protected Resource Metadata、Authorization Server Metadata、OIDC Discovery、PKCE S256 与动态客户端注册端点探针通过；Desktop 真实账户 OAuth 授权成功，枚举 1 个服务 / 12 个工具，`list_platforms` 只读调用返回成功且未创建或修改任务。
 
 ## [0.2.10] - 2026-08-22
 

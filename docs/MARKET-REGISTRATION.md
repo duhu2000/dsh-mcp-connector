@@ -168,7 +168,7 @@ QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp
 
 因此可以作为本市场首个完整的第三方 OAuth 一键授权示例。连接器不复用 WorkBuddy 的 `client_id` 或私有回调协议，而是由 DSH 插件为本机 loopback callback 动态注册独立公共客户端；授权结果只保存在 DSH storage domain。
 
-市场卡片使用八爪鱼官网 favicon 的像素副本并由 Registry 自托管；能力描述与 10 个工具快照以官方 MCP 文档为准。涉及启动/停止云任务的 Prompt 必须先征求用户确认，实际云采集配额、费用、平台范围与数据使用责任以用户账户和八爪鱼官方规则为准。
+市场卡片使用八爪鱼官网 favicon 的像素副本并由 Registry 自托管。官方文档基线列出 10 个工具；2026-08-23 Desktop 真实授权后服务端实际返回 12 个工具，新增 `get_task_status` 与 `describe_ecommerce_dataset`，Registry 快照已按运行时结果校正。`list_platforms` 只读调用成功并返回 902 个平台。涉及启动/停止云任务的 Prompt 必须先征求用户确认，实际云采集配额、费用、平台范围与数据使用责任以用户账户和八爪鱼官方规则为准。
 
 参考：
 
