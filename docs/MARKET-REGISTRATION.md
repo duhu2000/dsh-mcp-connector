@@ -45,9 +45,11 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 - OAuth Authorization Code + PKCE S256；
 - MCP Protected Resource Metadata（RFC 9728）；
 - Authorization Server Metadata（RFC 8414）；
-- `authorization_endpoint`、`token_endpoint`、`registration_endpoint`、`revocation_endpoint`；
+- `authorization_endpoint`、`token_endpoint`、`registration_endpoint`；`revocation_endpoint` 建议提供，但按标准属于可选能力；
 - Dynamic Client Registration，且支持 loopback callback URI；
-- Refresh Token 和撤销。
+- Refresh Token；如提供撤销端点，插件会在断开/清理授权时撤销 Refresh Token，否则只删除 DSH 本机授权记录。
+
+插件优先读取 RFC 8414 Authorization Server Metadata；若动态注册或撤销端点缺失，会再读取 OIDC Discovery 并仅补齐缺失字段。OAuth 元数据中的授权、Token 等标准端点始终优先。
 
 符合上述条件的最小描述：
 
@@ -153,3 +155,25 @@ QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp
 - https://qveris.ai/pricing
 - https://qveris.ai/privacy
 - https://qveris.ai/terms
+
+## 9. 八爪鱼云采集 OAuth 适配结论
+
+八爪鱼公开 MCP 服务 `https://mcp.bazhuayu.com/` 已验证支持标准远程 MCP OAuth 发现链路：
+
+- Protected Resource Metadata 指向 `https://identity.bazhuayu.com`；
+- Authorization Code + PKCE S256；
+- Dynamic Client Registration，公共客户端使用 `token_endpoint_auth_method: none`；
+- Scope：`openid profile offline_access`；
+- OAuth Metadata 发布授权与 Token 端点，OIDC Discovery 补充动态注册和撤销端点。
+
+因此可以作为本市场首个完整的第三方 OAuth 一键授权示例。连接器不复用 WorkBuddy 的 `client_id` 或私有回调协议，而是由 DSH 插件为本机 loopback callback 动态注册独立公共客户端；授权结果只保存在 DSH storage domain。
+
+市场卡片使用八爪鱼官网 favicon 的像素副本并由 Registry 自托管；能力描述与 10 个工具快照以官方 MCP 文档为准。涉及启动/停止云任务的 Prompt 必须先征求用户确认，实际云采集配额、费用、平台范围与数据使用责任以用户账户和八爪鱼官方规则为准。
+
+参考：
+
+- https://www.bazhuayu.com/ai-open-platform
+- https://www.bazhuayu.com/docs/zh/mcp
+- https://mcp.bazhuayu.com/.well-known/oauth-protected-resource
+- https://identity.bazhuayu.com/.well-known/oauth-authorization-server
+- https://identity.bazhuayu.com/.well-known/openid-configuration

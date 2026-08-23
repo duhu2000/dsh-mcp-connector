@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-08-23
+
+### Added
+
+- 新增八爪鱼云采集第三方市场卡片：通过标准 OAuth 2.1 Authorization Code + PKCE 和动态客户端注册完成一键授权，无需复制 API Key；精选 Prompt 覆盖模板搜索、任务进度、数据预览/导出，并在启动或停止云任务前要求用户确认。
+
+### Changed
+
+- OAuth 发现按 RFC 8414 元数据优先、OIDC Discovery 补充的方式合并端点，兼容动态客户端注册与撤销端点分散发布的服务。
+- 将 OAuth 撤销端点视为可选能力：服务未发布该端点时仍可授权、刷新和断开，断开时删除 DSH 本机授权记录。
+
+### Verification
+
+- 75 项自动测试与 lint 通过；新增 OAuth/OIDC 元数据合并及无撤销端点兼容回归。
+- 八爪鱼公开 MCP 端点、Protected Resource Metadata、Authorization Server Metadata、OIDC Discovery、PKCE S256 与动态客户端注册端点探针通过；真实账户授权和工具调用留待 Desktop 用户登录验收。
+
 ## [0.2.10] - 2026-08-22
 
 ### Fixed
@@ -200,7 +216,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.10...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.11...HEAD
+[0.2.11]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.7...v0.2.8

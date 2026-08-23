@@ -28,7 +28,7 @@
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；不删除原插件或原凭据。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`health_check`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
 
-随包目录前 4 张为企查查连接器，另含“北大法宝·法律检索”和“Wind·股票数据”。远程 Registry 刷新后还会加入“盈米·基金投顾”和“QVerisMCP”，当前共 8 张已发布市场卡片；插件架构不限定厂商。
+随包目录前 4 张为企查查连接器，另含“北大法宝·法律检索”和“Wind·股票数据”。远程 Registry 刷新后还会加入“盈米·基金投顾”、“QVerisMCP”和“八爪鱼·云采集”，当前共 9 张已发布市场卡片；其中八爪鱼是首个完整跑通标准 OAuth 2.1 + PKCE 动态注册链路的第三方示例，插件架构不限定厂商。
 
 ## 界面与演示
 
@@ -96,7 +96,7 @@ npm run dev:ui
 
 `check` 执行语法检查、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.7`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.7](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.7)。
+当前公开版本为 [`dsh-mcp-connector@0.2.11`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.11](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.11)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

@@ -1,6 +1,6 @@
 # MCP连接器插件移交文档
 
-> 更新：2026-08-22
+> 更新：2026-08-23
 > 源码：`/Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mcp-connector-plugin`
 > Desktop 安装副本：`/Users/qcc/.dsh/profiles/web/node_modules/dsh-mcp-connector`
 
@@ -15,11 +15,11 @@
 - 目录：内置、远程 registry、配置注入、URL 动态安装、本地上下架覆盖。
 - 连接：OAuth 2.0 Authorization Code + PKCE、自定义 Bearer/API Key/无鉴权、`mcpServers` JSON 导入。
 - 管理：storage domain 持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
-- UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、4 个企查查连接器与北大法宝、Wind、盈米、QVeris 第三方连接器、本地品牌 Logo、详情弹框。
+- UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、4 个企查查连接器与北大法宝、Wind、盈米、QVeris、八爪鱼第三方连接器、本地品牌 Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
 - Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
 - P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；固定中文界面、深浅主题和键盘操作。
-- Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，当前包含北大法宝、Wind、盈米和 QVeris 4 张第三方卡片、12 个 Server 与 16 个 Prompt；Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
+- Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，当前包含北大法宝、Wind、盈米、QVeris 和八爪鱼 5 张第三方卡片、13 个 Server 与 21 个 Prompt；Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
 - 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
 
@@ -31,7 +31,7 @@
 | 左上角目标位置自动测试 | 已通过 |
 | 左上角目标位置 Desktop 实机验收 | 已通过（2026-08-20 用户确认） |
 | Wind 市场卡片、Key 预检、工具枚举与原生 MCP Tool call | 已通过（2026-08-21 用户确认；1 Server / 10 Tools） |
-| lint + 单元/集成测试 | 通过，73 项 |
+| lint + 单元/集成测试 | 通过，75 项 |
 | npm 发布包校验 | 已通过，44 个白名单文件；含敏感内容与本机路径扫描 |
 | GitHub Actions CI/Release | 已配置并通过（CI #1、Release #1） |
 | 本地 Git 仓库与首个基线提交 | 已完成 |
@@ -49,6 +49,7 @@
 | `v0.2.8` / npm `0.2.8` | 已由 GitHub OIDC 发布；补齐有状态 Streamable HTTP MCP 会话，修复 QVeris `tools/list` HTTP 400；69/69 测试和 44 文件发布门禁通过 |
 | `v0.2.9` / npm `0.2.9` | 已由 GitHub OIDC 发布；`tools/list` 支持完整分页与安全上限，详情页使用中文服务计数并标注弃用工具；72/72 测试和 44 文件发布门禁通过 |
 | `v0.2.10` / npm `0.2.10` | 已由 GitHub OIDC 发布；工具发现遇到瞬时网络断开或 MCP 5xx 时自动重试一次，减少远程服务抖动造成的连接异常误报；73/73 测试和 44 文件发布门禁通过 |
+| `v0.2.11` / npm `0.2.11` | 发布候选；合并 OAuth/OIDC 发现元数据并允许无撤销端点服务，支持八爪鱼标准 OAuth 2.1 + PKCE 动态注册；75/75 测试通过，待 GitHub/npm 发布与 Desktop 授权验收 |
 | npm Trusted Publishing | 已绑定 `duhu2000/dsh-mcp-connector` / `release.yml`，权限仅 `publish`，无长期 `NPM_TOKEN` |
 | Desktop 本机版本对齐 | `web` profile 已升级为 npm 精确版本 `dsh-mcp-connector@0.2.10`；依赖树与安装副本均为 `0.2.10`；安装前后存储哈希不变，完全重启后 20 条 Server 连接和 4 组授权均保留 |
 | 外部 DSH 市场注册 | [awesome-dsh-plugin PR #2633](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/2633) 已提交且 CI 通过；新增每小时自动验收，PR 合并后会继续检查上游 YAML 与 DSH 实际 `plugins.json`，直到目录可搜索 |
@@ -63,6 +64,7 @@
 | 演示 GIF | 已生成 `docs/demo.gif`，约 29.6 秒、960×540、1.3 MiB，并加入中英文 README |
 | 第三方自助上架闭环 | 独立 Registry 已增加贡献指南、Connector request、PR 模板、CODEOWNERS、文件名/ID 门禁与 6 项自动测试；校验器已对齐 `0.2.2`，远程 Logo 额外检查图像类型与 Desktop 跨域兼容响应头 |
 | QVerisMCP | 已作为非精选 Bearer 卡片加入远程 Registry；使用官方 Logo 的自托管副本，规避官网 `same-origin` 跨域限制；已用本机 API Key 完成真实有状态会话与 `tools/list` 验收，托管端返回 8 个工具；Prompt 默认不执行付费 `call`/`execute_tool` |
+| 八爪鱼·云采集 | 已完成第三方 OAuth 市场描述、官方 Logo 自托管、10 个工具快照和 5 个安全 Prompt；公网 MCP/OAuth/OIDC/DCR/PKCE 探针通过，待 Desktop 登录授权与只读工具调用验收 |
 | 中文单语言 UI | 已按中国市场定位移除 `EN` 切换按钮、英文 UI 字典和语言偏好状态；英文 README 仅作为项目文档保留 |
 | 连接健康状态 | `0.2.4` 已发布并通过 Desktop 实机回归；本机存在配置不再直接等同于当前可用，OAuth 401/403 引导重新授权，网络/TLS 失败显示连接异常 |
 | 0.2.3 Desktop 回归 | 完全重启后入口位置、市场弹框、6 张卡片和中文单语言界面通过实机截图验收；企查查企业工商、北大法宝代表 Server 的 `tools/list` 分别返回 16、2 个工具 |
@@ -94,7 +96,7 @@ cd /Users/qcc/Documents/DuHu/QCC/beichacha_doc/云聚接口/MCP/MCP/workspace/mc
 npm run check
 ```
 
-发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定并验收 `dsh-mcp-connector@0.2.10`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
+发布验收环境使用 npm 精确版本；当前 Desktop `web` profile 已固定并验收 `dsh-mcp-connector@0.2.10`，下一目标为 `0.2.11`。后续开发若临时切换到本地 `file:` 依赖，完成后必须重新安装目标 npm 版本并完全重启 DSH Desktop，不要只改 `node_modules` 安装目录。
 
 关键文件：
 
