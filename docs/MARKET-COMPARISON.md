@@ -2,7 +2,7 @@
 
 > 目标：对标 WorkBuddy（腾讯）/ TraeWork（字节）/ QwenWork（阿里）三家连接器市场，打造「DSH 最好用的 MCP 连接器插件」。
 > 基于：三家市场页面截图 OCR 提取（16 张截图，2026-08-23 抓取）。
-> 现状：我们当前支持 `oauth2-pkce / bearer / api-key / none` × `streamable-http / sse`，stdio 正在开发中。
+> **实施状态（2026-08-23）**：stdio、分类筛选与推荐位均已完成；旧 `sse` 配置会归一化为 `streamable-http`。下文的“现状/缺口”保留为实施前分析快照。
 
 ---
 

@@ -4,7 +4,7 @@
 > 结论：**低成本补齐**——`@deepseek-ai/dsh-mcp-client` 已原生支持 stdio，我们只需在 schema + provisioning 两层「开闸透传」。
 
 > **实施状态（2026-08-23）**：本文方案已经落地。schema、手工配置、JSON 导入、provisioning、Registry Schema、目录安全审计、健康状态、详情提示和自动测试均已完成；下文保留实施前的代码位置与改动建议，作为架构决策记录。
-> 状态：待开发
+> 状态：已完成（v0.2.12）
 
 ---
 

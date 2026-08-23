@@ -2,7 +2,8 @@
 
 > 目标：对标 TraeWork（8 分类 + 推荐 Tab）与 QwenWork（8 分组 + 推荐分组），给 MCP 连接器市场加「分类筛选 + 推荐位」，打造 DSH 最好用的连接器市场。
 > 结论：**后端零改动**，纯 UI 改造 + 数据标准化（`catalog` API 已返回 `category`/`featured`，`listCatalog` 已支持 `category` 参数）。
-> 状态：待开发
+> **实施状态（2026-08-23）**：分类筛选、推荐位、category 归一化、随包目录标准化与自动测试均已完成；远程 Registry 的八爪鱼、QVeris、盈米分类也已同步标准化。
+> 状态：已完成（v0.2.12）
 
 ---
 

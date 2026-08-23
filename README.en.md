@@ -15,7 +15,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 ## Features
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
-- Searchable Marketplace and Installed views, provider and connection-method filters, catalog refresh, and active health checks that distinguish Configured, Connected, Reauthorization Required, Partially Unavailable, and Connection Error states.
+- Searchable Marketplace and Installed views, featured and nine-category filters, provider and connection-method filters, catalog refresh, and active health checks that distinguish Configured, Connected, Reauthorization Required, Partially Unavailable, and Connection Error states.
 - OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
 - Credential and MCP initialize validation before API-key connectors are saved as installed.

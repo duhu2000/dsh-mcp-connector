@@ -4,20 +4,29 @@
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-08-23
+
 ### Added
 
 - 新增 stdio 本地进程传输：支持手工配置与 `mcpServers` JSON 导入中的 `command`、`args`、`env`、`cwd`，由现有 `@deepseek-ai/dsh-mcp-client` 原生启动并注册工具。
 - 市场 ConnectorDescriptor 与 Registry Schema 支持 stdio Server；公开目录探针只校验描述，绝不执行第三方目录中的本地命令。
+- 市场新增“推荐”与 9 类业务分类筛选，可与搜索、服务商和接入方式组合使用；未知及历史分类在 UI 端安全归一化。
 
 ### Changed
 
 - 历史 `sse` 与 `type: "http"` 配置统一归一为 `streamable-http`，最终向底层只透传 `stdio` 或 `streamable-http`。
 - 状态、健康检查和详情页识别 stdio 托管连接；目录审计禁止 stdio `env` 携带 token、secret、API Key、password 等密钥类变量。
 - 同一连接切换 HTTP/stdio 传输时会清除上一种传输的 URL、Header、命令与环境变量，避免旧配置或凭据残留。
+- 随包目录统一使用“法律合规”“金融投资”等标准分类，并将北大法宝与 Wind 标记为推荐连接器。
 
 ### Security
 
 - stdio 仅允许用户主动配置或安装维护者审核过的市场描述；界面明确提示本地命令执行风险，凭据型环境变量只允许保存在本机连接记录中。
+
+### Verification
+
+- 84 项自动测试、lint 与 45 个 npm 发布文件白名单/敏感内容扫描通过。
+- 使用 DSH Desktop 自带的 `@deepseek-ai/dsh-mcp-client@0.1.1-rc.2` 完成真实 stdio 运行时冒烟：受控本地 MCP 进程成功启动、注册并调用工具，`args`、`env` 与 `cwd` 透传符合预期。
 
 ## [0.2.11] - 2026-08-23
 
