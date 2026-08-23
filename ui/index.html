@@ -123,6 +123,8 @@
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
   .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
   .filter-reset { margin-left: auto; }
+  .category-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .category-chip { flex-shrink: 0; }
 
   /* Grid - TraeWork 风格：3 列 */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
@@ -478,6 +480,7 @@
   let searchQuery = '';
   let marketVendor = '';
   let marketAuth = '';
+  let marketCategory = '';
   const PROMPT_PAGE_SIZE = 4;
   let detailPrompts = [];
   let promptPage = 0;
@@ -710,8 +713,31 @@
     { value: 'none', label: '免密' },
   ];
 
+  const CATEGORIES = [
+    { value: '', label: '全部' },
+    { value: 'recommended', label: '推荐' },
+    { value: '企业数据', label: '企业数据' },
+    { value: '金融投资', label: '金融投资' },
+    { value: '法律合规', label: '法律合规' },
+    { value: '开发工具', label: '开发工具' },
+    { value: '办公协作', label: '办公协作' },
+    { value: '调研分析', label: '调研分析' },
+    { value: '设计创意', label: '设计创意' },
+    { value: '效率工具', label: '效率工具' },
+  ];
+
+  const CATEGORY_MAP = {
+    '企业数据': '企业数据', '金融数据': '金融投资', '金融投资': '金融投资',
+    '法律数据': '法律合规', '法律合规': '法律合规', '开发工具': '开发工具',
+    '办公协作': '办公协作', '调研分析': '调研分析', '设计创意': '设计创意',
+    '数据采集': '效率工具', '效率工具': '效率工具', '通用工具': '其他', '其他': '其他',
+  };
+  function normalizeCategory(c) { return CATEGORY_MAP[c] || '其他'; }
+
   function matchesMarketFilters(d) {
     if (!matchesSearch(d)) return false;
+    if (marketCategory === 'recommended' && !d.featured) return false;
+    if (marketCategory && marketCategory !== 'recommended' && normalizeCategory(d.category) !== marketCategory) return false;
     if (marketVendor && d.vendor !== marketVendor) return false;
     if (marketAuth === 'credential') return ['bearer', 'api-key'].includes(d.authMode);
     if (marketAuth && d.authMode !== marketAuth) return false;
@@ -719,12 +745,13 @@
   }
 
   function marketFilterHtml(items) {
+    const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(cat.label)}</button>`).join('');
     const vendors = [...new Set(items.map((item) => item.vendor).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, 'zh-CN'));
     const vendorOptions = [`<option value="">全部服务商</option>`, ...vendors.map((vendor) => `<option value="${esc(vendor)}" ${vendor === marketVendor ? 'selected' : ''}>${esc(vendor)}</option>`)].join('');
     const authButtons = AUTH_FILTERS.map((filter) => `<button class="filter-chip ${filter.value === marketAuth ? 'active' : ''}" type="button" data-auth-filter="${esc(filter.value)}" aria-pressed="${filter.value === marketAuth ? 'true' : 'false'}">${esc(filter.label)}</button>`).join('');
-    const active = Boolean(marketVendor || marketAuth);
-    return `<div class="market-filters" role="group" aria-label="市场筛选"><span class="filter-label">服务商</span><select id="market-vendor-filter" aria-label="按服务商筛选">${vendorOptions}</select><span class="filter-label">接入方式</span><div class="filter-chips" role="group" aria-label="按接入方式筛选">${authButtons}</div><button class="text-btn filter-reset" id="market-filter-reset" type="button" ${active ? '' : 'hidden'}>清除筛选</button></div>`;
+    const active = Boolean(marketVendor || marketAuth || marketCategory);
+    return `<div class="market-filters" role="group" aria-label="市场筛选"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div><span class="filter-label">服务商</span><select id="market-vendor-filter" aria-label="按服务商筛选">${vendorOptions}</select><span class="filter-label">接入方式</span><div class="filter-chips" role="group" aria-label="按接入方式筛选">${authButtons}</div><button class="text-btn filter-reset" id="market-filter-reset" type="button" ${active ? '' : 'hidden'}>清除筛选</button></div>`;
   }
 
   async function loadMarket({ checkHealth = true } = {}) {
@@ -739,7 +766,8 @@
     const count = filtered.length;
     const visible = filtered.slice(0, catalogRenderLimit);
     const authLabel = AUTH_FILTERS.find((filter) => filter.value === marketAuth)?.label;
-    const filterSummary = `${marketVendor ? ` · 服务商「${esc(marketVendor)}」` : ''}${marketAuth ? ` · 接入方式「${esc(authLabel)}」` : ''}`;
+    const categoryLabel = CATEGORIES.find((cat) => cat.value === marketCategory)?.label;
+    const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」` : ''}${marketVendor ? ` · 服务商「${esc(marketVendor)}」` : ''}${marketAuth ? ` · 接入方式「${esc(authLabel)}」` : ''}`;
     const resultHtml = visible.length > 0
       ? `<div class="grid">${visible.map(cardHtml).join('')}</div>${visible.length < count ? `<button class="tools-more" id="catalog-more" type="button">再显示 ${Math.min(60, count - visible.length)} 个（剩余 ${count - visible.length}）</button>` : ''}`
       : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
@@ -1292,6 +1320,13 @@
 
   $('#add-connection').addEventListener('click', () => openAddConnection('json'));
   main.addEventListener('click', (event) => {
+    const categoryFilter = event.target.closest('[data-category-filter]');
+    if (categoryFilter) {
+      marketCategory = categoryFilter.dataset.categoryFilter || '';
+      catalogRenderLimit = 60;
+      loadMarket({ checkHealth: false });
+      return;
+    }
     const authFilter = event.target.closest('[data-auth-filter]');
     if (authFilter) {
       marketAuth = authFilter.dataset.authFilter || '';
@@ -1302,6 +1337,7 @@
     if (event.target.closest('#market-filter-reset')) {
       marketVendor = '';
       marketAuth = '';
+      marketCategory = '';
       catalogRenderLimit = 60;
       loadMarket({ checkHealth: false });
       return;
