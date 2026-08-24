@@ -172,6 +172,75 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   await oauth.close();
 });
 
+test('OAuth DCR client_secret_post/basic：换取、刷新和撤销均使用动态客户端密钥且不对外泄露', { timeout: 30000 }, async () => {
+  for (const tokenEndpointAuthMethod of ['client_secret_post', 'client_secret_basic']) {
+    const oauth = await createMockQccServer({
+      tokenResources: ['company'],
+      tokenEndpointAuthMethod,
+    });
+    const { ctx, tools, logs, tables } = makePluginContext();
+    const { apply } = await import('../lib/index.js');
+    const connector = {
+      id: `oauth-${tokenEndpointAuthMethod}`,
+      name: `OAuth ${tokenEndpointAuthMethod}`,
+      category: '开发工具',
+      auth: {
+        mode: 'oauth2-pkce',
+        issuer: oauth.base,
+        scope: 'mcp:tools',
+        clientName: 'dcr-secret-test',
+        tokenEndpointAuthMethod,
+      },
+      servers: [{
+        serverKey: 'company',
+        url: `${oauth.base}/mcp/company/stream`,
+        serverName: `oauth-${tokenEndpointAuthMethod}`,
+        transport: 'streamable-http',
+        headers: {},
+      }],
+    };
+
+    try {
+      await apply(ctx, baseConfig({ connectors: [connector] }));
+      const pending = tools.defs.get('mcp_connector_connect').execute({ connectorId: connector.id }, { signal: undefined });
+      await autoApprove(logs);
+      const connected = await pending;
+      assert.equal(connected.ok, true, connected.message);
+
+      const grants = [...tables.get('grants').entries()];
+      assert.equal(grants.length, 1);
+      assert.equal(grants[0][1].clientSecret, oauth.state.clientSecret);
+      assert.equal(grants[0][1].tokenEndpointAuthMethod, tokenEndpointAuthMethod);
+
+      const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: connector.id });
+      const status = await tools.defs.get('mcp_connector_status').execute({});
+      const publicOutput = JSON.stringify({ connected, catalog, status, logs });
+      assert.doesNotMatch(publicOutput, new RegExp(oauth.state.clientSecret));
+
+      const { discoverServerMetadata, refreshAccessToken } = await import('../lib/oauth.js');
+      const metadata = await discoverServerMetadata(oauth.base, 5000);
+      const refreshed = await refreshAccessToken(metadata.tokenEndpoint, {
+        clientId: grants[0][1].clientId,
+        clientSecret: grants[0][1].clientSecret,
+        tokenEndpointAuthMethod: grants[0][1].tokenEndpointAuthMethod,
+        refreshToken: grants[0][1].refreshToken,
+        resource: grants[0][1].authorizedResources[0],
+        scope: grants[0][1].scope,
+        timeoutMs: 5000,
+      });
+      assert.ok(refreshed.accessToken.length > 0);
+      assert.equal(oauth.state.refreshCount, 1);
+
+      const disconnected = await tools.defs.get('mcp_connector_disconnect').execute({ key: `${connector.id}-company` }, { signal: undefined });
+      assert.equal(disconnected.ok, true, disconnected.message);
+      assert.ok(oauth.state.clientAuthMethods.length >= 3, '应至少覆盖 code exchange、refresh、revoke');
+      assert.ok(oauth.state.clientAuthMethods.every((method) => method === tokenEndpointAuthMethod));
+    } finally {
+      await oauth.close();
+    }
+  }
+});
+
 test('同一连接器并发点击 OAuth 连接时只发起一次授权', { timeout: 30000 }, async () => {
   const oauth = await createMockQccServer({ tokenResources: ['company'] });
   const { ctx, tools, logs, tables } = makePluginContext();
@@ -417,6 +486,74 @@ test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-cl
   assert.equal(imported.ok, true, imported.message);
   assert.equal(loader.entries.get('mcp-json-memory').options.config.transport, 'stdio');
   assert.equal(loader.entries.get('mcp-json-memory').options.config.command, 'npx');
+});
+
+test('stdio 市场凭据绑定：多字段只在本机注入 env，目录和状态不返回真实值', { timeout: 15000 }, async () => {
+  const connector = {
+    id: 'stdio-secure-market',
+    name: 'Stdio Secure Market',
+    auth: {
+      mode: 'api-key',
+      credentialFields: [
+        { key: 'apiToken', label: 'API Token', required: true, secret: true },
+        { key: 'region', label: '区域', required: true, secret: false },
+      ],
+    },
+    servers: [{
+      serverKey: 'main',
+      transport: 'stdio',
+      serverName: 'stdio-secure-market',
+      command: 'uvx',
+      args: ['vendor-mcp'],
+      env: { LOG_LEVEL: 'info' },
+      credentialBindings: { VENDOR_API_TOKEN: 'apiToken', VENDOR_REGION: 'region' },
+    }],
+  };
+  const { ctx, loader, tools, tables, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors: [connector] }));
+
+  const connect = await tools.defs.get('mcp_connector_connect').execute({ connectorId: connector.id }, { signal: undefined });
+  assert.equal(connect.ok, false);
+  assert.equal(connect.detail.transport, 'stdio');
+  assert.equal(connect.detail.command, 'uvx');
+  assert.equal(connect.detail.credentialFields.length, 2);
+
+  const missing = await tools.defs.get('mcp_connector_configure').execute({
+    connectorId: connector.id,
+    credentialValues: { apiToken: 'stdio-local-secret' },
+  });
+  assert.equal(missing.ok, false);
+  assert.match(missing.message, /区域 必填/);
+  assert.equal([...tables.get('connections').entries()].length, 0);
+
+  const configured = await tools.defs.get('mcp_connector_configure').execute({
+    connectorId: connector.id,
+    credentialValues: { apiToken: 'stdio-local-secret', region: 'cn-east-1' },
+  });
+  assert.equal(configured.ok, true, configured.message);
+  assert.deepEqual(loader.entries.get('mcp-stdio-secure-market-main').options.config, {
+    transport: 'stdio',
+    serverName: 'stdio-secure-market',
+    command: 'uvx',
+    args: ['vendor-mcp'],
+    env: {
+      LOG_LEVEL: 'info',
+      VENDOR_API_TOKEN: 'stdio-local-secret',
+      VENDOR_REGION: 'cn-east-1',
+    },
+    cwd: process.cwd(),
+    failOnStartupError: false,
+  });
+  assert.equal([...tables.get('connections').entries()][0][1].env.VENDOR_API_TOKEN, 'stdio-local-secret');
+
+  const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: connector.id });
+  const status = await tools.defs.get('mcp_connector_status').execute({});
+  assert.deepEqual(catalog.detail.items[0].servers[0].credentialBindings, {
+    VENDOR_API_TOKEN: 'apiToken',
+    VENDOR_REGION: 'region',
+  });
+  assert.doesNotMatch(JSON.stringify({ connect, configured, catalog, status, logs }), /stdio-local-secret/);
 });
 
 test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { timeout: 15000 }, async () => {

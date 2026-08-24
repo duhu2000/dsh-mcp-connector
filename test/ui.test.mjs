@@ -58,7 +58,10 @@ test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /preset\.credentialPlaceholder/);
   assert.match(uiSource, /preset\.credentialDescription/);
   assert.match(uiSource, /preset\.credentialHelpLabel/);
-  assert.match(uiSource, /connectorId,\s*authMode,\s*bearerToken/);
+  assert.match(uiSource, /preset\.credentialFields/);
+  assert.match(uiSource, /data-credential-key=/);
+  assert.match(uiSource, /field\.secret === false \? 'text' : 'password'/);
+  assert.match(uiSource, /connectorId,\s*authMode,\s*credentialValues,\s*bearerToken/);
 });
 
 test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {

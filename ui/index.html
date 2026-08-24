@@ -924,15 +924,31 @@
   function openCatalogCredentialForm(preset) {
     const authMode = preset.authMode === 'api-key' ? 'api-key' : 'bearer';
     const servers = preset.servers || [];
+    const usesStdio = servers.some((server) => server.transport === 'stdio');
     const homepage = /^https:\/\//i.test(preset.homepage || '') ? preset.homepage : '';
     const credentialName = preset.credentialName || (authMode === 'bearer' ? 'Bearer Token' : 'API Key');
     const credentialPlaceholder = preset.credentialPlaceholder || '仅保存在 DSH 本机';
     const credentialDescription = preset.credentialDescription || '凭据仅保存在 DSH 本机，不会写入市场目录或对话。';
     const credentialHelpLabel = preset.credentialHelpLabel || `前往 ${preset.vendor || preset.name} 官网获取`;
-    const credentialFields = authMode === 'bearer'
-      ? `<label for="cfg-token">${esc(credentialName)}（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
-      : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
-    const serverPreview = servers.map((server) => `<div>${esc(server.serverName)} · ${esc(server.url)}</div>`).join('');
+    const declaredFields = preset.credentialFields?.length ? preset.credentialFields : [{
+      key: 'credential', label: credentialName, placeholder: credentialPlaceholder,
+      description: credentialDescription, required: true, secret: true,
+    }];
+    const stdioCredentialFields = declaredFields.map((field) => {
+      const id = `cfg-credential-${field.key}`;
+      return `<label for="${esc(id)}">${esc(field.label)}${field.required === false ? '（可选）' : '（必填）'}</label><input id="${esc(id)}" data-credential-key="${esc(field.key)}" type="${field.secret === false ? 'text' : 'password'}" autocomplete="off" placeholder="${esc(field.placeholder || '仅保存在 DSH 本机')}" />${field.description ? `<div class="field-help">${esc(field.description)}</div>` : ''}`;
+    }).join('');
+    const credentialFields = usesStdio
+      ? stdioCredentialFields
+      : authMode === 'bearer'
+        ? `<label for="cfg-token">${esc(credentialName)}（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
+        : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
+    const serverPreview = servers.map((server) => {
+      const endpoint = server.transport === 'stdio'
+        ? `stdio · ${server.command || ''} ${(server.args || []).join(' ')}`.trim()
+        : server.url;
+      return `<div>${esc(server.serverName)} · ${esc(endpoint)}</div>`;
+    }).join('');
     openModal(`配置 ${preset.name}`, `
       <input id="cfg-connector-id" type="hidden" value="${esc(preset.id)}" />
       <input id="cfg-auth" type="hidden" value="${esc(authMode)}" />
@@ -1067,10 +1083,15 @@
       const connectorId = $('#cfg-connector-id')?.value.trim();
       const authMode = $('#cfg-auth').value;
       if (connectorId) {
+        const credentialValues = {};
+        document.querySelectorAll('[data-credential-key]').forEach((input) => {
+          credentialValues[input.dataset.credentialKey] = input.value;
+        });
         setModalBusy(true, '正在验证凭据与连接…');
         const r = await call('configure', {
           connectorId,
           authMode,
+          credentialValues,
           bearerToken: $('#cfg-token')?.value || undefined,
           apiKeyHeader: $('#cfg-key-header')?.value || undefined,
           apiKeyValue: $('#cfg-key-value')?.value || undefined,

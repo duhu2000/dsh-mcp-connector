@@ -41,8 +41,14 @@ function readBody(req) {
  * @param {number} [options.expiresIn=3600]
  * @param {string[]} [options.tokenResources] 若提供，签发的 access_token 为带 resource claim 的 JWT（值传 server key 数组，如 ['company','risk',...]，模拟企业认证授权范围）
  * @param {boolean} [options.uniqueClientIds=false] 每次动态注册签发不同 client_id，用于验证重新授权后的旧 grant 清理
+ * @param {'none'|'client_secret_post'|'client_secret_basic'} [options.tokenEndpointAuthMethod='none'] DCR 返回的客户端鉴权方式
  */
-export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueClientIds = false } = {}) {
+export function createMockQccServer({
+  expiresIn = 3600,
+  tokenResources,
+  uniqueClientIds = false,
+  tokenEndpointAuthMethod = 'none',
+} = {}) {
   const state = {
     clientId: 'wb_dyn_mock_0001',
     registrationCount: 0,
@@ -52,6 +58,35 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
     revokedRefresh: new Set(),
     expiresIn,
     tokenResources,
+    tokenEndpointAuthMethod,
+    clientSecret: 'mock-dynamic-client-secret',
+    clients: new Map(),
+    refreshCount: 0,
+    clientAuthMethods: [],
+  };
+
+  const decodeFormComponent = (value) => decodeURIComponent(String(value).replace(/\+/g, ' '));
+  const authenticateClient = (req, params) => {
+    let clientId;
+    let clientSecret;
+    if (tokenEndpointAuthMethod === 'client_secret_basic') {
+      const header = req.headers.authorization ?? '';
+      if (!header.startsWith('Basic ')) return null;
+      let decoded;
+      try { decoded = Buffer.from(header.slice(6), 'base64').toString('utf8'); } catch { return null; }
+      const colon = decoded.indexOf(':');
+      if (colon === -1) return null;
+      clientId = decodeFormComponent(decoded.slice(0, colon));
+      clientSecret = decodeFormComponent(decoded.slice(colon + 1));
+    } else {
+      clientId = params.get('client_id');
+      clientSecret = params.get('client_secret');
+    }
+    const registeredClient = state.clients.get(clientId);
+    if (!registeredClient) return null;
+    if (tokenEndpointAuthMethod !== 'none' && clientSecret !== registeredClient.clientSecret) return null;
+    state.clientAuthMethods.push(tokenEndpointAuthMethod);
+    return clientId;
   };
 
   /** 生成 access_token：tokenResources（server key 数组）提供时为 JWT（payload.resource），否则为普通字符串 */
@@ -82,7 +117,7 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
         response_types_supported: ['code'],
         grant_types_supported: ['authorization_code', 'refresh_token'],
         code_challenge_methods_supported: ['S256'],
-        token_endpoint_auth_methods_supported: ['none'],
+        token_endpoint_auth_methods_supported: [tokenEndpointAuthMethod],
         scopes_supported: SCOPES,
       });
     }
@@ -122,18 +157,28 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
         redirectUris: body.redirect_uris,
         grantTypes,
         responseTypes: body.response_types ?? ['code'],
+        tokenEndpointAuthMethod: body.token_endpoint_auth_method ?? 'none',
       };
+      if (state.registered.tokenEndpointAuthMethod !== tokenEndpointAuthMethod) {
+        return oauthError(res, 'invalid_client_metadata', `token_endpoint_auth_method must be ${tokenEndpointAuthMethod}`);
+      }
       state.registrationCount += 1;
       if (uniqueClientIds) state.clientId = `wb_dyn_mock_${String(state.registrationCount).padStart(4, '0')}`;
-      return json(res, 200, {
+      state.clients.set(state.clientId, { clientSecret: state.clientSecret, tokenEndpointAuthMethod });
+      const registration = {
         client_id: state.clientId,
         client_id_issued_at: Math.floor(Date.now() / 1000),
         client_name: body.client_name,
         redirect_uris: body.redirect_uris,
         grant_types: grantTypes,
         response_types: body.response_types ?? ['code'],
-        token_endpoint_auth_method: 'none',
-      });
+        token_endpoint_auth_method: tokenEndpointAuthMethod,
+      };
+      if (tokenEndpointAuthMethod !== 'none') {
+        registration.client_secret = state.clientSecret;
+        registration.client_secret_expires_at = 0;
+      }
+      return json(res, 200, registration);
     }
 
     // ── 授权页 ──
@@ -162,12 +207,14 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
     // ── Token ──
     if (pathname === '/oauth/token' && req.method === 'POST') {
       const params = new URLSearchParams(await readBody(req));
+      const authenticatedClientId = authenticateClient(req, params);
+      if (!authenticatedClientId) return oauthError(res, 'invalid_client', 'client authentication failed', 401);
       const grantType = params.get('grant_type');
       if (grantType === 'authorization_code') {
         const code = params.get('code');
         const record = state.codes.get(code);
         if (!record || record.used) return oauthError(res, 'invalid_grant', 'authorization code invalid or already used');
-        if (record.clientId !== params.get('client_id')) return oauthError(res, 'invalid_grant', 'client_id mismatch');
+        if (record.clientId !== authenticatedClientId) return oauthError(res, 'invalid_grant', 'client_id mismatch');
         if (record.redirectUri !== params.get('redirect_uri')) return oauthError(res, 'invalid_grant', 'redirect_uri mismatch');
         const verifier = params.get('code_verifier');
         if (!verifier || sha256b64url(verifier) !== record.challenge) return oauthError(res, 'invalid_grant', 'PKCE verification failed');
@@ -186,11 +233,12 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
       if (grantType === 'refresh_token') {
         const refreshToken = params.get('refresh_token');
         const record = state.refreshTokens.get(refreshToken);
-        if (!record || state.revokedRefresh.has(refreshToken) || record.clientId !== params.get('client_id')) {
+        if (!record || state.revokedRefresh.has(refreshToken) || record.clientId !== authenticatedClientId) {
           return oauthError(res, 'invalid_grant', 'refresh token invalid or expired');
         }
         // 轮换：作废旧 refresh token，签发新的一对（文档 §12.1）
         state.refreshTokens.delete(refreshToken);
+        state.refreshCount += 1;
         const newRefreshToken = randomBytes(24).toString('base64url');
         const accessToken = makeAccessToken();
         state.refreshTokens.set(newRefreshToken, { accessToken, clientId: record.clientId, expiresIn: state.expiresIn });
@@ -208,6 +256,7 @@ export function createMockQccServer({ expiresIn = 3600, tokenResources, uniqueCl
     // ── Revoke ──
     if (pathname === '/oauth/revoke' && req.method === 'POST') {
       const params = new URLSearchParams(await readBody(req));
+      if (!authenticateClient(req, params)) return oauthError(res, 'invalid_client', 'client authentication failed', 401);
       const token = params.get('token');
       if (params.get('token_type_hint') !== 'refresh_token') return oauthError(res, 'unsupported_token_type', 'only refresh_token hint supported');
       if (state.refreshTokens.has(token)) {
