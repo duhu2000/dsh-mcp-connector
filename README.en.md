@@ -28,7 +28,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Explicit, non-destructive migration of authorization from the two earlier Qichacha OAuth plugins.
 
-The first four bundled cards are Qichacha connectors, followed by PKULaw and Wind. After a remote Registry refresh, Yingmi, QVeris, Bazhuayu Cloud Collection, GitHub, Cloudflare, Notion, Tavily, and the Ace Data Cloud-hosted Seedream connector are also available, for 14 published marketplace cards after deduplication. Recommendations are limited to the four Qichacha cards, PKULaw, and Wind; all other connectors remain discoverable in their business categories.
+As of August 24, 2026, the public Registry publishes 61 connector descriptors. After merging and deduplicating them with the four bundled Qichacha cards, the Marketplace exposes 65 cards across nine business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for six featured cards in total. The Registry can evolve independently, so the badge shown after a client refresh is the authoritative current count.
 
 ## Interface and demo
 
@@ -105,7 +105,7 @@ npm run dev:ui
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
-The current public version is [`dsh-mcp-connector@0.2.18`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.18](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.18).
+The current public version is [`dsh-mcp-connector@0.2.19`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.19](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.19).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
