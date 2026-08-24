@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.19] - 2026-08-24
+
+### Fixed
+
+- 所有对话工具结果在交给 DSH Host 前统一转换为 lossless JSON，清理 `undefined`、非有限数字、`BigInt`、稀疏数组和循环引用，修复 Windows DSH Desktop 的 `value is not lossless JSON` 错误。
+- UI 静态文件路由不再使用平台相关的 `path.normalize` 处理 URL，Windows 下保持正斜杠语义并继续拒绝路径穿越，修复市场 iframe 返回 404。
+
+### Documentation
+
+- 中英文 README 更新为公共 Registry 61 条、与 4 张随包卡片合并后 65 张市场卡片的当前规模；重新采集市场总览并重建 16 秒演示 GIF。
+
+### Verification
+
+- 插件 94 项自动测试、lint、npm 发布文件白名单/敏感内容扫描和 `git diff --check` 通过。
+- 手动执行最新 Registry `main` 的 61 项健康巡检：60 项通过、1 项部分通过；44 个远程 MCP Server 全部可达并识别成功，28 个 stdio Server 按安全策略未执行本地命令。
+
 ## [0.2.18] - 2026-08-24
 
 ### Added
@@ -315,7 +331,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.18...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.19...HEAD
+[0.2.19]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.18...v0.2.19
 [0.2.18]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.16...v0.2.17
 [0.2.16]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.15...v0.2.16

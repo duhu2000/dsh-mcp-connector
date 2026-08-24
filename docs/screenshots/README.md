@@ -1,12 +1,14 @@
 # UI 素材说明
 
 本目录用于保存 `dsh-mcp-connector` 的公开界面截图。素材于 2026-08-24
-从本机 DSH `web` + `dsh-mcp-connector@0.2.16` 验收环境采集，只展示公开市场元数据、
-示例 Prompt 和工具名称/说明，不包含 OAuth Token、API Key、本机路径、用户会话或查询结果。
+从本机 DSH `web` + `dsh-mcp-connector@0.2.18`（0.2.19 未改动市场 UI）验收环境采集；
+远程 Registry 为当日 `main` 的 61 条描述，和 4 张随包卡片合并后市场显示 65 张。画面只展示
+公开市场元数据、示例 Prompt 和工具名称/说明，不包含 OAuth Token、API Key、本机路径、
+用户会话或查询结果。
 
 | 文件 | 展示内容 |
 |---|---|
-| `01-market-overview.jpg` | 14 张市场卡片、推荐章节、9 分类和固定分类栏 |
+| `01-market-overview.jpg` | 65 张合并市场卡片（61 条 Registry + 4 张随包卡片）、推荐章节、9 分类和固定分类栏 |
 | `02-connector-detail.jpg` | Seedream 第三方服务说明、精选 Prompt 和未连接状态 |
 | `03-tool-discovery.jpg` | 北大法宝多 Server 工具数量、描述、搜索和独立滚动区 |
 | `04-json-import.jpg` | Streamable HTTP / stdio JSON 导入与本机凭据提示 |
