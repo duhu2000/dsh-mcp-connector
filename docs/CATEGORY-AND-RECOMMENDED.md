@@ -3,7 +3,9 @@
 > 目标：对标 TraeWork（8 分类 + 推荐 Tab）与 QwenWork（8 分组 + 推荐分组），给 MCP 连接器市场加「分类筛选 + 推荐位」，打造 DSH 最好用的连接器市场。
 > 结论：**后端零改动**，纯 UI 改造 + 数据标准化（`catalog` API 已返回 `category`/`featured`，`listCatalog` 已支持 `category` 参数）。
 > **实施状态（2026-08-23）**：分类筛选、推荐位、category 归一化、随包目录标准化与自动测试均已完成；远程 Registry 的八爪鱼、QVeris、盈米分类也已同步标准化。
-> 状态：已完成（v0.2.12）
+> **跟进调整（2026-08-24）**：根据 WorkBuddy、TraeWork、QwenWork 截图复核，市场筛选精简为“全部 / 推荐 / 业务分类”；移除低价值的服务商和鉴权方式筛选。当前市场已上架连接器全部进入推荐位，新增推荐清单仅在官方 MCP 配置核验通过后上架。
+> **扩充状态（2026-08-24）**：远程 Registry 新增 GitHub、Cloudflare、Notion、Tavily；均使用厂商官方 MCP 配置并通过公开端点/鉴权元数据探针。其余候选项在官方配置或安全凭据注入方案未核实前不发布。
+> 状态：已完成（v0.2.13）
 
 ---
 
@@ -16,7 +18,7 @@
 | TraeWork | 顶部 8 分类 Tab | ✅「推荐」默认首位 |
 | QwenWork | 左侧 8 分组 | ✅「推荐/系统级」默认首位 |
 | WorkBuddy | 三维 Tab（专家/技能/连接器） | ⚠️ 无独立推荐 |
-| **我们（现状）** | ❌ 只有「市场/已安装」+ 搜索 + 服务商/接入方式筛选 | ❌ 无 |
+| **我们（现状）** | ✅ 顶部“全部 / 推荐 / 9 个业务分类”横向筛选条 | ✅ 所有已上架连接器均为推荐 |
 
 ### 1.2 目标
 
@@ -33,14 +35,12 @@
 - `lib/index.js` `catalog()`（L308-353）：返回的每个 item **已含 `category`（L316）和 `featured`（L320）字段**
 - `lib/catalog.js` `listCatalog()`（L105-119）：**已支持 `category` 参数过滤**，且已按 `featured` 排序（精选位优先）
 
-### 2.2 前端能力（已具备部分）
+### 2.2 前端能力（已完成）
 
-- `ui/index.html` 已有「服务商」+「接入方式」筛选：
-  - 状态变量：`marketVendor`（L474）、`marketAuth`（L475）
-  - 过滤函数：`matchesMarketFilters`（L706-712）
-  - 渲染函数：`marketFilterHtml`（L714-721）
-  - 事件委托：`main` click（L1260-1279）、change（L1280-1285）
-- **缺失**：分类筛选、推荐 Tab
+- `ui/index.html` 已实现“全部 / 推荐 / 9 个业务分类”筛选，并可与全文搜索组合。
+- `recommended` 仅匹配 `featured=true`；业务分类先经过 `normalizeCategory()` 归一化。
+- 分类 chips 单行横向滚动，避免在窄屏上撑高首屏。
+- 已移除服务商与接入方式筛选，市场首屏仅保留分类这一条主导航。
 
 ### 2.3 现有 category 值（需标准化）
 
@@ -51,7 +51,9 @@
 
 ### 2.4 现有 featured 值
 
-- 仅 `qcc-company` 为 `featured: true`，其余均为 `false`
+- 随包目录 6 条已发布连接器全部为 `featured: true`。
+- 远程 Registry 9 条已发布连接器全部为 `featured: true`。
+- 合并去重后的市场当前共 13 条连接器，均进入推荐位。
 
 ---
 
@@ -71,6 +73,7 @@ const CATEGORIES = [
   { value: '调研分析',   label: '调研分析' },  // 市场/竞品/行业/搜索
   { value: '设计创意',   label: '设计创意' },  // UI/设计/视频/图片
   { value: '效率工具',   label: '效率工具' },  // 系统/采集/地图/表单
+  { value: '其他',       label: '其他' },      // 不能安全归入前述类别的通用能力
 ];
 ```
 
@@ -138,31 +141,27 @@ function normalizeCategory(c) { return CATEGORY_MAP[c] || '其他'; }
 
 | 分类 | 推荐连接器（featured=true） |
 |------|---------------------------|
-| 企业数据 | `qcc-company`（已打标 ✅）—— 仅企查查生态，**不收录竞品**（见 §3.1.1） |
-| 金融投资 | `wind-stock-data`（建议） |
-| 法律合规 | `pkulaw-legal`（建议） |
-| 效率工具 | `bazhuayu-cloud-collection`（建议，八爪鱼） |
+| 企业数据 | `qcc-company`、`qcc-legal`、`qcc-tender`、`qcc-document` —— 仅企查查生态，**不收录竞品**（见 §3.1.1） |
+| 金融投资 | `wind-stock-data`、`yingmi-wealth-management` |
+| 法律合规 | `pkulaw-legal` |
+| 开发工具 | `github`、`cloudflare-api` |
+| 办公协作 | `notion` |
+| 调研分析 | `tavily-search` |
+| 效率工具 | `bazhuayu-cloud-collection` |
+| 其他 | `qveris-capability-network` |
 
-> 其余分类（开发工具/办公协作/调研分析/设计创意）当前无对应连接器，待后续上架时再打标。
+> 设计创意暂未上架可验证的官方 MCP 连接器。其余候选清单不是占位数据：只有官方 endpoint、transport 和鉴权方式均核验通过后才进入公共 Registry。
 > 「企业数据」分类**不接受竞品**（天眼查/启信慧眼/企百科/水滴征信/同花顺快查/上奇产业通/天创信用星图等），即使后续有厂商申请上架也一律拒绝。
 
 ---
 
-## 五、UI 改动（`ui/index.html`，精确代码）
+## 五、UI 实现（`ui/index.html`）
 
-### 5.1 状态变量（L474-475 后新增）
-
-```js
-let marketVendor = '';
-let marketAuth = '';
-let marketCategory = '';   // 新增：'' 全部 | 'recommended' 推荐 | 或具体分类名
-```
-
-### 5.2 分类常量 + 映射（L699 `AUTH_FILTERS` 定义附近新增）
-
-在 `const AUTH_FILTERS = [...]`（L699-704）之前或之后加：
+### 5.1 状态、分类常量与归一化
 
 ```js
+let marketCategory = ''; // '' 全部 | 'recommended' 推荐 | 或具体分类名
+
 const CATEGORIES = [
   { value: '', label: '全部' },
   { value: 'recommended', label: '推荐' },
@@ -174,6 +173,7 @@ const CATEGORIES = [
   { value: '调研分析', label: '调研分析' },
   { value: '设计创意', label: '设计创意' },
   { value: '效率工具', label: '效率工具' },
+  { value: '其他', label: '其他' },
 ];
 const CATEGORY_MAP = {
   '企业数据': '企业数据', '金融数据': '金融投资', '金融投资': '金融投资',
@@ -184,55 +184,27 @@ const CATEGORY_MAP = {
 function normalizeCategory(c) { return CATEGORY_MAP[c] || '其他'; }
 ```
 
-### 5.3 过滤函数 `matchesMarketFilters`（L706-712 改）
+### 5.2 分类与推荐过滤
 
-**改前**：
-```js
-function matchesMarketFilters(d) {
-  if (!matchesSearch(d)) return false;
-  if (marketVendor && d.vendor !== marketVendor) return false;
-  if (marketAuth === 'credential') return ['bearer', 'api-key'].includes(d.authMode);
-  if (marketAuth && d.authMode !== marketAuth) return false;
-  return true;
-}
-```
-
-**改后**（加 category + 推荐过滤）：
 ```js
 function matchesMarketFilters(d) {
   if (!matchesSearch(d)) return false;
   if (marketCategory === 'recommended' && !d.featured) return false;
   if (marketCategory && marketCategory !== 'recommended' && normalizeCategory(d.category) !== marketCategory) return false;
-  if (marketVendor && d.vendor !== marketVendor) return false;
-  if (marketAuth === 'credential') return ['bearer', 'api-key'].includes(d.authMode);
-  if (marketAuth && d.authMode !== marketAuth) return false;
   return true;
 }
 ```
 
-### 5.4 渲染函数 `marketFilterHtml`（L714-721 改）
-
-**改后**（加分类 Tab 条，放在筛选区最前）：
+### 5.3 渲染分类条
 
 ```js
-function marketFilterHtml(items) {
+function marketFilterHtml() {
   const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(cat.label)}</button>`).join('');
-  const vendors = [...new Set(items.map((item) => item.vendor).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
-  const vendorOptions = [`<option value="">全部服务商</option>`, ...vendors.map((vendor) => `<option value="${esc(vendor)}" ${vendor === marketVendor ? 'selected' : ''}>${esc(vendor)}</option>`)].join('');
-  const authButtons = AUTH_FILTERS.map((filter) => `<button class="filter-chip ${filter.value === marketAuth ? 'active' : ''}" type="button" data-auth-filter="${esc(filter.value)}" aria-pressed="${filter.value === marketAuth ? 'true' : 'false'}">${esc(filter.label)}</button>`).join('');
-  const active = Boolean(marketVendor || marketAuth || marketCategory);
-  return `<div class="market-filters" role="group" aria-label="市场筛选">
-    <div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div>
-    <span class="filter-label">服务商</span><select id="market-vendor-filter" aria-label="按服务商筛选">${vendorOptions}</select>
-    <span class="filter-label">接入方式</span><div class="filter-chips" role="group" aria-label="按接入方式筛选">${authButtons}</div>
-    <button class="text-btn filter-reset" id="market-filter-reset" type="button" ${active ? '' : 'hidden'}>清除筛选</button>
-  </div>`;
+  return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
 }
 ```
 
-### 5.5 事件委托（L1260-1279 的 `main` click 加分类）
-
-在 `authFilter` 判断**之前**加（或之后，顺序无影响）：
+### 5.4 事件委托
 
 ```js
 main.addEventListener('click', (event) => {
@@ -243,39 +215,24 @@ main.addEventListener('click', (event) => {
     loadMarket({ checkHealth: false });
     return;
   }
-  const authFilter = event.target.closest('[data-auth-filter]');
-  // ...（现有逻辑不变）
 });
 ```
 
-### 5.6 清除筛选（L1268-1274 加重置）
-
-```js
-if (event.target.closest('#market-filter-reset')) {
-  marketVendor = '';
-  marketAuth = '';
-  marketCategory = '';   // 新增
-  catalogRenderLimit = 60;
-  loadMarket({ checkHealth: false });
-  return;
-}
-```
-
-### 5.7 筛选摘要（L735 的 `filterSummary` 加分类）
+### 5.5 筛选摘要
 
 ```js
 const categoryLabel = CATEGORIES.find((c) => c.value === marketCategory)?.label;
-const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」` : ''}${marketVendor ? ` · 服务商「${esc(marketVendor)}」` : ''}${marketAuth ? ` · 接入方式「${esc(authLabel)}」` : ''}`;
+const filterSummary = marketCategory ? ` · 分类「${esc(categoryLabel)}」` : '';
 ```
 
-### 5.8 CSS（分类 chips 横向滚动，L118-124 附近加）
+### 5.6 CSS（分类 chips 横向滚动）
 
 ```css
 .category-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
 .category-chip { flex-shrink: 0; }
 ```
 
-> 可选：分类 chips 数量多（10 个）时横向滚动，避免换行撑高页面。若希望换行展示，去掉 `nowrap` 和 `overflow-x`。
+分类 chips 数量多时横向滚动，避免换行撑高页面。
 
 ---
 
@@ -305,8 +262,8 @@ const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」
 
 1. **推荐 Tab**：点「推荐」→ 只显示 `featured=true` 的连接器
 2. **分类 Tab**：点「金融投资」→ 显示 Wind、盈米（含旧值 `金融数据` 的连接器，通过归一化映射）
-3. **组合筛选**：分类 + 服务商 + 接入方式 + 搜索可组合
-4. **清除筛选**：一键重置分类/服务商/接入方式
+3. **组合筛选**：分类与全文搜索可组合
+4. **精简首屏**：不再显示服务商下拉框、接入方式标签和清除筛选按钮
 5. **回归**：现有「市场/已安装」切换、搜索、连接、详情弹框不受影响
 6. **`npm run check`** 全绿
 
@@ -316,7 +273,7 @@ const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」
 
 | 文件 | 改动 | 工作量 |
 |------|------|-------|
-| `ui/index.html` | 分类 Tab 条 + 推荐过滤（§5） | 低（约 40 行） |
+| `ui/index.html` | 分类 Tab 条 + 推荐过滤，并移除服务商/接入方式筛选（§5） | 低 |
 | `catalog/catalog.json` | category 标准化 + featured 打标 | 低 |
 | `registry/catalog.json` | category 标准化 | 低 |
 | 远程 registry（dsh-mcp-connector-registry） | category 标准化 + featured 打标 | 低 |
@@ -328,12 +285,13 @@ const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」
 
 ## 九、后续衔接
 
-1. 分类 + 推荐上线后，配合 §二 的「连接器上架」运营（先上企业数据/金融/法律的 API Key 型推荐连接器）
-2. stdio 支持完成后，开发工具/办公协作/设计创意类连接器上架，对应分类自然填满
-3. 市场卡片可进一步增强：直接展示 1-2 条示例 Prompt（降低「接进来不知道干嘛」门槛）
+1. 继续核验候选连接器的厂商官方 MCP 地址、transport、鉴权与动态客户端注册兼容性；未核验项不进入公共市场。
+2. 飞书、钉钉等官方 stdio Server 需要应用密钥；应先实现安全的运行时变量采集与注入，目录文件不得携带密钥。
+3. Vercel、Supabase 当前官方 OAuth 元数据要求受信任或保密客户端，待 DSH OAuth 客户端模型兼容后再上架。
+4. 市场卡片可进一步增强：直接展示 1-2 条示例 Prompt（降低「接进来不知道干嘛」门槛）。
 
 ---
 
-**文档版本**：v1.0
-**生成时间**：2026-08-23
-**插件版本**：v0.2.1（分类 + 推荐上线后建议 bump 0.2.3）
+**文档版本**：v1.1
+**生成时间**：2026-08-23（2026-08-24 更新）
+**插件版本**：v0.2.13

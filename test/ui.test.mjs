@@ -85,23 +85,20 @@ test('市场卡片区分已配置、已连接、重新授权和连接异常', ()
   assert.match(uiSource, /call\('healthCheck', \{\}\)/);
 });
 
-test('市场支持服务商与接入方式组合筛选', () => {
-  assert.match(uiSource, /aria-label="市场筛选"/);
-  assert.match(uiSource, /id="market-vendor-filter" aria-label="按服务商筛选"/);
-  assert.match(uiSource, /const AUTH_FILTERS = \[[\s\S]*?OAuth[\s\S]*?Key \/ Token[\s\S]*?免密/);
-  assert.match(uiSource, /if \(marketAuth === 'credential'\) return \['bearer', 'api-key'\]\.includes\(d\.authMode\)/);
+test('市场只保留推荐与业务分类筛选', () => {
+  assert.match(uiSource, /aria-label="市场分类"/);
   assert.match(uiSource, /items\.filter\(matchesMarketFilters\)/);
-  assert.match(uiSource, /data-auth-filter=/);
-  assert.match(uiSource, /id="market-filter-reset"/);
-  assert.match(uiSource, /main\.addEventListener\('change',[\s\S]*?market-vendor-filter/);
+  assert.doesNotMatch(uiSource, /marketVendor|marketAuth|AUTH_FILTERS/);
+  assert.doesNotMatch(uiSource, /market-vendor-filter|data-auth-filter|market-filter-reset/);
+  assert.doesNotMatch(uiSource, /服务商<\/span>|接入方式<\/span>|全部服务商|全部接入|Key \/ Token|免密/);
 });
 
 test('市场支持分类筛选与推荐位（9 分类 + 推荐）', () => {
   assert.match(uiSource, /const CATEGORIES = \[/);
   assert.match(uiSource, /value: 'recommended', label: '推荐'/);
-  assert.match(uiSource, /value: '企业数据', label: '企业数据'/);
-  assert.match(uiSource, /value: '金融投资', label: '金融投资'/);
-  assert.match(uiSource, /value: '效率工具', label: '效率工具'/);
+  for (const category of ['企业数据', '金融投资', '法律合规', '开发工具', '办公协作', '调研分析', '设计创意', '效率工具', '其他']) {
+    assert.match(uiSource, new RegExp(`value: '${category}', label: '${category}'`));
+  }
   assert.match(uiSource, /function normalizeCategory\(c\)/);
   assert.match(uiSource, /CATEGORY_MAP\[c\] \|\| '其他'/);
   assert.match(uiSource, /marketCategory === 'recommended' && !d\.featured/);

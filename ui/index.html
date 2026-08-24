@@ -105,16 +105,10 @@
   .stats .count { font-size: 13px; color: var(--text-2); }
   .stats .count strong { color: var(--text); font-weight: 600; }
   .market-filters {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    display: flex; align-items: center;
     margin-bottom: 14px; padding: 10px 12px;
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
   }
-  .market-filters .filter-label { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
-  .market-filters select {
-    min-width: 150px; height: 34px; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--bg); color: var(--text); padding: 0 30px 0 10px; font: inherit; font-size: 12px;
-  }
-  .market-filters select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
   .filter-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .filter-chip {
     border: 1px solid var(--line); background: var(--bg); color: var(--text-2);
@@ -122,8 +116,7 @@
   }
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
   .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
-  .filter-reset { margin-left: auto; }
-  .category-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .category-chips { width: 100%; display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
   .category-chip { flex-shrink: 0; }
 
   /* Grid - TraeWork 风格：3 列 */
@@ -370,8 +363,6 @@
     .card .actions { width: 100%; justify-content: flex-end; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .market-filters { align-items: stretch; }
-    .market-filters select { width: 100%; }
-    .filter-reset { margin-left: 0; }
   }
 
   /* Scrollbar */
@@ -478,8 +469,6 @@
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
-  let marketVendor = '';
-  let marketAuth = '';
   let marketCategory = '';
   const PROMPT_PAGE_SIZE = 4;
   let detailPrompts = [];
@@ -706,13 +695,6 @@
       || (d.tags || []).some(t => t.toLowerCase().includes(q));
   }
 
-  const AUTH_FILTERS = [
-    { value: '', label: '全部接入' },
-    { value: 'oauth2-pkce', label: 'OAuth' },
-    { value: 'credential', label: 'Key / Token' },
-    { value: 'none', label: '免密' },
-  ];
-
   const CATEGORIES = [
     { value: '', label: '全部' },
     { value: 'recommended', label: '推荐' },
@@ -724,6 +706,7 @@
     { value: '调研分析', label: '调研分析' },
     { value: '设计创意', label: '设计创意' },
     { value: '效率工具', label: '效率工具' },
+    { value: '其他', label: '其他' },
   ];
 
   const CATEGORY_MAP = {
@@ -738,20 +721,12 @@
     if (!matchesSearch(d)) return false;
     if (marketCategory === 'recommended' && !d.featured) return false;
     if (marketCategory && marketCategory !== 'recommended' && normalizeCategory(d.category) !== marketCategory) return false;
-    if (marketVendor && d.vendor !== marketVendor) return false;
-    if (marketAuth === 'credential') return ['bearer', 'api-key'].includes(d.authMode);
-    if (marketAuth && d.authMode !== marketAuth) return false;
     return true;
   }
 
-  function marketFilterHtml(items) {
+  function marketFilterHtml() {
     const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(cat.label)}</button>`).join('');
-    const vendors = [...new Set(items.map((item) => item.vendor).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, 'zh-CN'));
-    const vendorOptions = [`<option value="">全部服务商</option>`, ...vendors.map((vendor) => `<option value="${esc(vendor)}" ${vendor === marketVendor ? 'selected' : ''}>${esc(vendor)}</option>`)].join('');
-    const authButtons = AUTH_FILTERS.map((filter) => `<button class="filter-chip ${filter.value === marketAuth ? 'active' : ''}" type="button" data-auth-filter="${esc(filter.value)}" aria-pressed="${filter.value === marketAuth ? 'true' : 'false'}">${esc(filter.label)}</button>`).join('');
-    const active = Boolean(marketVendor || marketAuth || marketCategory);
-    return `<div class="market-filters" role="group" aria-label="市场筛选"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div><span class="filter-label">服务商</span><select id="market-vendor-filter" aria-label="按服务商筛选">${vendorOptions}</select><span class="filter-label">接入方式</span><div class="filter-chips" role="group" aria-label="按接入方式筛选">${authButtons}</div><button class="text-btn filter-reset" id="market-filter-reset" type="button" ${active ? '' : 'hidden'}>清除筛选</button></div>`;
+    return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
   }
 
   async function loadMarket({ checkHealth = true } = {}) {
@@ -765,13 +740,12 @@
     const filtered = items.filter(matchesMarketFilters);
     const count = filtered.length;
     const visible = filtered.slice(0, catalogRenderLimit);
-    const authLabel = AUTH_FILTERS.find((filter) => filter.value === marketAuth)?.label;
     const categoryLabel = CATEGORIES.find((cat) => cat.value === marketCategory)?.label;
-    const filterSummary = `${marketCategory ? ` · 分类「${esc(categoryLabel)}」` : ''}${marketVendor ? ` · 服务商「${esc(marketVendor)}」` : ''}${marketAuth ? ` · 接入方式「${esc(authLabel)}」` : ''}`;
+    const filterSummary = marketCategory ? ` · 分类「${esc(categoryLabel)}」` : '';
     const resultHtml = visible.length > 0
       ? `<div class="grid">${visible.map(cardHtml).join('')}</div>${visible.length < count ? `<button class="tools-more" id="catalog-more" type="button">再显示 ${Math.min(60, count - visible.length)} 个（剩余 ${count - visible.length}）</button>` : ''}`
       : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
-    main.innerHTML = `${marketFilterHtml(items)}<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''}${filterSummary} · 点击卡片查看能力，点击「连接」完成授权</span></div>${resultHtml}`;
+    main.innerHTML = `${marketFilterHtml()}<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''}${filterSummary} · 点击卡片查看能力，点击「连接」完成授权</span></div>${resultHtml}`;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
       call('healthCheck', {}).then(() => {
@@ -1327,33 +1301,11 @@
       loadMarket({ checkHealth: false });
       return;
     }
-    const authFilter = event.target.closest('[data-auth-filter]');
-    if (authFilter) {
-      marketAuth = authFilter.dataset.authFilter || '';
-      catalogRenderLimit = 60;
-      loadMarket({ checkHealth: false });
-      return;
-    }
-    if (event.target.closest('#market-filter-reset')) {
-      marketVendor = '';
-      marketAuth = '';
-      marketCategory = '';
-      catalogRenderLimit = 60;
-      loadMarket({ checkHealth: false });
-      return;
-    }
     if (event.target.closest('#catalog-more')) {
       catalogRenderLimit += 60;
       loadMarket({ checkHealth: false });
     }
   });
-  main.addEventListener('change', (event) => {
-    if (event.target.id !== 'market-vendor-filter') return;
-    marketVendor = event.target.value;
-    catalogRenderLimit = 60;
-    loadMarket({ checkHealth: false });
-  });
-
   $('#refresh').addEventListener('click', async () => {
     const r = await call('refreshCatalog', {});
     showToast(r.message, r.ok);

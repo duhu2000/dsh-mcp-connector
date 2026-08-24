@@ -40,8 +40,12 @@ test('内置目录加载 + published 过滤', () => {
   assert.equal(wind?.servers.length, 1, 'Wind 股票数据卡片只接入官网当前公开的股票 MCP Server');
   assert.equal(wind?.servers[0]?.url, 'https://mcp.wind.com.cn/vserver_stock_data/mcp/');
   assert.equal(wind?.servers[0]?.headers.Accept, 'application/json, text/event-stream');
-  assert.deepEqual(published.filter((d) => d.featured).map((d) => d.id).sort(), ['pkulaw-legal', 'qcc-company', 'wind-stock-data'], '内置目录应有 3 个推荐位（featured）');
-  assert.deepEqual(published.slice(0, 6).map((d) => d.id), ['qcc-company', 'pkulaw-legal', 'wind-stock-data', 'qcc-legal', 'qcc-tender', 'qcc-document'], 'featured 连接器应排前');
+  assert.deepEqual(
+    published.filter((d) => d.featured).map((d) => d.id).sort(),
+    ['pkulaw-legal', 'qcc-company', 'qcc-document', 'qcc-legal', 'qcc-tender', 'wind-stock-data'],
+    '当前内置市场连接器均应进入推荐位（featured）',
+  );
+  assert.deepEqual(published.slice(0, 6).map((d) => d.id), ['qcc-company', 'qcc-legal', 'qcc-tender', 'qcc-document', 'pkulaw-legal', 'wind-stock-data'], 'featured 连接器应保留市场声明顺序');
 });
 
 test('mergeCatalog 优先级 + 本地覆盖', () => {

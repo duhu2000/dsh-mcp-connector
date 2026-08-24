@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-08-24
+
+### Added
+
+- 当前市场已上架连接器全部进入推荐位；独立 Registry 新增 GitHub、Cloudflare、Notion、Tavily 四张经过官方配置与公开端点探针核验的推荐卡片。
+
+### Changed
+
+- 市场筛选精简为“全部 / 推荐 / 业务分类”，移除服务商下拉框和 OAuth、Key / Token、免密接入方式筛选，降低首屏信息密度。
+- 独立 Registry 的北大法宝、Wind、八爪鱼、QVeris、盈米统一使用标准分类并进入推荐位。
+
+### Verification
+
+- 84 项插件自动测试、lint、内置目录校验与 45 个 npm 发布文件白名单/敏感内容扫描通过。
+- Registry 9 项测试、9 条连接器构建、schema 校验与远程图标检查通过；GitHub、Cloudflare、Notion、Tavily 均完成 MCP 端点与鉴权元数据探针，未代替用户执行 OAuth 登录或授权后工具调用。
+
 ## [0.2.12] - 2026-08-23
 
 ### Added

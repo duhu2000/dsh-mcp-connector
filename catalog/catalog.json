@@ -72,7 +72,7 @@
       "description": "法律法规逐字条文、指导性/公报/典型案例检索、案号引用核验，面向法律意见书与类案检索场景。",
       "tags": ["法律", "法规", "案例", "核验"],
       "published": true,
-      "featured": false,
+      "featured": true,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
         { "name": "topic", "label": "法律主题", "default": "劳动合同解除", "placeholder": "例如：劳动合同解除", "required": true }
@@ -106,7 +106,7 @@
       "description": "覆盖全国招投标公告、中标结果、采购信息，适用于竞对分析、市场研究、销售线索挖掘场景。",
       "tags": ["招投标", "采购", "中标", "竞对"],
       "published": true,
-      "featured": false,
+      "featured": true,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
         { "name": "keyword", "label": "项目关键词", "default": "智慧城市", "placeholder": "例如：智慧城市", "required": true },
@@ -139,7 +139,7 @@
       "description": "基于企业数据自动生成分析报告、尽职调查文档，支持文档结构化解析与内容提取。",
       "tags": ["文档", "报告", "分析"],
       "published": true,
-      "featured": false,
+      "featured": true,
       "homepage": "https://open.qcc.com",
       "promptVariables": [
         { "name": "company", "label": "企业名称", "default": "小米科技有限责任公司", "placeholder": "例如：小米科技有限责任公司", "required": true }
