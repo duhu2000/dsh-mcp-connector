@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mountWebRoutes, isTrustedWebRequest } from '../lib/web.js';
+import { mountWebRoutes, isTrustedWebRequest, resolveUiFile, splitUiPath } from '../lib/web.js';
 
 /* ───────────────────────── fake http 对象 ───────────────────────── */
 
@@ -140,4 +140,16 @@ test('ui 路由：返回 SPA 首页 / 目录穿越 404', async () => {
   const res2 = new FakeRes();
   await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/ui/../../package.json', headers: { host: '127.0.0.1:62929' } }), res2);
   assert.equal(res2.status, 404);
+});
+
+test('Windows 路径：URL 始终按正斜杠分段且静态资源不误报 404', () => {
+  assert.deepEqual(splitUiPath('/assets/qcc-logo.svg'), ['assets', 'qcc-logo.svg']);
+  assert.deepEqual(splitUiPath('\\assets\\qcc-logo.svg'), ['assets', 'qcc-logo.svg']);
+  assert.equal(splitUiPath('/assets/%2e%2e/package.json'), undefined);
+  assert.equal(splitUiPath('\\..\\package.json'), undefined);
+
+  const asset = resolveUiFile('\\assets\\qcc-logo.svg');
+  assert.equal(asset.ok, true);
+  assert.equal(asset.rel, 'assets/qcc-logo.svg');
+  assert.equal(resolveUiFile('\\..\\package.json').ok, false);
 });
