@@ -100,7 +100,7 @@ npm run dev:ui
 
 `check` 执行语法检查、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.17`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.17](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.17)。
+当前公开版本为 [`dsh-mcp-connector@0.2.18`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.18](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.18)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

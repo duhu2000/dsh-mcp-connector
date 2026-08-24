@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.18] - 2026-08-24
+
 ### Added
 
 - 市场 stdio 连接器支持声明多个凭据输入字段，并将用户在本机填写的值安全绑定到指定环境变量；目录仍禁止携带真实凭据，Registry 探针仍不执行本地命令。
@@ -313,7 +315,14 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.11...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.18...HEAD
+[0.2.18]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.17...v0.2.18
+[0.2.17]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.16...v0.2.17
+[0.2.16]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.15...v0.2.16
+[0.2.15]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.14...v0.2.15
+[0.2.14]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.13...v0.2.14
+[0.2.13]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.12...v0.2.13
+[0.2.12]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.8...v0.2.9
