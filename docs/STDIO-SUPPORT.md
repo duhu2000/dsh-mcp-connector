@@ -146,12 +146,13 @@ const Config = z.union([
 
 采用「宽松 schema + normalize 阶段显式校验」风格（与现有代码注释「宽松校验、显式报错」一致）。
 
-### 决策 3：stdio 鉴权通过 `env`，不抽象 `auth.mode`
+### 决策 3：stdio 凭据使用声明式字段绑定，真实值仅在本机注入 `env`
 
-- stdio 是本地进程，密钥通过环境变量传递（如 `GITHUB_TOKEN`、`OPENAI_API_KEY`）
-- 每个 server 的密钥 env 变量名不同，无法统一抽象成 `auth.mode` 的 header 机制
-- 设计：目录里 stdio 连接器的 `env` 只含非敏感默认值；用户 configure 时填含密钥的 env
-- stdio 型连接器的 `auth.mode` 保持 `none`（或 undefined）
+- stdio 是本地进程，密钥最终仍通过环境变量传递（如 `GITHUB_TOKEN`、`OPENAI_API_KEY`）。
+- 无凭据的 stdio 连接器使用 `auth.mode: "none"`；需要用户输入的卡片使用 `bearer` 或 `api-key`，并在 `auth.credentialFields` 声明一个或多个输入字段。
+- `servers[].credentialBindings` 只保存“环境变量名 → 凭据字段 key”的映射；`servers[].env` 只能包含非敏感默认值。
+- 用户输入存入本机 `ConnectionRecord.env` 并透传给 `dsh-mcp-client`，不回写目录，也不出现在 catalog/status/log 输出。
+- Registry 探针只校验声明与命令形状，绝不执行本地 stdio 命令。
 
 ### 决策 4：mcp-provision 按 transport 分支透传
 
@@ -611,9 +612,8 @@ cwd: { type: 'string', description: 'transport=stdio 时的工作目录，默认
 | stdio `command` 可执行任意本地命令 | command 来自（a）维护者审核的 catalog，或（b）用户主动 configure，风险可控；DSH 运行时沙箱机制兜底 |
 | `env` 里的密钥泄露到日志 | dsh-mcp-client 的 `buildChildEnv` 已用 `scrubbedParentEnv()` 清理敏感父环境变量；我们持久化 env 到 storage domain 与现有 headers 鉴权一致，无新增泄露面 |
 | `cwd` 空字符串导致 spawn 异常 | provisioning 层显式 `record.cwd \|\| process.cwd()` |
-| 目录夹带密钥 | 复用现有 `auditRawDescriptor` 的密钥字段审计，对 `env` 里的 `token/secret/key/password` 字段同样拦截（需在 §5.9 补测试） |
-
-> ⚠️ **需补充**：`catalog.js` 的 `auditDescriptor` / `auditRawDescriptor` 目前审计 `servers[].headers` 的密钥类字段，需确认 `servers[].env` 也被审计（避免目录里 stdio 的 env 夹带 token）。
+| 目录夹带密钥 | `auditRawDescriptor` 拒绝真实凭据字段，`auditDescriptor` 拒绝 `env` 中的 token/secret/API Key/password 类变量；只允许 `credentialBindings` 引用已声明字段 |
+| 凭据映射错误或未使用 | Schema 与目录审计检查字段 key、env 名、重复映射、未知引用及未被任何 HTTP/stdio Server 使用的必填字段 |
 
 ---
 
@@ -649,6 +649,8 @@ cwd: { type: 'string', description: 'transport=stdio 时的工作目录，默认
    - `npm run check`（lint + test + verify-pack）全绿
 4. **安全**：
    - 目录里 stdio 连接器的 `env` 含 token/secret 字段时被 `auditRawDescriptor` 拦截
+   - 多字段 `credentialFields` / `credentialBindings` 通过校验，未知引用与缺失必填值被拒绝
+   - 真实值只进入本机连接记录与 Host env，catalog/status/log 均不返回
 
 ---
 

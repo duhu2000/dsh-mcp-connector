@@ -30,13 +30,17 @@
         "issuer": { "type": "string" },
         "scope": { "type": "string" },
         "clientName": { "type": "string" },
-        "tokenEndpointAuthMethod": { "type": "string" },
+        "tokenEndpointAuthMethod": { "enum": ["none", "client_secret_post", "client_secret_basic"] },
         "apiKeyHeader": { "type": "string" },
         "grantSharing": { "type": "string" },
         "credentialName": { "type": "string" },
         "credentialPlaceholder": { "type": "string" },
         "credentialDescription": { "type": "string" },
-        "credentialHelpLabel": { "type": "string" }
+        "credentialHelpLabel": { "type": "string" },
+        "credentialFields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/credentialField" }
+        }
       }
     },
     "servers": {
@@ -52,6 +56,7 @@
           "command": { "type": "string", "minLength": 1 },
           "args": { "type": "array", "items": { "type": "string" } },
           "env": { "type": "object", "additionalProperties": { "type": "string" } },
+          "credentialBindings": { "type": "object", "additionalProperties": { "type": "string" } },
           "cwd": { "type": "string" },
           "serverName": { "type": "string", "minLength": 1 },
           "transport": { "enum": ["streamable-http", "stdio"] },
@@ -106,6 +111,20 @@
     }
   },
   "$defs": {
+    "credentialField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "placeholder": { "type": "string" },
+        "description": { "type": "string" },
+        "helpLabel": { "type": "string" },
+        "required": { "type": "boolean" },
+        "secret": { "type": "boolean" }
+      }
+    },
     "variables": {
       "type": "array",
       "items": {

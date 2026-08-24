@@ -18,12 +18,12 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
 - Searchable Marketplace and Installed views; the default Marketplace groups cards into Featured plus nine business-category sections, previews four cards per section, keeps the category bar visible while scrolling, and shows every card when a single category is selected.
-- OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
+- OAuth 2.0 Authorization Code with PKCE, including DCR public clients and `client_secret_post` / `client_secret_basic`; API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
-- Credential and MCP initialize validation before API-key connectors are saved as installed.
+- Credential and MCP initialize validation before HTTP API-key connectors are saved as installed, plus declarative multi-field credential-to-env bindings for marketplace stdio connectors.
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
-- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, refresh OAuth tokens, and revoke authorization.
+- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, refresh OAuth tokens, and revoke authorization. DCR client secrets are kept with the local grant only.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Explicit, non-destructive migration of authorization from the two earlier Qichacha OAuth plugins.
@@ -116,7 +116,8 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - External URLs must use HTTPS; HTTP is allowed only for loopback development.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
 - Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. The connector passes stdio `command/args/env/cwd` to `@deepseek-ai/dsh-mcp-client` instead of reimplementing process transport.
-- stdio starts a local process. Import or connect only trusted commands and packages; catalog descriptors may not contain token/secret-shaped environment variables.
+- stdio starts a local process. Import or connect only trusted commands and packages. Catalog descriptors may declare `credentialFields` and `credentialBindings`, but may never contain actual token/secret values; user input is injected only into the local Host process environment.
+- OAuth DCR client secrets share the same local-only boundary as access and refresh tokens and are omitted from catalog/status responses and logs.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
 
 ## License

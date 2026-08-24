@@ -16,7 +16,7 @@
 3. 在插件中选择「添加连接 → 市场卡片」，粘贴 URL。
 4. Schema/密钥审计通过后，卡片会持久化到本机市场。
 
-Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据后批量连接该卡片的所有 Server。
+Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据后批量连接该卡片的所有 Server。stdio 卡片可通过 `auth.credentialFields` 声明多个输入，并用 `servers[].credentialBindings` 映射到本地进程环境变量；描述文件仍不得包含真实值。
 
 ## 3. 提交公共市场
 
@@ -47,7 +47,10 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 - Authorization Server Metadata（RFC 8414）；
 - `authorization_endpoint`、`token_endpoint`、`registration_endpoint`；`revocation_endpoint` 建议提供，但按标准属于可选能力；
 - Dynamic Client Registration，且支持 loopback callback URI；
+- DCR 的 `token_endpoint_auth_method` 可为 `none`、`client_secret_post` 或 `client_secret_basic`；后两者的注册响应必须返回 `client_secret`；
 - Refresh Token；如提供撤销端点，插件会在断开/清理授权时撤销 Refresh Token，否则只删除 DSH 本机授权记录。
+
+DCR 返回的 `client_secret` 由插件与 Access/Refresh Token 一同保存在 DSH 本机 Grant 中，只用于 Token 交换、刷新和撤销，不会出现在目录、状态输出或日志。描述文件只填写服务端支持的 `tokenEndpointAuthMethod`，不得预置客户端密钥。
 
 插件优先读取 RFC 8414 Authorization Server Metadata；若动态注册或撤销端点缺失，会再读取 OIDC Discovery 并仅补齐缺失字段。OAuth 元数据中的授权、Token 等标准端点始终优先。
 
@@ -59,7 +62,7 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
   "id": "vendor-legal",
   "name": "厂商·法律数据",
   "vendor": "厂商名称",
-  "category": "法律数据",
+  "category": "法律合规",
   "summary": "法规与案例检索",
   "published": true,
   "auth": {
@@ -79,6 +82,36 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
   ]
 }
 ```
+
+### 5.1 需要本机环境变量的 stdio 卡片
+
+目录只声明字段和映射，示例见 `registry/connectors/stdio-credential.sample.json`：
+
+```json
+{
+  "auth": {
+    "mode": "api-key",
+    "credentialFields": [
+      { "key": "apiToken", "label": "API Token", "required": true, "secret": true },
+      { "key": "region", "label": "区域", "required": true, "secret": false }
+    ]
+  },
+  "servers": [{
+    "serverKey": "main",
+    "serverName": "vendor-local-service",
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["-y", "@vendor/example-mcp-server"],
+    "env": { "LOG_LEVEL": "info" },
+    "credentialBindings": {
+      "VENDOR_API_TOKEN": "apiToken",
+      "VENDOR_REGION": "region"
+    }
+  }]
+}
+```
+
+`credentialBindings` 的 key 必须是合法环境变量名，value 必须引用已声明的字段。不要在 `env`、`credentialFields` 或其他目录字段中填写 Token、Secret、API Key、密码或 Cookie。
 
 ## 6. 北大法宝当前适配结论
 

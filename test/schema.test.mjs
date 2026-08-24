@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeConnectorDescriptor, normalizeConnectionRecord } from '../lib/schema.js';
-import { auditDescriptor } from '../lib/catalog.js';
+import { auditDescriptor, auditRawDescriptor } from '../lib/catalog.js';
 import { normalizeJsonImport } from '../lib/connectors/json-connector.js';
 import { buildManualRecord } from '../lib/connectors/manual-connector.js';
 import { resourceMetadataUrlFallback } from '../lib/oauth.js';
@@ -48,6 +48,15 @@ test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () =
   assert.equal(d.auth.credentialPlaceholder, '请输入 Token');
   assert.equal(d.auth.credentialDescription, '仅保存在本机');
   assert.equal(d.auth.credentialHelpLabel, '如何获取 Token？');
+  assert.deepEqual(d.auth.credentialFields, [{
+    key: 'credential',
+    label: 'Vendor Access Token',
+    placeholder: '请输入 Token',
+    description: '仅保存在本机',
+    helpLabel: '如何获取 Token？',
+    required: true,
+    secret: true,
+  }]);
   assert.equal(d.probeStatus, 'pass');
   assert.equal(d.toolsSnapshot[0].tools[0].name, 'search');
 });
@@ -146,6 +155,40 @@ test('stdio 描述校验、SSE 归一化与目录 env 密钥审计', () => {
     id: 'secret-env', name: 'Secret env', auth: { mode: 'none' },
     servers: [{ serverKey: 'main', transport: 'stdio', command: 'npx', env: { GITHUB_TOKEN: 'x' }, serverName: 'secret-env' }],
   })), /env.*密钥类变量/);
+});
+
+test('stdio 市场凭据仅声明字段和 env 绑定，支持多字段且拒绝错误引用', () => {
+  const raw = {
+    id: 'stdio-credential', name: 'Stdio Credential',
+    auth: {
+      mode: 'api-key',
+      credentialFields: [
+        { key: 'apiToken', label: 'API Token', required: true, secret: true },
+        { key: 'region', label: '区域', required: true, secret: false },
+      ],
+    },
+    servers: [{
+      serverKey: 'main', transport: 'stdio', command: 'uvx', args: ['vendor-mcp'],
+      env: { LOG_LEVEL: 'info' },
+      credentialBindings: { VENDOR_API_TOKEN: 'apiToken', VENDOR_REGION: 'region' },
+      serverName: 'stdio-credential',
+    }],
+  };
+  assert.doesNotThrow(() => auditRawDescriptor(raw));
+  const descriptor = auditDescriptor(normalizeConnectorDescriptor(raw));
+  assert.deepEqual(descriptor.servers[0].credentialBindings, {
+    VENDOR_API_TOKEN: 'apiToken',
+    VENDOR_REGION: 'region',
+  });
+  assert.equal(descriptor.auth.credentialFields[1].secret, false);
+
+  const unknown = structuredClone(raw);
+  unknown.servers[0].credentialBindings.VENDOR_API_TOKEN = 'missing';
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(unknown)), /未知凭据字段/);
+
+  const staticSecret = structuredClone(raw);
+  staticSecret.servers[0].env.VENDOR_API_TOKEN = 'must-not-be-in-catalog';
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(staticSecret)), /env.*密钥类变量/);
 });
 
 test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {

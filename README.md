@@ -21,9 +21,9 @@
 - 图形化添加：手动 HTTP/stdio、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
-- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。
-- 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 Server 通过后才持久化凭据并进入“已安装”。
-- 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
+- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
+- 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
+- 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销；DCR 返回的客户端密钥与 Token 一同只保存在本机。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
@@ -115,7 +115,8 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
 - 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
-- stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录不得携带 token/secret 类环境变量；用户凭据只允许在本机配置。
+- stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录只能用 `credentialFields` + `credentialBindings` 声明输入与 env 映射，不得携带真实 token/secret；用户填写值只写入本机连接记录并交给 Host。
+- OAuth DCR 的 `client_secret` 与 Access/Refresh Token 采用相同的本机存储边界，不会进入市场 API、状态输出或日志。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。
 

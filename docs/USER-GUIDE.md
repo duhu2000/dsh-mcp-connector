@@ -69,7 +69,9 @@ dsh web
 
 Bearer/API Key 连接器会先执行 MCP `initialize` 验证。所有 Server 通过后，凭据才会保存并出现在“已安装”中；验证失败不会写入新凭据。
 
-OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据发现。插件不会要求用户把 OAuth Token 复制到聊天中。
+stdio 市场卡片也可能显示一个或多个凭据字段，例如 API Token、区域或租户标识。卡片目录只声明字段名称及其环境变量映射；提交后，真实值仅保存到 DSH 本机连接记录，并由插件注入该 stdio 进程的 `env`。市场、状态页和日志不会返回这些值。stdio 由 Host 托管，配置成功表示命令已注册；最终工具可用性仍以本机进程启动结果为准。
+
+OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据发现。动态客户端注册既支持无需客户端密钥的 `none`，也支持服务商签发密钥的 `client_secret_post` 与 `client_secret_basic`。客户端密钥仅与 OAuth Grant 一同保存在 DSH 本机，用于换取、刷新和撤销 Token；插件不会要求用户把 OAuth Token 或客户端密钥复制到聊天中。
 
 ## 5. 查看详情、Prompt 与工具
 
@@ -140,6 +142,8 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 ## 8. 安全边界
 
 - 凭据仅保存在 DSH storage domain，不进入市场目录、Git 仓库或对话历史。
+- stdio 目录只能声明凭据字段与 env 映射，不能给出真实值；Registry 探针不会执行目录中的本地命令。
+- OAuth 动态注册返回的 `client_secret` 不出现在目录、连接状态或日志中；断开连接时与 Refresh Token 一起尽力撤销并删除本机记录。
 - 外部 HTTP 地址必须使用 HTTPS；仅本机回环开发地址允许 HTTP。
 - Registry 健康探针不持有用户凭据，也绝不会执行目录里的 stdio 命令。
 - 连接器能看到的数据和能执行的操作取决于你授予的账户权限；优先使用最小权限 Token/API Key。

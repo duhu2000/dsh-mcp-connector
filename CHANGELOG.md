@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- 市场 stdio 连接器支持声明多个凭据输入字段，并将用户在本机填写的值安全绑定到指定环境变量；目录仍禁止携带真实凭据，Registry 探针仍不执行本地命令。
+- OAuth 动态客户端注册支持 `client_secret_post` 与 `client_secret_basic`，客户端密钥随本机 Grant 用于授权码交换、刷新和撤销。
+
+### Security
+
+- stdio 凭据值不进入 catalog/status/log；字段映射会校验环境变量名、未知引用、重复声明和未使用的必填字段。
+- OAuth DCR 客户端密钥不进入公开输出，并支持服务端提供的到期时间检查。
+
 ## [0.2.17] - 2026-08-24
 
 ### Documentation
