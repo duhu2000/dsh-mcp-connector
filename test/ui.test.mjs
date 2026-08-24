@@ -76,6 +76,15 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.match(uiSource, /重新检查/);
 });
 
+test('未连接且无工具快照的市场卡片不误报连接异常', () => {
+  assert.match(uiSource, /if \(!d\.connected\?\.length && !d\.toolsSnapshot\?\.length\)/);
+  assert.match(uiSource, /连接后查看工具/);
+  assert.match(uiSource, /连接后可读取服务端工具清单/);
+  assert.ok(
+    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("const toolsResult = await call('toolsList', { connectorId })"),
+  );
+});
+
 test('市场卡片区分已配置、已连接、重新授权和连接异常', () => {
   const actionSource = uiSource.match(/function actionHtml\(d\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.match(actionSource, /state === 'healthy'[\s\S]*?t\('connected'\)/);

@@ -1169,6 +1169,12 @@
       $('#detail-try-btn').textContent = detailNeedsReconfigure
         ? d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
         : d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry');
+      if (!d.connected?.length && !d.toolsSnapshot?.length) {
+        $('#tools-summary').textContent = '连接后查看工具';
+        $('#detail-tools').innerHTML = '<div class="tools-empty">连接后可读取服务端工具清单</div>';
+        renderPromptPage();
+        return;
+      }
       const toolsResult = await call('toolsList', { connectorId });
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
       if (!toolsResult.ok) {
