@@ -29,6 +29,8 @@ test('内置目录加载 + published 过滤', () => {
   assert.ok(qccCards.flatMap((d) => d.prompts).some((prompt) => prompt.text.includes('{{')), 'Prompt 应使用参数模板');
   assert.ok(!qccCards.flatMap((d) => d.prompts).some((prompt) => /小米科技|华为技术|雷军/.test(prompt.text)), '目录不应再硬编码示例主体');
   assert.ok(qccCards.every((d) => d.promptVariables.every((variable) => variable.required === false || variable.default)), '内置 Prompt 必填参数应提供可直接试用的默认示例');
+  assert.equal(published.find((d) => d.id === 'qcc-legal')?.category, '法律合规');
+  assert.equal(published.find((d) => d.id === 'qcc-document')?.category, '效率工具');
   const pkulaw = published.find((d) => d.id === 'pkulaw-legal');
   assert.equal(pkulaw?.auth.mode, 'bearer', '北大法宝应以 Bearer Token 方式接入');
   assert.equal(pkulaw?.auth.credentialName, '北大法宝 Access Token');
@@ -43,7 +45,7 @@ test('内置目录加载 + published 过滤', () => {
   assert.deepEqual(
     published.filter((d) => d.featured).map((d) => d.id).sort(),
     ['pkulaw-legal', 'qcc-company', 'qcc-document', 'qcc-legal', 'qcc-tender', 'wind-stock-data'],
-    '当前内置市场连接器均应进入推荐位（featured）',
+    '推荐位应严格保留 4 张企查查卡片、北大法宝与 Wind',
   );
   assert.deepEqual(published.slice(0, 6).map((d) => d.id), ['qcc-company', 'qcc-legal', 'qcc-tender', 'qcc-document', 'pkulaw-legal', 'wind-stock-data'], 'featured 连接器应保留市场声明顺序');
 });

@@ -105,9 +105,11 @@
   .stats .count { font-size: 13px; color: var(--text-2); }
   .stats .count strong { color: var(--text); font-weight: 600; }
   .market-filters {
+    position: sticky; top: 0; z-index: 4;
     display: flex; align-items: center;
-    margin-bottom: 14px; padding: 10px 12px;
+    margin: -8px 0 14px; padding: 10px 12px;
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 14px color-mix(in srgb, var(--bg) 88%, transparent);
   }
   .filter-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .filter-chip {
@@ -116,8 +118,17 @@
   }
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
   .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
-  .category-chips { width: 100%; display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
-  .category-chip { flex-shrink: 0; }
+  .category-chips { width: 100%; display: flex; gap: 5px; flex-wrap: nowrap; overflow: visible; }
+  .category-chip { flex: 0 0 auto; padding-inline: 9px; }
+
+  /* Grouped marketplace */
+  .market-section { margin-bottom: 26px; }
+  .market-section:last-child { margin-bottom: 0; }
+  .market-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .market-section-title { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 14px; font-weight: 650; }
+  .market-section-count { color: var(--muted); font-size: 11px; font-weight: 400; }
+  .market-section-toggle { border: 0; background: transparent; color: var(--text-2); cursor: pointer; font: inherit; font-size: 12px; padding: 4px 0; }
+  .market-section-toggle:hover { color: var(--accent); }
 
   /* Grid - TraeWork 风格：3 列 */
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
@@ -363,6 +374,7 @@
     .card .actions { width: 100%; justify-content: flex-end; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .market-filters { align-items: stretch; }
+    .category-chips { flex-wrap: wrap; }
   }
 
   /* Scrollbar */
@@ -479,7 +491,8 @@
   let detailFailureState = '';
   let toolRenderLimit = 50;
   let detailLoadId = 0;
-  let catalogRenderLimit = 60;
+  const MARKET_SECTION_PREVIEW_LIMIT = 4;
+  const expandedMarketSections = new Set();
   let lastModalFocus = null;
   let pendingPrompt = null;
   const PROMPT_REQUEST_TYPE = 'mcp-connector:start-session';
@@ -729,7 +742,31 @@
     return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
   }
 
-  async function loadMarket({ checkHealth = true } = {}) {
+  function marketSectionHtml(value, label, items) {
+    if (!items.length) return '';
+    const expanded = expandedMarketSections.has(value);
+    const visible = expanded ? items : items.slice(0, MARKET_SECTION_PREVIEW_LIMIT);
+    const toggle = items.length > MARKET_SECTION_PREVIEW_LIMIT
+      ? `<button class="market-section-toggle" type="button" data-section-toggle="${esc(value)}" aria-expanded="${expanded ? 'true' : 'false'}">${expanded ? '收起' : `查看全部 ${items.length} 个`}</button>`
+      : '';
+    return `<section class="market-section" data-market-section="${esc(value)}"><div class="market-section-head"><h2 class="market-section-title">${esc(label)}<span class="market-section-count">${items.length} 个</span></h2>${toggle}</div><div class="grid">${visible.map(cardHtml).join('')}</div></section>`;
+  }
+
+  function groupedMarketHtml(items) {
+    const searchable = items.filter(matchesSearch);
+    const sections = [
+      { value: 'recommended', label: '推荐', items: searchable.filter((item) => item.featured) },
+      ...CATEGORIES.filter((category) => category.value && category.value !== 'recommended').map((category) => ({
+        ...category,
+        items: searchable.filter((item) => normalizeCategory(item.category) === category.value),
+      })),
+    ];
+    return sections.map((section) => marketSectionHtml(section.value, section.label, section.items)).join('')
+      || '<div class="empty">没有匹配当前搜索条件的连接器</div>';
+  }
+
+  async function loadMarket({ checkHealth = true, preserveScroll = false } = {}) {
+    const previousScrollTop = preserveScroll ? main.scrollTop : 0;
     main.innerHTML = '<div class="empty">加载中…</div>';
     const r = await call('catalog', {});
     if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
@@ -738,14 +775,16 @@
     marketItems = {};
     items.forEach((d) => { marketItems[d.id] = d; });
     const filtered = items.filter(matchesMarketFilters);
-    const count = filtered.length;
-    const visible = filtered.slice(0, catalogRenderLimit);
+    const count = marketCategory ? filtered.length : items.filter(matchesSearch).length;
     const categoryLabel = CATEGORIES.find((cat) => cat.value === marketCategory)?.label;
     const filterSummary = marketCategory ? ` · 分类「${esc(categoryLabel)}」` : '';
-    const resultHtml = visible.length > 0
-      ? `<div class="grid">${visible.map(cardHtml).join('')}</div>${visible.length < count ? `<button class="tools-more" id="catalog-more" type="button">再显示 ${Math.min(60, count - visible.length)} 个（剩余 ${count - visible.length}）</button>` : ''}`
-      : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
+    const resultHtml = !marketCategory
+      ? groupedMarketHtml(items)
+      : filtered.length > 0
+        ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
+        : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
     main.innerHTML = `${marketFilterHtml()}<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''}${filterSummary} · 点击卡片查看能力，点击「连接」完成授权</span></div>${resultHtml}`;
+    if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
       call('healthCheck', {}).then(() => {
@@ -1297,13 +1336,15 @@
     const categoryFilter = event.target.closest('[data-category-filter]');
     if (categoryFilter) {
       marketCategory = categoryFilter.dataset.categoryFilter || '';
-      catalogRenderLimit = 60;
       loadMarket({ checkHealth: false });
       return;
     }
-    if (event.target.closest('#catalog-more')) {
-      catalogRenderLimit += 60;
-      loadMarket({ checkHealth: false });
+    const sectionToggle = event.target.closest('[data-section-toggle]');
+    if (sectionToggle) {
+      const section = sectionToggle.dataset.sectionToggle;
+      if (expandedMarketSections.has(section)) expandedMarketSections.delete(section);
+      else expandedMarketSections.add(section);
+      loadMarket({ checkHealth: false, preserveScroll: true });
     }
   });
   $('#refresh').addEventListener('click', async () => {
@@ -1326,7 +1367,7 @@
 
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
-    catalogRenderLimit = 60;
+    expandedMarketSections.clear();
     refresh();
   });
 

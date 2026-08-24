@@ -15,7 +15,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 ## Features
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
-- Searchable Marketplace and Installed views, featured and nine-category filters, catalog refresh, and active health checks that distinguish Configured, Connected, Reauthorization Required, Partially Unavailable, and Connection Error states.
+- Searchable Marketplace and Installed views; the default Marketplace groups cards into Featured plus nine business-category sections, previews four cards per section, keeps the category bar visible while scrolling, and shows every card when a single category is selected.
 - OAuth 2.0 Authorization Code with PKCE, API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
 - Credential and MCP initialize validation before API-key connectors are saved as installed.
@@ -26,7 +26,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Explicit, non-destructive migration of authorization from the two earlier Qichacha OAuth plugins.
 
-The first four bundled cards are Qichacha connectors, followed by PKULaw and Wind. After a remote Registry refresh, Yingmi, QVeris, Bazhuayu Cloud Collection, GitHub, Cloudflare, Notion, and Tavily are also available, for 13 published marketplace cards after deduplication. Bazhuayu is the first third-party example to exercise the complete OAuth 2.1 + PKCE dynamic-registration flow; the architecture remains provider-neutral.
+The first four bundled cards are Qichacha connectors, followed by PKULaw and Wind. After a remote Registry refresh, Yingmi, QVeris, Bazhuayu Cloud Collection, GitHub, Cloudflare, Notion, Tavily, and the Ace Data Cloud-hosted Seedream connector are also available, for 14 published marketplace cards after deduplication. Recommendations are limited to the four Qichacha cards, PKULaw, and Wind; all other connectors remain discoverable in their business categories.
 
 ## Interface and demo
 
@@ -101,7 +101,7 @@ npm run dev:ui
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
-The current public version is [`dsh-mcp-connector@0.2.13`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.13](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.13).
+The current public version is [`dsh-mcp-connector@0.2.14`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.14](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.14).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

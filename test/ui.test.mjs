@@ -108,6 +108,24 @@ test('市场支持分类筛选与推荐位（9 分类 + 推荐）', () => {
   assert.match(uiSource, /let marketCategory = '';/);
 });
 
+test('全部市场按分类分章节，每章默认展示 4 个并可展开', () => {
+  assert.match(uiSource, /const MARKET_SECTION_PREVIEW_LIMIT = 4;/);
+  assert.match(uiSource, /function groupedMarketHtml\(items\)/);
+  assert.match(uiSource, /value: 'recommended', label: '推荐', items:/);
+  assert.match(uiSource, /items\.slice\(0, MARKET_SECTION_PREVIEW_LIMIT\)/);
+  assert.match(uiSource, /data-section-toggle=/);
+  assert.match(uiSource, /查看全部 \$\{items\.length\} 个/);
+  assert.match(uiSource, /filtered\.map\(cardHtml\)/, '点击分类后应展示该分类全部卡片');
+  assert.doesNotMatch(uiSource, /catalogRenderLimit|id="catalog-more"/);
+});
+
+test('市场分类栏固定、桌面单行无横向滚动且窄屏换行', () => {
+  assert.match(uiSource, /\.market-filters \{[\s\S]*?position: sticky; top: 0; z-index: 4;/);
+  assert.match(uiSource, /\.category-chips \{[^}]*flex-wrap: nowrap;[^}]*overflow: visible;/);
+  assert.match(uiSource, /@media \(max-width: 620px\) \{[\s\S]*?\.category-chips \{ flex-wrap: wrap; \}/);
+  assert.doesNotMatch(uiSource, /\.category-chips \{[^}]*overflow-x: auto;/);
+});
+
 test('工具清单使用中文计数并标记服务商弃用工具', () => {
   assert.match(uiSource, /\$\('#tools-summary'\)\.textContent = `\$\{detailToolServers\.length\} 个服务 · \$\{totalTools\} 个工具`/);
   assert.match(uiSource, /function isDeprecatedTool\(tool\)/);
