@@ -8,6 +8,8 @@
 
 [English](README.en.md)
 
+[用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
+
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -40,7 +42,7 @@
 | 工具发现、描述与独立滚动 | JSON 导入 |
 | ![工具发现](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON 导入](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
 
-素材由无真实凭据的本地 UI harness 生成，详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
+素材从本机 DSH `web` 验收环境采集，只展示公开市场元数据、示例 Prompt 和工具说明，不包含凭据、本机路径或查询结果。详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
 
 ## 安装
 
@@ -56,7 +58,7 @@ dsh plugin --profile web add dsh-mcp-connector
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
 ```
 
-安装或升级后需完全退出并重启 DeepSeek Harness Desktop。
+重复执行安装命令即可升级。安装或升级后需完全退出并重启 DeepSeek Harness Desktop；使用 `dsh web` 时需先停止原进程再启动，`EADDRINUSE 127.0.0.1:3080` 表示已有实例正在运行。
 
 ## 使用
 
@@ -66,6 +68,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 4. 在“已安装”或对话工具中查看、停用、恢复或断开连接。
 
 连接成功后，工具按 `mcp__<serverName>__*` 前缀提供给模型。
+
+分类浏览、四种鉴权状态、自定义 HTTP/stdio、JSON 导入、连接管理与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
 
 ## 配置
 
@@ -96,12 +100,13 @@ npm run dev:ui
 
 `check` 执行语法检查、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.16`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.16](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.16)。
+当前公开版本为 [`dsh-mcp-connector@0.2.17`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.17](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.17)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
 市场卡片、公共 registry 与 OAuth 一键授权要求见 [docs/MARKET-REGISTRATION.md](docs/MARKET-REGISTRATION.md)。
 stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](docs/STDIO-SUPPORT.md)。
+第三方服务商提交市场卡片请阅读 Registry 的[第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)，无需修改插件代码或等待插件重新发布 npm。
 
 ## 安全与限制
 

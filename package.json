@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "General-purpose MCP connector, connection manager, plugin extension, and integration marketplace for DeepSeek Harness, initiated and maintained by Qichacha/QCC.",
   "type": "module",
   "main": "lib/index.js",
@@ -20,6 +20,7 @@
     "docs/DESKTOP-E2E.md",
     "docs/MARKET-REGISTRATION.md",
     "docs/STDIO-SUPPORT.md",
+    "docs/USER-GUIDE.md",
     "cordis.patch.yml",
     "README.md",
     "README.en.md",

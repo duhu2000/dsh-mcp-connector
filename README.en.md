@@ -8,6 +8,8 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 
 [简体中文](README.md)
 
+[Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
+
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -38,7 +40,7 @@ The first four bundled cards are Qichacha connectors, followed by PKULaw and Win
 | Tool discovery, descriptions, and scrolling | JSON import |
 | ![Tool discovery](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON import](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
 
-The assets are captured from the credential-free local UI harness. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
+The assets are captured from a local DSH `web` acceptance environment and show only public marketplace metadata, example prompts, and tool descriptions. They contain no credentials, local paths, or query results. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
 
 ## Installation
 
@@ -54,7 +56,7 @@ Or use the installer:
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
 ```
 
-Fully quit and restart DeepSeek Harness Desktop after installation or upgrade.
+Run the same command again to upgrade. Fully quit and restart DeepSeek Harness Desktop after installation or upgrade. For `dsh web`, stop the original process before starting it again; `EADDRINUSE 127.0.0.1:3080` means another instance is already listening.
 
 ## Usage
 
@@ -64,6 +66,8 @@ Fully quit and restart DeepSeek Harness Desktop after installation or upgrade.
 4. Use Installed or the conversation tools to enable, disable, inspect, or disconnect a connection.
 
 Connected tools are exposed to the model with the `mcp__<serverName>__*` prefix.
+
+The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, the four authentication modes, HTTP/stdio configuration, JSON import, connection management, and troubleshooting.
 
 ## Connector catalog
 
@@ -101,7 +105,7 @@ npm run dev:ui
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
-The current public version is [`dsh-mcp-connector@0.2.16`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.16](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.16).
+The current public version is [`dsh-mcp-connector@0.2.17`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.17](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.17).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
