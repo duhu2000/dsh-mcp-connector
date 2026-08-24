@@ -101,7 +101,7 @@ npm run dev:ui
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
-The current public version is [`dsh-mcp-connector@0.2.15`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.15](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.15).
+The current public version is [`dsh-mcp-connector@0.2.16`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.16](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.16).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

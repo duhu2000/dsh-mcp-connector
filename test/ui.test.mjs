@@ -128,11 +128,24 @@ test('全部市场按分类分章节，每章默认展示 4 个并可展开', ()
   assert.doesNotMatch(uiSource, /catalogRenderLimit|id="catalog-more"/);
 });
 
-test('市场分类栏固定、桌面单行无横向滚动且窄屏换行', () => {
-  assert.match(uiSource, /\.market-filters \{[\s\S]*?position: sticky; top: 0; z-index: 4;/);
+test('市场分类栏位于固定头部且不会覆盖卡片，桌面单行无横向滚动', () => {
+  const headerSource = uiSource.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? '';
+  assert.match(headerSource, /id="market-nav"/);
+  assert.match(uiSource, /\.market-nav \{[^}]*flex: 0 0 100%;[^}]*order: 4;/);
+  assert.match(uiSource, /\.market-filters \{[^}]*position: static;/);
+  assert.doesNotMatch(uiSource, /\.market-filters \{[^}]*position: sticky;/);
+  assert.match(uiSource, /#market-nav'\)\.addEventListener\('click'/);
   assert.match(uiSource, /\.category-chips \{[^}]*flex-wrap: nowrap;[^}]*overflow: visible;/);
   assert.match(uiSource, /@media \(max-width: 620px\) \{[\s\S]*?\.category-chips \{ flex-wrap: wrap; \}/);
   assert.doesNotMatch(uiSource, /\.category-chips \{[^}]*overflow-x: auto;/);
+});
+
+test('市场总数移入页签且正文不再显示冗余操作提示', () => {
+  assert.match(uiSource, /id="market-tab-count"/);
+  assert.match(uiSource, /id="installed-tab-count"/);
+  assert.match(uiSource, /setTabCount\('market', items\.length\)/);
+  assert.match(uiSource, /setTabCount\('installed', items\.length\)/);
+  assert.doesNotMatch(uiSource, /点击卡片查看能力，点击「连接」完成授权/);
 });
 
 test('工具清单使用中文计数并标记服务商弃用工具', () => {

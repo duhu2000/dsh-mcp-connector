@@ -61,7 +61,7 @@
 
   /* Header */
   header {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     padding: 16px 24px; border-bottom: 1px solid var(--line);
     background: var(--card); position: sticky; top: 0; z-index: 5;
     flex-shrink: 0;
@@ -70,12 +70,20 @@
   header .logo .puzzle { font-size: 22px; }
   .tabs { display: flex; gap: 0; background: var(--bg); padding: 3px; border-radius: 10px; }
   .tabs button {
+    display: inline-flex; align-items: center; gap: 5px;
     border: 0; background: transparent; color: var(--text-2);
     padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
     transition: all .15s;
   }
   .tabs button:hover { color: var(--text); }
   .tabs button.active { background: var(--card); color: var(--accent); box-shadow: var(--shadow); font-weight: 600; }
+  .tab-count {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--line); color: var(--text-2); font-size: 10px; line-height: 1;
+  }
+  .tabs button.active .tab-count { background: var(--accent-light); color: var(--accent); }
+  .tab-count:empty { display: none; }
   .header-spacer { flex: 1; }
   .search-box {
     display: flex; align-items: center; gap: 8px;
@@ -104,13 +112,8 @@
   .stats { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
   .stats .count { font-size: 13px; color: var(--text-2); }
   .stats .count strong { color: var(--text); font-weight: 600; }
-  .market-filters {
-    position: sticky; top: 0; z-index: 4;
-    display: flex; align-items: center;
-    margin: -8px 0 14px; padding: 10px 12px;
-    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    box-shadow: 0 8px 14px color-mix(in srgb, var(--bg) 88%, transparent);
-  }
+  .market-nav { flex: 0 0 100%; min-width: 0; order: 4; }
+  .market-filters { position: static; display: flex; align-items: center; }
   .filter-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .filter-chip {
     border: 1px solid var(--line); background: var(--bg); color: var(--text-2);
@@ -365,7 +368,7 @@
   .inline-error.show { display: block; }
 
   @media (max-width: 620px) {
-    header { padding: 12px; flex-wrap: wrap; }
+    header { padding: 12px; }
     .header-spacer { display: none; }
     .search-box { order: 3; width: 100%; }
     main { padding: 14px; }
@@ -388,8 +391,8 @@
 <div class="app">
   <header>
     <div class="tabs" id="tabs">
-      <button data-view="market" class="active">市场</button>
-      <button data-view="installed">已安装</button>
+      <button data-view="market" class="active">市场 <span class="tab-count" id="market-tab-count"></span></button>
+      <button data-view="installed">已安装 <span class="tab-count" id="installed-tab-count"></span></button>
     </div>
     <div class="header-spacer"></div>
     <div class="search-box">
@@ -398,6 +401,7 @@
     </div>
     <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
     <button class="icon-btn" id="refresh">刷新</button>
+    <div class="market-nav" id="market-nav" aria-label="市场分类导航"></div>
   </header>
   <main id="main"></main>
 
@@ -742,6 +746,18 @@
     return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
   }
 
+  function syncMarketNav() {
+    const nav = $('#market-nav');
+    nav.hidden = view !== 'market';
+    nav.innerHTML = view === 'market' ? marketFilterHtml() : '';
+  }
+
+  function setTabCount(tab, count) {
+    const node = $(`#${tab}-tab-count`);
+    node.textContent = Number.isFinite(count) ? String(count) : '';
+    node.setAttribute('aria-label', Number.isFinite(count) ? `${count} 个` : '');
+  }
+
   function marketSectionHtml(value, label, items) {
     if (!items.length) return '';
     const expanded = expandedMarketSections.has(value);
@@ -767,23 +783,23 @@
 
   async function loadMarket({ checkHealth = true, preserveScroll = false } = {}) {
     const previousScrollTop = preserveScroll ? main.scrollTop : 0;
+    syncMarketNav();
     main.innerHTML = '<div class="empty">加载中…</div>';
-    const r = await call('catalog', {});
+    const [r, status] = await Promise.all([call('catalog', {}), call('status', {})]);
+    if (status.ok) setTabCount('installed', (status.detail?.items ?? []).length);
     if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     const items = r.detail?.items ?? [];
+    setTabCount('market', items.length);
     if (!items.length) { main.innerHTML = '<div class="empty">暂无已上架的连接器</div>'; return; }
     marketItems = {};
     items.forEach((d) => { marketItems[d.id] = d; });
     const filtered = items.filter(matchesMarketFilters);
-    const count = marketCategory ? filtered.length : items.filter(matchesSearch).length;
-    const categoryLabel = CATEGORIES.find((cat) => cat.value === marketCategory)?.label;
-    const filterSummary = marketCategory ? ` · 分类「${esc(categoryLabel)}」` : '';
     const resultHtml = !marketCategory
       ? groupedMarketHtml(items)
       : filtered.length > 0
         ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
         : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
-    main.innerHTML = `${marketFilterHtml()}<div class="stats"><span class="count">共 <strong>${count}</strong> 个连接器${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''}${filterSummary} · 点击卡片查看能力，点击「连接」完成授权</span></div>${resultHtml}`;
+    main.innerHTML = resultHtml;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
@@ -831,10 +847,12 @@
   }
 
   async function loadInstalled() {
+    syncMarketNav();
     main.innerHTML = '<div class="empty">加载中…</div>';
     const [r, migration] = await Promise.all([call('status', {}), call('migrationPreview', { scanStored: false })]);
     if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     const items = r.detail?.items ?? [];
+    setTabCount('installed', items.length);
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
     if (!items.length) { main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`; return; }
@@ -1335,16 +1353,18 @@
   function refresh() { return view === 'market' ? loadMarket() : loadInstalled(); }
   function syncTabs() {
     document.querySelectorAll('#tabs button').forEach((button) => button.classList.toggle('active', button.dataset.view === view));
+    syncMarketNav();
   }
 
   $('#add-connection').addEventListener('click', () => openAddConnection('json'));
-  main.addEventListener('click', (event) => {
+  $('#market-nav').addEventListener('click', (event) => {
     const categoryFilter = event.target.closest('[data-category-filter]');
     if (categoryFilter) {
       marketCategory = categoryFilter.dataset.categoryFilter || '';
       loadMarket({ checkHealth: false });
-      return;
     }
+  });
+  main.addEventListener('click', (event) => {
     const sectionToggle = event.target.closest('[data-section-toggle]');
     if (sectionToggle) {
       const section = sectionToggle.dataset.sectionToggle;
