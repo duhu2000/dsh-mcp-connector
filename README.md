@@ -34,7 +34,7 @@
 
 ## 界面与演示
 
-![MCP 连接器 30 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
 | 市场总览 | 连接器详情与精选 Prompt |
 |---|---|

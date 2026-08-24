@@ -32,7 +32,7 @@ The first four bundled cards are Qichacha connectors, followed by PKULaw and Win
 
 ## Interface and demo
 
-![30-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+![16-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
 | Marketplace overview | Connector details and curated prompts |
 |---|---|
