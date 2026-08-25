@@ -13,6 +13,8 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+[![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 
 ## Features
 
@@ -28,7 +30,9 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Explicit, non-destructive migration of authorization from the two earlier Qichacha OAuth plugins.
 
-As of August 24, 2026, the public Registry publishes 61 connector descriptors. After merging and deduplicating them with the four bundled Qichacha cards, the Marketplace exposes 65 cards across nine business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for six featured cards in total. The Registry can evolve independently, so the badge shown after a client refresh is the authoritative current count.
+<!-- catalog-stats:start -->
+As of 2026-08-25, the public Registry publishes 78 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 82 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
+<!-- catalog-stats:end -->
 
 ## Interface and demo
 
@@ -104,6 +108,8 @@ npm run dev:ui
 ```
 
 `npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
+
+Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
 The current public version is [`dsh-mcp-connector@0.2.20`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.20](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.20).
 

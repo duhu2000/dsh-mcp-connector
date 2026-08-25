@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "registryCount": 78,
+  "bundledUniqueCount": 4,
+  "marketCount": 82,
+  "featuredCount": 6,
+  "categoryCount": 9,
+  "categoryNames": [
+    "企业数据",
+    "金融投资",
+    "法律合规",
+    "开发工具",
+    "办公协作",
+    "调研分析",
+    "设计创意",
+    "效率工具",
+    "其他"
+  ],
+  "updatedOn": "2026-08-25"
+}
