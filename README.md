@@ -79,14 +79,14 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 - id: mcp-connector
   name: dsh-mcp-connector
   config:
-    catalogUrl: 'https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json'
+    catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
     persistSecrets: true
     entryPrefix: mcp
     refreshSkewMs: 300000
     openBrowser: true
 ```
 
-`catalogUrl` 默认指向公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；拉取失败时继续使用上次缓存或随包内置目录。需要离线/私有模式时可将其显式设为空字符串。
+`catalogUrl` 默认通过 jsDelivr CDN 读取公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；主源失败时自动尝试 GitHub raw 备用源，再回退到上次缓存或随包内置目录。jsDelivr 的分支 URL 可能存在缓存延迟，因此 Registry 合并后的新卡片不保证秒级出现。需要离线/私有模式时可将 `catalogUrl` 显式设为空字符串；显式配置其他目录 URL 时不会自动切换到公共备用源。
 
 ## 开发与发布门禁
 

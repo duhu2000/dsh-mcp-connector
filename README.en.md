@@ -71,7 +71,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 
 ## Connector catalog
 
-The package contains a bundled fallback catalog. By default, it refreshes from the public [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry); cached or bundled data remains available if the remote registry cannot be reached.
+The package contains a bundled fallback catalog. By default, it refreshes the public [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry) through jsDelivr, then tries GitHub raw if the primary source fails; cached or bundled data remains available if neither remote source can be reached. jsDelivr branch URLs can lag behind a newly merged registry commit, so new cards may not appear immediately.
 
 The public connector registration process and descriptor requirements are documented in [docs/MARKET-REGISTRATION.md](docs/MARKET-REGISTRATION.md).
 The stdio architecture, passthrough boundary, and security constraints are documented in [docs/STDIO-SUPPORT.md](docs/STDIO-SUPPORT.md).
@@ -84,14 +84,14 @@ The default bundle configuration is in `cordis.patch.yml`:
 - id: mcp-connector
   name: dsh-mcp-connector
   config:
-    catalogUrl: 'https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json'
+    catalogUrl: 'https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json'
     persistSecrets: true
     entryPrefix: mcp
     refreshSkewMs: 300000
     openBrowser: true
 ```
 
-Set `catalogUrl` to an empty string for an explicitly offline/private setup.
+Set `catalogUrl` to an empty string for an explicitly offline/private setup. A custom non-default URL is used as-is and does not fall back to the public registry.
 
 ## Development and release checks
 
