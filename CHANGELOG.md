@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [0.2.20] - 2026-08-25
+
+### Changed
+
+- 默认公共 Registry 改用 jsDelivr CDN，并在主源请求失败时按顺序回退到 GitHub Raw，提升不同网络环境下远程市场目录的可用性。
+- DSH Bundle 补丁与插件默认配置统一使用 jsDelivr 主源；用户显式配置的自定义目录地址保持单一来源，不会被公共备用源覆盖。
+
+### Fixed
+
+- 主源与备用源分别处理缓存协商；备用源不会复用或写入主源 ETag，避免跨源缓存标识导致错误的 `304 Not Modified`。
+- 目录主源失败时记录逐源告警，并在备用源成功后继续刷新市场，避免一次网络故障导致远程目录完全不可用。
+
+### Verification
+
+- 插件 98 项自动测试、lint、npm 发布文件白名单/敏感内容扫描和 `git diff --check` 通过。
+- 新增主源失败回退、主源 `304` 不访问备用源、默认配置与 Bundle 配置一致，以及自定义目录不启用公共回退的回归测试。
+
 ## [0.2.19] - 2026-08-24
 
 ### Fixed
@@ -331,7 +348,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.19...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.20...HEAD
+[0.2.20]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.19...v0.2.20
 [0.2.19]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.18...v0.2.19
 [0.2.18]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.16...v0.2.17
