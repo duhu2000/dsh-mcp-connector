@@ -25,7 +25,7 @@ Bearer/API Key 型连接器可在卡片上点「配置」，一次填写凭据�
 3. 提交 PR。CI 会检查 Schema、重复 id/serverName、密钥、URL、MCP initialize、OAuth 元数据和图标。
 4. 合并后 CI 重建根目录 `catalog.json`；客户端点击“刷新”后可见，无需重新发布 `dsh-mcp-connector` npm 包。
 
-插件默认读取 `https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector-registry/main/catalog.json`；远程不可用时自动回退上次缓存或随包内置目录。
+插件默认通过 `https://cdn.jsdelivr.net/gh/duhu2000/dsh-mcp-connector-registry@main/catalog.json` 读取目录；主源失败时依次尝试 GitHub raw 备用源、上次缓存和随包内置目录。jsDelivr 的分支 URL 存在缓存延迟，合并后的新卡片可能不会秒级出现。
 
 ## 4. DSH 外部插件市场验收
 

@@ -1,7 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { loadBundledCatalog, listCatalog, mergeCatalog, fetchRemoteCatalog, readLimitedJson } from '../lib/catalog.js';
+import {
+  loadBundledCatalog,
+  listCatalog,
+  mergeCatalog,
+  fetchRemoteCatalog,
+  fetchRemoteCatalogWithFallback,
+  readLimitedJson,
+} from '../lib/catalog.js';
 import { normalizeConnectorDescriptor } from '../lib/schema.js';
 
 function desc(id, { published = true, featured = false, category = '其他' } = {}) {
@@ -87,6 +94,73 @@ test('fetchRemoteCatalog 拉取并解析 { connectors } 结构', async () => {
     assert.equal(result.notModified, false);
     assert.equal(result.connectors.length, 1);
     assert.equal(result.connectors[0].id, 'remote-a');
+  } finally {
+    server.close();
+  }
+});
+
+test('fetchRemoteCatalogWithFallback 主源失败后改用备用源且不混用 ETag', async () => {
+  const requests = [];
+  const server = createServer((req, res) => {
+    requests.push({ url: req.url, etag: req.headers['if-none-match'] });
+    if (req.url === '/primary.json') {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'unavailable' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', ETag: '"fallback-v1"' });
+    res.end(JSON.stringify({ connectors: [{ id: 'fallback-a', name: 'Fallback', servers: [{ serverKey: 'a', url: 'https://mcp.example.com/stream', serverName: 'fallback-a' }] }] }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  const failures = [];
+  try {
+    const result = await fetchRemoteCatalogWithFallback(
+      `http://127.0.0.1:${port}/primary.json`,
+      [`http://127.0.0.1:${port}/fallback.json`],
+      {
+        requestTimeoutMs: 5000,
+        etag: '"primary-v1"',
+        onSourceError: (failure) => failures.push(failure),
+      },
+    );
+    assert.equal(result.notModified, false);
+    assert.equal(result.connectors[0].id, 'fallback-a');
+    assert.equal(result.etag, undefined, '备用源 ETag 不应写入主源缓存');
+    assert.deepEqual(requests, [
+      { url: '/primary.json', etag: '"primary-v1"' },
+      { url: '/fallback.json', etag: undefined },
+    ]);
+    assert.equal(failures.length, 1);
+    assert.equal(failures[0].index, 0);
+    assert.match(failures[0].error.message, /HTTP 503/);
+  } finally {
+    server.close();
+  }
+});
+
+test('fetchRemoteCatalogWithFallback 主源 304 时不请求备用源', async () => {
+  const requests = [];
+  const server = createServer((req, res) => {
+    requests.push(req.url);
+    if (req.url === '/primary.json') {
+      res.writeHead(304);
+      res.end();
+      return;
+    }
+    res.writeHead(500);
+    res.end();
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const result = await fetchRemoteCatalogWithFallback(
+      `http://127.0.0.1:${port}/primary.json`,
+      [`http://127.0.0.1:${port}/fallback.json`],
+      { requestTimeoutMs: 5000, etag: '"primary-v1"' },
+    );
+    assert.deepEqual(result, { notModified: true });
+    assert.deepEqual(requests, ['/primary.json']);
   } finally {
     server.close();
   }
