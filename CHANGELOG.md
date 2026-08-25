@@ -4,10 +4,16 @@
 
 ## [Unreleased]
 
+## [0.2.21] - 2026-08-25
+
 ### Documentation
 
 - 产品介绍同步为公共 Registry 78 条、去重后市场 82 张卡片；新增 Registry/市场实时数量徽标。
 - 新增每小时 Registry 统计同步工作流，以 `catalog-stats.json` 为权威来源更新中英文 README 与本地快照，避免后续上架造成宣传数量过期。
+
+### Verification
+
+- 插件 100 项自动测试、lint、Registry 统计同步幂等性、npm 发布文件白名单/敏感内容扫描和 `git diff --check` 通过。
 
 ## [0.2.20] - 2026-08-25
 
