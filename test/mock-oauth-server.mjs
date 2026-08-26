@@ -42,12 +42,14 @@ function readBody(req) {
  * @param {string[]} [options.tokenResources] 若提供，签发的 access_token 为带 resource claim 的 JWT（值传 server key 数组，如 ['company','risk',...]，模拟企业认证授权范围）
  * @param {boolean} [options.uniqueClientIds=false] 每次动态注册签发不同 client_id，用于验证重新授权后的旧 grant 清理
  * @param {'none'|'client_secret_post'|'client_secret_basic'} [options.tokenEndpointAuthMethod='none'] DCR 返回的客户端鉴权方式
+ * @param {number} [options.refreshFailures=0] 前 N 次刷新返回暂时性 server_error
  */
 export function createMockQccServer({
   expiresIn = 3600,
   tokenResources,
   uniqueClientIds = false,
   tokenEndpointAuthMethod = 'none',
+  refreshFailures = 0,
 } = {}) {
   const state = {
     clientId: 'wb_dyn_mock_0001',
@@ -62,6 +64,8 @@ export function createMockQccServer({
     clientSecret: 'mock-dynamic-client-secret',
     clients: new Map(),
     refreshCount: 0,
+    refreshAttempts: 0,
+    refreshFailuresRemaining: refreshFailures,
     clientAuthMethods: [],
   };
 
@@ -231,6 +235,11 @@ export function createMockQccServer({
         });
       }
       if (grantType === 'refresh_token') {
+        state.refreshAttempts += 1;
+        if (state.refreshFailuresRemaining > 0) {
+          state.refreshFailuresRemaining -= 1;
+          return oauthError(res, 'server_error', 'temporary refresh outage', 503);
+        }
         const refreshToken = params.get('refresh_token');
         const record = state.refreshTokens.get(refreshToken);
         if (!record || state.revokedRefresh.has(refreshToken) || record.clientId !== authenticatedClientId) {

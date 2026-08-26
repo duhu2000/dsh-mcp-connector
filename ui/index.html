@@ -471,7 +471,7 @@
   const searchInput = $('#search');
   const LABELS = {
     details: '详情', connect: '连接', connected: '已连接', configured: '已配置', configure: '配置',
-    reauthorize: '需重新授权', connectionError: '连接异常', partialError: '部分异常', disabled: '已停用',
+    reauthorize: '需重新授权', recovering: '自动重试中', connectionError: '连接异常', partialError: '部分异常', disabled: '已停用',
     send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
     connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
     reconfigureCredential: '🔑 重新配置凭据', loading: '加载中…',
@@ -857,6 +857,7 @@
       if (state === 'configured') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('configured')}</button>`;
       if (state === 'disabled') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('disabled')}</button>`;
       if (state === 'reauth') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('reauthorize')}</button>`;
+      if (state === 'recovering') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('recovering')}</button>`;
       if (state === 'degraded') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('partialError')}</button>`;
       if (state === 'unavailable') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-bad" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('connectionError')}</button>`;
     }
@@ -886,8 +887,8 @@
   function rowHtml(r) {
     const key = esc(r.key);
     const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
-    const healthLabels = { healthy: '已连接', configured: '已配置', reauth: '需重新授权', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
-    const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
+    const healthLabels = { healthy: '已连接', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
+    const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
     const healthBadge = `<span class="badge ${healthClass}">${esc(healthLabels[r.connectionState] || '已配置')}</span>`;
     const enabled = r.enabled !== false;
     return `<div class="row" data-key="${key}">
@@ -1208,7 +1209,7 @@
       if (!d) return;
       detailConnector = d;
       detailFailureState = d.connectionState || '';
-      detailNeedsReconfigure = ['reauth', 'unavailable'].includes(detailFailureState);
+      detailNeedsReconfigure = ['reauth', 'recovering', 'unavailable'].includes(detailFailureState);
       const loadId = ++detailLoadId;
       $('#detail-icon').innerHTML = isImageIcon(d.icon)
         ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`

@@ -31,6 +31,7 @@ test('内置目录加载 + published 过滤', () => {
   assert.ok(published.some((d) => d.id === 'qcc-company'));
   const qccCards = published.filter((d) => d.id.startsWith('qcc-'));
   assert.equal(qccCards.length, 4, '内置目录应包含 4 张企查查卡片');
+  assert.ok(qccCards.every((d) => d.auth.grantSharing === 'issuer'), '4 张企查查卡片应共享同 issuer OAuth Grant');
   assert.ok(qccCards.every((d) => d.icon === '/mcp-connector/ui/assets/qcc-logo.svg'), '4 张卡片统一使用内置企查查 Logo');
   assert.ok(qccCards.every((d) => d.prompts.length > 0), '4 张卡片均应提供可快速体验的 Prompt');
   assert.ok(qccCards.flatMap((d) => d.prompts).some((prompt) => prompt.text.includes('{{')), 'Prompt 应使用参数模板');
