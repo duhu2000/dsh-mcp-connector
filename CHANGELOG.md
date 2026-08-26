@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.23] - 2026-08-26
+
 ### Fixed
 
 - OAuth Grant 现在保存 Access Token 的真实过期时间，并在提前刷新遇到网络、发现端点或服务端暂时故障时采用有上限的指数退避自动恢复；只有 `invalid_grant`、`invalid_client` 等明确不可恢复错误才显示“需重新授权”。
@@ -383,7 +385,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...HEAD
+[0.2.23]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...v0.2.23
 [0.2.22]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.21...v0.2.22
 [0.2.21]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.20...v0.2.21
 [0.2.20]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.19...v0.2.20
