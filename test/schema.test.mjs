@@ -245,6 +245,10 @@ test('buildEntryConfig: stdio 仅透传进程字段，不混入 HTTP headers', (
     transport: 'stdio', serverName: 'local', command: 'uvx', args: ['server'],
     env: { MODE: 'test' }, cwd: '/tmp', failOnStartupError: false,
   });
+  const strict = buildEntryConfig({
+    transport: 'stdio', serverName: 'local', command: 'uvx', args: [], env: {}, cwd: '/tmp',
+  }, new Map(), { failOnStartupError: true });
+  assert.equal(strict.failOnStartupError, true);
 });
 
 test('OAuth protected resource metadata fallback 保留 MCP 路径', () => {
