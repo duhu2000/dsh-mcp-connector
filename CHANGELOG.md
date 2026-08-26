@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.22] - 2026-08-26
+
 ### Fixed
 
 - 首次连接改为等待 `dsh-mcp-client` 完成 MCP `initialize` 与首次 `tools/list`；启动失败或超时不再提前保存、增加已安装数量或显示“已连接”。
@@ -370,7 +372,9 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.20...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...HEAD
+[0.2.22]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.21...v0.2.22
+[0.2.21]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.20...v0.2.21
 [0.2.20]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.19...v0.2.20
 [0.2.19]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.18...v0.2.19
 [0.2.18]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.17...v0.2.18
