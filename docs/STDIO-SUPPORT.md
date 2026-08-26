@@ -4,6 +4,8 @@
 > 结论：**低成本补齐**——`@deepseek-ai/dsh-mcp-client` 已原生支持 stdio，我们只需在 schema + provisioning 两层「开闸透传」。
 
 > **实施状态（2026-08-23）**：本文方案已经落地。schema、手工配置、JSON 导入、provisioning、Registry Schema、目录安全审计、健康状态、详情提示和自动测试均已完成；下文保留实施前的代码位置与改动建议，作为架构决策记录。
+>
+> **就绪语义加固（2026-08-26）**：用户主动连接时显式启用 `failOnStartupError`，必须等待 Host 完成首次 `initialize + tools/list` 后才持久化；健康检查与详情页改读 Host 实际注册的 `mcp__<serverName>__*` 工具。启动失败、进程退出或超时不再提前显示“已连接”。依赖默认值仍为 `false`，下文对应代码仅作为依赖能力说明。
 > 状态：已完成（v0.2.12）
 
 ---

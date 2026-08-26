@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 首次连接改为等待 `dsh-mcp-client` 完成 MCP `initialize` 与首次 `tools/list`；启动失败或超时不再提前保存、增加已安装数量或显示“已连接”。
+- stdio 健康状态与工具详情改用 Host 实际注册的 `mcp__<serverName>__*` 工具；未注册工具保持“已配置”并显示可重试诊断。
+- 手动 HTTP、免鉴权市场连接与 JSON 导入统一在落库前执行连接校验；DNS、网络、鉴权或协议失败时保留原配置且不写入无效记录。
+- 市场 Web 请求增加连接、健康检查与工具加载超时，避免详情页无限停留在“加载中”。
+
+### Verification
+
+- 新增无效 HTTP 不落库、stdio Host 启动失败回滚、Host 工具注册状态和前端有限超时回归测试。
+
 ## [0.2.21] - 2026-08-25
 
 ### Documentation

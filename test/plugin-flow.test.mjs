@@ -23,16 +23,18 @@ function makeTable() {
   };
 }
 
-function makeLoader() {
+function makeLoader({ onCreate, onUpdate } = {}) {
   const entries = new Map();
   return {
     entries,
     async create({ id, name, config, disabled }) {
+      await onCreate?.({ id, name, config, disabled });
       entries.set(id, { id, name, options: { config }, disabled });
     },
     async update(id, patch) {
       const e = entries.get(id);
       if (!e) throw new Error(`entry ${id} not found`);
+      await onUpdate?.({ id, patch, entry: e });
       if ('config' in patch) e.options.config = patch.config;
       if ('disabled' in patch) e.disabled = patch.disabled;
     },
@@ -53,14 +55,17 @@ function makeToolsRegistry() {
     defs,
     register(def) {
       defs.set(def.name, def);
-      return () => {};
+      return () => defs.delete(def.name);
+    },
+    schemas() {
+      return [...defs.values()].map(({ name, description = '', parameters = {} }) => ({ name, description, parameters }));
     },
   };
 }
 
-function makePluginContext({ shared } = {}) {
+function makePluginContext({ shared, loaderHooks } = {}) {
   const logs = [];
-  const loader = makeLoader();
+  const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
   const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]);
   const domain = { tables, close: async () => {} };
@@ -352,6 +357,13 @@ test('启动时自动清理历史孤立 grant，并保留连接仍引用的 gran
 });
 
 test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', { timeout: 15000 }, async () => {
+  const server = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'none', version: '1' } } }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/mcp`;
   const { ctx, loader, tools } = makePluginContext();
   const { apply } = await import('../lib/index.js');
 
@@ -360,7 +372,7 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
       id: 'none-demo',
       name: '免鉴权演示',
       auth: { mode: 'none' },
-      servers: [{ serverKey: 'a', url: 'https://mcp.example.com/stream', serverName: 'none-a', transport: 'streamable-http', headers: {} }],
+      servers: [{ serverKey: 'a', url, serverName: 'none-a', transport: 'streamable-http', headers: {} }],
     },
     {
       id: 'apikey-demo',
@@ -371,14 +383,18 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
   ];
   await apply(ctx, baseConfig({ connectors }));
 
-  const connect = tools.defs.get('mcp_connector_connect');
-  const none = await connect.execute({ connectorId: 'none-demo' }, { signal: undefined });
-  assert.equal(none.ok, true);
-  assert.ok(loader.entries.has('mcp-none-demo-a'));
+  try {
+    const connect = tools.defs.get('mcp_connector_connect');
+    const none = await connect.execute({ connectorId: 'none-demo' }, { signal: undefined });
+    assert.equal(none.ok, true, none.message);
+    assert.ok(loader.entries.has('mcp-none-demo-a'));
 
-  const key = await connect.execute({ connectorId: 'apikey-demo' }, { signal: undefined });
-  assert.equal(key.ok, false);
-  assert.match(key.message, /mcp_connector_configure/);
+    const key = await connect.execute({ connectorId: 'apikey-demo' }, { signal: undefined });
+    assert.equal(key.ok, false);
+    assert.match(key.message, /mcp_connector_configure/);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, async () => {
@@ -407,7 +423,7 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
     assert.equal(loader.entries.get('mcp-custom-my').options.config.headers.Authorization, 'Bearer tok');
 
     const imp = await tools.defs.get('mcp_connector_import_json').execute({
-      json: JSON.stringify({ mcpServers: { vendor: { type: 'streamable-http', url: 'https://vendor.example.com/mcp/stream', headers: { Authorization: 'Bearer vtok' } } } }),
+      json: JSON.stringify({ mcpServers: { vendor: { type: 'streamable-http', url: manualUrl, headers: { Authorization: 'Bearer vtok' } } } }),
     });
     assert.equal(imp.ok, true, imp.message);
     assert.equal(imp.detail.keys.length, 1);
@@ -425,7 +441,71 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
   }
 });
 
+test('手动 HTTP initialize 失败时不保存、不启用且保留可操作错误', { timeout: 15000 }, async () => {
+  const invalidServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(503); res.end();
+  });
+  await new Promise((resolve) => invalidServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${invalidServer.address().port}/mcp`;
+  const { ctx, loader, tools, tables } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+
+  try {
+    const configured = await tools.defs.get('mcp_connector_configure').execute({
+      name: 'qa-unreachable',
+      serverName: 'qa-unreachable',
+      transport: 'streamable-http',
+      url,
+      authMode: 'none',
+    });
+    assert.equal(configured.ok, false);
+    assert.match(configured.message, /连接验证失败/);
+    assert.match(configured.message, /未保存连接/);
+    assert.equal(loader.entries.size, 0);
+    assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
+    assert.equal([...tables.get('connections').entries()].length, 0);
+  } finally {
+    await new Promise((resolve) => invalidServer.close(resolve));
+  }
+});
+
+test('stdio Host 启动失败时不保存且返回进程诊断', { timeout: 15000 }, async () => {
+  const startupError = Object.assign(new Error('spawn uvx ENOENT'), { code: 'ENOENT' });
+  const { ctx, loader, tools, tables } = makePluginContext({
+    loaderHooks: {
+      onCreate: async ({ name }) => {
+        if (name === '@deepseek-ai/dsh-mcp-client') throw startupError;
+      },
+    },
+  });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({
+    connectors: [{
+      id: 'stdio-failure', name: 'Stdio Failure', auth: { mode: 'none' },
+      servers: [{ serverKey: 'main', transport: 'stdio', serverName: 'stdio-failure', command: 'uvx', args: ['missing-server'] }],
+    }],
+  }));
+
+  const connected = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'stdio-failure' }, { signal: undefined });
+  assert.equal(connected.ok, false);
+  assert.equal(connected.detail.kind, 'process-not-found');
+  assert.match(connected.message, /启动命令不存在/);
+  assert.match(connected.message, /未保存连接/);
+  assert.equal(loader.entries.size, 0);
+  assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
+  assert.equal([...tables.get('connections').entries()].length, 0);
+});
+
 test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-client', { timeout: 15000 }, async () => {
+  const httpServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'switch', version: '1' } } }));
+  });
+  await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
+  const httpUrl = `http://127.0.0.1:${httpServer.address().port}/mcp`;
   const { ctx, loader, tools } = makePluginContext();
   const { apply } = await import('../lib/index.js');
   await apply(ctx, baseConfig({
@@ -438,54 +518,66 @@ test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-cl
     }],
   }));
 
-  const connected = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'local-market' }, { signal: undefined });
-  assert.equal(connected.ok, true, connected.message);
-  assert.deepEqual(loader.entries.get('mcp-local-market-main').options.config, {
-    transport: 'stdio', serverName: 'local-market', command: 'uvx', args: ['trusted-local-server'],
-    env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: false,
-  });
-  const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'local-market' });
-  assert.equal(listed.ok, true, listed.message);
-  assert.equal(listed.detail.managedWithoutSnapshot, 1);
-  assert.match(listed.message, /工具由 DSH Host 注册/);
+  try {
+    const connected = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'local-market' }, { signal: undefined });
+    assert.equal(connected.ok, true, connected.message);
+    assert.deepEqual(loader.entries.get('mcp-local-market-main').options.config, {
+      transport: 'stdio', serverName: 'local-market', command: 'uvx', args: ['trusted-local-server'],
+      env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: true,
+    });
+    const pendingHealth = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'local-market' });
+    assert.equal(pendingHealth.detail.items[0].connectionState, 'configured');
+    const pendingTools = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'local-market' });
+    assert.equal(pendingTools.ok, false);
+    assert.equal(pendingTools.detail.servers[0].errorKind, 'startup');
+    tools.register({ name: 'mcp__local-market__search', description: 'Search local market', parameters: {} });
+    const readyHealth = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'local-market' });
+    assert.equal(readyHealth.detail.items[0].connectionState, 'healthy');
+    const listed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'local-market' });
+    assert.equal(listed.ok, true, listed.message);
+    assert.equal(listed.detail.servers[0].live, true);
+    assert.equal(listed.detail.servers[0].tools[0].name, 'search');
 
-  const configured = await tools.defs.get('mcp_connector_configure').execute({
+    const configured = await tools.defs.get('mcp_connector_configure').execute({
     name: 'Local Files', transport: 'stdio', serverName: 'local-files', command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
     envJson: JSON.stringify({ LOG_LEVEL: 'info' }), cwd: '/tmp',
   });
-  assert.equal(configured.ok, true, configured.message);
-  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+    assert.equal(configured.ok, true, configured.message);
+    assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
     transport: 'stdio', serverName: 'local-files', command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
-    env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: false,
-  });
+      env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: true,
+    });
 
-  const switchedToHttp = await tools.defs.get('mcp_connector_configure').execute({
+    const switchedToHttp = await tools.defs.get('mcp_connector_configure').execute({
     name: 'Local Files', transport: 'streamable-http', serverName: 'local-files',
-    url: 'https://mcp.example.com/stream', authMode: 'none',
-  });
-  assert.equal(switchedToHttp.ok, true, switchedToHttp.message);
-  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
-    transport: 'streamable-http', serverName: 'local-files', url: 'https://mcp.example.com/stream',
-    headers: {}, failOnStartupError: false,
-  });
+      url: httpUrl, authMode: 'none',
+    });
+    assert.equal(switchedToHttp.ok, true, switchedToHttp.message);
+    assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+      transport: 'streamable-http', serverName: 'local-files', url: httpUrl,
+      headers: {}, failOnStartupError: true,
+    });
 
-  const switchedBackToStdio = await tools.defs.get('mcp_connector_configure').execute({
+    const switchedBackToStdio = await tools.defs.get('mcp_connector_configure').execute({
     name: 'Local Files', transport: 'stdio', serverName: 'local-files', command: 'uvx', args: ['trusted-server'],
   });
-  assert.equal(switchedBackToStdio.ok, true, switchedBackToStdio.message);
-  assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
+    assert.equal(switchedBackToStdio.ok, true, switchedBackToStdio.message);
+    assert.deepEqual(loader.entries.get('mcp-custom-local-files').options.config, {
     transport: 'stdio', serverName: 'local-files', command: 'uvx', args: ['trusted-server'],
-    env: {}, cwd: process.cwd(), failOnStartupError: false,
-  });
+      env: {}, cwd: process.cwd(), failOnStartupError: true,
+    });
 
-  const imported = await tools.defs.get('mcp_connector_import_json').execute({
+    const imported = await tools.defs.get('mcp_connector_import_json').execute({
     json: JSON.stringify({ mcpServers: { memory: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory'] } } }),
   });
-  assert.equal(imported.ok, true, imported.message);
-  assert.equal(loader.entries.get('mcp-json-memory').options.config.transport, 'stdio');
-  assert.equal(loader.entries.get('mcp-json-memory').options.config.command, 'npx');
+    assert.equal(imported.ok, true, imported.message);
+    assert.equal(loader.entries.get('mcp-json-memory').options.config.transport, 'stdio');
+    assert.equal(loader.entries.get('mcp-json-memory').options.config.command, 'npx');
+  } finally {
+    await new Promise((resolve) => httpServer.close(resolve));
+  }
 });
 
 test('stdio 市场凭据绑定：多字段只在本机注入 env，目录和状态不返回真实值', { timeout: 15000 }, async () => {
@@ -543,7 +635,7 @@ test('stdio 市场凭据绑定：多字段只在本机注入 env，目录和状�
       VENDOR_REGION: 'cn-east-1',
     },
     cwd: process.cwd(),
-    failOnStartupError: false,
+    failOnStartupError: true,
   });
   assert.equal([...tables.get('connections').entries()][0][1].env.VENDOR_API_TOKEN, 'stdio-local-secret');
 
@@ -627,6 +719,47 @@ test('市场凭据校验失败时不进入已安装、不持久化 Key', { timeo
     assert.equal([...tables.get('connections').entries()].length, 0);
   } finally {
     await new Promise((resolve) => authServer.close(resolve));
+  }
+});
+
+test('多 Server 严格启动中途失败时原子回滚已创建条目与连接记录', { timeout: 15000 }, async () => {
+  const server = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'batch', version: '1' } } }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/mcp`;
+  const connectors = [{
+    id: 'batch-startup',
+    name: 'Batch Startup',
+    auth: { mode: 'bearer' },
+    servers: [
+      { serverKey: 'first', url, serverName: 'batch-first', headers: {} },
+      { serverKey: 'second', url, serverName: 'batch-second', headers: {} },
+    ],
+  }];
+  const { ctx, loader, tools, tables } = makePluginContext({
+    loaderHooks: {
+      onCreate: async ({ id }) => {
+        if (id === 'mcp-batch-startup-second') throw new Error('initial tool synchronization failed');
+      },
+    },
+  });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+
+  try {
+    const configured = await tools.defs.get('mcp_connector_configure').execute({
+      connectorId: 'batch-startup', bearerToken: 'batch-token',
+    });
+    assert.equal(configured.ok, false);
+    assert.match(configured.message, /未保存连接/);
+    assert.equal(loader.entries.size, 0, '首个已创建 Host 条目必须回滚');
+    assert.equal([...tables.get('connections').entries()].length, 0);
+    assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 
@@ -755,14 +888,20 @@ test('未配置远程目录时刷新市场也返回正常用户提示', async ()
 });
 
 test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
-  const catalogSrv = createServer((req, res) => {
+  const catalogSrv = createServer(async (req, res) => {
+    if (req.url === '/mcp') {
+      for await (const _chunk of req) {}
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'url-demo', version: '1' } } }));
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
         id: 'url-demo',
         name: 'URL 安装演示',
         auth: { mode: 'none' },
-        servers: [{ serverKey: 'a', url: 'https://mcp.example.com/stream', serverName: 'url-a', transport: 'streamable-http', headers: {} }],
+        servers: [{ serverKey: 'a', url: `http://${req.headers.host}/mcp`, serverName: 'url-a', transport: 'streamable-http', headers: {} }],
       }),
     );
   });

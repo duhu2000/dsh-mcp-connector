@@ -455,6 +455,16 @@
 <script>
 (function () {
   const API = '/mcp-connector/api';
+  const API_TIMEOUTS = {
+    connect: 145_000,
+    configure: 145_000,
+    importJson: 145_000,
+    installFromUrl: 145_000,
+    setEnabled: 130_000,
+    toolsList: 20_000,
+    healthCheck: 10_000,
+  };
+  const DEFAULT_API_TIMEOUT_MS = 30_000;
   const $ = (sel) => document.querySelector(sel);
   const main = $('#main');
   const toast = $('#toast');
@@ -505,18 +515,31 @@
   let promptRequestTimer = null;
   let initialHealthCheckStarted = false;
 
-  async function call(method, params) {
+  async function call(method, params, { timeoutMs: timeoutOverride } = {}) {
+    const controller = new AbortController();
+    const timeoutMs = timeoutOverride || API_TIMEOUTS[method] || DEFAULT_API_TIMEOUT_MS;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await fetch(API, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ method, params }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!res.ok && data.ok !== false) return { ok: false, message: `请求失败（HTTP ${res.status}）` };
       return data;
     } catch (error) {
+      if (controller.signal.aborted) {
+        return {
+          ok: false,
+          message: `请求超时（${Math.ceil(timeoutMs / 1000)} 秒），请检查服务状态和 Host 日志后重试`,
+          detail: { kind: 'timeout' },
+        };
+      }
       return { ok: false, message: `无法连接 MCP 连接器服务：${error?.message || error}` };
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -676,7 +699,7 @@
           return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
         : server.managed
-          ? '<div class="tools-loading">stdio 工具已由 DSH Host 注册；当前市场详情没有目录快照，可直接在对话中调用。</div>'
+          ? '<div class="tools-loading">Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。</div>'
           : '<div class="tools-loading">暂无工具</div>';
       return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></div>${items}</div>`;
     }).filter(Boolean);
@@ -1038,7 +1061,8 @@
 
   window.__mcp = {
     async connect(connectorId) {
-      const r = await call('connect', { connectorId });
+      const timeoutMs = marketItems[connectorId]?.authMode === 'oauth2-pkce' ? 310_000 : undefined;
+      const r = await call('connect', { connectorId }, { timeoutMs });
       showToast(r.message, r.ok);
       if (r.ok) {
         await call('healthCheck', { connectorId });
@@ -1320,7 +1344,7 @@
       }
       if (detailFailureState === 'reauth' && detailConnector?.authMode === 'oauth2-pkce') {
         const id = detailConnector.id;
-        const r = await call('connect', { connectorId: id });
+        const r = await call('connect', { connectorId: id }, { timeoutMs: 310_000 });
         showToast(r.message, r.ok);
         if (r.ok) {
           await call('healthCheck', { connectorId: id });

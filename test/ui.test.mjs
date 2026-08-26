@@ -48,7 +48,20 @@ test('手动配置支持 stdio 并区分 URL 与本地进程字段', () => {
   assert.match(uiSource, /id="cfg-env"/);
   assert.match(uiSource, /function|syncTransportFields/);
   assert.match(uiSource, /transport === 'stdio' \? 'none' : authMode/);
-  assert.match(uiSource, /stdio 工具已由 DSH Host 注册；当前市场详情没有目录快照/);
+  assert.match(uiSource, /Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具/);
+});
+
+test('连接、健康检查与工具加载均有有限超时和可重试提示', () => {
+  assert.match(uiSource, /const API_TIMEOUTS = \{/);
+  assert.match(uiSource, /connect: 145_000/);
+  assert.match(uiSource, /toolsList: 20_000/);
+  assert.match(uiSource, /healthCheck: 10_000/);
+  assert.match(uiSource, /const controller = new AbortController\(\)/);
+  assert.match(uiSource, /signal: controller\.signal/);
+  assert.match(uiSource, /authMode === 'oauth2-pkce' \? 310_000/);
+  assert.match(uiSource, /请求超时（\$\{Math\.ceil\(timeoutMs \/ 1000\)\} 秒）/);
+  assert.match(uiSource, /detailNeedsReconfigure = true/);
+  assert.match(uiSource, /重新检查/);
 });
 
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
