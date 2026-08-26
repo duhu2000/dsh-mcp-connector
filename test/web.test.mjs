@@ -51,6 +51,7 @@ function makeWctx() {
 }
 
 const api = {
+  versionStatus: async (force) => ({ ok: true, message: 'v0.2.23', detail: { installedVersion: '0.2.23', force } }),
   catalog: async () => ({ ok: true, message: '3 个连接器', detail: { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }),
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
@@ -87,6 +88,16 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   const parsed = JSON.parse(res.body);
   assert.equal(parsed.ok, true);
   assert.equal(parsed.detail.items.length, 3);
+
+  const versionRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'versionStatus', params: { force: true } }),
+  }), versionRes);
+  assert.equal(versionRes.status, 200);
+  assert.deepEqual(JSON.parse(versionRes.body).detail, { installedVersion: '0.2.23', force: true });
 
   const res2 = new FakeRes();
   await route.handler(fakeReq({

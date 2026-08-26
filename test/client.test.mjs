@@ -195,3 +195,17 @@ test('市场弹框具备主题与键盘可访问性样式', async () => {
   assert.match(source, /event\.key === "Escape"/);
   assert.match(source, /mcpConnectorMarketClose:focus-visible/);
 });
+
+test('市场标题展示安装版本并引导到 DSH 插件市场更新', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.match(source, /method: "versionStatus"/);
+  assert.match(source, /VERSION_CHECK_INTERVAL_MS = 6 \* 60 \* 60 \* 1e3/);
+  assert.match(source, /VERSION_CHECK_RETRY_MS = 5 \* 60 \* 1e3/);
+  assert.match(source, /Date\.parse\(status\.nextCheckAt/);
+  assert.match(source, /mcpConnectorVersion/);
+  assert.match(source, /前往插件市场更新到 v/);
+  assert.match(source, /\[data-slot="sidebar\.settings"\]/);
+  assert.match(source, /\^\(\\u63d2\\u4ef6\\u5e02\\u573a\|Plugin Market\|Plugin Marketplace\)\$/);
+  assert.match(source, /window\.open\(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"\)/);
+  assert.doesNotMatch(source, /registry\.npmjs\.org/, '客户端不应跨域请求版本源');
+});

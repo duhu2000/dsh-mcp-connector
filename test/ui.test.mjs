@@ -13,6 +13,11 @@ test('界面固定为中文且不提供语言切换入口', () => {
   assert.match(uiSource, /const LABELS = \{[\s\S]*?details: '详情'/);
 });
 
+test('目录刷新文案与插件升级明确区分', () => {
+  assert.match(uiSource, /id="refresh" title="刷新连接器目录">刷新连接器目录<\/button>/);
+  assert.match(uiSource, /call\('refreshCatalog', \{\}\)/);
+});
+
 test('内置 Prompt 有默认值时直接发送，无默认值才补全参数', () => {
   assert.match(uiSource, /function promptNeedsInput\(prompt\)/);
   assert.match(uiSource, /if \(!promptNeedsInput\(prompt\)\) \{\s*window\.__mcp\.sendPrompt\(renderResolvedPrompt\(prompt, \{\}\)\)/);
