@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- OAuth Grant 现在保存 Access Token 的真实过期时间，并在提前刷新遇到网络、发现端点或服务端暂时故障时采用有上限的指数退避自动恢复；只有 `invalid_grant`、`invalid_client` 等明确不可恢复错误才显示“需重新授权”。
+- 启动恢复不再吞掉 Token 刷新异常；脱敏日志会记录阶段、OAuth 错误码、HTTP 状态与永久/暂时分类，且不会输出 Access Token、Refresh Token 或客户端密钥。
+- `grantSharing: "issuer"` 正式生效：同账号、同 issuer/scope 的卡片共享动态客户端与 Grant，后续连接同组卡片不再重复打开授权页；重新授权会把同组已连接卡片迁移到新 Grant。
+- 启动和连接前检测仍启用的 `qcc-mcp-oauth` / `qcc-legal-mcp-oauth` 及其残留 mcp-client 条目；发现同名 Server 时阻断新连接，避免旧 Token 覆盖新连接器凭据。
+
+### Verification
+
+- 新增 OAuth 刷新失败分类/脱敏/退避、暂时故障自动恢复、永久失效重新授权、同 issuer 顺序与并发共享授权、旧插件冲突阻断回归测试。
+
 ## [0.2.22] - 2026-08-26
 
 ### Fixed

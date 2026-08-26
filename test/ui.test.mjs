@@ -106,6 +106,7 @@ test('市场卡片区分已配置、已连接、重新授权和连接异常', ()
   assert.match(actionSource, /state === 'healthy'[\s\S]*?t\('connected'\)/);
   assert.match(actionSource, /state === 'configured'[\s\S]*?t\('configured'\)/);
   assert.match(actionSource, /state === 'reauth'[\s\S]*?t\('reauthorize'\)/);
+  assert.match(actionSource, /state === 'recovering'[\s\S]*?t\('recovering'\)/);
   assert.match(actionSource, /state === 'unavailable'[\s\S]*?t\('connectionError'\)/);
   assert.match(uiSource, /call\('healthCheck', \{\}\)/);
 });

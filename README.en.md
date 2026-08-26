@@ -25,10 +25,10 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - Credential and MCP initialize validation before HTTP API-key connectors are saved as installed, plus declarative multi-field credential-to-env bindings for marketplace stdio connectors.
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
-- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, refresh OAuth tokens, and revoke authorization. DCR client secrets are kept with the local grant only.
+- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; DCR client secrets remain local to that grant.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
-- Explicit, non-destructive migration of authorization from the two earlier Qichacha OAuth plugins.
+- Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
 
 <!-- catalog-stats:start -->
 As of 2026-08-25, the public Registry publishes 78 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 82 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.

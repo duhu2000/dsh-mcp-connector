@@ -25,11 +25,11 @@
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
 - 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
-- 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 刷新与撤销；DCR 返回的客户端密钥与 Token 一同只保存在本机。
+- 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片可共享一次授权，DCR 返回的客户端密钥与 Token 一同只保存在本机。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
-- 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；不删除原插件或原凭据。
+- 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；检测到旧插件仍启用并管理同名 Server 时阻断重复连接，避免凭据相互覆盖。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`health_check`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
 
 <!-- catalog-stats:start -->

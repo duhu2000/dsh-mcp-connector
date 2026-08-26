@@ -276,6 +276,115 @@ test('同一连接器并发点击 OAuth 连接时只发起一次授权', { timeo
   }
 });
 
+test('grantSharing=issuer：第二张同 issuer 卡片复用首张授权，不再打开授权页', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company', 'risk'] });
+  const { ctx, tools, logs, tables, loader } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const sharedAuth = {
+    mode: 'oauth2-pkce',
+    issuer: oauth.base,
+    scope: 'mcp:tools',
+    clientName: 'shared-grant-test',
+    grantSharing: 'issuer',
+  };
+  const connectors = [
+    {
+      id: 'shared-company', name: '共享企业数据', auth: sharedAuth,
+      servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'shared-company', transport: 'streamable-http', headers: {} }],
+    },
+    {
+      id: 'shared-risk', name: '共享风险数据', auth: sharedAuth,
+      servers: [{ serverKey: 'risk', url: `${oauth.base}/mcp/risk/stream`, serverName: 'shared-risk', transport: 'streamable-http', headers: {} }],
+    },
+  ];
+
+  try {
+    await apply(ctx, baseConfig({ connectors }));
+    const connect = tools.defs.get('mcp_connector_connect');
+    const first = connect.execute({ connectorId: 'shared-company' }, { signal: undefined });
+    await autoApproveAt(logs, 0);
+    const firstResult = await first;
+    assert.equal(firstResult.ok, true, firstResult.message);
+    assert.ok(loader.entries.has('mcp-shared-company-company'));
+    assert.equal(loader.entries.has('mcp-shared-risk-risk'), false, '首次只启用用户点击的卡片');
+
+    const secondResult = await connect.execute({ connectorId: 'shared-risk' }, { signal: undefined });
+    assert.equal(secondResult.ok, true, secondResult.message);
+    assert.equal(secondResult.detail.reusedGrant, true);
+    assert.ok(loader.entries.has('mcp-shared-risk-risk'));
+    assert.equal(extractAuthorizeUrls(logs).length, 1, '第二张卡片不得再次弹 OAuth 页面');
+    assert.equal(oauth.state.registrationCount, 1, '同 issuer 只注册一个动态客户端');
+
+    const grants = [...tables.get('grants').entries()];
+    assert.equal(grants.length, 1);
+    assert.deepEqual(grants[0][1].connectorIds.sort(), ['shared-company', 'shared-risk']);
+    assert.deepEqual(grants[0][1].authorizedResources.sort(), [
+      `${oauth.base}/mcp/company/stream`,
+      `${oauth.base}/mcp/risk/stream`,
+    ].sort());
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('grantSharing=issuer：不同卡片并发连接也只发起一次授权', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company', 'risk'] });
+  const { ctx, tools, logs, loader } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const auth = { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'shared-concurrent', grantSharing: 'issuer' };
+  const connectors = [
+    { id: 'concurrent-company', name: '并发企业', auth, servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'concurrent-company', transport: 'streamable-http', headers: {} }] },
+    { id: 'concurrent-risk', name: '并发风险', auth, servers: [{ serverKey: 'risk', url: `${oauth.base}/mcp/risk/stream`, serverName: 'concurrent-risk', transport: 'streamable-http', headers: {} }] },
+  ];
+  try {
+    await apply(ctx, baseConfig({ connectors }));
+    const connect = tools.defs.get('mcp_connector_connect');
+    const first = connect.execute({ connectorId: 'concurrent-company' }, { signal: undefined });
+    const second = connect.execute({ connectorId: 'concurrent-risk' }, { signal: undefined });
+    await autoApproveAt(logs, 0);
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    assert.equal(firstResult.ok, true, firstResult.message);
+    assert.equal(secondResult.ok, true, secondResult.message);
+    assert.equal(extractAuthorizeUrls(logs).length, 1);
+    assert.equal(oauth.state.registrationCount, 1);
+    assert.ok(loader.entries.has('mcp-concurrent-company-company'));
+    assert.ok(loader.entries.has('mcp-concurrent-risk-risk'));
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('grantSharing=issuer 不跨 MCP 资源域复用 Bearer Token', { timeout: 30000 }, async () => {
+  const firstOAuth = await createMockQccServer({ tokenResources: ['company'] });
+  const secondOAuth = await createMockQccServer({ tokenResources: ['risk'] });
+  const { ctx, tools, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const auth = { mode: 'oauth2-pkce', issuer: firstOAuth.base, scope: 'mcp:tools', clientName: 'origin-fence', grantSharing: 'issuer' };
+  const connectors = [
+    { id: 'origin-first', name: '域一', auth, servers: [{ serverKey: 'company', url: `${firstOAuth.base}/mcp/company/stream`, serverName: 'origin-first', transport: 'streamable-http', headers: {} }] },
+    { id: 'origin-second', name: '域二', auth, servers: [{ serverKey: 'risk', url: `${secondOAuth.base}/mcp/risk/stream`, serverName: 'origin-second', transport: 'streamable-http', headers: {} }] },
+  ];
+  try {
+    await apply(ctx, baseConfig({ connectors }));
+    const connect = tools.defs.get('mcp_connector_connect');
+    const first = connect.execute({ connectorId: 'origin-first' }, { signal: undefined });
+    await autoApproveAt(logs, 0);
+    assert.equal((await first).ok, true);
+
+    const second = connect.execute({ connectorId: 'origin-second' }, { signal: undefined });
+    await autoApproveAt(logs, 1);
+    const secondResult = await second;
+    assert.equal(secondResult.ok, true, secondResult.message);
+    assert.equal(secondResult.detail.reusedGrant, undefined);
+    assert.equal(extractAuthorizeUrls(logs).length, 2, '不同资源域必须分别授权，不能复用现有 Bearer Token');
+    assert.equal(firstOAuth.state.registrationCount, 1);
+    assert.equal(secondOAuth.state.registrationCount, 1);
+  } finally {
+    await firstOAuth.close();
+    await secondOAuth.close();
+  }
+});
+
 test('重新 OAuth 授权成功后撤销并删除已不再引用的旧 grant', { timeout: 30000 }, async () => {
   const oauth = await createMockQccServer({ tokenResources: ['company'], uniqueClientIds: true });
   const { ctx, tools, logs, tables } = makePluginContext();
@@ -354,6 +463,104 @@ test('启动时自动清理历史孤立 grant，并保留连接仍引用的 gran
   assert.equal(await shared.tables.get('grants').get(orphanKey), undefined, '历史孤立 grant 应删除');
   assert.equal([...shared.tables.get('grants').entries()].length, 1);
   assert.ok(logs.some((line) => line.includes('removed 1 unreferenced OAuth grant(s)')));
+});
+
+test('启动刷新遇到暂时性 OAuth 故障时记录原因、自动重试且不要求重新授权', { timeout: 10000 }, async () => {
+  const oauth = await createMockQccServer({ refreshFailures: 1 });
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const grantKey = 'grant:default:transient';
+  const refreshToken = 'sensitive-refresh-token-transient';
+  const connector = {
+    id: 'refresh-transient', name: '刷新暂时故障',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'refresh-test' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'refresh-transient-company', transport: 'streamable-http', headers: {} }],
+  };
+  oauth.state.clients.set('stored-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  oauth.state.refreshTokens.set(refreshToken, { accessToken: 'expired', clientId: 'stored-client', expiresIn: 3600 });
+  await shared.tables.get('grants').put(grantKey, {
+    key: grantKey, issuer: oauth.base, clientId: 'stored-client', tokenEndpointAuthMethod: 'none',
+    scope: 'mcp:tools', account: 'default', accessToken: 'expired-access-token',
+    accessTokenExpiresAt: Date.now() - 1_000, refreshToken,
+    authorizedResources: [`${oauth.base}/mcp/company/stream`], connectorIds: [connector.id], updatedAt: Date.now(),
+  });
+  await shared.tables.get('connections').put('refresh-transient-company', {
+    key: 'refresh-transient-company', connectorId: connector.id, kind: 'oauth', name: connector.name,
+    serverKey: 'company', transport: 'streamable-http', url: `${oauth.base}/mcp/company/stream`,
+    serverName: 'refresh-transient-company', headers: {}, auth: { mode: 'oauth', grantKey },
+    enabled: true, createdAt: Date.now(), updatedAt: Date.now(),
+  });
+  const { ctx, tools, logs, loader } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector], refreshRetryBaseMs: 1_000, refreshRetryMaxMs: 1_000 }));
+    const statusDuringRetry = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(statusDuringRetry.detail.items[0].connectionState, 'recovering');
+    assert.equal(statusDuringRetry.detail.items[0].grant.needsReauth, false);
+    assert.equal(statusDuringRetry.detail.items[0].grant.refreshFailureKind, 'transient');
+    assert.ok(logs.some((line) => line.includes('phase=startup') && line.includes('code=server_error') && line.includes('classification=transient')));
+    assert.doesNotMatch(logs.join('\n'), new RegExp(refreshToken));
+
+    await waitFor(() => oauth.state.refreshCount === 1 && loader.entries.has('mcp-refresh-transient-company'), { timeout: 5000 });
+    const stored = await shared.tables.get('grants').get(grantKey);
+    assert.ok(stored.accessTokenExpiresAt > Date.now() + 3_000_000, '成功刷新后应保存真实过期时间而不是减去 skew');
+    assert.equal(oauth.state.refreshAttempts, 2);
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('启动刷新收到 invalid_grant 时才标记需重新授权，并记录可诊断错误码', { timeout: 10000 }, async () => {
+  const oauth = await createMockQccServer();
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const grantKey = 'grant:default:permanent';
+  const refreshToken = 'sensitive-refresh-token-permanent';
+  const connector = {
+    id: 'refresh-permanent', name: '刷新永久失效',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'refresh-test' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'refresh-permanent-company', transport: 'streamable-http', headers: {} }],
+  };
+  oauth.state.clients.set('stored-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  await shared.tables.get('grants').put(grantKey, {
+    key: grantKey, issuer: oauth.base, clientId: 'stored-client', tokenEndpointAuthMethod: 'none',
+    scope: 'mcp:tools', account: 'default', accessToken: 'expired-access-token',
+    accessTokenExpiresAt: Date.now() - 1_000, refreshToken,
+    authorizedResources: [`${oauth.base}/mcp/company/stream`], connectorIds: [connector.id], updatedAt: Date.now(),
+  });
+  await shared.tables.get('connections').put('refresh-permanent-company', {
+    key: 'refresh-permanent-company', connectorId: connector.id, kind: 'oauth', name: connector.name,
+    serverKey: 'company', transport: 'streamable-http', url: `${oauth.base}/mcp/company/stream`,
+    serverName: 'refresh-permanent-company', headers: {}, auth: { mode: 'oauth', grantKey },
+    enabled: true, createdAt: Date.now(), updatedAt: Date.now(),
+  });
+  const { ctx, tools, logs, loader } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(status.detail.items[0].connectionState, 'reauth');
+    assert.equal(status.detail.items[0].grant.needsReauth, true);
+    assert.equal(status.detail.items[0].grant.refreshFailureKind, 'permanent');
+    assert.equal(status.detail.items[0].grant.refreshRetryAt, null);
+    assert.equal(loader.entries.has('mcp-refresh-permanent-company'), false, '不得用已过期 Token 启动 mcp-client');
+    assert.ok(logs.some((line) => line.includes('phase=startup') && line.includes('code=invalid_grant') && line.includes('classification=permanent')));
+    assert.doesNotMatch(logs.join('\n'), new RegExp(refreshToken));
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('检测到旧企查查 OAuth 插件仍启用时阻断同名 Server，避免凭据覆盖', async () => {
+  const { ctx, tools, logs, loader } = makePluginContext();
+  loader.entries.set('qcc-mcp-oauth', { id: 'qcc-mcp-oauth', disabled: false, options: { config: {} } });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+  const result = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'qcc-company' }, { signal: undefined });
+  assert.equal(result.ok, false);
+  assert.equal(result.detail.kind, 'plugin-conflict');
+  assert.equal(result.detail.pluginId, 'qcc-mcp-oauth');
+  assert.match(result.message, /停用旧插件并重启 DSH/);
+  assert.ok(logs.some((line) => line.includes('legacy OAuth plugin conflict')));
+  assert.equal(extractAuthorizeUrls(logs).length, 0);
 });
 
 test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', { timeout: 15000 }, async () => {
