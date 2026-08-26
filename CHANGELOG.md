@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.24] - 2026-08-27
+
 ### Added
 
 - MCP连接器标题显示当前插件版本，并由服务端缓存检查 npm `latest` 与 GitHub Release；发现新版本时引导用户前往 DSH 插件市场安全更新。
@@ -11,6 +13,10 @@
 ### Changed
 
 - 市场页原“刷新”按钮改为“刷新连接器目录”，明确该操作仅更新 Registry 卡片，不会升级插件本身。
+
+### Verification
+
+- 123 项自动测试、lint、npm 发布包白名单/敏感内容扫描和 npm/GitHub 真实版本源验收通过。
 
 ## [0.2.23] - 2026-08-26
 
@@ -393,7 +399,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...HEAD
+[0.2.24]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...v0.2.23
 [0.2.22]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.21...v0.2.22
 [0.2.21]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.20...v0.2.21
