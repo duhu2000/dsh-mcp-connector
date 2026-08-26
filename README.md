@@ -28,6 +28,7 @@
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片可共享一次授权，DCR 返回的客户端密钥与 Token 一同只保存在本机。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
+- 插件版本感知：MCP连接器标题显示当前版本，服务端缓存检查 npm 与 GitHub Release；发现 npm 新版本时引导到 DSH 插件市场更新。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；检测到旧插件仍启用并管理同名 Server 时阻断重复连接，避免凭据相互覆盖。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`install_from_url`、`status`、`health_check`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
@@ -106,7 +107,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.22`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.22](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.22)。
+当前公开版本为 [`dsh-mcp-connector@0.2.23`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.23](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.23)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

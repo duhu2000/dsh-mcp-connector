@@ -28,6 +28,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; DCR client secrets remain local to that grant.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
+- Plugin version awareness: the MCP Connector title shows the installed version, while a server-side cached check compares npm `latest` with GitHub Releases and routes available updates through the DSH plugin marketplace.
 - Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
 
 <!-- catalog-stats:start -->
@@ -111,7 +112,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.22`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.22](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.22).
+The current public version is [`dsh-mcp-connector@0.2.23`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.23](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.23).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
