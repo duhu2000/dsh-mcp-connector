@@ -8,6 +8,7 @@ async function loadClient({
   reactDomApi = { createPortal() {} },
   jsxRuntime = { jsx() {}, jsxs() {} },
   windowExtras = {},
+  sourceTransform = (source) => source,
 } = {}) {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   let plugin;
@@ -33,7 +34,7 @@ async function loadClient({
       },
     },
   };
-  Function('window', 'document', source)(window, document);
+  Function('window', 'document', sourceTransform(source))(window, document);
   return plugin;
 }
 
@@ -213,6 +214,10 @@ test('市场标题展示安装版本，并通过 Provider 适配层一键更新'
 	assert.match(source, /provider\.start\(capabilities, PLUGIN_PACKAGE_NAME/);
 	assert.match(source, /provider\.operation\(capabilities, operationId\)/);
 	assert.match(source, /provider\.rollback\(capabilities, updateOperation\.operationId\)/);
+	assert.match(source, /completedUpdateIntegrityFailure\(operation, expectedUpdateVersion\)/);
+	assert.match(source, /provider\.rollback\(capabilities, operationId\)/);
+	assert.match(source, /DOWNGRADE_DETECTED/);
+	assert.match(source, /RESOLVED_VERSION_MISMATCH/);
 	assert.match(source, /provider\.restart\(capabilities\)/);
   assert.match(source, /一键更新到 v/);
   assert.match(source, /正在更新/);
@@ -227,6 +232,41 @@ test('市场标题展示安装版本，并通过 Provider 适配层一键更新'
   assert.match(source, /\^\(\\u63d2\\u4ef6\\u5e02\\u573a\|Plugin Market\|Plugin Marketplace\)\$/);
   assert.match(source, /window\.open\(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"\)/);
   assert.doesNotMatch(source, /registry\.npmjs\.org/, '客户端不应跨域请求版本源');
+});
+
+test('客户端独立拒绝 Provider 降级、错误目标和无效成功结果', async () => {
+  const plugin = await loadClient({
+    sourceTransform(source) {
+      return source.replace(
+        '\t\texports.apply = apply;',
+        '\t\texports.__testCompletedUpdateIntegrityFailure = completedUpdateIntegrityFailure;\n\t\texports.apply = apply;',
+      );
+    },
+  });
+  const verify = plugin.__testCompletedUpdateIntegrityFailure;
+  assert.equal(typeof verify, 'function');
+  assert.equal(verify({ state: 'running' }, '0.2.25'), null);
+  assert.equal(verify({
+    state: 'succeeded', beforeVersion: '0.2.24', installedVersion: '0.2.25',
+  }, '0.2.25'), null);
+  assert.deepEqual(verify({
+    state: 'succeeded', beforeVersion: '0.2.24', installedVersion: '0.2.23',
+  }, '0.2.25'), {
+    code: 'DOWNGRADE_DETECTED',
+    message: '更新服务将插件从 v0.2.24 降级到 v0.2.23',
+    retryable: false,
+  });
+  assert.deepEqual(verify({
+    state: 'succeeded', beforeVersion: '0.2.24', installedVersion: '0.2.26',
+  }, '0.2.25'), {
+    code: 'RESOLVED_VERSION_MISMATCH',
+    message: '预期安装 v0.2.25，更新服务实际安装了 v0.2.26',
+    retryable: true,
+  });
+  assert.equal(verify({
+    state: 'succeeded', beforeVersion: '1.0.0-beta.2', installedVersion: '1.0.0-beta.1',
+  }, '1.0.0-beta.3').code, 'DOWNGRADE_DETECTED');
+  assert.equal(verify({ state: 'succeeded', beforeVersion: '0.2.24' }, '0.2.25').code, 'INVALID_UPDATE_RESULT');
 });
 
 test('能力探测通过后渲染一键更新，并使用 Provider 广告的同源端点', async () => {

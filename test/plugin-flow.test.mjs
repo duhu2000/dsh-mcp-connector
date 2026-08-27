@@ -354,6 +354,146 @@ test('grantSharing=issuer：不同卡片并发连接也只发起一次授权', {
   }
 });
 
+test('升级启动时把历史同 issuer 多 Grant 归并为最新共享授权', async () => {
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const auth = { mode: 'oauth2-pkce', issuer: 'https://oauth.example.com', scope: 'mcp:tools', clientName: 'upgrade-shared', grantSharing: 'issuer' };
+  const connectors = [
+    { id: 'upgrade-company', name: '历史企业', auth, servers: [{ serverKey: 'company', url: 'https://mcp.example.com/company', serverName: 'upgrade-company', transport: 'streamable-http', headers: {} }] },
+    { id: 'upgrade-risk', name: '历史风险', auth, servers: [{ serverKey: 'risk', url: 'https://mcp.example.com/risk', serverName: 'upgrade-risk', transport: 'streamable-http', headers: {} }] },
+  ];
+  const resources = connectors.flatMap((connector) => connector.servers.map((server) => server.url));
+  const now = Date.now();
+  const oldKey = 'grant:default:historical-old';
+  const newKey = 'grant:default:historical-new';
+  await shared.tables.get('grants').put(oldKey, {
+    key: oldKey, issuer: auth.issuer, clientId: 'old-client', scope: auth.scope, account: 'default',
+    accessToken: 'old-access', accessTokenExpiresAt: now + 3_600_000, refreshToken: 'old-refresh',
+    authorizedResources: resources, connectorIds: ['upgrade-company'], updatedAt: now - 10_000,
+  });
+  await shared.tables.get('grants').put(newKey, {
+    key: newKey, issuer: auth.issuer, clientId: 'new-client', scope: auth.scope, account: 'default',
+    accessToken: 'new-access', accessTokenExpiresAt: now + 3_600_000, refreshToken: 'new-refresh',
+    authorizedResources: resources, connectorIds: ['upgrade-risk'], updatedAt: now,
+  });
+  for (const [connector, grantKey] of [[connectors[0], oldKey], [connectors[1], newKey]]) {
+    const server = connector.servers[0];
+    await shared.tables.get('connections').put(`${connector.id}-${server.serverKey}`, {
+      key: `${connector.id}-${server.serverKey}`, connectorId: connector.id, kind: 'oauth', name: connector.name,
+      serverKey: server.serverKey, transport: server.transport, url: server.url, serverName: server.serverName,
+      headers: {}, auth: { mode: 'oauth', grantKey }, enabled: true, createdAt: now, updatedAt: now,
+    });
+  }
+
+  const { ctx, tools, tables, logs } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+
+  const status = await tools.defs.get('mcp_connector_status').execute({});
+  assert.deepEqual([...new Set(status.detail.items.map((item) => item.grant.grantKey))], [newKey]);
+  assert.equal([...tables.get('grants').entries()].length, 1);
+  assert.deepEqual((await tables.get('grants').get(newKey)).connectorIds.sort(), ['upgrade-company', 'upgrade-risk']);
+  assert.ok(logs.some((line) => line.includes('historical OAuth grant')));
+});
+
+test('历史最新 Grant 已失效时先验证并选择仍可刷新的共享授权', { timeout: 10000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company', 'risk'] });
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const auth = { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'upgrade-validated', grantSharing: 'issuer' };
+  const connectors = [
+    { id: 'validated-company', name: '历史企业', auth, servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'validated-company', transport: 'streamable-http', headers: {} }] },
+    { id: 'validated-risk', name: '历史风险', auth, servers: [{ serverKey: 'risk', url: `${oauth.base}/mcp/risk/stream`, serverName: 'validated-risk', transport: 'streamable-http', headers: {} }] },
+  ];
+  const resources = connectors.map((connector) => connector.servers[0].url);
+  const now = Date.now();
+  const validKey = 'grant:default:older-but-valid';
+  const invalidKey = 'grant:default:newer-but-invalid';
+  oauth.state.clients.set('valid-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  oauth.state.clients.set('invalid-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  oauth.state.refreshTokens.set('valid-refresh', { accessToken: 'expired', clientId: 'valid-client', expiresIn: 3600 });
+  await shared.tables.get('grants').put(validKey, {
+    key: validKey, issuer: oauth.base, clientId: 'valid-client', tokenEndpointAuthMethod: 'none',
+    scope: auth.scope, account: 'default', accessToken: 'expired-valid', accessTokenExpiresAt: now - 1_000,
+    refreshToken: 'valid-refresh', authorizedResources: resources, connectorIds: ['validated-company'], updatedAt: now - 10_000,
+  });
+  await shared.tables.get('grants').put(invalidKey, {
+    key: invalidKey, issuer: oauth.base, clientId: 'invalid-client', tokenEndpointAuthMethod: 'none',
+    scope: auth.scope, account: 'default', accessToken: 'expired-invalid', accessTokenExpiresAt: now - 1_000,
+    refreshToken: 'invalid-refresh', authorizedResources: resources, connectorIds: ['validated-risk'], updatedAt: now,
+  });
+  for (const [connector, grantKey] of [[connectors[0], validKey], [connectors[1], invalidKey]]) {
+    const server = connector.servers[0];
+    await shared.tables.get('connections').put(`${connector.id}-${server.serverKey}`, {
+      key: `${connector.id}-${server.serverKey}`, connectorId: connector.id, kind: 'oauth', name: connector.name,
+      serverKey: server.serverKey, transport: server.transport, url: server.url, serverName: server.serverName,
+      headers: {}, auth: { mode: 'oauth', grantKey }, enabled: true, createdAt: now, updatedAt: now,
+    });
+  }
+
+  const { ctx, tools, tables } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors }));
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    assert.deepEqual([...new Set(status.detail.items.map((item) => item.grant.grantKey))], [validKey]);
+    assert.equal([...tables.get('grants').entries()].length, 1);
+    assert.equal(oauth.state.refreshAttempts, 2, '应先拒绝新的失效 Grant，再刷新较旧的有效 Grant');
+    assert.equal(oauth.state.refreshCount, 1);
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('并发进程轮换 refresh token 后重读持久化 Grant，避免误判重新授权', { timeout: 10000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company'] });
+  const baseGrantTable = makeTable();
+  let storageReads = 0;
+  const grantKey = 'grant:default:rotated-elsewhere';
+  const oldRefreshToken = 'refresh-token-used-by-other-process';
+  const newRefreshToken = 'refresh-token-persisted-by-other-process';
+  const now = Date.now();
+  const connector = {
+    id: 'refresh-rotation', name: '跨进程轮换',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'rotation-test' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'refresh-rotation-company', transport: 'streamable-http', headers: {} }],
+  };
+  oauth.state.clients.set('stored-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  oauth.state.refreshTokens.set(newRefreshToken, { accessToken: 'expired', clientId: 'stored-client', expiresIn: 3600 });
+  const oldGrant = {
+    key: grantKey, issuer: oauth.base, clientId: 'stored-client', tokenEndpointAuthMethod: 'none',
+    scope: 'mcp:tools', account: 'default', accessToken: 'expired-access', accessTokenExpiresAt: now - 1_000,
+    refreshToken: oldRefreshToken, authorizedResources: [connector.servers[0].url], connectorIds: [connector.id], updatedAt: now - 10_000,
+  };
+  const rotatedGrant = { ...oldGrant, refreshToken: newRefreshToken, updatedAt: now };
+  await baseGrantTable.put(grantKey, oldGrant);
+  const grants = {
+    ...baseGrantTable,
+    async get(key) {
+      storageReads += 1;
+      if (storageReads === 1) await baseGrantTable.put(grantKey, rotatedGrant);
+      return baseGrantTable.get(key);
+    },
+  };
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', grants], ['catalog', makeTable()]]) };
+  await shared.tables.get('connections').put('refresh-rotation-company', {
+    key: 'refresh-rotation-company', connectorId: connector.id, kind: 'oauth', name: connector.name,
+    serverKey: 'company', transport: 'streamable-http', url: connector.servers[0].url,
+    serverName: 'refresh-rotation-company', headers: {}, auth: { mode: 'oauth', grantKey },
+    enabled: true, createdAt: now, updatedAt: now,
+  });
+  const { ctx, tools, loader, logs } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(status.detail.items[0].grant.needsReauth, false);
+    assert.ok(loader.entries.has('mcp-refresh-rotation-company'));
+    assert.equal(oauth.state.refreshCount, 1);
+    assert.ok(logs.some((line) => line.includes('concurrent rotation')));
+  } finally {
+    await oauth.close();
+  }
+});
+
 test('grantSharing=issuer 不跨 MCP 资源域复用 Bearer Token', { timeout: 30000 }, async () => {
   const firstOAuth = await createMockQccServer({ tokenResources: ['company'] });
   const secondOAuth = await createMockQccServer({ tokenResources: ['risk'] });
