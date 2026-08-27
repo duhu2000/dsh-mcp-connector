@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.26] - 2026-08-27
+
 ### Fixed
 
 - 升级启动时自动发现并归并历史版本为同 issuer 卡片保存的多份 OAuth Grant；归并前先验证过期 Grant 是否仍可刷新，避免用较新但已失效的凭据覆盖可恢复授权。
@@ -424,7 +426,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...HEAD
+[0.2.26]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...v0.2.23
