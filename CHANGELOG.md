@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.25] - 2026-08-27
+
 ### Added
 
 - 新增 Update Provider 适配层，将版本发现与安装执行解耦；UI 通过统一能力调用更新检查、任务、回滚和重启，为 DSH 原生或其他插件市场预留适配边界。
@@ -12,6 +14,10 @@
 ### Compatibility
 
 - Provider 未安装、协议不兼容、广告跨源/无效端点或版本检查不一致时不调用私有更新路由，继续使用现有“前往插件市场”/npm 页面降级路径。
+
+### Verification
+
+- 125 项自动测试、lint、npm 发布包白名单/敏感内容扫描通过；已在 web profile 的 dshmarket 1.33.0 上验证 `/dsh-market/api/v1/capabilities` 与 Connector 版本检查响应。
 
 ## [0.2.24] - 2026-08-27
 
@@ -408,7 +414,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...HEAD
+[0.2.25]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.22...v0.2.23
 [0.2.22]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.21...v0.2.22
