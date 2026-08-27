@@ -28,7 +28,7 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; DCR client secrets remain local to that grant.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
-- Plugin version awareness: the MCP Connector title shows the installed version, while a server-side cached check compares npm `latest` with GitHub Releases and routes available updates through the DSH plugin marketplace.
+- Plugin version and one-click updates: version discovery is independent of the installation source, while an Update Provider adapter layer negotiates safe mutation capabilities. DSH Market API v1 is the first adapter and supports progress, normalized failures, rollback, and capability-gated restart/refresh actions; without a compatible provider, the UI falls back to the current plugin marketplace or npm.
 - Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
 
 <!-- catalog-stats:start -->

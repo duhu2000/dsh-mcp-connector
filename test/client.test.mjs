@@ -196,16 +196,267 @@ test('市场弹框具备主题与键盘可访问性样式', async () => {
   assert.match(source, /mcpConnectorMarketClose:focus-visible/);
 });
 
-test('市场标题展示安装版本并引导到 DSH 插件市场更新', async () => {
+test('市场标题展示安装版本，并通过 Provider 适配层一键更新', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.match(source, /method: "versionStatus"/);
   assert.match(source, /VERSION_CHECK_INTERVAL_MS = 6 \* 60 \* 60 \* 1e3/);
   assert.match(source, /VERSION_CHECK_RETRY_MS = 5 \* 60 \* 1e3/);
   assert.match(source, /Date\.parse\(status\.nextCheckAt/);
   assert.match(source, /mcpConnectorVersion/);
+	assert.match(source, /UPDATE_PROVIDER_ADAPTERS = Object\.freeze/);
+	assert.match(source, /createHttpUpdateProviderAdapter/);
+	assert.match(source, /discoverUpdateProvider/);
+	assert.match(source, /sameOriginProviderEndpoint/);
+	assert.match(source, /url\.origin !== window\.location\.origin/);
+	assert.match(source, /schema: "dsh-market\/update-api\/v1"/);
+	assert.match(source, /capabilitiesUrl: "\/dsh-market\/api\/v1\/capabilities"/);
+	assert.match(source, /provider\.start\(capabilities, PLUGIN_PACKAGE_NAME/);
+	assert.match(source, /provider\.operation\(capabilities, operationId\)/);
+	assert.match(source, /provider\.rollback\(capabilities, updateOperation\.operationId\)/);
+	assert.match(source, /provider\.restart\(capabilities\)/);
+  assert.match(source, /一键更新到 v/);
+  assert.match(source, /正在更新/);
+  assert.match(source, /failure\?\.retryable/);
+	assert.match(source, /capabilities\?\.restart\?\.supported === true/);
+  assert.match(source, /请重启 DSH Desktop/);
+  assert.match(source, /window\.location\.reload\(\)/);
+	assert.doesNotMatch(source, /"\/dsh-market\/update"/, '不得调用 Market 未版本化的私有更新接口');
+	assert.doesNotMatch(source, /const MARKET_(?:UPDATES|OPERATIONS|ROLLBACK|RESTART)_URL/, 'UI 不应硬编码 Provider 操作端点');
   assert.match(source, /前往插件市场更新到 v/);
   assert.match(source, /\[data-slot="sidebar\.settings"\]/);
   assert.match(source, /\^\(\\u63d2\\u4ef6\\u5e02\\u573a\|Plugin Market\|Plugin Marketplace\)\$/);
   assert.match(source, /window\.open\(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"\)/);
   assert.doesNotMatch(source, /registry\.npmjs\.org/, '客户端不应跨域请求版本源');
+});
+
+test('能力探测通过后渲染一键更新，并使用 Provider 广告的同源端点', async () => {
+  const requests = [];
+  const effects = [];
+  const state = [];
+  let stateCursor = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const reactApi = {
+    useState(initial) {
+      const index = stateCursor++;
+      if (!(index in state)) state[index] = initial;
+      return [state[index], (value) => {
+        state[index] = typeof value === 'function' ? value(state[index]) : value;
+      }];
+    },
+    useRef(initial) { return { current: initial }; },
+    useEffect(start) { effects.push(start); },
+  };
+  const fetch = async (url, options = {}) => {
+    requests.push([String(url), options.method ?? 'GET', options.body]);
+    if (url === '/mcp-connector/api') {
+      return new Response(JSON.stringify({
+        ok: true,
+        detail: {
+          installedVersion: '0.2.24',
+          latestVersion: '0.2.25',
+          updateAvailable: true,
+          checking: false,
+          nextCheckAt: new Date(Date.now() + 60_000).toISOString(),
+        },
+      }), { status: 200 });
+    }
+	if (url === '/dsh-market/api/v1/capabilities') {
+		return new Response(JSON.stringify({
+			schema: 'dsh-market/update-api/v1',
+			apiVersion: 1,
+			runtime: 'web',
+			features: { update: true, progress: true, rollback: true, restart: true },
+			restart: { supported: true, managedBy: 'market' },
+			endpoints: {
+				updates: '/test-update-provider/v1/updates',
+				operations: '/test-update-provider/v1/operations',
+				rollback: '/test-update-provider/v1/rollback',
+				restart: '/test-update-provider/v1/restart',
+			},
+		}), { status: 200 });
+	}
+	if (String(url).startsWith('/test-update-provider/v1/updates?')) {
+      return new Response(JSON.stringify({
+        schema: 'dsh-market/update-api/v1',
+        package: {
+          name: 'dsh-mcp-connector',
+          installedVersion: '0.2.24',
+          latestVersion: '0.2.25',
+          updateAvailable: true,
+        },
+      }), { status: 200 });
+    }
+	if (url === '/test-update-provider/v1/updates' && options.method === 'POST') {
+      return new Response(JSON.stringify({
+        schema: 'dsh-market/update-api/v1',
+        operation: {
+          operationId: 'boot-update-1',
+          state: 'running',
+          progress: { percent: 25 },
+          outcome: { rollback: { available: false, state: 'unavailable' } },
+        },
+      }), { status: 202 });
+    }
+    throw new Error(`unexpected request: ${url}`);
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    reactApi,
+    windowExtras: {
+      fetch,
+      location: { origin: 'http://127.0.0.1:3080', reload() {} },
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout() { return 1; },
+      clearTimeout() {},
+      requestAnimationFrame(callback) { callback(); },
+      open() {},
+    },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const component = registrations.get('shell.overlay').component;
+  const props = {
+    wide: true,
+    useStore: (select) => select({ open: true, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} },
+    startPromptSession() {},
+  };
+  const render = () => {
+    stateCursor = 0;
+    return component(props);
+  };
+  const descendants = (root) => {
+    const result = [];
+    const visit = (node) => {
+      if (node == null || node === false || typeof node !== 'object') return;
+      result.push(node);
+      const children = node.props?.children;
+      for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    };
+    visit(root);
+    return result;
+  };
+
+  render();
+  for (const start of effects.splice(0)) start();
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  effects.length = 0;
+  let tree = render();
+  const update = descendants(tree).find((node) => node.type === 'button'
+    && node.props?.children === '一键更新到 v0.2.25');
+  assert.ok(update, '探测到 v1 后应在当前页面提供一键更新');
+  update.props.onClick();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  effects.length = 0;
+  tree = render();
+  assert.ok(descendants(tree).some((node) => node.props?.children === '正在更新 25%'));
+	const mutation = requests.find(([url, method]) => url === '/test-update-provider/v1/updates' && method === 'POST');
+  assert.ok(mutation, '点击后应调用 Provider 广告的更新入口');
+  assert.deepEqual(JSON.parse(mutation[2]), { packageName: 'dsh-mcp-connector' });
+});
+
+test('Provider 广告跨源端点时拒绝一键更新并安全降级', async () => {
+  const requests = [];
+  const effects = [];
+  const state = [];
+  let stateCursor = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const reactApi = {
+    useState(initial) {
+      const index = stateCursor++;
+      if (!(index in state)) state[index] = initial;
+      return [state[index], (value) => {
+        state[index] = typeof value === 'function' ? value(state[index]) : value;
+      }];
+    },
+    useRef(initial) { return { current: initial }; },
+    useEffect(start) { effects.push(start); },
+  };
+  const fetch = async (url) => {
+    requests.push(String(url));
+    if (url === '/mcp-connector/api') {
+      return new Response(JSON.stringify({
+        ok: true,
+        detail: {
+          installedVersion: '0.2.24',
+          latestVersion: '0.2.25',
+          updateAvailable: true,
+          checking: false,
+          nextCheckAt: new Date(Date.now() + 60_000).toISOString(),
+        },
+      }), { status: 200 });
+    }
+    if (url === '/dsh-market/api/v1/capabilities') {
+      return new Response(JSON.stringify({
+        schema: 'dsh-market/update-api/v1',
+        apiVersion: 1,
+        features: { update: true },
+        restart: { supported: false, managedBy: 'operator' },
+        endpoints: {
+          updates: 'https://evil.example/updates',
+          operations: '/safe-looking/operations',
+        },
+      }), { status: 200 });
+    }
+    throw new Error(`unexpected request: ${url}`);
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    reactApi,
+    windowExtras: {
+      fetch,
+      location: { origin: 'http://127.0.0.1:3080', reload() {} },
+      addEventListener() {},
+      removeEventListener() {},
+      setTimeout() { return 1; },
+      clearTimeout() {},
+      requestAnimationFrame(callback) { callback(); },
+      open() {},
+    },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const component = registrations.get('shell.overlay').component;
+  const props = {
+    wide: true,
+    useStore: (select) => select({ open: true, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} },
+    startPromptSession() {},
+  };
+  const render = () => {
+    stateCursor = 0;
+    return component(props);
+  };
+  const descendants = (root) => {
+    const result = [];
+    const visit = (node) => {
+      if (node == null || node === false || typeof node !== 'object') return;
+      result.push(node);
+      const children = node.props?.children;
+      for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    };
+    visit(root);
+    return result;
+  };
+
+  render();
+  for (const start of effects.splice(0)) start();
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  effects.length = 0;
+  const tree = render();
+  assert.ok(descendants(tree).some((node) => node.type === 'button'
+    && node.props?.children === '前往插件市场更新到 v0.2.25'));
+  assert.equal(requests.some((url) => url.startsWith('https://evil.example/')), false);
 });
