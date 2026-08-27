@@ -75,7 +75,7 @@ stdio 市场卡片也可能显示一个或多个凭据字段，例如 API Token�
 
 OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据发现。动态客户端注册既支持无需客户端密钥的 `none`，也支持服务商签发密钥的 `client_secret_post` 与 `client_secret_basic`。客户端密钥仅与 OAuth Grant 一同保存在 DSH 本机，用于换取、刷新和撤销 Token；插件不会要求用户把 OAuth Token 或客户端密钥复制到聊天中。
 
-当市场描述声明 `grantSharing: "issuer"` 时，同一账号下相同 issuer、scope 和客户端鉴权方式的卡片共享一组 Grant。首次授权仍只启用用户点击的卡片；之后连接同组卡片会直接复用现有授权，不再重复打开 OAuth 页面。网络、OAuth 元数据发现或服务端 5xx 等暂时故障只进入“自动重试中”，明确收到 Refresh Token/客户端失效错误时才进入“需重新授权”。
+当市场描述声明 `grantSharing: "issuer"` 时，同一账号下相同 issuer、scope 和客户端鉴权方式的卡片共享一组 Grant。首次授权仍只启用用户点击的卡片；之后连接同组卡片会直接复用现有授权，不再重复打开 OAuth 页面。升级时会验证并自动归并旧版本留下的同 issuer 多份 Grant；多个 DSH 进程并发轮换 Refresh Token 时也会重读较新的本机持久化凭据后自动恢复。网络、OAuth 元数据发现或服务端 5xx 等暂时故障只进入“自动重试中”，确认本机也没有其他进程保存的新 Token，且明确收到 Refresh Token/客户端失效错误时，才进入“需重新授权”。
 
 ## 5. 查看详情、Prompt 与工具
 

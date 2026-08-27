@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 升级启动时自动发现并归并历史版本为同 issuer 卡片保存的多份 OAuth Grant；归并前先验证过期 Grant 是否仍可刷新，避免用较新但已失效的凭据覆盖可恢复授权。
+- 多个 DSH 进程并发刷新同一组轮换式 Refresh Token 时，收到 `invalid_grant` 后会短暂重读本机持久化 Grant；发现其他进程已保存新 Token 时自动采用并重试，不再误报“需重新授权”。
+- 页面不再盲信 Update Provider 的 `succeeded`；独立校验更新前、预期与实际版本，检测降级、解析版本偏差或无效结果时拒绝重启，并在 Provider 保留恢复点时自动回滚。
+
+### Verification
+
+- 129 项自动测试、lint、npm 发布包白名单与敏感内容扫描通过；新增历史 Grant 安全归并、失效候选回退、跨进程 Token 轮换恢复和 Provider 版本完整性回归测试。
+
 ## [0.2.25] - 2026-08-27
 
 ### Added
