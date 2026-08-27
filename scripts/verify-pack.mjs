@@ -20,7 +20,7 @@ const WHITELIST = [
   /^registry\/catalog\.json$/,
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
-  /^docs\/(?:DESKTOP-E2E|MARKET-REGISTRATION|STDIO-SUPPORT|USER-GUIDE)\.md$/,
+  /^docs\/(?:DESKTOP-E2E|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|USER-GUIDE)\.md$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
 ];

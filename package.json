@@ -19,6 +19,7 @@
     "registry",
     "docs/DESKTOP-E2E.md",
     "docs/MARKET-REGISTRATION.md",
+    "docs/PLUGIN-UPDATE.md",
     "docs/STDIO-SUPPORT.md",
     "docs/USER-GUIDE.md",
     "cordis.patch.yml",
