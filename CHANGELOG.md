@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- OAuth Refresh Token 轮换不再依赖 DSH JSON storage 的进程内缓存；新增每 Grant 独立原子日志和跨进程锁，Desktop 与 `dsh web` 同时运行时只轮换一次 Token，等待方直接采用最新凭据。
+- DSH Desktop 没有插件市场设置分区时，更新入口不再停留在普通设置页；改为中性的“查看更新方式”，并在确认无市场分区后打开 npm 安装说明。
+
+### Security
+
+- 跨进程 Grant journal 位于 `$DSH_HOME/storages/mcp_connector_grants_v1`，采用 0700 目录、0600 文件和同目录原子替换；Token 不进入运行日志、页面或 Git 仓库。
+
 ## [0.2.26] - 2026-08-27
 
 ### Fixed

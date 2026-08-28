@@ -25,10 +25,10 @@ Browse and install MCP connectors from different providers in DeepSeek Harness D
 - Credential and MCP initialize validation before HTTP API-key connectors are saved as installed, plus declarative multi-field credential-to-env bindings for marketplace stdio connectors.
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
-- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; DCR client secrets remain local to that grant.
+- Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; a cross-process lock and per-grant atomic journal prevent Desktop and Web hosts from consuming or overwriting the same rotating refresh token.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
-- Plugin version and one-click updates: version discovery is independent of the installation source, while an Update Provider adapter layer negotiates safe mutation capabilities. DSH Market API v1 is the first adapter and supports progress, normalized failures, rollback, and capability-gated restart/refresh actions; without a compatible provider, the UI falls back to the current plugin marketplace or npm.
+- Plugin version and one-click updates: version discovery is independent of the installation source, while an Update Provider adapter layer negotiates safe mutation capabilities. DSH Market API v1 is the first adapter and supports progress, normalized failures, rollback, and capability-gated restart/refresh actions. Without a compatible provider the UI offers update instructions; if Desktop has no plugin-market section, it opens the npm package page instead of leaving the user on generic Settings.
 - Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
 
 <!-- catalog-stats:start -->
@@ -118,7 +118,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 
 ## Security and limitations
 
-- Credentials are stored only in the DSH storage domain and are not written to the catalog, Git repository, or conversation history.
+- Credentials stay inside the local DSH storage boundary: connection records use the storage domain, while rotating OAuth credentials are also saved in `$DSH_HOME/storages/mcp_connector_grants_v1` so stale host snapshots cannot overwrite them. The directory is mode 0700 and records are mode 0600; credentials are never written to the catalog, Git repository, page, logs, or conversation history.
 - Failed API key/token validation is not persisted; authentication, timeout, DNS, and TLS/network errors are reported separately.
 - External URLs must use HTTPS; HTTP is allowed only for loopback development.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
