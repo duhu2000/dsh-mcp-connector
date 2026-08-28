@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.27] - 2026-08-28
+
 ### Fixed
 
 - OAuth Refresh Token 轮换不再依赖 DSH JSON storage 的进程内缓存；新增每 Grant 独立原子日志和跨进程锁，Desktop 与 `dsh web` 同时运行时只轮换一次 Token，等待方直接采用最新凭据。
@@ -435,7 +437,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...HEAD
+[0.2.27]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.23...v0.2.24
