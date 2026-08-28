@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createMockQccServer } from './mock-oauth-server.mjs';
 
 /* ───────────────────────── fake cordis ctx ───────────────────────── */
@@ -488,9 +491,67 @@ test('并发进程轮换 refresh token 后重读持久化 Grant，避免误判�
     assert.equal(status.detail.items[0].grant.needsReauth, false);
     assert.ok(loader.entries.has('mcp-refresh-rotation-company'));
     assert.equal(oauth.state.refreshCount, 1);
-    assert.ok(logs.some((line) => line.includes('concurrent rotation')));
+    assert.ok(logs.some((line) => /concurrent rotation|cross-process journal token/.test(line)));
   } finally {
     await oauth.close();
+  }
+});
+
+test('两个 DSH Host 同时刷新时只轮换一次 Refresh Token', { timeout: 15000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['company'] });
+  const journalDir = await mkdtemp(join(tmpdir(), 'mcp-cross-process-'));
+  const grantKey = 'grant:default:cross-process';
+  const now = Date.now();
+  const connector = {
+    id: 'cross-process', name: '跨 Host 刷新',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'cross-process-test' },
+    servers: [{ serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'cross-process-company', transport: 'streamable-http', headers: {} }],
+  };
+  oauth.state.clients.set('cross-process-client', { clientSecret: undefined, tokenEndpointAuthMethod: 'none' });
+  oauth.state.refreshTokens.set('cross-process-refresh', {
+    accessToken: 'expired', clientId: 'cross-process-client', expiresIn: 3600,
+  });
+  const storedGrant = {
+    key: grantKey, issuer: oauth.base, clientId: 'cross-process-client', tokenEndpointAuthMethod: 'none',
+    scope: 'mcp:tools', account: 'default', accessToken: 'expired-access', accessTokenExpiresAt: now - 1_000,
+    refreshToken: 'cross-process-refresh', authorizedResources: [connector.servers[0].url],
+    connectorIds: [connector.id], updatedAt: now - 10_000,
+  };
+  function hostState() {
+    const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+    return shared.tables.get('grants').put(grantKey, { ...storedGrant }).then(async () => {
+      await shared.tables.get('connections').put('cross-process-company', {
+        key: 'cross-process-company', connectorId: connector.id, kind: 'oauth', name: connector.name,
+        serverKey: 'company', transport: 'streamable-http', url: connector.servers[0].url,
+        serverName: 'cross-process-company', headers: {}, auth: { mode: 'oauth', grantKey },
+        enabled: true, createdAt: now, updatedAt: now,
+      });
+      return shared;
+    });
+  }
+  try {
+    const [sharedA, sharedB] = await Promise.all([hostState(), hostState()]);
+    const hostA = makePluginContext({ shared: sharedA });
+    const hostB = makePluginContext({ shared: sharedB });
+    const { apply } = await import('../lib/index.js');
+    await Promise.all([
+      apply(hostA.ctx, baseConfig({ connectors: [connector], __grantJournalDir: journalDir })),
+      apply(hostB.ctx, baseConfig({ connectors: [connector], __grantJournalDir: journalDir })),
+    ]);
+
+    assert.equal(oauth.state.refreshCount, 1, '一次性 Refresh Token 只能被一个 Host 消耗');
+    for (const host of [hostA, hostB]) {
+      const status = await host.tools.defs.get('mcp_connector_status').execute({});
+      assert.equal(status.detail.items[0].grant.needsReauth, false);
+      assert.ok(host.loader.entries.has('mcp-cross-process-company'));
+    }
+    assert.ok(
+      [...hostA.logs, ...hostB.logs].some((line) => line.includes('cross-process journal token')),
+      '等待者应采用首个 Host 写入的新 Token',
+    );
+  } finally {
+    await oauth.close();
+    await rm(journalDir, { recursive: true, force: true });
   }
 });
 

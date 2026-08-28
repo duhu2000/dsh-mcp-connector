@@ -227,11 +227,46 @@ test('市场标题展示安装版本，并通过 Provider 适配层一键更新'
   assert.match(source, /window\.location\.reload\(\)/);
 	assert.doesNotMatch(source, /"\/dsh-market\/update"/, '不得调用 Market 未版本化的私有更新接口');
 	assert.doesNotMatch(source, /const MARKET_(?:UPDATES|OPERATIONS|ROLLBACK|RESTART)_URL/, 'UI 不应硬编码 Provider 操作端点');
-  assert.match(source, /前往插件市场更新到 v/);
+  assert.match(source, /查看 v.*更新方式/);
   assert.match(source, /\[data-slot="sidebar\.settings"\]/);
   assert.match(source, /\^\(\\u63d2\\u4ef6\\u5e02\\u573a\|Plugin Market\|Plugin Marketplace\)\$/);
   assert.match(source, /window\.open\(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"\)/);
   assert.doesNotMatch(source, /registry\.npmjs\.org/, '客户端不应跨域请求版本源');
+});
+
+test('DSH Desktop 设置中没有插件市场时回退到 npm 更新说明', async () => {
+  let settingsClicks = 0;
+  const opened = [];
+  const settingsTrigger = { click() { settingsClicks += 1; } };
+  const plugin = await loadClient({
+    clientDocument: {
+      querySelector(selector) {
+        if (selector !== '[data-slot="sidebar.settings"]') return null;
+        return { querySelector: () => settingsTrigger };
+      },
+      querySelectorAll: () => [],
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    windowExtras: {
+      setTimeout(callback) { callback(); return 1; },
+      requestAnimationFrame(callback) { callback(); return 1; },
+      open(...args) { opened.push(args); },
+    },
+    sourceTransform(source) {
+      return source.replace(
+        '\t\texports.apply = apply;',
+        '\t\texports.__testOpenDshPluginMarket = openDshPluginMarket;\n\t\texports.apply = apply;',
+      );
+    },
+  });
+  let closes = 0;
+  plugin.__testOpenDshPluginMarket({ close() { closes += 1; } });
+  assert.equal(closes, 1);
+  assert.equal(settingsClicks, 1);
+  assert.deepEqual(opened, [[
+    'https://www.npmjs.com/package/dsh-mcp-connector', '_blank', 'noopener,noreferrer',
+  ]]);
 });
 
 test('客户端独立拒绝 Provider 降级、错误目标和无效成功结果', async () => {
@@ -497,6 +532,6 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   effects.length = 0;
   const tree = render();
   assert.ok(descendants(tree).some((node) => node.type === 'button'
-    && node.props?.children === '前往插件市场更新到 v0.2.25'));
+    && node.props?.children === '查看 v0.2.25 更新方式'));
   assert.equal(requests.some((url) => url.startsWith('https://evil.example/')), false);
 });

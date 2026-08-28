@@ -14,7 +14,7 @@ MCP连接器把“刷新连接器目录”和“升级插件代码”视为两�
 
 每个 Provider 适配器只硬编码自己的 capabilities 入口，其余更新、任务、回滚和重启端点均从能力响应中读取。客户端只接受当前 DSH 页面的相对同源端点，拒绝跨域 URL、协议不匹配、缺少必要端点或未声明 `features.update` 的 Provider。
 
-DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。未安装任何可用 Provider、接口返回 404、协议不兼容或检查失败时，页面不会尝试私有更新路由，而是回退到“前往插件市场”；设置入口不可用时再打开 npm 包页面。
+DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。未安装任何可用 Provider、接口返回 404、协议不兼容或检查失败时，页面不会尝试私有更新路由，而是显示“查看更新方式”。页面会先尝试打开当前宿主的插件市场；设置入口不可用，或 DSH Desktop 设置中实际没有插件市场分区时，打开 npm 包页面与安装命令说明。
 
 ## 更新流程
 
