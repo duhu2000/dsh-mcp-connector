@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.2.28] - 2026-08-29
+
+### Documentation
+
+- 重写 npm 和中英文 README 首屏产品介绍，前置 MCP Server 连接、OAuth 2.0 PKCE、stdio/HTTP、Registry 与工具/Prompt 发现等高意图能力。
+- 增加 npm 下载、GitHub Star/Fork/Release 徽标、真实演示、能力对比、中文教程入口与独立贡献指南。
+- 扩充 `model-context-protocol`、`mcp-registry`、`mcp-manager`、`streamable-http` 等高意图检索词。
+
+### Verification
+
+- 新增中英文 README 与 `package.json` 版本一致性门禁和 4 项回归测试；138 项自动测试、lint 与 npm 发布包白名单/敏感内容扫描通过。
+
 ## [0.2.27] - 2026-08-28
 
 ### Fixed
@@ -437,7 +449,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...HEAD
+[0.2.28]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...v0.2.28
 [0.2.27]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.24...v0.2.25
