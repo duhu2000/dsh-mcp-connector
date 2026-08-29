@@ -1,20 +1,49 @@
-# MCP Connector and Connection Manager Marketplace for DeepSeek Harness
+# MCP Connector and MCP Server Marketplace for DeepSeek Harness
 
-> A general-purpose MCP connector, plugin extension, and integration marketplace initiated and maintained by the Qichacha (QCC) team
+> A universal MCP connector and marketplace for connecting, authorizing, discovering, and managing MCP servers, initiated and maintained by the Qichacha (QCC) team
 
-Browse and install MCP connectors from different providers in DeepSeek Harness Desktop. Connect MCP servers through OAuth, API key/URL configuration, JSON import, or a connector descriptor URL; discover tools and prompts, extend agent skills, start a new conversation, and manage installed connections.
+Manage MCP connections from different providers in one place inside DeepSeek Harness Desktop/Web. Use OAuth 2.0 PKCE, API keys, stdio/HTTP, `mcpServers` JSON import, tool and prompt discovery, and an independently updated Registry of curated connectors.
 
 > Here, “skill extension” means extending an agent through MCP tools and prompts; this package does not present itself as a standalone DSH Skill.
 
 [简体中文](README.md)
 
-[Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
+[Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
+[![GitHub stars](https://img.shields.io/github/stars/duhu2000/dsh-mcp-connector?style=flat)](https://github.com/duhu2000/dsh-mcp-connector/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/duhu2000/dsh-mcp-connector?style=flat)](https://github.com/duhu2000/dsh-mcp-connector/forks)
+[![GitHub Release](https://img.shields.io/github/v/release/duhu2000/dsh-mcp-connector)](https://github.com/duhu2000/dsh-mcp-connector/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+## Start in 30 seconds
+
+```bash
+dsh plugin --profile web add dsh-mcp-connector
+```
+
+Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar.
+
+![16-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+
+If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers). Connector submissions, compatibility fixes, and documentation pull requests are welcome.
+
+## Why use MCP Connector
+
+| Capability | Basic MCP configuration panel | MCP Connector |
+|---|:---:|:---:|
+| Manual MCP server configuration | ✅ | ✅ |
+| Independently updated curated connector catalog | Usually not included | ✅ |
+| OAuth 2.0 PKCE and API keys | Partial | ✅ |
+| HTTP, stdio, and `mcpServers` JSON import | Partial | ✅ |
+| Tool and prompt discovery | Implementation-specific | ✅ |
+| Authorization recovery and connection lifecycle management | Usually not included | ✅ |
+| Connection health checks and Registry refresh | Usually not included | ✅ |
+| Plugin version discovery and safe updates | Usually not included | ✅ |
 
 ## Features
 
@@ -36,8 +65,6 @@ As of 2026-08-27, the public Registry publishes 79 connector descriptors. After 
 <!-- catalog-stats:end -->
 
 ## Interface and demo
-
-![16-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
 | Marketplace overview | Connector details and curated prompts |
 |---|---|
@@ -74,6 +101,14 @@ Connected tools are exposed to the model with the `mcp__<serverName>__*` prefix.
 
 The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, the four authentication modes, HTTP/stdio configuration, JSON import, connection management, and troubleshooting.
 
+## Guides and ecosystem
+
+- [User guide: installation, authorization, JSON import, and troubleshooting](docs/USER-GUIDE.md)
+- [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
+- [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
+- [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
+- [Development, forks, and contributions](CONTRIBUTING.md)
+
 ## Connector catalog
 
 The package contains a bundled fallback catalog. By default, it refreshes the public [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry) through jsDelivr, then tries GitHub raw if the primary source fails; cached or bundled data remains available if neither remote source can be reached. jsDelivr branch URLs can lag behind a newly merged registry commit, so new cards may not appear immediately.
@@ -108,11 +143,11 @@ npm run market:check
 npm run dev:ui
 ```
 
-`npm run check` performs syntax checks, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
+`npm run check` performs syntax checks, README/package version consistency validation, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.24`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.24](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.24).
+The current public version is [`dsh-mcp-connector@0.2.27`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.27](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.27).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
