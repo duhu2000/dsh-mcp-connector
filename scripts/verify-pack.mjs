@@ -9,6 +9,7 @@ const WHITELIST = [
   /^cordis\.patch\.yml$/,
   /^README\.md$/,
   /^README\.en\.md$/,
+  /^CONTRIBUTING\.md$/,
   /^CHANGELOG\.md$/,
   /^LICENSE$/,
   /^install\.sh$/,

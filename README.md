@@ -1,20 +1,49 @@
-# MCP连接器与连接管理市场（DeepSeek Harness 插件 / 扩展）
+# MCP连接器：DeepSeek Harness MCP Server 连接与管理市场
 
-> 通用 MCP Connector / Connection Manager / Integration Marketplace，由企查查（Qichacha/QCC）团队发起并维护
+> 连接、授权、发现和管理 MCP Server 的通用 MCP Connector 与 Marketplace，由企查查（Qichacha/QCC）团队发起并维护
 
-在 DeepSeek Harness Desktop 中浏览和安装不同厂商的 MCP连接器，连接 MCP Server，通过 OAuth、API Key/URL 或 JSON 接入服务，发现工具与 Prompt，扩展 AI 技能，并管理已安装连接。
+在 DeepSeek Harness Desktop/Web 中一站式管理不同厂商的 MCP 连接：支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、`mcpServers` JSON 导入、工具与 Prompt 发现，并通过独立 Registry 持续更新精选连接器目录。
 
 > 注：“技能扩展”指通过 MCP 工具和 Prompt 扩展智能体能力，本包不会伪装成独立 DSH Skill。
 
 [English](README.en.md)
 
-[用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
+[用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
+[![GitHub stars](https://img.shields.io/github/stars/duhu2000/dsh-mcp-connector?style=flat)](https://github.com/duhu2000/dsh-mcp-connector/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/duhu2000/dsh-mcp-connector?style=flat)](https://github.com/duhu2000/dsh-mcp-connector/forks)
+[![GitHub Release](https://img.shields.io/github/v/release/duhu2000/dsh-mcp-connector)](https://github.com/duhu2000/dsh-mcp-connector/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+## 30 秒开始
+
+```bash
+dsh plugin --profile web add dsh-mcp-connector
+```
+
+安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「🧩 MCP连接器」。
+
+![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+
+如果它帮你更快地接入 MCP Server，欢迎在 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)；新的连接器、兼容性修复和文档改进也欢迎提交 PR。
+
+## 为什么使用 MCP连接器
+
+| 能力 | 普通 MCP 配置面板 | MCP连接器 |
+|---|:---:|:---:|
+| 手工配置 MCP Server | ✅ | ✅ |
+| 持续更新的精选连接器目录 | 通常无 | ✅ |
+| OAuth 2.0 PKCE 与 API Key | 部分 | ✅ |
+| HTTP、stdio 与 `mcpServers` JSON 导入 | 部分 | ✅ |
+| 工具与 Prompt 发现 | 视实现而定 | ✅ |
+| 授权恢复与连接生命周期管理 | 通常无 | ✅ |
+| 连接健康检查与 Registry 刷新 | 通常无 | ✅ |
+| 插件版本检测与安全更新 | 通常无 | ✅ |
 
 ## 功能
 
@@ -38,8 +67,6 @@
 <!-- catalog-stats:end -->
 
 ## 界面与演示
-
-![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
 | 市场总览 | 连接器详情与精选 Prompt |
 |---|---|
@@ -76,6 +103,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 分类浏览、四种鉴权状态、自定义 HTTP/stdio、JSON 导入、连接管理与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
 
+## 中文教程与生态入口
+
+- [用户手册：安装、授权、JSON 导入与故障排查](docs/USER-GUIDE.md)
+- [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
+- [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
+- [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
+- [开发、Fork 与贡献指南](CONTRIBUTING.md)
+
 ## 配置
 
 Bundle 默认配置位于 `cordis.patch.yml`：
@@ -103,11 +138,11 @@ npm run market:check
 npm run dev:ui
 ```
 
-`check` 执行语法检查、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
+`check` 执行语法检查、README/包版本一致性校验、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.24`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.24](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.24)。
+当前公开版本为 [`dsh-mcp-connector@0.2.27`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.27](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.27)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
