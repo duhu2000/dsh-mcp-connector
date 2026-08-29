@@ -9,6 +9,7 @@ const WHITELIST = [
   /^cordis\.patch\.yml$/,
   /^README\.md$/,
   /^README\.en\.md$/,
+  /^screenshots\.json$/,
   /^CONTRIBUTING\.md$/,
   /^CHANGELOG\.md$/,
   /^LICENSE$/,
@@ -22,6 +23,7 @@ const WHITELIST = [
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
   /^docs\/(?:DESKTOP-E2E|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|USER-GUIDE)\.md$/,
+  /^docs\/screenshots\/(?:README\.md|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
 ];

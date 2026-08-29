@@ -6,6 +6,11 @@
 公开市场元数据、示例 Prompt 和工具名称/说明，不包含 OAuth Token、API Key、本机路径、
 用户会话或查询结果。
 
+仓库根目录的 [`screenshots.json`](../../screenshots.json) 按市场总览、连接器详情、工具发现、
+JSON 导入的顺序声明这 4 张图片，供 awesome-dsh-plugin 和 DSH Market 的 App Store 风格详情页
+直接采集。`npm run storefront:check` 会校验数量、相对路径、格式、重复项与文件存在性；
+`npm run check` 已包含该门禁。
+
 | 文件 | 展示内容 |
 |---|---|
 | `01-market-overview.jpg` | 65 张合并市场卡片（61 条 Registry + 4 张随包卡片）、推荐章节、9 分类和固定分类栏 |
