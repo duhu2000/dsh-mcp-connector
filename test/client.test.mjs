@@ -227,7 +227,11 @@ test('市场标题展示安装版本，并通过 Provider 适配层一键更新'
   assert.match(source, /window\.location\.reload\(\)/);
 	assert.doesNotMatch(source, /"\/dsh-market\/update"/, '不得调用 Market 未版本化的私有更新接口');
 	assert.doesNotMatch(source, /const MARKET_(?:UPDATES|OPERATIONS|ROLLBACK|RESTART)_URL/, 'UI 不应硬编码 Provider 操作端点');
-  assert.match(source, /查看 v.*更新方式/);
+  assert.match(source, /新版本处于发布安全等待期（约 24 小时）/);
+  assert.match(source, /立即更新（跳过等待）/);
+  assert.match(source, /manualUpgradeCommand/);
+  assert.match(source, /--config\.minimumReleaseAge=0/);
+  assert.match(source, /复制升级命令/);
   assert.match(source, /\[data-slot="sidebar\.settings"\]/);
   assert.match(source, /\^\(\\u63d2\\u4ef6\\u5e02\\u573a\|Plugin Market\|Plugin Marketplace\)\$/);
   assert.match(source, /window\.open\(NPM_PACKAGE_URL, "_blank", "noopener,noreferrer"\)/);
@@ -302,6 +306,21 @@ test('客户端独立拒绝 Provider 降级、错误目标和无效成功结果'
     state: 'succeeded', beforeVersion: '1.0.0-beta.2', installedVersion: '1.0.0-beta.1',
   }, '1.0.0-beta.3').code, 'DOWNGRADE_DETECTED');
   assert.equal(verify({ state: 'succeeded', beforeVersion: '0.2.24' }, '0.2.25').code, 'INVALID_UPDATE_RESULT');
+});
+
+test('更新失败文案区分发布安全等待和镜像同步', async () => {
+  const plugin = await loadClient({
+    sourceTransform(source) {
+      return source.replace(
+        '\t\texports.apply = apply;',
+        '\t\texports.__testUpdateFailureLabel = updateFailureLabel;\n\t\texports.apply = apply;',
+      );
+    },
+  });
+  const label = plugin.__testUpdateFailureLabel;
+  assert.equal(label({ code: 'RELEASE_TOO_FRESH' }), '新版本处于发布安全等待期（约 24 小时）');
+  assert.equal(label({ code: 'MIRROR_SYNC_PENDING' }), '镜像尚未同步完整安装包');
+  assert.equal(label({ code: 'UNKNOWN', message: '镜像返回的安装包尚不可用' }), '镜像返回的安装包尚不可用');
 });
 
 test('能力探测通过后渲染一键更新，并使用 Provider 广告的同源端点', async () => {
@@ -439,6 +458,7 @@ test('能力探测通过后渲染一键更新，并使用 Provider 广告的同�
 
 test('Provider 广告跨源端点时拒绝一键更新并安全降级', async () => {
   const requests = [];
+  const copied = [];
   const effects = [];
   const state = [];
   let stateCursor = 0;
@@ -497,6 +517,7 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
       clearTimeout() {},
       requestAnimationFrame(callback) { callback(); },
       open() {},
+      navigator: { clipboard: { async writeText(value) { copied.push(value); } } },
     },
   });
   const { ctx, registrations } = clientContext();
@@ -530,8 +551,20 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   await new Promise((resolve) => setImmediate(resolve));
 
   effects.length = 0;
-  const tree = render();
+  let tree = render();
+  const command = 'dsh plugin --profile web add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25';
+  assert.ok(descendants(tree).some((node) => node.type === 'code'
+    && node.props?.children === command));
+  const copyButton = descendants(tree).find((node) => node.type === 'button'
+    && node.props?.children === '复制升级命令');
+  assert.ok(copyButton, '无可信 Provider 时应提供升级命令复制按钮');
+  copyButton.props.onClick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(copied, [command]);
+
+  effects.length = 0;
+  tree = render();
   assert.ok(descendants(tree).some((node) => node.type === 'button'
-    && node.props?.children === '查看 v0.2.25 更新方式'));
+    && node.props?.children === '已复制'));
   assert.equal(requests.some((url) => url.startsWith('https://evil.example/')), false);
 });
