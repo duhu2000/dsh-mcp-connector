@@ -1,0 +1,32 @@
+name: Feature request / 功能建议
+description: Propose a focused improvement to the Connector plugin or its documentation.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Describe the workflow or friction before proposing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Plugin behavior
+        - Documentation
+        - Contributor tooling
+        - Connector Registry submission
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: Public connector descriptors belong in the independent Registry linked above.

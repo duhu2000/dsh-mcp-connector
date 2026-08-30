@@ -1,0 +1,48 @@
+name: Bug report / 缺陷报告
+description: Report a reproducible Connector problem without credentials or private data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Never include tokens, API keys, cookies, OAuth credentials, or real business data.
+  - type: input
+    id: version
+    attributes:
+      label: Connector version
+      placeholder: dsh-mcp-connector@x.y.z
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: DeepSeek Harness environment
+      placeholder: Desktop/Web, host version, operating system, Node.js version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use a credential-free or redacted example.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized logs
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, private URLs, local paths, and real business data.
+          required: true

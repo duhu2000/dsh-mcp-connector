@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "capture": {
+    "capturedOn": "2026-08-30",
+    "browserViewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "productPanelWidth": 800,
+    "desktopCardColumns": 2,
+    "state": "credential-free-mock"
+  },
+  "screenshots": [
+    {
+      "path": "docs/screenshots/01-market-overview.jpg",
+      "sha256": "856dc020a285752f4cd4a1c1025df9ce68ace2cd90ee1aa06c6b0699c78763f6",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "docs/screenshots/02-connector-detail.jpg",
+      "sha256": "0e15a26bbd21f8587b6354174d6d3411a6487e7a2df45d20c89f396b26f2ef65",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "docs/screenshots/03-tool-discovery.jpg",
+      "sha256": "ca1eccf06506c829fc23212eee39306e64c5781da9c1eff959d4b597d5df2f97",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "docs/screenshots/04-json-import.jpg",
+      "sha256": "2619ae8ba8f5d40131c6dfa2a367ee5ee64b8fee7782e5f4eddebd2a1cc79934",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "demo": {
+    "path": "docs/demo.gif",
+    "sha256": "4fa49853df79faa1c53d28938d79dd43bde3603712ecdc2e3b62d93a4c219d9a",
+    "width": 960,
+    "height": 540,
+    "durationSeconds": 16
+  }
+}
