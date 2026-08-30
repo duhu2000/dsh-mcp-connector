@@ -12,8 +12,8 @@ jobs:
       matrix:
         node: [20, 22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       # DSH 依赖由 Host 提供；legacy-peer-deps 避免 npm 尝试拼装一套不完整的 Host。
@@ -24,8 +24,8 @@ jobs:
     name: windows (24)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       # 目标问题来自 Windows Desktop；使用与 Linux 相同的完整门禁防止平台回归。
@@ -38,8 +38,8 @@ jobs:
     needs: [test, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - name: Stamp an installable prerelease version
@@ -53,7 +53,7 @@ jobs:
           fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");'
       - run: npm pack --ignore-scripts
       - run: shasum -a 256 dsh-mcp-connector-*.tgz > SHA256SUMS.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dsh-mcp-connector-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           path: |
