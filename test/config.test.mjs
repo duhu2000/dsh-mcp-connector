@@ -31,3 +31,12 @@ test('bundle patch uses the same jsDelivr primary catalog source', () => {
   assert.match(patch, new RegExp(DEFAULT_CATALOG_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(patch, /catalogUrl:\s*['"]https:\/\/raw\.githubusercontent\.com/);
 });
+
+test('client bundle declares its exact dynamic runtime external', () => {
+  const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const clientSource = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const runtimeSpecifier = '@deepseek-ai/dsh-client-runtime/client';
+
+  assert.match(clientSource, new RegExp(`require\\(\"${runtimeSpecifier}\"\\)`));
+  assert.deepEqual(packageJson.dsh.client.external, [runtimeSpecifier]);
+});

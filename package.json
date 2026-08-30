@@ -122,6 +122,9 @@
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-conversation"
       ],
+      "external": [
+        "@deepseek-ai/dsh-client-runtime/client"
+      ],
       "platform": "web"
     }
   },

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 为客户端 bundle 显式声明 `@deepseek-ai/dsh-client-runtime/client` 动态依赖，兼容新版 DSH 客户端模块表的严格装载顺序，避免插件先于 Runtime 到达时导致 Desktop 启动失败。
+
 ## [0.2.29] - 2026-08-30
 
 ### Fixed
