@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.29] - 2026-08-30
+
 ### Fixed
 
 - 更新服务返回 `RELEASE_TOO_FRESH` 时明确提示“发布安全等待期”，不再误写为镜像同步；主动跳过等待的操作也改为“立即更新（跳过等待）”。
@@ -454,7 +456,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.29...HEAD
+[0.2.29]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...v0.2.29
 [0.2.28]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...v0.2.28
 [0.2.27]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.25...v0.2.26
