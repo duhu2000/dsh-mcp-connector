@@ -30,7 +30,12 @@ const WHITELIST = [
 
 let raw;
 try {
-  raw = execFileSync('npm', ['pack', '--dry-run', '--json'], {
+  const npmCli = process.env.npm_execpath;
+  const command = npmCli ? process.execPath : (process.platform === 'win32' ? 'npm.cmd' : 'npm');
+  const args = npmCli
+    ? [npmCli, 'pack', '--dry-run', '--json']
+    : ['pack', '--dry-run', '--json'];
+  raw = execFileSync(command, args, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
