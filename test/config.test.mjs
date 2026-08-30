@@ -32,18 +32,16 @@ test('bundle patch uses the same jsDelivr primary catalog source', () => {
   assert.doesNotMatch(patch, /catalogUrl:\s*['"]https:\/\/raw\.githubusercontent\.com/);
 });
 
-test('client bundle declares every non-static exact DSH dependency external', () => {
+test('client bundle uses the host-version store baseline without impossible dynamic externals', () => {
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const clientSource = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const storeSpecifier = '@deepseek-ai/dsh-client-store';
   const runtimeSpecifier = '@deepseek-ai/dsh-client-runtime/client';
-  const bootstrapStaticSpecifiers = new Set([
-    '@deepseek-ai/dsh-client-ui-primitives',
-  ]);
-  const exactDshSpecifiers = [...clientSource.matchAll(/require\("(@deepseek-ai\/[^"]+)"\)/g)]
-    .map((match) => match[1]);
-  const requiredExternals = exactDshSpecifiers.filter((specifier) => !bootstrapStaticSpecifiers.has(specifier));
 
-  assert.ok(exactDshSpecifiers.includes(runtimeSpecifier));
-  assert.deepEqual(requiredExternals, [runtimeSpecifier]);
-  assert.deepEqual(packageJson.dsh.client.external, requiredExternals);
+  assert.match(clientSource, new RegExp(`require\\(\"${storeSpecifier}\"\\)`));
+  assert.match(clientSource, new RegExp(`require\\(\"${runtimeSpecifier}\"\\)`));
+  assert.match(clientSource, /catch \(storeError\)/);
+  assert.equal(packageJson.dsh.client.external, undefined);
+  assert.ok(!packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-runtime'));
+  assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-runtime'], undefined);
 });
