@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [0.2.30] - 2026-08-30
+
+### Added
+
+- 新增营销元数据事实源与线上/离线漂移检查，统一 npm 描述与关键词、GitHub About/Topics、中英文首屏 CTA 和外部分发文案。
+- 新增贡献模板、good first issue 入口、自然搜索/转化基线与发布前监控检查。
+
+### Changed
+
+- 更新中英文产品介绍、npm 检索词与 GitHub Topics，突出 MCP Server 连接、Registry、OAuth 2.0 PKCE 与 stdio/HTTP 能力。
+- 重新录制无真实凭据的市场截图与演示 GIF：实际两列卡片布局，企查查卡片不再展示“需重新授权”。
+- 已安装但尚无连接时不再强制弹出转化引导；首次连接成功或存在历史连接后才展示，且每页面生命周期仅一次。
+
+### Verification
+
+- 152 项自动测试、lint、npm 发布包白名单/敏感内容扫描、商店素材哈希与尺寸校验通过。
+
 ## [0.2.29] - 2026-08-30
 
 ### Fixed
@@ -456,7 +473,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.29...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.30...HEAD
+[0.2.30]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.29...v0.2.30
 [0.2.29]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...v0.2.29
 [0.2.28]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...v0.2.28
 [0.2.27]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.26...v0.2.27
