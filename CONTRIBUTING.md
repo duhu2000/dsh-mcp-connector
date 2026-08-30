@@ -9,6 +9,7 @@ Thank you for contributing. Never put tokens, API keys, cookies, OAuth credentia
 - 报告缺陷或提交功能建议：[GitHub Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 - 为公共市场增加连接器：阅读 [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)，连接器描述与插件代码分仓管理。
 - 修复插件或改进文档：Fork 本仓库，从最新 `main` 创建单一目的的分支并提交 PR。
+- 第一次参与：从带有 [`good first issue`](https://github.com/duhu2000/dsh-mcp-connector/labels/good%20first%20issue) 标签的任务开始，并按[首次贡献路径](docs/FIRST-CONTRIBUTION.md)完成本地校验。
 - 搭建私有目录：参考 [README 配置说明](README.md#配置) 和 [市场注册指南](docs/MARKET-REGISTRATION.md)。
 
 ## 本地开发
@@ -53,3 +54,7 @@ npm run check
 ```
 
 提交时说明用户问题、解决方案、测试结果与必要的手工验收步骤。
+
+## 维护者如何准备首次贡献任务
+
+首次贡献任务应边界清楚、无需真实凭据或私有 DSH 环境，并在 Issue 中写明背景、建议修改文件、验收标准和验证命令。适合的范围包括文档示例、无凭据测试夹具、可访问性文案和小型校验器改进；涉及发布、OAuth 凭据、Registry 上架审批或大规模重构的工作不应标记为 `good first issue`。

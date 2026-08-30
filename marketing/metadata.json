@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "repository": "duhu2000/dsh-mcp-connector",
+  "packageName": "dsh-mcp-connector",
+  "npm": {
+    "description": "Connect and manage MCP servers in DeepSeek Harness — a universal MCP connector and marketplace with OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, tools, and prompts. Maintained by Qichacha/QCC.",
+    "requiredKeywords": [
+      "deepseek-harness",
+      "deepseek",
+      "dsh",
+      "dsh-plugin",
+      "mcp",
+      "model-context-protocol",
+      "mcp-client",
+      "mcp-server",
+      "mcp-connector",
+      "mcp-marketplace",
+      "mcp-registry",
+      "mcp-manager",
+      "mcp-hub",
+      "connection-manager",
+      "oauth2",
+      "pkce",
+      "api-key",
+      "stdio",
+      "streamable-http",
+      "qichacha"
+    ]
+  },
+  "github": {
+    "description": "DeepSeek Harness 通用 MCP连接器、连接管理与扩展市场：连接 MCP Server，发现工具与 Prompt，扩展 AI 技能；支持 OAuth/PKCE、API Key、JSON 导入。由企查查（Qichacha/QCC）团队发起维护。General-purpose MCP connector, connection manager, plugin, extension and integration marketplace.",
+    "topics": [
+      "deepseek-harness",
+      "deepseek",
+      "dsh",
+      "dsh-plugin",
+      "mcp",
+      "model-context-protocol",
+      "mcp-client",
+      "mcp-server",
+      "mcp-connector",
+      "mcp-marketplace",
+      "mcp-registry",
+      "mcp-manager",
+      "mcp-hub",
+      "connection-manager",
+      "oauth2",
+      "pkce",
+      "api-key",
+      "stdio",
+      "streamable-http",
+      "qichacha"
+    ]
+  },
+  "readme": {
+    "heroZh": "> 连接、授权、发现和管理 MCP Server 的通用 MCP Connector 与 Marketplace，由企查查（Qichacha/QCC）团队发起并维护",
+    "heroEn": "> A universal MCP connector and marketplace for connecting, authorizing, discovering, and managing MCP servers, initiated and maintained by the Qichacha (QCC) team",
+    "ctaZh": "如果它帮你更快地接入 MCP Server，欢迎 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)、[提交新的连接器](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)或[参与贡献](CONTRIBUTING.md)。",
+    "ctaEn": "If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers), [submitting a connector](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md), or [contributing a fix](CONTRIBUTING.md)."
+  },
+  "externalListing": {
+    "en": "General-purpose MCP Connector Marketplace for DeepSeek Harness with OAuth 2.0 PKCE, API key and URL configuration, JSON import, dynamic tool discovery, prompt-to-session workflows, and connection management.",
+    "zh": "DeepSeek Harness 通用 MCP 连接器市场，支持 OAuth 2.0 PKCE、API Key/URL 配置、JSON 导入、动态工具发现、Prompt 发起新会话和连接管理。"
+  },
+  "links": {
+    "repository": "https://github.com/duhu2000/dsh-mcp-connector",
+    "stars": "https://github.com/duhu2000/dsh-mcp-connector/stargazers",
+    "issues": "https://github.com/duhu2000/dsh-mcp-connector/issues",
+    "firstIssues": "https://github.com/duhu2000/dsh-mcp-connector/labels/good%20first%20issue",
+    "contributing": "https://github.com/duhu2000/dsh-mcp-connector/blob/main/CONTRIBUTING.md",
+    "connectorOnboarding": "https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md"
+  }
+}
