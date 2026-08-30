@@ -8,7 +8,7 @@
 
 [English](README.en.md)
 
-[用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
+[用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [首次贡献](docs/FIRST-CONTRIBUTION.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
@@ -30,7 +30,7 @@ dsh plugin --profile web add dsh-mcp-connector
 
 ![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
-如果它帮你更快地接入 MCP Server，欢迎在 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)；新的连接器、兼容性修复和文档改进也欢迎提交 PR。
+如果它帮你更快地接入 MCP Server，欢迎 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)、[提交新的连接器](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)或[参与贡献](CONTRIBUTING.md)。
 
 ## 为什么使用 MCP连接器
 
@@ -74,7 +74,7 @@ dsh plugin --profile web add dsh-mcp-connector
 | 工具发现、描述与独立滚动 | JSON 导入 |
 | ![工具发现](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON 导入](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
 
-素材从本机 DSH `web` 验收环境采集，只展示公开市场元数据、示例 Prompt 和工具说明，不包含凭据、本机路径或查询结果。详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
+素材从复刻真实 800px 产品面板的无凭据 UI 验收环境采集，桌面端一行 2 张卡片；只展示公开市场元数据、示例 Prompt 和明确标识的 Mock 工具说明，不包含凭据、本机路径或查询结果。详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
 
 ## 安装
 
@@ -109,7 +109,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
 - [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
+- [首次贡献：从 good first issue 到第一个 PR](docs/FIRST-CONTRIBUTION.md)
 - [开发、Fork 与贡献指南](CONTRIBUTING.md)
+- [增长基线与月度复盘模板](docs/GROWTH-BASELINE.md)
 
 ## 配置
 
@@ -132,17 +134,18 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 ```bash
 npm run check
+npm run marketing:check:live
 npm run registry:build
 npm run registry:validate
 npm run market:check
 npm run dev:ui
 ```
 
-`check` 执行语法检查、README/包版本一致性校验、自动测试和 npm 发布包白名单校验；`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
+`marketing/metadata.json` 是 npm 描述/关键词、GitHub About/Topics、中英文首屏 CTA 和外部分发文案的事实源。`check` 会离线阻断仓库内漂移；`marketing:check:live` 进一步核对线上 GitHub 与 npm，供元数据调整和月度复盘时执行。`market:check` 检查外部 DSH 市场 PR 与线上目录；`dev:ui` 启动不含真实凭据的本地 mock 市场。CI 使用 `--legacy-peer-deps` 安装显式测试依赖，DSH 运行期 peer 仍由 Host 提供。`v*` Tag 会触发 GitHub Actions；Tag 必须与 `package.json` 版本一致。Release 通过 npm Trusted Publishing (GitHub OIDC) 发布，不依赖长期 `NPM_TOKEN`。
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.29`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.29](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.29)。
+当前公开版本为 [`dsh-mcp-connector@0.2.30`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.30](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.30)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

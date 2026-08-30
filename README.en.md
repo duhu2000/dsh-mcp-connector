@@ -8,7 +8,7 @@ Manage MCP connections from different providers in one place inside DeepSeek Har
 
 [简体中文](README.md)
 
-[Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
+[Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [First contribution](docs/FIRST-CONTRIBUTION.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-mcp-connector.svg)](https://www.npmjs.com/package/dsh-mcp-connector)
@@ -30,7 +30,7 @@ Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrad
 
 ![16-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
-If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers). Connector submissions, compatibility fixes, and documentation pull requests are welcome.
+If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers), [submitting a connector](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md), or [contributing a fix](CONTRIBUTING.md).
 
 ## Why use MCP Connector
 
@@ -72,7 +72,7 @@ As of 2026-08-27, the public Registry publishes 79 connector descriptors. After 
 | Tool discovery, descriptions, and scrolling | JSON import |
 | ![Tool discovery](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON import](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
 
-The assets are captured from a local DSH `web` acceptance environment and show only public marketplace metadata, example prompts, and tool descriptions. They contain no credentials, local paths, or query results. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
+The assets are captured from a credential-free UI acceptance harness that mirrors the real 800px product panel, producing two cards per desktop row. They show only public marketplace metadata, example prompts, and explicitly marked mock tool descriptions—never credentials, local paths, or query results. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
 
 ## Installation
 
@@ -107,7 +107,9 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
+- [First contribution: from a good first issue to your first PR](docs/FIRST-CONTRIBUTION.md)
 - [Development, forks, and contributions](CONTRIBUTING.md)
+- [Growth baseline and monthly review template](docs/GROWTH-BASELINE.md)
 
 ## Connector catalog
 
@@ -137,17 +139,18 @@ Set `catalogUrl` to an empty string for an explicitly offline/private setup. A c
 
 ```bash
 npm run check
+npm run marketing:check:live
 npm run registry:build
 npm run registry:validate
 npm run market:check
 npm run dev:ui
 ```
 
-`npm run check` performs syntax checks, README/package version consistency validation, automated tests, and an npm package allowlist/sensitive-content audit. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
+`marketing/metadata.json` is the source of truth for the npm description/keywords, GitHub About/Topics, bilingual first-screen CTAs, and external listing copy. `npm run check` blocks repository drift offline; `npm run marketing:check:live` also compares the public GitHub and npm metadata for metadata changes and monthly reviews. `npm run market:check` tracks the external DSH marketplace PR and live directory. Tags matching `v*` trigger GitHub Actions; the tag must match `package.json`. npm releases use Trusted Publishing through GitHub OIDC and do not require a long-lived `NPM_TOKEN`.
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.29`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.29](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.29).
+The current public version is [`dsh-mcp-connector@0.2.30`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.30](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.30).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

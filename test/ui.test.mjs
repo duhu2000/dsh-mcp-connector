@@ -3,6 +3,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 const uiSource = await readFile(new URL('../ui/index.html', import.meta.url), 'utf8');
+const clientSource = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+const harnessSource = await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8');
+
+test('截图 harness 复刻产品 800px 面板并从无授权状态启动', () => {
+  assert.match(clientSource, /width: "min\(800px, 90%\)"/);
+  assert.match(harnessSource, /width: min\(800px, 90vw\)/);
+  assert.match(harnessSource, /无凭据 Mock/);
+  assert.match(harnessSource, /const connected = new Set\(\);/);
+  assert.doesNotMatch(harnessSource, /new Set\(\['qcc-company'\]\)/);
+});
 
 test('界面固定为中文且不提供语言切换入口', () => {
   assert.match(uiSource, /<html lang="zh-CN">/);
@@ -168,6 +178,41 @@ test('市场总数移入页签且正文不再显示冗余操作提示', () => {
   assert.match(uiSource, /setTabCount\('market', items\.length\)/);
   assert.match(uiSource, /setTabCount\('installed', items\.length\)/);
   assert.doesNotMatch(uiSource, /点击卡片查看能力，点击「连接」完成授权/);
+});
+
+test('0 条连接时不显示社区入口', () => {
+  const loadInstalledSource = uiSource.match(/async function loadInstalled\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  const emptyState = loadInstalledSource.indexOf('if (!items.length)');
+  const eligibility = loadInstalledSource.indexOf('markCommunityCtaEligible();');
+  assert.ok(emptyState >= 0 && eligibility > emptyState, '空状态必须在 CTA 资格标记之前返回');
+  assert.match(uiSource, /if \(!communityCtaEligible \|\| communityCtaDismissed\) return '';/);
+});
+
+test('连接、配置、导入或 URL 安装成功后显示克制的社区入口', () => {
+  const connectSource = uiSource.match(/async connect\(connectorId\) \{[\s\S]*?\n    \},/)?.[0] ?? '';
+  const configureSource = uiSource.match(/async submitConfig\(\) \{[\s\S]*?\n    \},\n    async submitImport/)?.[0] ?? '';
+  const importSource = uiSource.match(/async submitImport\(\) \{[\s\S]*?\n    \},\n    async submitUrl/)?.[0] ?? '';
+  const installFromUrlSource = uiSource.match(/async submitUrl\(\) \{[\s\S]*?\n    \},\n    async migrateLegacy/)?.[0] ?? '';
+  assert.match(uiSource, /function communityCtaHtml\(\)/);
+  assert.match(uiSource, /function markCommunityCtaEligible\(\)/);
+  assert.match(uiSource, /连接顺利？如果 MCP连接器对你有帮助/);
+  assert.match(uiSource, />Star<\/a>/);
+  assert.match(uiSource, />提交连接器<\/a>/);
+  assert.match(uiSource, />参与贡献<\/a>/);
+  assert.match(uiSource, /\$\{communityCtaHtml\(\)\}/);
+  assert.match(connectSource, /if \(r\.ok\) \{\s*markCommunityCtaEligible\(\);/);
+  assert.equal((configureSource.match(/call\('configure'/g) || []).length, 2, '市场配置和自定义配置都必须受测');
+  assert.equal((configureSource.match(/markCommunityCtaEligible\(\);/g) || []).length, 2, '两种配置成功后都应显示 CTA');
+  assert.match(importSource, /call\('importJson'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
+  assert.match(installFromUrlSource, /call\('installFromUrl'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
+  assert.doesNotMatch(uiSource, /openModal\([^\n]*连接顺利/);
+});
+
+test('关闭社区入口后在本次页面生命周期内保持隐藏', () => {
+  assert.match(uiSource, /let communityCtaDismissed = false;/);
+  assert.match(uiSource, /onclick="window\.__mcp\.dismissCommunityCta\(\)"/);
+  assert.match(uiSource, /function dismissCommunityCta\(\) \{[\s\S]*?communityCtaDismissed = true;[\s\S]*?communityCtaEligible = false;[\s\S]*?querySelector\('\.community-cta'\)\?\.remove\(\);/);
+  assert.match(uiSource, /dismissCommunityCta\(\) \{ dismissCommunityCta\(\); \}/);
 });
 
 test('工具清单使用中文计数并标记服务商弃用工具', () => {

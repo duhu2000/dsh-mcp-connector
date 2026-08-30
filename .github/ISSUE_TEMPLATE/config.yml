@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Submit a public connector / 提交公共连接器
+    url: https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md
+    about: Connector descriptors are reviewed in the independent Registry repository.
+  - name: First contribution / 首次贡献
+    url: https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/FIRST-CONTRIBUTION.md
+    about: Start with a scoped good first issue and the contributor checklist.
