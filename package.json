@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.30",
+  "version": "0.2.31",
   "description": "Connect and manage MCP servers in DeepSeek Harness — a universal MCP connector and marketplace with OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, tools, and prompts. Maintained by Qichacha/QCC.",
   "type": "module",
   "main": "lib/index.js",

@@ -4,9 +4,16 @@
 
 ## [Unreleased]
 
+## [0.2.31] - 2026-08-31
+
 ### Fixed
 
 - 客户端 Store 优先使用 DSH `v0.1.2-alpha.1` 的静态 `@deepseek-ai/dsh-client-store` 基座，并保留 `v0.1.1` 的 `@deepseek-ai/dsh-client-runtime/client` 回退；不再把已移除的 Runtime 包错误声明为动态 external，避免 Desktop 主界面装载失败。
+
+### Verification
+
+- 154 项自动测试、Node 20/22/24 与 Windows Node 24 CI、npm 发布包白名单/敏感内容扫描全部通过。
+- CI 原包在官方 DSH `v0.1.2-alpha.1` 精确源码构建中完成主界面加载验收；Issue #26 报告者随后在 Windows Desktop Alpha.1 实机确认可正常运行。
 
 ## [0.2.30] - 2026-08-30
 
@@ -477,7 +484,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.30...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.31...HEAD
+[0.2.31]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.30...v0.2.31
 [0.2.30]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.29...v0.2.30
 [0.2.29]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...v0.2.29
 [0.2.28]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.27...v0.2.28
