@@ -333,6 +333,98 @@ test('更新失败文案区分发布安全等待和镜像同步', async () => {
   assert.equal(label({ code: 'UNKNOWN', message: '镜像返回的安装包尚不可用' }), '镜像返回的安装包尚不可用');
 });
 
+test('磁盘版本高于运行版本时识别为等待重启，不重复提示安装', async () => {
+  const plugin = await loadClient({
+    sourceTransform(source) {
+      return source.replace(
+        '\t\texports.apply = apply;',
+        '\t\texports.__testPendingActivationVersion = pendingActivationVersion;\n\t\texports.apply = apply;',
+      );
+    },
+  });
+  const pending = plugin.__testPendingActivationVersion;
+  assert.equal(pending(
+    { installedVersion: '0.2.30', latestVersion: '0.2.31', updateAvailable: true },
+    { installedVersion: '0.2.31', latestVersion: '0.2.31', updateAvailable: false },
+  ), '0.2.31');
+  assert.equal(pending(
+    { installedVersion: '0.2.31' },
+    { installedVersion: '0.2.31', latestVersion: '0.2.31', updateAvailable: false },
+  ), null);
+  assert.equal(pending(
+    { installedVersion: '0.2.30' },
+    { installedVersion: '0.2.31', latestVersion: '0.2.32', updateAvailable: true },
+  ), null, '仍有更高版本时应继续展示一键更新');
+  assert.equal(pending(
+    { installedVersion: 'invalid' },
+    { installedVersion: '0.2.31', updateAvailable: false },
+  ), null);
+
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.match(source, /v\$\{activationPendingVersion\} 已安装，重启后生效/);
+  assert.match(source, /pendingActivationVersion\(versionStatus, providerUpdateCheck\)/);
+});
+
+test('已安装的新版本在旧进程中渲染重启提示而非升级命令', async () => {
+  const state = [
+    { installedVersion: '0.2.30', latestVersion: '0.2.31', updateAvailable: true },
+    'ready',
+    {
+      provider: { id: 'market-v1', label: 'DSH 插件市场' },
+      capabilities: {
+        runtime: 'web',
+        restart: { supported: false, managedBy: 'operator' },
+      },
+    },
+    { installedVersion: '0.2.31', latestVersion: '0.2.31', updateAvailable: false },
+    null,
+    null,
+    null,
+    false,
+    false,
+    false,
+    false,
+  ];
+  let stateCursor = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    windowExtras: { location: { origin: 'http://127.0.0.1:3080' } },
+    reactApi: {
+      useState(initial) {
+        const index = stateCursor++;
+        return [index in state ? state[index] : initial, () => {}];
+      },
+      useRef(initial) { return { current: initial }; },
+      useEffect() {},
+    },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const component = registrations.get('shell.overlay').component;
+  const tree = component({
+    wide: true,
+    useStore: (select) => select({ open: true, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} },
+    startPromptSession() {},
+  });
+  const descendants = [];
+  const visit = (node) => {
+    if (node == null || node === false || typeof node !== 'object') return;
+    descendants.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) visit(child);
+  };
+  visit(tree);
+  assert.ok(descendants.some((node) => node.props?.children === 'v0.2.31 已安装，重启后生效'));
+  assert.ok(descendants.some((node) => node.props?.children === '请重启 DSH'));
+  assert.equal(descendants.some((node) => node.type === 'code'), false);
+  assert.equal(descendants.some((node) => node.props?.children === '复制升级命令'), false);
+});
+
 test('能力探测通过后渲染一键更新，并使用 Provider 广告的同源端点', async () => {
   const requests = [];
   const effects = [];
