@@ -25,6 +25,8 @@ DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `s
 5. 完整性校验通过后，按 Provider 返回的激活结论展示“刷新生效”或重启提示。Web 且 Provider 明确允许进程重启时才展示“立即重启”；Desktop 等由外壳管理生命周期的宿主只提示用户重启，不自行杀进程。
 6. Provider 保留恢复点时展示“回滚”。回滚仍由 Provider 执行，MCP连接器不直接修改 profile、lockfile 或 `node_modules`。
 
+Provider 读取的是 profile 中已经落盘的插件版本，标题版本来自当前运行中的插件进程。若 Provider 报告磁盘版本高于运行版本且已无后续更新，页面会显示“已安装，重启后生效”，并按 Provider 能力展示“立即重启”或宿主重启提示；此时不再重复给出同一版本的安装命令。
+
 失败结果使用稳定代码区分正在运行的 Agent、其他安装任务占用、发布安全等待、镜像同步、版本未变化、超时和权限拒绝，以及 `DOWNGRADE_DETECTED`、`RESOLVED_VERSION_MISMATCH`、`INVALID_UPDATE_RESULT` 三类完整性故障。`RELEASE_TOO_FRESH` 明确显示为约 24 小时的发布安全等待期，并提供“立即更新（跳过等待）”；真正的镜像同步故障保留独立提示，不再混用同一文案。
 
 当 DSH Desktop 或其他宿主没有兼容 Update Provider 时，标题区直接展示绑定 npm 精确版本的 CLI 命令，例如 `dsh plugin --profile web add --config.minimumReleaseAge=0 dsh-mcp-connector@<目标版本>`，并提供复制按钮与 npm 页面入口。运行时会把 `<目标版本>` 替换为 npm 已发布的确切版本；命令中的单次覆盖只用于用户主动跳过本次发布安全等待。Connector 仍不自行执行包管理器命令。
