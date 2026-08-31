@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 客户端 Store 优先使用 DSH `v0.1.2-alpha.1` 的静态 `@deepseek-ai/dsh-client-store` 基座，并保留 `v0.1.1` 的 `@deepseek-ai/dsh-client-runtime/client` 回退；不再把已移除的 Runtime 包错误声明为动态 external，避免 Desktop 主界面装载失败。
+
 ## [0.2.30] - 2026-08-30
 
 ### Added

@@ -31,3 +31,17 @@ test('bundle patch uses the same jsDelivr primary catalog source', () => {
   assert.match(patch, new RegExp(DEFAULT_CATALOG_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(patch, /catalogUrl:\s*['"]https:\/\/raw\.githubusercontent\.com/);
 });
+
+test('client bundle uses the host-version store baseline without impossible dynamic externals', () => {
+  const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const clientSource = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const storeSpecifier = '@deepseek-ai/dsh-client-store';
+  const runtimeSpecifier = '@deepseek-ai/dsh-client-runtime/client';
+
+  assert.match(clientSource, new RegExp(`require\\(\"${storeSpecifier}\"\\)`));
+  assert.match(clientSource, new RegExp(`require\\(\"${runtimeSpecifier}\"\\)`));
+  assert.match(clientSource, /catch \(storeError\)/);
+  assert.equal(packageJson.dsh.client.external, undefined);
+  assert.ok(!packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-runtime'));
+  assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-runtime'], undefined);
+});

@@ -2,9 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const uiSource = await readFile(new URL('../ui/index.html', import.meta.url), 'utf8');
-const clientSource = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-const harnessSource = await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8');
+const normalizeLineEndings = (source) => source.replace(/\r\n?/g, '\n');
+const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html', import.meta.url), 'utf8'));
+const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
+const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
 test('截图 harness 复刻产品 800px 面板并从无授权状态启动', () => {
   assert.match(clientSource, /width: "min\(800px, 90%\)"/);

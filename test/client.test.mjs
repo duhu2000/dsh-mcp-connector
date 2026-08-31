@@ -8,6 +8,7 @@ async function loadClient({
   reactDomApi = { createPortal() {} },
   jsxRuntime = { jsx() {}, jsxs() {} },
   windowExtras = {},
+  storeModule = 'runtime',
   sourceTransform = (source) => source,
 } = {}) {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
@@ -25,7 +26,10 @@ async function loadClient({
           if (id === 'react/jsx-runtime') return jsxRuntime;
           if (id === 'react') return reactApi;
           if (id === 'react-dom') return reactDomApi;
-          if (id === '@deepseek-ai/dsh-client-runtime/client') {
+          if (id === '@deepseek-ai/dsh-client-store' && storeModule === 'store') {
+            return { defineStore: (definition) => definition };
+          }
+          if (id === '@deepseek-ai/dsh-client-runtime/client' && storeModule === 'runtime') {
             return { defineStore: (definition) => definition };
           }
           if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Button() {} };
@@ -88,6 +92,12 @@ function clientContext({ workspaceId = 'workspace-1' } = {}) {
 test('客户端声明新会话所需服务', async () => {
   const plugin = await loadClient();
   assert.deepEqual(plugin.inject, ['slots', 'sessions', 'workspaces', 'conversation']);
+});
+
+test('客户端 Store 兼容 Alpha.1 新模块与 0.1.1 旧模块', async () => {
+  await assert.doesNotReject(() => loadClient({ storeModule: 'store' }));
+  await assert.doesNotReject(() => loadClient({ storeModule: 'runtime' }));
+  await assert.rejects(() => loadClient({ storeModule: 'missing' }), /DSH client store is unavailable/);
 });
 
 test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与底部降级', async () => {
