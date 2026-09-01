@@ -75,6 +75,29 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   contains(readmeEn, metadata.readme.ctaEn, 'English README CTA differs from marketing metadata');
   contains(externalListing, `en: ${yamlSingleQuoted(metadata.externalListing.en)}`, 'external English listing differs from marketing metadata');
   contains(externalListing, `zh: ${yamlSingleQuoted(metadata.externalListing.zh)}`, 'external Chinese listing differs from marketing metadata');
+
+  const externalEnglish = [
+    ['npm description', metadata.npm.description],
+    ['GitHub description', metadata.github.description],
+    ['English README hero', metadata.readme.heroEn],
+    ['external English listing', metadata.externalListing.en],
+  ];
+  for (const [label, copy] of externalEnglish) {
+    contains(copy, 'DeepSeek Harness', `${label} must retain the external platform identity`);
+    contains(copy.toLowerCase(), 'over one hundred mcp connectors', `${label} must use the durable over-one-hundred connector claim`);
+    contains(copy.toLowerCase(), 'discover', `${label} must describe connector discovery`);
+    contains(copy.toLowerCase(), 'authorize', `${label} must describe authorization`);
+    contains(copy.toLowerCase(), 'manage', `${label} must describe connection management`);
+  }
+  for (const [label, copy] of [
+    ['Chinese README hero', metadata.readme.heroZh],
+    ['external Chinese listing', metadata.externalListing.zh],
+  ]) {
+    contains(copy, 'DeepSeek Harness', `${label} must retain the external platform identity`);
+    contains(copy, '超百个 MCP连接器', `${label} must use the durable over-one-hundred connector claim`);
+    contains(copy, '统一发现、授权和连接管理', `${label} must describe discovery, authorization, and management`);
+  }
+
   contains(contributing, metadata.links.firstIssues, 'contributor guide is missing the good first issue path');
   for (const key of ['stars', 'contributing', 'connectorOnboarding']) {
     contains(ui, metadata.links[key], `installed-state CTA is missing ${key} link`);

@@ -1,6 +1,6 @@
 # MCP Connector and MCP Server Marketplace for DeepSeek Harness
 
-> A universal MCP connector and marketplace for connecting, authorizing, discovering, and managing MCP servers, initiated and maintained by the Qichacha (QCC) team
+> DeepSeek Harness MCP Connector and MCP Server marketplace with over one hundred MCP connectors, continuously updated; discover, authorize, and manage connections in one place with OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, and tool and prompt discovery; maintained by Qichacha/QCC
 
 Manage MCP connections from different providers in one place inside DeepSeek Harness Desktop/Web. Use OAuth 2.0 PKCE, API keys, stdio/HTTP, `mcpServers` JSON import, tool and prompt discovery, and an independently updated Registry of curated connectors.
 

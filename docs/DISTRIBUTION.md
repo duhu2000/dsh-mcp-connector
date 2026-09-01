@@ -1,6 +1,6 @@
 # DSH MCP Connector Distribution Ledger
 
-Last updated: 2026-08-31 (Asia/Shanghai)
+Last updated: 2026-09-01 (Asia/Shanghai)
 
 This document is the source of truth for external distribution of
 [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector).
@@ -114,8 +114,8 @@ the destination schema without changing the product identity.
 - Install: `dsh plugin --profile web add dsh-mcp-connector`
 - Remove: `dsh plugin --profile web remove dsh-mcp-connector`
 - Supported target: DeepSeek Harness Desktop/web profile; Node.js 20+
-- English description: `Connect and manage MCP servers in DeepSeek Harness — a universal MCP connector and marketplace with OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, tools, and prompts. Maintained by Qichacha/QCC.`
-- Chinese description: `DeepSeek Harness 通用 MCP 连接器、连接管理与扩展市场：连接 MCP Server，发现工具与 Prompt，扩展 AI 技能；支持 OAuth 2.0 PKCE、API Key、stdio/HTTP 和 `mcpServers` JSON 导入。由企查查（Qichacha/QCC）团队发起维护。`
+- English description: `DeepSeek Harness MCP Connector and MCP Server marketplace with over one hundred MCP connectors, continuously updated. Discover, authorize, and manage connections in one place; supports OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, and tool and prompt discovery. Maintained by Qichacha/QCC.`
+- Chinese description: `DeepSeek Harness 的 MCP连接器与 MCP Server 市场，收录超百个 MCP连接器并持续更新；统一发现、授权和连接管理，支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、mcpServers JSON 导入，以及工具与 Prompt 发现；由企查查/QCC 团队维护。`
 - Screenshots and evidence: [`docs/screenshots/README.md`](screenshots/README.md)
 - Release history: [`CHANGELOG.md`](../CHANGELOG.md)
 

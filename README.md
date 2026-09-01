@@ -1,6 +1,6 @@
 # MCP连接器：DeepSeek Harness MCP Server 连接与管理市场
 
-> 连接、授权、发现和管理 MCP Server 的通用 MCP Connector 与 Marketplace，由企查查（Qichacha/QCC）团队发起并维护
+> DeepSeek Harness 的 MCP连接器与 MCP Server 市场，收录超百个 MCP连接器并持续更新；统一发现、授权和连接管理，支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、mcpServers JSON 导入，以及工具与 Prompt 发现；由企查查/QCC 团队维护
 
 在 DeepSeek Harness Desktop/Web 中一站式管理不同厂商的 MCP 连接：支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、`mcpServers` JSON 导入、工具与 Prompt 发现，并通过独立 Registry 持续更新精选连接器目录。
 
