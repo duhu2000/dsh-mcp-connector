@@ -640,7 +640,7 @@
     const specs = Object.fromEntries(promptVariables(prompt).map((variable) => [variable.name, variable]));
     return esc(prompt.text || prompt.title || '').replace(/\{\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}\}|\{\s*([A-Za-z][A-Za-z0-9_-]*)\s*\}/g, (_token, a, b) => {
       const variable = specs[a || b] || { label: a || b };
-      const displayValue = String(variable.default || '').trim() || variable.label;
+      const displayValue = String(variable.default || '').trim() || String(variable.label || '');
       return `<mark style="color:var(--accent);background:var(--accent-light);border-radius:4px;padding:0 3px;">${esc(displayValue)}</mark>`;
     });
   }
