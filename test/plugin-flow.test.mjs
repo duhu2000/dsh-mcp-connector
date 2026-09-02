@@ -70,7 +70,8 @@ function makePluginContext({ shared, loaderHooks } = {}) {
   const logs = [];
   const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
-  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]);
+  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()]]);
+  if (!tables.has('snapshots')) tables.set('snapshots', makeTable());
   const domain = { tables, close: async () => {} };
   const disposers = [];
   const ctx = {
@@ -176,6 +177,16 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   assert.equal(status.ok, true);
   assert.equal(status.detail.items.length, 2);
   assert.equal(status.detail.items[0].authMode, 'oauth');
+
+  const snapshotTool = tools.defs.get('mcp_connector_snapshot');
+  const preview = await snapshotTool.execute({ action: 'preview', snapshotId: result.detail.snapshotId });
+  assert.equal(preview.ok, true);
+  assert.equal(preview.detail.oauthRemovalCount, 2);
+  const restored = await snapshotTool.execute({ action: 'restore', snapshotId: result.detail.snapshotId });
+  assert.equal(restored.ok, true, restored.message);
+  assert.equal(restored.detail.retiredGrantCount, 1);
+  assert.equal(loader.entries.size, 0);
+  assert.equal(oauth.state.revokedRefresh.size, 1, '恢复到连接前状态会撤销不再共享的 OAuth Grant');
 
   await oauth.close();
 });
@@ -849,6 +860,62 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
   }
 });
 
+test('脱敏导出、配置快照预览与原子恢复可重复执行', { timeout: 15000 }, async () => {
+  const manualServer = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'snapshot', version: '1' } } }));
+  });
+  await new Promise((resolve) => manualServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${manualServer.address().port}/mcp`;
+  const { ctx, loader, tools, tables } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+
+  try {
+    const configure = tools.defs.get('mcp_connector_configure');
+    const first = await configure.execute({ name: 'Snapshot Demo', serverName: 'snapshot-demo', url, authMode: 'bearer', bearerToken: 'old-token' });
+    assert.equal(first.ok, true, first.message);
+    assert.ok(first.detail.snapshotId);
+
+    const second = await configure.execute({ name: 'Snapshot Demo', serverName: 'snapshot-demo', url, authMode: 'bearer', bearerToken: 'new-token' });
+    assert.equal(second.ok, true, second.message);
+    assert.equal(loader.entries.get('mcp-custom-snapshot-demo').options.config.headers.Authorization, 'Bearer new-token');
+
+    const exported = await tools.defs.get('mcp_connector_export_config').execute({});
+    assert.equal(exported.ok, true);
+    assert.doesNotMatch(exported.detail.json, /old-token|new-token/);
+    assert.match(exported.detail.json, /<REDACTED:REENTER>/);
+
+    const snapshotTool = tools.defs.get('mcp_connector_snapshot');
+    const listed = await snapshotTool.execute({ action: 'list' });
+    assert.equal(listed.ok, true);
+    assert.ok(listed.detail.items.some((item) => item.id === second.detail.snapshotId));
+    assert.doesNotMatch(JSON.stringify(listed), /old-token|new-token/);
+
+    const preview = await snapshotTool.execute({ action: 'preview', snapshotId: second.detail.snapshotId });
+    assert.equal(preview.ok, true);
+    assert.equal(preview.detail.restorable, true);
+    assert.deepEqual(preview.detail.restoreKeys, ['custom-snapshot-demo']);
+
+    const restored = await snapshotTool.execute({ action: 'restore', snapshotId: second.detail.snapshotId });
+    assert.equal(restored.ok, true, restored.message);
+    assert.equal(loader.entries.get('mcp-custom-snapshot-demo').options.config.headers.Authorization, 'Bearer old-token');
+    const restoredAgain = await snapshotTool.execute({ action: 'restore', snapshotId: second.detail.snapshotId });
+    assert.equal(restoredAgain.ok, true, restoredAgain.message);
+    assert.equal([...tables.get('connections').entries()].length, 1);
+
+    const disconnected = await tools.defs.get('mcp_connector_disconnect').execute({ key: 'custom-snapshot-demo' }, { signal: undefined });
+    assert.equal(disconnected.ok, true);
+    assert.equal(loader.entries.has('mcp-custom-snapshot-demo'), false);
+    const undoDisconnect = await snapshotTool.execute({ action: 'restore', snapshotId: disconnected.detail.snapshotId });
+    assert.equal(undoDisconnect.ok, true, undoDisconnect.message);
+    assert.equal(loader.entries.get('mcp-custom-snapshot-demo').options.config.headers.Authorization, 'Bearer old-token');
+  } finally {
+    await new Promise((resolve) => manualServer.close(resolve));
+  }
+});
+
 test('手动 HTTP initialize 失败时不保存、不启用且保留可操作错误', { timeout: 15000 }, async () => {
   const invalidServer = createServer(async (req, res) => {
     for await (const _chunk of req) {}
@@ -1170,7 +1237,61 @@ test('多 Server 严格启动中途失败时原子回滚已创建条目与连接
     assert.match(configured.message, /未保存连接/);
     assert.equal(loader.entries.size, 0, '首个已创建 Host 条目必须回滚');
     assert.equal([...tables.get('connections').entries()].length, 0);
+    assert.equal([...tables.get('snapshots').entries()].length, 0, '失败操作不保留无效的预变更快照');
     assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('多 Server 快照恢复中途失败时原子保留恢复前 Host 与持久化配置', { timeout: 15000 }, async () => {
+  const server = createServer(async (req, res) => {
+    for await (const _chunk of req) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'restore', version: '1' } } }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/mcp`;
+  const connectors = [{
+    id: 'batch-restore',
+    name: 'Batch Restore',
+    auth: { mode: 'bearer' },
+    servers: [
+      { serverKey: 'first', url, serverName: 'restore-first', headers: {} },
+      { serverKey: 'second', url, serverName: 'restore-second', headers: {} },
+    ],
+  }];
+  let failRestore = false;
+  const { ctx, loader, tools, tables } = makePluginContext({
+    loaderHooks: {
+      onUpdate: async ({ id, patch }) => {
+        if (failRestore && id === 'mcp-batch-restore-second'
+          && patch.config?.headers?.Authorization === 'Bearer old-token') {
+          throw new Error('simulated second restore failure');
+        }
+      },
+    },
+  });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors }));
+
+  try {
+    const configure = tools.defs.get('mcp_connector_configure');
+    const initial = await configure.execute({ connectorId: 'batch-restore', bearerToken: 'old-token' });
+    assert.equal(initial.ok, true, initial.message);
+    const changed = await configure.execute({ connectorId: 'batch-restore', bearerToken: 'new-token' });
+    assert.equal(changed.ok, true, changed.message);
+
+    failRestore = true;
+    const restored = await tools.defs.get('mcp_connector_snapshot').execute({ action: 'restore', snapshotId: changed.detail.snapshotId });
+    assert.equal(restored.ok, false);
+    assert.match(restored.message, /快照恢复失败/);
+    for (const id of ['mcp-batch-restore-first', 'mcp-batch-restore-second']) {
+      assert.equal(loader.entries.get(id).options.config.headers.Authorization, 'Bearer new-token');
+    }
+    for (const [, record] of tables.get('connections').entries()) {
+      assert.equal(record.auth.bearerToken, 'new-token');
+    }
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

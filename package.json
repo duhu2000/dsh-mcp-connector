@@ -20,6 +20,7 @@
     "docs/DESKTOP-E2E.md",
     "docs/MARKET-REGISTRATION.md",
     "docs/PLUGIN-UPDATE.md",
+    "docs/CONFIG-BACKUP.md",
     "docs/FIRST-CONTRIBUTION.md",
     "docs/STDIO-SUPPORT.md",
     "docs/USER-GUIDE.md",
@@ -38,7 +39,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "lint": "node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/version-status.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/diagnostics.js && node --check lib/mcp-validation.js && node --check lib/mcp-http.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/grant-journal.js && node --check lib/oauth.js && node --check lib/grant-lifecycle.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check scripts/probe-connector.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs && node --check scripts/check-readme-version.mjs && node --check scripts/check-marketing-metadata.mjs && node --check scripts/check-storefront-screenshots.mjs && node --check scripts/sync-registry-stats.mjs",
+    "lint": "node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/version-status.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/diagnostics.js && node --check lib/connection-backup.js && node --check lib/mcp-validation.js && node --check lib/mcp-http.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/grant-journal.js && node --check lib/oauth.js && node --check lib/grant-lifecycle.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check scripts/probe-connector.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs && node --check scripts/check-readme-version.mjs && node --check scripts/check-marketing-metadata.mjs && node --check scripts/check-storefront-screenshots.mjs && node --check scripts/sync-registry-stats.mjs && node --check scripts/verify-pack.mjs",
     "registry:build": "node scripts/build-registry.mjs",
     "registry:validate": "node scripts/probe-connector.mjs catalog/catalog.json --validate-only",
     "dev:ui": "node scripts/ui-harness.mjs",

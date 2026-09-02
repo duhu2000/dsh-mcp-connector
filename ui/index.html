@@ -374,6 +374,12 @@
   .server-preview div:first-child { border-top: 0; }
   .inline-error { color: var(--bad); background: var(--bad-bg); border-radius: 7px; padding: 8px 10px; margin-top: 12px; font-size: 12px; display: none; }
   .inline-error.show { display: block; }
+  #backup-json { height: 190px; resize: vertical; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  .snapshot-list { border: 1px solid var(--line); border-radius: 9px; margin-top: 8px; max-height: 210px; overflow-y: auto; }
+  .snapshot-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-top: 1px solid var(--line); }
+  .snapshot-item:first-child { border-top: 0; }
+  .snapshot-copy { flex: 1; min-width: 0; color: var(--text-2); font-size: 11px; line-height: 1.45; }
+  .snapshot-copy strong { display: block; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
 
   @media (max-width: 620px) {
     header { padding: 12px; }
@@ -469,6 +475,7 @@
     importJson: 145_000,
     installFromUrl: 145_000,
     setEnabled: 130_000,
+    restoreSnapshot: 145_000,
     toolsList: 20_000,
     healthCheck: 10_000,
   };
@@ -905,10 +912,10 @@
     setTabCount('installed', items.length);
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
-    if (!items.length) { main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`; return; }
+    if (!items.length) { main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`; return; }
     markCommunityCtaEligible();
     const filtered = items.filter(matchesSearch);
-    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 停用后工具立即下线，断开会撤销 OAuth 授权</span><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
+    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 停用后工具立即下线，断开会撤销 OAuth 授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
   }
 
   function rowHtml(r) {
@@ -1065,6 +1072,26 @@
     window.__mcp.syncTransportFields();
   }
 
+  async function openConfigBackup() {
+    openModal('配置备份', '<div class="empty">正在生成脱敏配置并读取本机快照…</div>');
+    const [exported, snapshots] = await Promise.all([call('exportConfig', {}), call('listSnapshots', {})]);
+    if (!exported.ok || !snapshots.ok) {
+      openModal('配置备份', `<div class="inline-error show">${esc(exported.ok ? snapshots.message : exported.message)}</div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
+      return;
+    }
+    const items = snapshots.detail?.items || [];
+    const snapshotHtml = items.length
+      ? `<div class="snapshot-list">${items.map((item) => `<div class="snapshot-item"><div class="snapshot-copy"><strong>${esc(item.reason)} · ${esc(new Date(item.createdAt).toLocaleString('zh-CN', { hour12: false }))}</strong>${item.existingCount} 条连接${item.absentCount ? ` · 可移除 ${item.absentCount} 条变更后新增连接` : ''}${item.restorable ? '' : ' · OAuth 需重新授权'}</div><button class="btn ghost" type="button" ${item.restorable ? '' : 'disabled'} onclick="window.__mcp.restoreBackup('${esc(item.id)}')">恢复</button></div>`).join('')}</div>`
+      : '<div class="field-help">还没有本机配置快照。连接、配置、导入、启停和断开前会自动创建，也可立即手动创建。</div>';
+    openModal('配置备份', `
+      <div class="form-note"><strong>可携带脱敏导出</strong>Token、API Key、Header/env 值、stdio 参数、本地路径与 OAuth Grant 均不会导出；占位符需在目标本机重填，OAuth 需重新授权。</div>
+      <div class="field-label-row"><label for="backup-json">脱敏 JSON</label><span><button class="text-btn" type="button" onclick="window.__mcp.copyBackup()">复制</button> · <button class="text-btn" type="button" onclick="window.__mcp.downloadBackup()">下载</button></span></div>
+      <textarea id="backup-json" readonly spellcheck="false">${esc(exported.detail?.json || '')}</textarea>
+      <div class="field-label-row"><label>本机配置快照（最多 20 个）</label><button class="text-btn" type="button" onclick="window.__mcp.createBackup()">立即创建</button></div>
+      ${snapshotHtml}
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
+  }
+
   function renderResolvedPrompt(prompt, values) {
     const specs = Object.fromEntries(promptVariables(prompt).map((variable) => [variable.name, variable]));
     const missing = [];
@@ -1114,6 +1141,35 @@
     },
     openAdd(mode) { openAddConnection(mode); },
     openConfig(connectorId) { openAddConnection('manual', marketItems[connectorId] || {}); },
+    async openConfigBackup() { await openConfigBackup(); },
+    async copyBackup() {
+      const text = $('#backup-json')?.value || '';
+      try { await navigator.clipboard.writeText(text); showToast('已复制脱敏配置', true); }
+      catch { $('#backup-json')?.select(); showToast('请按 Ctrl/Cmd+C 复制脱敏配置', false); }
+    },
+    downloadBackup() {
+      const text = $('#backup-json')?.value || '';
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url; link.download = `mcp-connections-redacted-${new Date().toISOString().slice(0, 10)}.json`; link.click();
+      URL.revokeObjectURL(url);
+    },
+    async createBackup() {
+      const result = await call('createSnapshot', { label: 'Web UI' });
+      showToast(result.message, result.ok);
+      if (result.ok) await openConfigBackup();
+    },
+    async restoreBackup(snapshotId) {
+      const preview = await call('previewSnapshot', { snapshotId });
+      if (!preview.ok) { showToast(preview.message, false); return; }
+      if (!preview.detail?.restorable) { showToast(preview.message, false); return; }
+      if (!confirm(`${preview.message}。确认恢复？恢复过程中任一 Server 失败会整体回滚。`)) return;
+      setModalBusy(true, '正在原子恢复…');
+      const result = await call('restoreSnapshot', { snapshotId });
+      setModalBusy(false);
+      showToast(result.message, result.ok);
+      if (result.ok) { closeModal(); await refresh(); }
+    },
     formatImportJson(silent = false) {
       const input = $('#import-json');
       const value = input?.value.trim();
