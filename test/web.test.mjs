@@ -55,6 +55,7 @@ const api = {
   catalog: async () => ({ ok: true, message: '3 个连接器', detail: { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }),
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
+  exportConfig: async () => ({ ok: true, message: 'redacted', detail: { json: '{"redacted":true}' } }),
 };
 
 /* ───────────────────────── 测试 ───────────────────────── */
@@ -98,6 +99,16 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   }), versionRes);
   assert.equal(versionRes.status, 200);
   assert.deepEqual(JSON.parse(versionRes.body).detail, { installedVersion: '0.2.23', force: true });
+
+  const exportRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'exportConfig', params: {} }),
+  }), exportRes);
+  assert.equal(exportRes.status, 200);
+  assert.equal(JSON.parse(exportRes.body).detail.json, '{"redacted":true}');
 
   const res2 = new FakeRes();
   await route.handler(fakeReq({

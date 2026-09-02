@@ -49,6 +49,17 @@ test('JSON 导入提供缩进示例、格式化和简洁的本机安全说明', 
   assert.match(uiSource, />市场卡片<\/button>/);
 });
 
+test('配置备份提供脱敏导出、快照预览与原子恢复入口', () => {
+  assert.match(uiSource, /id="config-backup"[^>]*>配置备份<\/button>/);
+  assert.match(uiSource, /call\('exportConfig'/);
+  assert.match(uiSource, /call\('listSnapshots'/);
+  assert.match(uiSource, /call\('createSnapshot'/);
+  assert.match(uiSource, /call\('previewSnapshot'/);
+  assert.match(uiSource, /call\('restoreSnapshot'/);
+  assert.match(uiSource, /Token、API Key、Header\/env 值、stdio 参数、本地路径与 OAuth Grant 均不会导出/);
+  assert.match(uiSource, /恢复过程中任一 Server 失败会整体回滚/);
+});
+
 test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
   assert.match(uiSource, /function openAddConnection\(mode = 'json'/);
   assert.match(uiSource, /#add-connection'\)\.addEventListener\('click', \(\) => openAddConnection\('json'\)\)/);

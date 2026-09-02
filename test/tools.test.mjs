@@ -92,3 +92,28 @@ test('健康检查工具向模型渲染状态、阶段、代码和建议', () =>
   assert.match(rendered[0].text, /建议：运行健康检查/);
   dispose();
 });
+
+test('脱敏导出与快照工具只渲染公开结果', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const api = {
+    exportConfig: async () => ({ ok: true, message: '已脱敏', detail: { json: '{"redacted":true}' } }),
+    listSnapshots: async () => ({
+      ok: true,
+      message: '1 个快照',
+      detail: { items: [{ id: 'snapshot-1', createdAt: 0, reason: 'configure', existingCount: 1, restorable: true }] },
+    }),
+  };
+  const dispose = registerTools(ctx, api);
+
+  const exported = await tools.get('mcp_connector_export_config').execute({});
+  const exportRendered = tools.get('mcp_connector_export_config').output.render({}, exported)[0].text;
+  assert.match(exportRendered, /```json/);
+  assert.match(exportRendered, /"redacted":true/);
+
+  const snapshots = await tools.get('mcp_connector_snapshot').execute({ action: 'list' });
+  const snapshotRendered = tools.get('mcp_connector_snapshot').output.render({}, snapshots)[0].text;
+  assert.match(snapshotRendered, /snapshot-1/);
+  assert.doesNotMatch(snapshotRendered, /token|secret/i);
+  dispose();
+});
