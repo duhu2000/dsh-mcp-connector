@@ -117,14 +117,23 @@ test('未连接且无工具快照的市场卡片不误报连接异常', () => {
   );
 });
 
-test('市场卡片区分已配置、已连接、重新授权和连接异常', () => {
+test('市场卡片区分状态未知、已连接、重新授权和连接异常', () => {
   const actionSource = uiSource.match(/function actionHtml\(d\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.match(actionSource, /state === 'healthy'[\s\S]*?t\('connected'\)/);
-  assert.match(actionSource, /state === 'configured'[\s\S]*?t\('configured'\)/);
+  assert.match(actionSource, /state === 'unknown'[\s\S]*?t\('unknown'\)/);
   assert.match(actionSource, /state === 'reauth'[\s\S]*?t\('reauthorize'\)/);
   assert.match(actionSource, /state === 'recovering'[\s\S]*?t\('recovering'\)/);
   assert.match(actionSource, /state === 'unavailable'[\s\S]*?t\('connectionError'\)/);
   assert.match(uiSource, /call\('healthCheck', \{\}\)/);
+});
+
+test('已安装列表和详情展示可解释诊断与最近成功时间', () => {
+  assert.match(uiSource, /r\.diagnostic\.stageLabel \|\| r\.diagnostic\.stage/);
+  assert.match(uiSource, /r\.diagnostic\.code/);
+  assert.match(uiSource, /建议：/);
+  assert.match(uiSource, /r\.lastSuccessfulAt/);
+  assert.match(uiSource, /detailFailureState === 'unknown' \? '工具状态未知'/);
+  assert.match(uiSource, /状态尚未确认/);
 });
 
 test('市场只保留推荐与业务分类筛选', () => {

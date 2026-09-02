@@ -43,6 +43,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 | Tool and prompt discovery | Implementation-specific | ✅ |
 | Authorization recovery and connection lifecycle management | Usually not included | ✅ |
 | Connection health checks and Registry refresh | Usually not included | ✅ |
+| Explainable diagnostics and honest unknown state | Usually not included | ✅ |
 | Plugin version discovery and safe updates | Usually not included | ✅ |
 
 ## Features
@@ -55,6 +56,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
 - Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; a cross-process lock and per-grant atomic journal prevent Desktop and Web hosts from consuming or overwriting the same rotating refresh token.
+- Explainable diagnostics report only observed evidence. Unchecked or Host-unobservable connections remain `unknown`, with a failure stage, stable code, suggested action, check time, and process-local last-success time.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Plugin version and one-click updates: version discovery is independent of the installation source, while an Update Provider adapter layer negotiates safe mutation capabilities. DSH Market API v1 is the first adapter and supports progress, normalized failures, rollback, and capability-gated restart/refresh actions. Without a compatible provider the UI offers update instructions; if Desktop has no plugin-market section, it opens the npm package page instead of leaving the user on generic Settings.
@@ -99,11 +101,11 @@ Run the same command again to upgrade. Fully quit and restart DeepSeek Harness D
 
 Connected tools are exposed to the model with the `mcp__<serverName>__*` prefix.
 
-The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, the four authentication modes, HTTP/stdio configuration, JSON import, connection management, and troubleshooting.
+The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, authentication and connection states, HTTP/stdio configuration, JSON import, explainable diagnostics, compatibility, responsibility boundaries, and troubleshooting.
 
 ## Guides and ecosystem
 
-- [User guide: installation, authorization, JSON import, and troubleshooting](docs/USER-GUIDE.md)
+- [User guide: installation, authorization, diagnostics, compatibility, and troubleshooting](docs/USER-GUIDE.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
@@ -135,6 +137,19 @@ The default bundle configuration is in `cordis.patch.yml`:
 
 Set `catalogUrl` to an empty string for an explicitly offline/private setup. A custom non-default URL is used as-is and does not fall back to the public registry.
 
+## Compatibility and responsibility boundary
+
+| Area | Current boundary |
+|---|---|
+| Host and runtime | DSH Desktop / `web` profile; Node.js 20+ |
+| MCP client | Official `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
+| Transports | Streamable HTTP and stdio; legacy `sse` normalizes to Streamable HTTP |
+| Configuration scope | Current DSH profile; no project/global split yet |
+| Configuration exchange | JSON import; no redacted export or configuration snapshot restore yet |
+| Governance and execution | Connection-level enable/disable; no per-tool policy or tool trial yet |
+
+The plugin owns the catalog, authorization, connection records, official-client provisioning, read-only health checks, tool discovery, and diagnostics. DSH Host and the official MCP client own transport, stdio subprocesses, tool registration, real tool execution, and permission/approval flows. The plugin never bypasses that boundary by invoking MCP tools from the browser. See the [user guide](docs/USER-GUIDE.md#71-如何理解连接诊断) for status semantics, limitations, and troubleshooting.
+
 ## Development and release checks
 
 ```bash
@@ -158,12 +173,14 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 
 - Credentials stay inside the local DSH storage boundary: connection records use the storage domain, while rotating OAuth credentials are also saved in `$DSH_HOME/storages/mcp_connector_grants_v1` so stale host snapshots cannot overwrite them. The directory is mode 0700 and records are mode 0600; credentials are never written to the catalog, Git repository, page, logs, or conversation history.
 - Failed API key/token validation is not persisted; authentication, timeout, DNS, and TLS/network errors are reported separately.
+- Unchecked or Host-unobservable connections are reported as `unknown`, never as healthy. Health history and last-success timestamps are currently process-local.
 - External URLs must use HTTPS; HTTP is allowed only for loopback development.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
 - Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. The connector passes stdio `command/args/env/cwd` to `@deepseek-ai/dsh-mcp-client` instead of reimplementing process transport.
 - stdio starts a local process. Import or connect only trusted commands and packages. Catalog descriptors may declare `credentialFields` and `credentialBindings`, but may never contain actual token/secret values; user input is injected only into the local Host process environment.
 - OAuth DCR client secrets share the same local-only boundary as access and refresh tokens and are omitted from catalog/status responses and logs.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
+- Project/global scope selection, redacted export, configuration snapshot restore, per-server/per-tool policies, and tool trials are not implemented. Real tool execution and approval remain the DSH Host's responsibility.
 
 ## License
 

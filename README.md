@@ -43,6 +43,7 @@ dsh plugin --profile web add dsh-mcp-connector
 | 工具与 Prompt 发现 | 视实现而定 | ✅ |
 | 授权恢复与连接生命周期管理 | 通常无 | ✅ |
 | 连接健康检查与 Registry 刷新 | 通常无 | ✅ |
+| 可解释诊断与诚实的未知状态 | 通常无 | ✅ |
 | 插件版本检测与安全更新 | 通常无 | ✅ |
 
 ## 功能
@@ -55,6 +56,7 @@ dsh plugin --profile web add dsh-mcp-connector
 - 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片共享一次授权，跨进程锁与独立原子 Grant journal 防止 Desktop/Web 并行时重复消耗 Refresh Token。
+- 可解释诊断：只报告实际观察结果；未检查或 Host 状态不可见时显示“状态未知”，并提供失败阶段、稳定错误码、建议动作、检查时间和进程内最近成功时间。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
 - 插件版本与一键更新：版本发现独立于安装来源；页面通过 Update Provider 适配层探测安全更新能力。DSH Market API v1 是首个适配器，支持进度、稳定失败码、回滚及按宿主能力提供的重启/刷新操作；无可用 Provider 时回退到当前插件市场或 npm。
@@ -101,11 +103,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 连接成功后，工具按 `mcp__<serverName>__*` 前缀提供给模型。
 
-分类浏览、四种鉴权状态、自定义 HTTP/stdio、JSON 导入、连接管理与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
+分类浏览、鉴权与连接状态、自定义 HTTP/stdio、JSON 导入、可解释诊断、兼容矩阵、责任边界与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
 
 ## 中文教程与生态入口
 
-- [用户手册：安装、授权、JSON 导入与故障排查](docs/USER-GUIDE.md)
+- [用户手册：安装、授权、诊断、兼容性与故障排查](docs/USER-GUIDE.md)
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
 - [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
@@ -129,6 +131,19 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 ```
 
 `catalogUrl` 默认通过 jsDelivr CDN 读取公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；主源失败时自动尝试 GitHub raw 备用源，再回退到上次缓存或随包内置目录。jsDelivr 的分支 URL 可能存在缓存延迟，因此 Registry 合并后的新卡片不保证秒级出现。需要离线/私有模式时可将 `catalogUrl` 显式设为空字符串；显式配置其他目录 URL 时不会自动切换到公共备用源。
+
+## 兼容性与责任边界
+
+| 项目 | 当前边界 |
+|---|---|
+| 宿主与运行时 | DSH Desktop / `web` profile，Node.js 20+ |
+| MCP 客户端 | 官方 `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
+| 传输 | Streamable HTTP、stdio；旧 `sse` 归一为 Streamable HTTP |
+| 配置作用域 | 当前 DSH profile；暂无 project/global 两级作用域 |
+| 配置交换 | 支持 JSON 导入；暂无脱敏导出或配置快照恢复 |
+| 治理与执行 | 支持连接级启停；暂无逐 Tool 策略或工具试运行 |
+
+插件负责目录、授权、连接记录、官方客户端条目、只读健康检查、工具发现和诊断；DSH Host 与官方 MCP 客户端负责 transport、stdio 子进程、工具注册、正式工具执行及权限/审批链。插件不会从浏览器旁路调用 MCP 工具。详细状态语义、限制与排障见[用户手册第 7–10 节](docs/USER-GUIDE.md#71-如何理解连接诊断)。
 
 ## 开发与发布门禁
 
@@ -157,6 +172,7 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 
 - 凭证只持久化在本机 DSH storage 边界：连接记录使用 storage domain，OAuth 轮换凭据同步保存到 `$DSH_HOME/storages/mcp_connector_grants_v1`。该目录为 0700、文件为 0600；凭证不进入市场目录、Git 仓库、页面、日志或对话历史。
 - 市场 Key/Token 校验失败时不写入 storage domain；鉴权、超时、DNS、TLS/网络错误会分类提示。
+- 未检查或 Host 状态不可见时显示“状态未知”，不会冒充健康；健康摘要与最近成功时间当前只保留在插件进程内。
 - 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
 - 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
@@ -164,6 +180,7 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - OAuth DCR 的 `client_secret` 与 Access/Refresh Token 采用相同的本机存储边界，不会进入市场 API、状态输出或日志。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。
+- 当前没有 project/global 作用域切换、脱敏导出、配置快照恢复、逐 Server/逐 Tool allow/deny 或工具试运行；正式工具执行与审批始终由 DSH Host 负责。
 
 ## License
 

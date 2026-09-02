@@ -934,10 +934,15 @@ test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-cl
       env: { LOG_LEVEL: 'info' }, cwd: '/tmp', failOnStartupError: true,
     });
     const pendingHealth = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'local-market' });
-    assert.equal(pendingHealth.detail.items[0].connectionState, 'configured');
+    assert.equal(pendingHealth.detail.items[0].connectionState, 'unknown');
+    assert.equal(pendingHealth.detail.items[0].diagnostic.code, 'host-tools-pending');
+    assert.match(pendingHealth.detail.items[0].diagnostic.action, /Host 日志|重新检查/);
     const pendingTools = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'local-market' });
     assert.equal(pendingTools.ok, false);
     assert.equal(pendingTools.detail.servers[0].errorKind, 'startup');
+    assert.equal(pendingTools.detail.connectionState, 'unknown');
+    assert.equal(pendingTools.detail.unknownServers, 1);
+    assert.equal(pendingTools.detail.diagnostic.code, 'host-tools-pending');
     tools.register({ name: 'mcp__local-market__search', description: 'Search local market', parameters: {} });
     const readyHealth = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'local-market' });
     assert.equal(readyHealth.detail.items[0].connectionState, 'healthy');
@@ -1272,14 +1277,20 @@ test('历史凭据失效导致所有 Server 失败时 toolsList 明确返回不�
     assert.equal(listed.detail.failedServers, 1);
     assert.match(listed.detail.servers[0].error, /凭据无效|权限/);
     assert.equal(listed.detail.connectionState, 'reauth');
+    assert.equal(listed.detail.diagnostic.stage, 'authentication');
+    assert.ok(Number.isInteger(listed.detail.lastSuccessfulAt));
     const health = await tools.defs.get('mcp_connector_health_check').execute({ connectorId: 'wind-expired' });
     assert.equal(health.ok, true);
     assert.equal(health.detail.items[0].connectionState, 'reauth');
     const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'Wind Expired' });
     assert.equal(catalog.detail.items[0].connectionState, 'reauth');
     assert.equal(catalog.detail.items[0].connectionLabel, '需重新授权');
+    assert.equal(catalog.detail.items[0].diagnostic.code, 'auth');
+    assert.equal(catalog.detail.items[0].lastSuccessfulAt, listed.detail.lastSuccessfulAt);
     const status = await tools.defs.get('mcp_connector_status').execute({});
     assert.equal(status.detail.items[0].connectionState, 'reauth');
+    assert.equal(status.detail.items[0].diagnostic.stage, 'authentication');
+    assert.equal(status.detail.items[0].lastSuccessfulAt, listed.detail.lastSuccessfulAt);
   } finally {
     await new Promise((resolve) => mcpServer.close(resolve));
   }
