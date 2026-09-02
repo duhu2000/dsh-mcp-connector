@@ -191,6 +191,7 @@
   .row .info { flex: 1; min-width: 0; }
   .row .rname { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
   .row .rmeta { font-size: 12px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .rdiag { font-size: 12px; color: var(--text-2); margin-top: 5px; line-height: 1.45; }
   .switch { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .switch .slider { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: .2s; }
@@ -477,7 +478,7 @@
   const toast = $('#toast');
   const searchInput = $('#search');
   const LABELS = {
-    details: '详情', connect: '连接', connected: '已连接', configured: '已配置', configure: '配置',
+    details: '详情', connect: '连接', connected: '已连接', unknown: '状态未知', configured: '已配置', configure: '配置',
     reauthorize: '需重新授权', recovering: '自动重试中', connectionError: '连接异常', partialError: '部分异常', disabled: '已停用',
     send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
     connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
@@ -878,6 +879,7 @@
     const state = d.connectionState || (configured ? 'configured' : 'disconnected');
     if (configured) {
       if (state === 'healthy') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
+      if (state === 'unknown') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('unknown')}</button>`;
       if (state === 'configured') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('configured')}</button>`;
       if (state === 'disabled') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('disabled')}</button>`;
       if (state === 'reauth') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('reauthorize')}</button>`;
@@ -912,14 +914,18 @@
   function rowHtml(r) {
     const key = esc(r.key);
     const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
-    const healthLabels = { healthy: '已连接', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
+    const healthLabels = { healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
-    const healthBadge = `<span class="badge ${healthClass}">${esc(healthLabels[r.connectionState] || '已配置')}</span>`;
+    const healthBadge = `<span class="badge ${healthClass}">${esc(healthLabels[r.connectionState] || '状态未知')}</span>`;
     const enabled = r.enabled !== false;
+    const diagnostic = r.diagnostic
+      ? `<div class="rdiag">${esc(r.diagnostic.stageLabel || r.diagnostic.stage)} · ${esc(r.diagnostic.code)}：${esc(r.diagnostic.message)}；建议：${esc(r.diagnostic.action)}${r.lastSuccessfulAt ? `；最近成功：${esc(new Date(r.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}</div>`
+      : '';
     return `<div class="row" data-key="${key}">
       <div class="info">
         <div class="rname">${esc(r.name)} ${authMode} ${healthBadge}</div>
         <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.endpoint || r.url || '')}</div>
+        ${diagnostic}
       </div>
       <label class="switch" title="${enabled ? '停用' : '启用'}" aria-label="${enabled ? '停用' : '启用'} ${esc(r.name)}">
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
@@ -1275,9 +1281,12 @@
       if (!toolsResult.ok) {
         detailFailureState = toolsResult.detail?.connectionState || detailFailureState || 'unavailable';
         detailNeedsReconfigure = true;
-        $('#tools-summary').textContent = '工具加载失败';
-        $('#detail-tools').innerHTML = `<div class="tools-error">${esc(toolsResult.message)}</div>`;
-        const failureLabel = detailFailureState === 'reauth' ? (d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效') : '当前连接异常';
+        const diagnostic = toolsResult.detail?.diagnostic;
+        $('#tools-summary').textContent = detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败';
+        $('#detail-tools').innerHTML = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(diagnostic.stageLabel || diagnostic.stage)} · ${esc(diagnostic.code)}：${esc(diagnostic.message)}<br>建议：${esc(diagnostic.action)}${diagnostic.lastSuccessfulAt ? `<br>最近成功：${esc(new Date(diagnostic.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}` : ''}</div>`;
+        const failureLabel = detailFailureState === 'reauth'
+          ? (d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
+          : detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常';
         $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${failureLabel}` : failureLabel;
         $('#detail-try-btn').textContent = d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth'
           ? '🔐 重新授权'

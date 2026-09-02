@@ -56,3 +56,39 @@ test('所有对话工具在 execute 边界清洗 transport 专属 undefined 字�
   assert.equal(health.detail.checkedAt, null);
   dispose();
 });
+
+test('健康检查工具向模型渲染状态、阶段、代码和建议', () => {
+  const tools = new Map();
+  const ctx = {
+    tools: {
+      register(definition) {
+        tools.set(definition.name, definition);
+        return () => {};
+      },
+    },
+  };
+  const dispose = registerTools(ctx, {});
+  const rendered = tools.get('mcp_connector_health_check').output.render({}, {
+    ok: true,
+    message: '已检查 1 个连接器：1 个状态未知',
+    detail: {
+      items: [{
+        connectorId: 'demo',
+        label: '状态未知',
+        availableServers: 0,
+        enabledServers: 1,
+        diagnostic: {
+          stage: 'host-observation',
+          stageLabel: 'Host 状态观测',
+          code: 'not-checked',
+          message: '尚未检查',
+          action: '运行健康检查',
+        },
+      }],
+    },
+  });
+  assert.match(rendered[0].text, /状态未知/);
+  assert.match(rendered[0].text, /Host 状态观测 \/ not-checked/);
+  assert.match(rendered[0].text, /建议：运行健康检查/);
+  dispose();
+});
