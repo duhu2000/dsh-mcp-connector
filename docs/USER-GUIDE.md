@@ -57,6 +57,8 @@ dsh web
 
 ## 4. 连接市场卡片
 
+新连接提交前会显示目标范围。已在 DSH 中选择 Workspace 时默认为“当前项目”；选择“所有项目（全局）”后，当前 profile 的每个 Workspace 都会继承该连接。OAuth、免密、Bearer/API Key、JSON 导入和 URL 安装使用相同规则。
+
 卡片右侧按钮会根据鉴权方式和当前状态变化：
 
 | 按钮/状态 | 含义 | 操作 |
@@ -160,7 +162,16 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 工具尚未被 Host 观察时显示“未观察”，不会报告为“已禁用”或“健康”。工具删除或重命名后，旧规则标记为失效但不会误伤新工具；新注册工具自动继承 Server/Connection 规则。完整语义见[治理说明](TOOL-GOVERNANCE.md)。
 
-### 7.3 如何理解连接诊断
+### 7.3 project/global 连接范围
+
+“已安装”会在每条连接上显示范围。点击“范围”可选择：
+
+- “复制”增加当前项目或全局绑定，保留原范围；
+- “移动”用所选范围替换原绑定。
+
+提交前页面会列出受影响的 Server 和已知工具。确认后才按 revision 写入，可使用“回滚上次范围变更”恢复。范围变更不复制 Token、API Key 或 OAuth Grant；不同连接管理同一 `serverName` 时会拒绝静默覆盖。完整执行和失败边界见 [project/global 作用域](CONNECTION-SCOPES.md)。
+
+### 7.4 如何理解连接诊断
 
 诊断结果只陈述插件实际观察到的事实，不把“配置已保存”当作“连接健康”：
 
@@ -183,7 +194,7 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 | 传输 | Streamable HTTP、stdio | 历史 `sse` 配置归一为 Streamable HTTP |
 | 鉴权 | 无鉴权、Bearer、API Key、OAuth 2.0 PKCE | OAuth 支持动态客户端注册和 Grant 共享 |
 | 配置交换 | JSON 导入、脱敏导出、本机快照 | 占位符需重填；恢复原子执行；OAuth 撤销后需重新授权 |
-| 作用域 | 当前 DSH profile | 暂无 project/workspace 与 global 两级作用域 |
+| 作用域 | Workspace project / profile global | 全局由所有 Workspace 继承；project-only 工具由 Host restriction + guard 强制隔离 |
 | 治理 | 连接生命周期启停；Connection / Server / Tool allow/deny | 规则作用于当前 profile，支持预览、revision 提交与回滚 |
 | 工具能力 | 工具清单与描述发现 | 暂无工具试运行按钮；不会绕过 Host 权限/审批链调用工具 |
 
@@ -200,7 +211,8 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 - 健康摘要和最近成功时间目前只保留在插件进程内；重启后先显示“状态未知”，直至重新检查。
 - HTTP 工具清单使用只读 MCP `tools/list` 发现；stdio 工具清单读取 Host 已注册工具。Host 不提供可观测状态时只能报告未知。
-- 连接配置、快照与治理规则都是 profile 级；尚无 project/global 作用域切换。
+- 连接凭据、快照、治理规则和作用域历史都存储在当前 profile；project/global 不跨 profile 同步。
+- Workspace 被删除后，原 project-only 绑定保持 fail closed，需手动移动到当前项目或全局。
 - 连接级停用可逆；断开会删除本机连接，并在授权不再共享时尽力撤销 OAuth。非 OAuth 配置可用断开前快照恢复；已撤销的 OAuth 必须重新授权。
 
 ## 9. 安全边界

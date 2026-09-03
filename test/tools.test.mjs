@@ -138,3 +138,26 @@ test('治理工具支持 list/preview/apply/rollback 并渲染规则来源', asy
   assert.deepEqual(calls.map((call) => call[0]), ['preview', 'apply', 'rollback']);
   dispose();
 });
+
+test('作用域工具支持 context/preview/apply/rollback 且不传递凭据', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    scopeContext: async (workspaceId) => { calls.push(['context', workspaceId]); return { ok: true, message: 'context' }; },
+    previewConnectionScope: async (args) => { calls.push(['preview', args]); return { ok: true, message: 'preview' }; },
+    applyConnectionScope: async (args) => { calls.push(['apply', args]); return { ok: true, message: 'apply' }; },
+    previewConnectionScopeRollback: async (revision) => { calls.push(['preview-rollback', revision]); return { ok: true, message: 'preview rollback' }; },
+    rollbackConnectionScope: async (revision, expected) => { calls.push(['rollback', revision, expected]); return { ok: true, message: 'rollback' }; },
+  };
+  const dispose = registerTools(ctx, api);
+  const scope = tools.get('mcp_connector_scope');
+  await scope.execute({ action: 'context', workspaceId: 'workspace-1' });
+  await scope.execute({ action: 'preview', key: 'demo', mode: 'copy', targetScope: 'global' });
+  await scope.execute({ action: 'apply', key: 'demo', mode: 'move', targetScope: 'project', targetWorkspaceId: 'workspace-1', expectedRevision: 2 });
+  await scope.execute({ action: 'preview-rollback', rollbackRevision: 1 });
+  await scope.execute({ action: 'rollback', rollbackRevision: 1, expectedRevision: 3 });
+  assert.deepEqual(calls.map((call) => call[0]), ['context', 'preview', 'apply', 'preview-rollback', 'rollback']);
+  assert.doesNotMatch(JSON.stringify(calls), /token|secret|api.?key|grant/i);
+  dispose();
+});

@@ -108,6 +108,7 @@ test('快照表保持 storage domain v1 兼容并只保留最新 20 个', async 
   assert.equal(spec.version, 1);
   assert.ok(spec.tables.snapshots);
   assert.ok(spec.tables.governance, '治理表与现有 storage domain 保持 v1 兼容');
+  assert.ok(spec.tables.connection_scopes, '连接作用域表与现有 storage domain 保持 v1 兼容');
 
   const records = new Map();
   const table = {

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { normalizeConnectorDescriptor } from '../lib/schema.js';
 import { auditDescriptor, auditRawDescriptor, mergeCatalog } from '../lib/catalog.js';
 import { normalizeGovernanceMutation, publicToolName, resolveGovernancePolicy } from '../lib/governance.js';
+import { ConnectionScopeService, bindingForConnection, scopeLabel } from '../lib/connection-scopes.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
@@ -29,6 +30,13 @@ const healthStates = new Map();
 let governanceRevision = 0;
 let governanceRules = [];
 let governanceHistory = [];
+let persistedScopes;
+const scopeService = new ConnectionScopeService({
+  async get() { return persistedScopes; },
+  async put(value) { persistedScopes = structuredClone(value); },
+});
+await scopeService.load();
+const mockWorkspace = { workspaceId: 'workspace-mock', title: '无凭据验收项目' };
 const bundledAssets = new Map([
   ['qcc-logo.svg', 'image/svg+xml'],
   ['pkulaw-logo.png', 'image/png'],
@@ -134,6 +142,18 @@ function captureShell() {
     <header class="capture-header"><span aria-hidden="true">🧩</span><span class="capture-title">MCP连接器</span><span class="capture-version">v${packageJson.version}</span><span class="capture-state">无凭据 Mock</span></header>
     <iframe src="/mcp-connector/ui/" title="MCP连接器"></iframe>
   </section>
+  <script>
+    window.addEventListener('message', (event) => {
+      const frame = document.querySelector('iframe');
+      if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
+      if (event.data?.type === 'mcp-connector:workspace-context-request') {
+        frame.contentWindow.postMessage({
+          type: 'mcp-connector:workspace-context',
+          workspace: ${JSON.stringify(mockWorkspace)}
+        }, window.location.origin);
+      }
+    });
+  </script>
 </body>
 </html>`;
 }
@@ -180,8 +200,16 @@ const server = createServer(async (req, res) => {
       authMode: item.auth.mode === 'oauth2-pkce' ? 'oauth' : item.auth.mode,
       enabled: true,
       connectionState: healthStates.get(item.id) ?? 'configured',
+      scope: {
+        binding: scopeService.binding(`${item.id}:${server.serverKey}`),
+        label: scopeLabel(scopeService.binding(`${item.id}:${server.serverKey}`), new Map([[mockWorkspace.workspaceId, mockWorkspace.title]])),
+      },
     })));
-    json(res, { ok: true, detail: { items } }); return;
+    const scopeDocument = scopeService.snapshot();
+    json(res, { ok: true, detail: { items, scope: {
+      revision: scopeDocument.revision,
+      history: scopeDocument.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
+    } } }); return;
   }
   if (method === 'migrationPreview') { json(res, { ok: true, detail: { pendingCount: 0, items: [] } }); return; }
   if (method === 'governance') {
@@ -245,6 +273,72 @@ const server = createServer(async (req, res) => {
     governanceRevision += 1;
     json(res, { ok: true, message: `Mock 已恢复 revision=${params.rollbackRevision} 的策略内容`, detail: { ...governanceDetail(), changed: true, rollbackRevision: previousRevision } }); return;
   }
+  if (method === 'scopeContext') {
+    const document = scopeService.snapshot();
+    json(res, { ok: true, message: `Mock 连接作用域 revision=${document.revision}`, detail: {
+      revision: document.revision,
+      workspaces: [{ id: mockWorkspace.workspaceId, title: mockWorkspace.title }],
+      history: document.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
+      credentialsStoredInScopeDocument: false,
+    } }); return;
+  }
+  if (method === 'previewConnectionScope') {
+    try {
+      const target = params.targetScope === 'project'
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        : { scope: 'global' };
+      const preview = scopeService.preview({ connectionKey: params.key, mode: params.mode, target });
+      const serverName = catalog.flatMap((item) => item.servers).find((server) => params.key.endsWith(`:${server.serverKey}`))?.serverName ?? params.key;
+      json(res, { ok: true, message: 'Mock 作用域预览：将影响 1 个 Server、125 个已知工具；凭据不会复制', detail: {
+        ...preview,
+        key: params.key,
+        mode: params.mode,
+        canApply: true,
+        credentialsCopied: false,
+        impact: { serverCount: 1, toolCount: 125, servers: [{ serverName, tools: ['mock_tool_001', 'mock_tool_002'] }] },
+      } }); return;
+    } catch (error) {
+      json(res, { ok: false, message: `Mock 作用域预览失败: ${error.message}` }); return;
+    }
+  }
+  if (method === 'applyConnectionScope') {
+    try {
+      const target = params.targetScope === 'project'
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        : { scope: 'global' };
+      const result = await scopeService.apply({ connectionKey: params.key, mode: params.mode, target }, { expectedRevision: params.expectedRevision });
+      json(res, { ok: true, message: `Mock 连接作用域已更新（revision=${result.document.revision}）`, detail: {
+        revision: result.document.revision,
+        rollbackRevision: result.previousRevision,
+        changed: result.changed,
+        credentialsCopied: false,
+      } }); return;
+    } catch (error) {
+      json(res, { ok: false, message: `Mock 作用域应用失败: ${error.message}` }); return;
+    }
+  }
+  if (method === 'previewConnectionScopeRollback') {
+    const document = scopeService.snapshot();
+    json(res, { ok: true, message: 'Mock 作用域回滚预览', detail: {
+      baseRevision: document.revision,
+      rollbackRevision: params.rollbackRevision,
+      impact: { serverCount: 1, toolCount: 125, servers: [{ serverName: 'mock-server', tools: ['mock_tool_001', 'mock_tool_002'] }] },
+      credentialsCopied: false,
+    } }); return;
+  }
+  if (method === 'rollbackConnectionScope') {
+    try {
+      const result = await scopeService.rollback(params.rollbackRevision, { expectedRevision: params.expectedRevision });
+      json(res, { ok: true, message: `Mock 已恢复 revision=${params.rollbackRevision} 的作用域绑定`, detail: {
+        revision: result.document.revision,
+        rollbackRevision: result.previousRevision,
+        changed: result.changed,
+        credentialsCopied: false,
+      } }); return;
+    } catch (error) {
+      json(res, { ok: false, message: `Mock 作用域回滚失败: ${error.message}` }); return;
+    }
+  }
   if (method === 'toolsList') {
     const connector = catalog.find((item) => item.id === params.connectorId);
     const server = connector?.servers?.[0] ?? { serverKey: 'mock', serverName: 'mock-server' };
@@ -305,7 +399,14 @@ const server = createServer(async (req, res) => {
     ids.forEach((id) => healthStates.set(id, 'healthy'));
     json(res, { ok: true, message: `已检查 ${ids.length} 个连接器：${ids.length} 个正常`, detail: { items: ids.map((connectorId) => ({ connectorId, connectionState: 'healthy' })) } }); return;
   }
-  if (method === 'connect') { connected.add(params.connectorId); json(res, { ok: true, message: 'Mock 连接成功' }); return; }
+  if (method === 'connect') {
+    const connector = catalog.find((item) => item.id === params.connectorId);
+    connected.add(params.connectorId);
+    await scopeService.assignMany((connector?.servers ?? []).map((server) => `${params.connectorId}:${server.serverKey}`), params.scope === 'project'
+      ? { scope: 'project', workspaceId: params.workspaceId }
+      : { scope: 'global' });
+    json(res, { ok: true, message: 'Mock 连接成功' }); return;
+  }
   if (method === 'configure') {
     if (params.connectorId === 'wind-stock-data' && params.bearerToken !== 'valid-wind-key') {
       json(res, { ok: false, message: '连接验证失败：wind_stock_data：Key/Token 无效、已过期或当前账号没有该 Server 权限（HTTP 401）。未保存连接，请修正后重试。' }); return;

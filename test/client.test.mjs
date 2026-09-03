@@ -191,6 +191,17 @@ test('示例 Prompt 写入新会话草稿后再导航', async () => {
   ]);
 });
 
+test('市场 iframe 可读取当前 Workspace 作为项目连接作用域', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations } = clientContext({ workspaceId: 'workspace-scope' });
+  plugin.apply(ctx);
+  const props = registrations.get('shell.overlay').options.inject();
+  assert.deepEqual(props.workspaceContext(), {
+    workspaceId: 'workspace-scope',
+    title: 'workspace-scope',
+  });
+});
+
 test('没有工作空间时给出明确错误，不静默失败', async () => {
   const plugin = await loadClient();
   const { ctx, registrations } = clientContext({ workspaceId: null });
