@@ -124,8 +124,22 @@ test('未连接且无工具快照的市场卡片不误报连接异常', () => {
   assert.match(uiSource, /连接后查看工具/);
   assert.match(uiSource, /连接后可读取服务端工具清单/);
   assert.ok(
-    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("const toolsResult = await call('toolsList', { connectorId })"),
+    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("call('toolsList', { connectorId })"),
   );
+});
+
+test('详情页提供连接、Server、Tool 三层策略预览、应用和回滚', () => {
+  assert.match(uiSource, /id="connection-policy"/);
+  assert.match(uiSource, /data-policy-scope=/);
+  assert.match(uiSource, /data-server-name=/);
+  assert.match(uiSource, /data-tool-name=/);
+  assert.match(uiSource, /data-public-name=/);
+  assert.match(uiSource, /Tool &gt; Server &gt; Connection/);
+  assert.match(uiSource, /call\('previewPolicy'/);
+  assert.match(uiSource, /expectedRevision: preview\.detail\.baseRevision/);
+  assert.match(uiSource, /call\('applyPolicy'/);
+  assert.match(uiSource, /call\('rollbackPolicy'/);
+  assert.match(uiSource, /当前 Host 未观察到该工具，不能报告为已禁用或健康/);
 });
 
 test('市场卡片区分状态未知、已连接、重新授权和连接异常', () => {

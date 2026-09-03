@@ -295,6 +295,23 @@
   .tools-summary { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: auto; }
   .tools-panel { background: var(--bg); padding: 12px; }
   .tools-toolbar { margin-bottom: 10px; }
+  .governance-bar {
+    display: flex; align-items: center; gap: 8px; padding: 9px 10px; margin-bottom: 10px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 12px;
+  }
+  .governance-bar .governance-title { font-weight: 600; color: var(--text); }
+  .governance-bar .governance-hint { color: var(--muted); flex: 1; min-width: 120px; }
+  .policy-select {
+    height: 28px; max-width: 132px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--card); color: var(--text); padding: 0 7px; font: inherit; font-size: 11px;
+  }
+  .policy-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .policy-select:disabled { opacity: .6; cursor: wait; }
+  .policy-badge { border-radius: 999px; padding: 1px 6px; font-size: 10px; line-height: 1.5; flex: 0 0 auto; }
+  .policy-badge.allowed { color: var(--ok); background: var(--ok-bg); }
+  .policy-badge.denied { color: var(--bad); background: var(--bad-bg); }
+  .policy-badge.unknown { color: var(--muted); background: var(--bg); }
+  .tools-server-copy { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
   .tools-search {
     width: 100%; height: 36px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--card); color: var(--text); padding: 0 11px; font: inherit; font-size: 12px;
@@ -443,6 +460,12 @@
         <details class="tools-disclosure" id="tools-disclosure">
           <summary><span>🧰 <span>工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
           <div class="tools-panel">
+            <div class="governance-bar" id="governance-bar" hidden>
+              <span class="governance-title">连接策略</span>
+              <select class="policy-select" id="connection-policy" aria-label="连接策略"></select>
+              <span class="governance-hint" id="governance-hint">Tool &gt; Server &gt; Connection</span>
+              <button class="text-btn" id="policy-rollback" type="button" hidden>撤销最近变更</button>
+            </div>
             <div class="tools-toolbar">
               <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
             </div>
@@ -478,6 +501,9 @@
     restoreSnapshot: 145_000,
     toolsList: 20_000,
     healthCheck: 10_000,
+    previewPolicy: 20_000,
+    applyPolicy: 20_000,
+    rollbackPolicy: 20_000,
   };
   const DEFAULT_API_TIMEOUT_MS = 30_000;
   const $ = (sel) => document.querySelector(sel);
@@ -516,6 +542,7 @@
   let promptPage = 0;
   let detailConnector = null;
   let detailToolServers = [];
+  let detailGovernance = null;
   let detailNeedsReconfigure = false;
   let detailFailureState = '';
   let toolRenderLimit = 50;
@@ -683,6 +710,94 @@
     return /(?:\bdeprecated\b|已弃用|已废弃|不再推荐)/i.test(`${tool?.title || ''}\n${tool?.description || ''}`);
   }
 
+  function policyOptions(current = 'inherit') {
+    return [
+      ['inherit', '继承上级'],
+      ['allow', '允许'],
+      ['deny', '拒绝'],
+    ].map(([value, label]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`).join('');
+  }
+
+  function policySelect(scope, current, serverName = '', toolName = '', publicName = '', label = '') {
+    if (!detailConnector?.connected?.length) return '';
+    return `<select class="policy-select" data-policy-scope="${esc(scope)}" data-current-effect="${esc(current || 'inherit')}" data-server-name="${esc(serverName)}" data-tool-name="${esc(toolName)}" data-public-name="${esc(publicName)}" aria-label="${esc(label || `${scope} 策略`)}">${policyOptions(current)}</select>`;
+  }
+
+  function policyBadge(policy) {
+    if (!policy) return '';
+    if (policy.finalState === 'unknown') {
+      const desired = policy.desiredEffect === 'deny' ? '规则拟拒绝' : '规则拟允许';
+      return `<span class="policy-badge unknown" title="当前 Host 未观察到该工具，不能报告为已禁用或健康">未观察 · ${esc(desired)}</span>`;
+    }
+    const denied = policy.finalState === 'denied';
+    const label = `${denied ? '已禁用' : '已允许'} · ${policy.sourceLabel || policy.source || '策略'}`;
+    return `<span class="policy-badge ${denied ? 'denied' : 'allowed'}" title="${esc(label)}">${esc(label)}</span>`;
+  }
+
+  function syncGovernanceBar() {
+    const bar = $('#governance-bar');
+    const connected = detailConnector?.connected?.length > 0;
+    bar.hidden = !connected;
+    if (!connected) return;
+    const connectionEffect = detailGovernance?.connectionPolicy || 'inherit';
+    const select = $('#connection-policy');
+    select.innerHTML = policyOptions(connectionEffect);
+    select.dataset.policyScope = 'connection';
+    select.dataset.currentEffect = connectionEffect;
+    select.dataset.serverName = '';
+    select.dataset.toolName = '';
+    select.dataset.publicName = '';
+    const caps = detailGovernance?.capabilities || {};
+    $('#governance-hint').textContent = `revision ${detailGovernance?.revision ?? 0} · Tool > Server > Connection${caps.executionGuard ? ' · Host 强制执行' : ' · Host 能力不足'}`;
+    const rollback = $('#policy-rollback');
+    const previous = detailGovernance?.history?.at(-1);
+    rollback.hidden = !previous;
+    rollback.dataset.rollbackRevision = previous ? String(previous.revision) : '';
+  }
+
+  async function applyPolicySelection(select) {
+    if (!detailConnector) return;
+    const input = {
+      scope: select.dataset.policyScope,
+      effect: select.value,
+      connectorId: detailConnector.id,
+      ...(select.dataset.serverName ? { serverName: select.dataset.serverName } : {}),
+      ...(select.dataset.toolName ? { toolName: select.dataset.toolName } : {}),
+      ...(select.dataset.publicName ? { publicName: select.dataset.publicName } : {}),
+    };
+    select.disabled = true;
+    const preview = await call('previewPolicy', input);
+    if (!preview.ok) {
+      select.value = select.dataset.currentEffect || 'inherit';
+      select.disabled = false;
+      showToast(preview.message, false);
+      return;
+    }
+    if (!preview.detail?.changed) {
+      select.disabled = false;
+      return;
+    }
+    if (!confirm(`${preview.message}。确认应用？`)) {
+      select.value = select.dataset.currentEffect || 'inherit';
+      select.disabled = false;
+      return;
+    }
+    const applied = await call('applyPolicy', { ...input, expectedRevision: preview.detail.baseRevision });
+    select.disabled = false;
+    showToast(applied.message, applied.ok);
+    if (applied.ok) await window.__mcp.showDetail(detailConnector.id);
+    else select.value = select.dataset.currentEffect || 'inherit';
+  }
+
+  async function rollbackLatestPolicy() {
+    const rollbackRevision = Number($('#policy-rollback').dataset.rollbackRevision);
+    if (!Number.isInteger(rollbackRevision) || !detailGovernance) return;
+    if (!confirm(`确认恢复 revision=${rollbackRevision} 的策略内容？`)) return;
+    const result = await call('rollbackPolicy', { rollbackRevision, expectedRevision: detailGovernance.revision });
+    showToast(result.message, result.ok);
+    if (result.ok && detailConnector) await window.__mcp.showDetail(detailConnector.id);
+  }
+
   function renderTools() {
     const query = $('#tools-search').value.trim().toLowerCase();
     if (detailToolServers.length === 0) {
@@ -695,9 +810,10 @@
     let remaining = toolRenderLimit;
     const groups = detailToolServers.map((server) => {
       const label = server.serverName || server.serverKey || 'MCP Server';
+      const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', `${label} Server 策略`);
       if (!server.ok) {
         if (query) return '';
-        return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 加载失败</span></div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
+        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 加载失败</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
       }
       const matched = (server.tools || []).filter((tool) => {
         if (!query) return true;
@@ -713,12 +829,13 @@
         ? tools.map((tool) => {
           const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
           const deprecated = isDeprecatedTool(tool);
-          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
+          const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, tool.name, tool.publicName, `${tool.name} Tool 策略`);
+          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}${policyBadge(tool.policy)}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
         : server.managed
           ? '<div class="tools-loading">Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。</div>'
           : '<div class="tools-loading">暂无工具</div>';
-      return `<div class="tools-server"><div class="tools-server-header">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></div>${items}</div>`;
+      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></span>${serverSelect}</div>${items}</div>`;
     }).filter(Boolean);
     $('#detail-tools').innerHTML = groups.length > 0
       ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">再显示 ${Math.min(50, matchedTools - renderedTools)} 个（剩余 ${matchedTools - renderedTools}）</button>` : ''}`
@@ -1315,11 +1432,13 @@
       promptPage = 0;
       renderPromptPage();
       detailToolServers = [];
+      detailGovernance = null;
       toolRenderLimit = 50;
       $('#tools-search').value = '';
       $('#tools-disclosure').open = false;
       $('#tools-summary').textContent = '加载中…';
       $('#detail-tools').innerHTML = '<div class="tools-loading">正在读取可用工具及描述…</div>';
+      syncGovernanceBar();
       setDetailOpen(true);
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
       const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
@@ -1332,14 +1451,29 @@
         renderPromptPage();
         return;
       }
-      const toolsResult = await call('toolsList', { connectorId });
+      const [toolsResult, governanceResult] = await Promise.all([
+        call('toolsList', { connectorId }),
+        call('governance', {}),
+      ]);
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
+      detailGovernance = governanceResult.ok ? governanceResult.detail : null;
+      if (detailGovernance && toolsResult.detail?.governance) {
+        Object.assign(detailGovernance, toolsResult.detail.governance);
+      }
+      syncGovernanceBar();
       if (!toolsResult.ok) {
         detailFailureState = toolsResult.detail?.connectionState || detailFailureState || 'unavailable';
         detailNeedsReconfigure = true;
         const diagnostic = toolsResult.detail?.diagnostic;
         $('#tools-summary').textContent = detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败';
-        $('#detail-tools').innerHTML = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(diagnostic.stageLabel || diagnostic.stage)} · ${esc(diagnostic.code)}：${esc(diagnostic.message)}<br>建议：${esc(diagnostic.action)}${diagnostic.lastSuccessfulAt ? `<br>最近成功：${esc(new Date(diagnostic.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}` : ''}</div>`;
+        const failureHtml = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(diagnostic.stageLabel || diagnostic.stage)} · ${esc(diagnostic.code)}：${esc(diagnostic.message)}<br>建议：${esc(diagnostic.action)}${diagnostic.lastSuccessfulAt ? `<br>最近成功：${esc(new Date(diagnostic.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}` : ''}</div>`;
+        detailToolServers = toolsResult.detail?.servers || [];
+        if (detailToolServers.length > 0) {
+          renderTools();
+          $('#detail-tools').insertAdjacentHTML('afterbegin', failureHtml);
+        } else {
+          $('#detail-tools').innerHTML = failureHtml;
+        }
         const failureLabel = detailFailureState === 'reauth'
           ? (d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
           : detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常';
@@ -1428,6 +1562,12 @@
     if (prompt && detailConnector?.connected?.length && !detailNeedsReconfigure) openPromptForm(prompt);
   });
   $('#tools-search').addEventListener('input', () => { toolRenderLimit = 50; renderTools(); });
+  $('#connection-policy').addEventListener('change', (event) => applyPolicySelection(event.target));
+  $('#policy-rollback').addEventListener('click', rollbackLatestPolicy);
+  $('#detail-tools').addEventListener('change', (event) => {
+    const select = event.target.closest('select[data-policy-scope]');
+    if (select) applyPolicySelection(select);
+  });
   $('#detail-tools').addEventListener('click', (event) => {
     if (!event.target.closest('#tools-more')) return;
     toolRenderLimit += 50;

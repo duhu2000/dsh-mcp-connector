@@ -117,3 +117,24 @@ test('脱敏导出与快照工具只渲染公开结果', async () => {
   assert.doesNotMatch(snapshotRendered, /token|secret/i);
   dispose();
 });
+
+test('治理工具支持 list/preview/apply/rollback 并渲染规则来源', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    governance: async () => ({ ok: true, message: '1 条规则', detail: { rules: [{ scope: 'tool', connectorId: 'acme', serverName: 'search', toolName: 'remove', effect: 'deny', statusLabel: '已生效' }] } }),
+    previewPolicy: async (args) => { calls.push(['preview', args]); return { ok: true, message: 'preview' }; },
+    applyPolicy: async (args) => { calls.push(['apply', args]); return { ok: true, message: 'apply' }; },
+    rollbackPolicy: async (revision) => { calls.push(['rollback', revision]); return { ok: true, message: 'rollback' }; },
+  };
+  const dispose = registerTools(ctx, api);
+  const policy = tools.get('mcp_connector_policy');
+  const listed = await policy.execute({ action: 'list' });
+  assert.match(policy.output.render({}, listed)[0].text, /acme\/search\/remove · deny · 已生效/);
+  await policy.execute({ action: 'preview', scope: 'tool', effect: 'deny', connectorId: 'acme', serverName: 'search', toolName: 'remove' });
+  await policy.execute({ action: 'apply', scope: 'server', effect: 'allow', connectorId: 'acme', serverName: 'search' });
+  await policy.execute({ action: 'rollback', rollbackRevision: 0 });
+  assert.deepEqual(calls.map((call) => call[0]), ['preview', 'apply', 'rollback']);
+  dispose();
+});

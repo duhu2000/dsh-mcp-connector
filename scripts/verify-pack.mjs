@@ -22,7 +22,7 @@ const WHITELIST = [
   /^registry\/catalog\.json$/,
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
-  /^docs\/(?:CONFIG-BACKUP|DESKTOP-E2E|FIRST-CONTRIBUTION|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|USER-GUIDE)\.md$/,
+  /^docs\/(?:CONFIG-BACKUP|DESKTOP-E2E|FIRST-CONTRIBUTION|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|TOOL-GOVERNANCE|USER-GUIDE)\.md$/,
   /^docs\/screenshots\/(?:README\.md|assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
