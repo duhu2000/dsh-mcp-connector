@@ -52,6 +52,10 @@ function makeWctx() {
 
 const api = {
   versionStatus: async (force) => ({ ok: true, message: 'v0.2.23', detail: { installedVersion: '0.2.23', force } }),
+  governance: async () => ({ ok: true, message: 'revision=2', detail: { revision: 2 } }),
+  previewPolicy: async (input) => ({ ok: true, message: 'preview', detail: input }),
+  applyPolicy: async (input) => ({ ok: true, message: 'applied', detail: input }),
+  rollbackPolicy: async (revision) => ({ ok: true, message: 'rolled back', detail: { revision } }),
   catalog: async () => ({ ok: true, message: '3 个连接器', detail: { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }),
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
@@ -109,6 +113,16 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   }), exportRes);
   assert.equal(exportRes.status, 200);
   assert.equal(JSON.parse(exportRes.body).detail.json, '{"redacted":true}');
+
+  const policyRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'previewPolicy', params: { scope: 'tool', effect: 'deny', connectorId: 'a' } }),
+  }), policyRes);
+  assert.equal(policyRes.status, 200);
+  assert.equal(JSON.parse(policyRes.body).detail.scope, 'tool');
 
   const res2 = new FakeRes();
   await route.handler(fakeReq({

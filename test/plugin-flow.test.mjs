@@ -54,14 +54,20 @@ function makeLoader({ onCreate, onUpdate } = {}) {
 
 function makeToolsRegistry() {
   const defs = new Map();
+  const guards = new Set();
   return {
     defs,
+    guards,
     register(def) {
       defs.set(def.name, def);
       return () => defs.delete(def.name);
     },
     schemas() {
       return [...defs.values()].map(({ name, description = '', parameters = {} }) => ({ name, description, parameters }));
+    },
+    guard(fn) {
+      guards.add(fn);
+      return () => guards.delete(fn);
     },
   };
 }
@@ -70,8 +76,9 @@ function makePluginContext({ shared, loaderHooks } = {}) {
   const logs = [];
   const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
-  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()]]);
+  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()], ['governance', makeTable()]]);
   if (!tables.has('snapshots')) tables.set('snapshots', makeTable());
+  if (!tables.has('governance')) tables.set('governance', makeTable());
   const domain = { tables, close: async () => {} };
   const disposers = [];
   const ctx = {
@@ -1503,4 +1510,62 @@ test('重启恢复：连接记录持久化并重新挂载条目', { timeout: 300
   assert.equal(status.detail.items.length, 1);
 
   await oauth.close();
+});
+
+test('治理策略经对话工具预览后在 Host guard 生效，并在重启后恢复且可回滚', async () => {
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const record = {
+    key: 'acme-search',
+    connectorId: 'acme',
+    kind: 'manual',
+    name: 'ACME Search',
+    serverKey: 'search',
+    transport: 'streamable-http',
+    url: 'https://example.com/mcp',
+    serverName: 'acme-search',
+    headers: {},
+    enabled: true,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  await shared.tables.get('connections').put(record.key, record);
+
+  const first = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  await apply(first.ctx, baseConfig({ persistSecrets: false }));
+  first.tools.register({ name: 'mcp__acme-search__read', description: '', parameters: {} });
+  first.tools.register({ name: 'mcp__acme-search__remove', description: '', parameters: {} });
+
+  const policy = first.tools.defs.get('mcp_connector_policy');
+  const preview = await policy.execute({
+    action: 'preview', scope: 'tool', effect: 'deny', connectorId: 'acme',
+    serverName: 'acme-search', toolName: 'remove', publicName: 'mcp__acme-search__remove',
+  });
+  assert.equal(preview.ok, true, preview.message);
+  assert.equal(preview.detail.impact.newlyDenied, 1);
+  assert.equal([...shared.tables.get('governance').entries()].length, 0, '预览不得持久化');
+
+  const applied = await policy.execute({
+    action: 'apply', scope: 'tool', effect: 'deny', connectorId: 'acme',
+    serverName: 'acme-search', toolName: 'remove', publicName: 'mcp__acme-search__remove',
+    expectedRevision: preview.detail.baseRevision,
+  });
+  assert.equal(applied.ok, true, applied.message);
+  assert.equal(applied.detail.revision, 1);
+  const firstGuard = [...first.tools.guards][0];
+  assert.equal(firstGuard({ name: 'mcp__acme-search__read' }), undefined);
+  assert.match(firstGuard({ name: 'mcp__acme-search__remove' }), /Tool 策略拒绝/);
+
+  for (const dispose of [...first.disposers].reverse()) dispose();
+  const second = makePluginContext({ shared });
+  await apply(second.ctx, baseConfig({ persistSecrets: false }));
+  second.tools.register({ name: 'mcp__acme-search__remove', description: '', parameters: {} });
+  const secondGuard = [...second.tools.guards][0];
+  assert.match(secondGuard({ name: 'mcp__acme-search__remove' }), /Tool 策略拒绝/, '重启后恢复执行拒绝');
+
+  const restored = await second.tools.defs.get('mcp_connector_policy').execute({
+    action: 'rollback', rollbackRevision: 0, expectedRevision: 1,
+  });
+  assert.equal(restored.ok, true, restored.message);
+  assert.equal(secondGuard({ name: 'mcp__acme-search__remove' }), undefined);
 });

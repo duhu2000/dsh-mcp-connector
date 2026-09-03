@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalizeConnectorDescriptor } from '../lib/schema.js';
 import { auditDescriptor, auditRawDescriptor, mergeCatalog } from '../lib/catalog.js';
+import { normalizeGovernanceMutation, publicToolName, resolveGovernancePolicy } from '../lib/governance.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
@@ -25,6 +26,9 @@ const catalog = mergeCatalog(catalogSources).filter((item) => item.published !==
 // A fresh harness never claims a real authorization. Tests may connect to the mock API explicitly.
 const connected = new Set();
 const healthStates = new Map();
+let governanceRevision = 0;
+let governanceRules = [];
+let governanceHistory = [];
 const bundledAssets = new Map([
   ['qcc-logo.svg', 'image/svg+xml'],
   ['pkulaw-logo.png', 'image/png'],
@@ -35,6 +39,75 @@ function json(res, value, status = 200) {
   const body = JSON.stringify(value);
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body) });
   res.end(body);
+}
+
+const governanceCapabilities = {
+  executionGuard: true,
+  visibilityRestriction: true,
+};
+
+function governanceRuleId(rule) {
+  const parts = rule.scope === 'connection'
+    ? [rule.scope, rule.connectorId]
+    : rule.scope === 'server'
+      ? [rule.scope, rule.connectorId, rule.serverName]
+      : [rule.scope, rule.connectorId, rule.serverName, rule.toolName];
+  return parts.map((part) => encodeURIComponent(part)).join(':');
+}
+
+function directEffect(scope, connectorId, serverName, toolName) {
+  return governanceRules.find((rule) => (
+    rule.scope === scope
+    && rule.connectorId === connectorId
+    && (scope === 'connection' || rule.serverName === serverName)
+    && (scope !== 'tool' || rule.toolName === toolName)
+  ))?.effect ?? 'inherit';
+}
+
+function nextRules(input) {
+  const mutation = normalizeGovernanceMutation(input);
+  const id = governanceRuleId(mutation);
+  const rules = governanceRules.filter((rule) => rule.id !== id);
+  if (mutation.effect !== 'inherit') rules.push({ ...mutation, id });
+  return { mutation, rules: rules.sort((left, right) => left.id.localeCompare(right.id)) };
+}
+
+function governanceDetail() {
+  return {
+    version: 1,
+    revision: governanceRevision,
+    updatedAt: null,
+    precedence: ['tool', 'server', 'connection', 'default'],
+    precedenceLabel: 'Tool > Server > Connection > 默认允许；连接停用不可被 allow 覆盖',
+    rules: governanceRules.map((rule) => ({ ...rule, status: 'active', statusLabel: '已生效' })),
+    history: governanceHistory.map((item) => ({ revision: item.revision, createdAt: item.createdAt, ruleCount: item.rules.length })),
+    capabilities: governanceCapabilities,
+  };
+}
+
+function policyImpact(connectorId, serverName, beforeRules, afterRules) {
+  const tools = Array.from({ length: 125 }, (_, index) => `mock_tool_${String(index + 1).padStart(3, '0')}`);
+  const changes = tools.flatMap((toolName) => {
+    const target = { connectorId, serverName, toolName, publicName: publicToolName(serverName, toolName), connectionEnabled: true };
+    const before = resolveGovernancePolicy(target, beforeRules);
+    const after = resolveGovernancePolicy(target, afterRules);
+    return before.effect === after.effect && before.source === after.source ? [] : [{
+      connectorId,
+      serverName,
+      publicName: target.publicName,
+      before: before.effect,
+      after: after.effect,
+      source: after.source,
+      sourceLabel: after.sourceLabel,
+    }];
+  });
+  return {
+    observedToolCount: tools.length,
+    changedToolCount: changes.length,
+    newlyDenied: changes.filter((change) => change.before !== 'deny' && change.after === 'deny').length,
+    newlyAllowed: changes.filter((change) => change.before === 'deny' && change.after !== 'deny').length,
+    changes: changes.slice(0, 50),
+  };
 }
 
 function captureShell() {
@@ -111,16 +184,121 @@ const server = createServer(async (req, res) => {
     json(res, { ok: true, detail: { items } }); return;
   }
   if (method === 'migrationPreview') { json(res, { ok: true, detail: { pendingCount: 0, items: [] } }); return; }
+  if (method === 'governance') {
+    const detail = governanceDetail();
+    json(res, { ok: true, message: `Mock 治理策略 revision=${detail.revision}`, detail }); return;
+  }
+  if (method === 'previewPolicy') {
+    try {
+      const connector = catalog.find((item) => item.id === params.connectorId);
+      const fallbackServer = connector?.servers?.[0]?.serverName ?? 'mock-server';
+      const { mutation, rules } = nextRules(params);
+      const changed = JSON.stringify(rules) !== JSON.stringify(governanceRules);
+      const impact = policyImpact(params.connectorId, params.serverName || fallbackServer, governanceRules, rules);
+      json(res, {
+        ok: true,
+        message: changed
+          ? `Mock 策略预览：将影响 ${impact.changedToolCount}/${impact.observedToolCount} 个 Host 已观察工具`
+          : 'Mock 策略预览：目标规则没有变化',
+        detail: { baseRevision: governanceRevision, mutation, changed, impact, capabilities: governanceCapabilities },
+      }); return;
+    } catch (error) {
+      json(res, { ok: false, message: `Mock 策略预览失败: ${error.message}` }); return;
+    }
+  }
+  if (method === 'applyPolicy') {
+    if (params.expectedRevision !== governanceRevision) {
+      json(res, { ok: false, message: `Mock 策略已变化（当前 revision=${governanceRevision}），请重新预览` }); return;
+    }
+    try {
+      const connector = catalog.find((item) => item.id === params.connectorId);
+      const fallbackServer = connector?.servers?.[0]?.serverName ?? 'mock-server';
+      const { rules } = nextRules(params);
+      const changed = JSON.stringify(rules) !== JSON.stringify(governanceRules);
+      const impact = policyImpact(params.connectorId, params.serverName || fallbackServer, governanceRules, rules);
+      const previousRevision = governanceRevision;
+      if (changed) {
+        governanceHistory.push({ revision: previousRevision, createdAt: Date.now(), rules: governanceRules.map((rule) => ({ ...rule })) });
+        governanceHistory = governanceHistory.slice(-20);
+        governanceRules = rules;
+        governanceRevision += 1;
+      }
+      json(res, {
+        ok: true,
+        message: changed ? `Mock 策略已应用（revision=${governanceRevision}）` : 'Mock 策略没有变化',
+        detail: { ...governanceDetail(), impact, changed, rollbackRevision: previousRevision },
+      }); return;
+    } catch (error) {
+      json(res, { ok: false, message: `Mock 策略应用失败: ${error.message}` }); return;
+    }
+  }
+  if (method === 'rollbackPolicy') {
+    if (params.expectedRevision !== governanceRevision) {
+      json(res, { ok: false, message: `Mock 策略已变化（当前 revision=${governanceRevision}），请重新读取` }); return;
+    }
+    const target = governanceHistory.find((item) => item.revision === params.rollbackRevision);
+    if (!target) { json(res, { ok: false, message: `Mock 找不到 revision=${params.rollbackRevision}` }); return; }
+    const previousRevision = governanceRevision;
+    governanceHistory.push({ revision: previousRevision, createdAt: Date.now(), rules: governanceRules.map((rule) => ({ ...rule })) });
+    governanceHistory = governanceHistory.slice(-20);
+    governanceRules = target.rules.map((rule) => ({ ...rule }));
+    governanceRevision += 1;
+    json(res, { ok: true, message: `Mock 已恢复 revision=${params.rollbackRevision} 的策略内容`, detail: { ...governanceDetail(), changed: true, rollbackRevision: previousRevision } }); return;
+  }
   if (method === 'toolsList') {
     const connector = catalog.find((item) => item.id === params.connectorId);
     const server = connector?.servers?.[0] ?? { serverKey: 'mock', serverName: 'mock-server' };
-    const tools = Array.from({ length: 125 }, (_, index) => ({
-      name: `mock_tool_${String(index + 1).padStart(3, '0')}`,
-      title: `Mock 工具 ${index + 1}`,
-      description: `本地无凭据 UI 验收数据：用于验证分批渲染与搜索的第 ${index + 1} 个工具。`,
-    }));
+    const tools = Array.from({ length: 125 }, (_, index) => {
+      const name = `mock_tool_${String(index + 1).padStart(3, '0')}`;
+      const publicName = publicToolName(server.serverName, name);
+      const resolved = resolveGovernancePolicy({
+        connectorId: params.connectorId,
+        serverName: server.serverName,
+        toolName: name,
+        publicName,
+        connectionEnabled: true,
+      }, governanceRules);
+      return {
+        name,
+        publicName,
+        title: `Mock 工具 ${index + 1}`,
+        description: `本地无凭据 UI 验收数据：用于验证分批渲染与搜索的第 ${index + 1} 个工具。`,
+        policy: {
+          configuredEffect: directEffect('tool', params.connectorId, server.serverName, name),
+          desiredEffect: resolved.effect,
+          source: resolved.source,
+          sourceLabel: resolved.sourceLabel,
+          observed: true,
+          finalState: resolved.effect === 'deny' ? 'denied' : 'allowed',
+          enforced: true,
+        },
+      };
+    });
+    const serverResolved = resolveGovernancePolicy({ connectorId: params.connectorId, serverName: server.serverName, connectionEnabled: true }, governanceRules);
     healthStates.set(params.connectorId, 'healthy');
-    json(res, { ok: true, detail: { totalTools: tools.length, connectionState: 'healthy', servers: [{ serverKey: server.serverKey, serverName: server.serverName, ok: true, tools }] } }); return;
+    json(res, { ok: true, detail: {
+      totalTools: tools.length,
+      connectionState: 'healthy',
+      governance: {
+        revision: governanceRevision,
+        connectionPolicy: directEffect('connection', params.connectorId),
+        precedenceLabel: 'Tool > Server > Connection > 默认允许',
+        capabilities: governanceCapabilities,
+      },
+      servers: [{
+        serverKey: server.serverKey,
+        serverName: server.serverName,
+        ok: true,
+        policy: {
+          configuredEffect: directEffect('server', params.connectorId, server.serverName),
+          desiredEffect: serverResolved.effect,
+          source: serverResolved.source,
+          sourceLabel: serverResolved.sourceLabel,
+          lifecycleEnabled: true,
+        },
+        tools,
+      }],
+    } }); return;
   }
   if (method === 'healthCheck') {
     const ids = params.connectorId ? [params.connectorId] : [...connected];

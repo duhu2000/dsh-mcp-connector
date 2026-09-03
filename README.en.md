@@ -57,6 +57,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
 - Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; a cross-process lock and per-grant atomic journal prevent Desktop and Web hosts from consuming or overwriting the same rotating refresh token.
 - Portable redacted configuration export plus up to 20 local pre-change snapshots, with preview and atomic restore. Credentials, local paths, and OAuth grants never enter the export.
+- Three-layer Connection, Server, and Tool governance with Tool > Server > Connection > default-allow precedence, preview, revision-checked commits, and rollback. DSH Host restrictions narrow schemas/lookups/dispatch while a final execution guard prevents UI-only enforcement.
 - Explainable diagnostics report only observed evidence. Unchecked or Host-unobservable connections remain `unknown`, with a failure stage, stable code, suggested action, check time, and process-local last-success time.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
@@ -107,6 +108,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 ## Guides and ecosystem
 
 - [User guide: installation, authorization, diagnostics, compatibility, and troubleshooting](docs/USER-GUIDE.md)
+- [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
@@ -147,9 +149,9 @@ Set `catalogUrl` to an empty string for an explicitly offline/private setup. A c
 | Transports | Streamable HTTP and stdio; legacy `sse` normalizes to Streamable HTTP |
 | Configuration scope | Current DSH profile; no project/global split yet |
 | Configuration exchange | JSON import, redacted export, up to 20 local snapshots, preview, and atomic restore |
-| Governance and execution | Connection-level enable/disable; no per-tool policy or tool trial yet |
+| Governance and execution | Connection / Server / Tool allow/deny with preview, revision commits, and rollback; no tool trial yet |
 
-The plugin owns the catalog, authorization, connection records, official-client provisioning, read-only health checks, tool discovery, and diagnostics. DSH Host and the official MCP client own transport, stdio subprocesses, tool registration, real tool execution, and permission/approval flows. The plugin never bypasses that boundary by invoking MCP tools from the browser. See the [user guide](docs/USER-GUIDE.md#72-如何理解连接诊断) for status semantics, limitations, and troubleshooting.
+The plugin owns the catalog, authorization, connection records, governance rules, official-client provisioning, read-only health checks, tool discovery, and diagnostics. DSH Host and the official MCP client own transport, stdio subprocesses, tool registration, real tool execution, and permission/approval flows. Governance uses the Host's official restriction/guard boundary; the plugin never invokes MCP tools from the browser. See the [user guide](docs/USER-GUIDE.md#73-如何理解连接诊断) for status semantics, limitations, and troubleshooting.
 
 ## Development and release checks
 
@@ -182,7 +184,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - OAuth DCR client secrets share the same local-only boundary as access and refresh tokens and are omitted from catalog/status responses and logs.
 - Redacted exports replace tokens, API keys, static header/env values, stdio arguments, local directories, and URLs containing query/user information with explicit placeholders. OAuth entries contain only a reconnect reference; full snapshots remain inside the current profile's storage domain.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
-- Project/global scope selection, per-server/per-tool policies, and tool trials are not implemented. Real tool execution and approval remain the DSH Host's responsibility. A local snapshot cannot recreate a server-side OAuth grant after revocation.
+- Project/global scope selection and tool trials are not implemented. Governance is profile-scoped and enforced in the DSH Host execution path. A local snapshot cannot recreate a server-side OAuth grant after revocation.
 
 ## License
 
