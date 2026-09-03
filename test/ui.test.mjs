@@ -124,7 +124,7 @@ test('未连接且无工具快照的市场卡片不误报连接异常', () => {
   assert.match(uiSource, /连接后查看工具/);
   assert.match(uiSource, /连接后可读取服务端工具清单/);
   assert.ok(
-    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("call('toolsList', { connectorId })"),
+    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("call('toolsList', { connectorId, ...workspaceParams() })"),
   );
 });
 
@@ -140,6 +140,23 @@ test('详情页提供连接、Server、Tool 三层策略预览、应用和回滚
   assert.match(uiSource, /call\('applyPolicy'/);
   assert.match(uiSource, /call\('rollbackPolicy'/);
   assert.match(uiSource, /当前 Host 未观察到该工具，不能报告为已禁用或健康/);
+});
+
+test('新连接显示 project/global 目标，范围变更先预览影响再应用且可回滚', () => {
+  assert.match(uiSource, /mcp-connector:workspace-context-request/);
+  assert.match(clientSource, /mcp-connector:workspace-context/);
+  assert.match(uiSource, /function scopeFieldHtml/);
+  assert.match(uiSource, /当前项目：\$\{esc\(currentWorkspace\.title\)\}/);
+  assert.match(uiSource, /所有项目（全局）/);
+  assert.match(uiSource, /function openConnectScope\(connectorId\)/);
+  assert.match(uiSource, /call\('connect', \{ connectorId, \.\.\.scopeParams \}/);
+  assert.match(uiSource, /call\('previewConnectionScope'/);
+  assert.match(uiSource, /preview\.detail\.impact\?\.servers/);
+  assert.match(uiSource, /expectedRevision: preview\.detail\.baseRevision/);
+  assert.match(uiSource, /call\('applyConnectionScope'/);
+  assert.match(uiSource, /call\('previewConnectionScopeRollback'/);
+  assert.match(uiSource, /call\('rollbackConnectionScope'/);
+  assert.match(uiSource, /范围绑定不保存或复制凭据/);
 });
 
 test('市场卡片区分状态未知、已连接、重新授权和连接异常', () => {

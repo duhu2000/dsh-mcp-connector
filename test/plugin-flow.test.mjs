@@ -72,19 +72,24 @@ function makeToolsRegistry() {
   };
 }
 
-function makePluginContext({ shared, loaderHooks } = {}) {
+function makePluginContext({ shared, loaderHooks, workspaces } = {}) {
   const logs = [];
   const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
-  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()], ['governance', makeTable()]]);
+  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()], ['governance', makeTable()], ['connection_scopes', makeTable()]]);
   if (!tables.has('snapshots')) tables.set('snapshots', makeTable());
   if (!tables.has('governance')) tables.set('governance', makeTable());
+  if (!tables.has('connection_scopes')) tables.set('connection_scopes', makeTable());
   const domain = { tables, close: async () => {} };
   const disposers = [];
   const ctx = {
     loader,
     tools,
     storageDomain: { open: async () => domain },
+    workspaceRegistry: {
+      list: () => workspaces ?? [{ id: 'workspace-1', title: 'Workspace 1', path: process.cwd(), sessionIds: [] }],
+      get(id) { return this.list().find((workspace) => String(workspace.id) === String(id)); },
+    },
     logger: () => ({
       info: (m) => logs.push(`[info] ${m}`),
       warn: (m) => logs.push(`[warn] ${m}`),
@@ -156,7 +161,7 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
     id: 'acme',
     name: 'ACME 演示',
     category: '开发工具',
-    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'test-client' },
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'test-client', grantSharing: 'issuer' },
     servers: [
       { serverKey: 'company', url: `${oauth.base}/mcp/company/stream`, serverName: 'acme-company', transport: 'streamable-http', headers: {} },
       { serverKey: 'risk', url: `${oauth.base}/mcp/risk/stream`, serverName: 'acme-risk', transport: 'streamable-http', headers: {} },
@@ -167,7 +172,9 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   const connectTool = tools.defs.get('mcp_connector_connect');
   assert.ok(connectTool, 'connect tool registered');
 
-  const promise = connectTool.execute({ connectorId: 'acme' }, { signal: undefined });
+  const promise = connectTool.execute({
+    connectorId: 'acme', scope: 'project', workspaceId: 'workspace-1',
+  }, { signal: undefined });
   await autoApprove(logs);
   const result = await promise;
 
@@ -184,6 +191,13 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   assert.equal(status.ok, true);
   assert.equal(status.detail.items.length, 2);
   assert.equal(status.detail.items[0].authMode, 'oauth');
+  assert.ok(status.detail.items.every((item) => item.scope.binding.projects[0] === 'workspace-1'));
+
+  const reauthorized = await connectTool.execute({ connectorId: 'acme' }, { signal: undefined });
+  assert.equal(reauthorized.ok, true, reauthorized.message);
+  const statusAfterReauthorize = await tools.defs.get('mcp_connector_status').execute({ workspaceId: 'workspace-1' });
+  assert.ok(statusAfterReauthorize.detail.items.every((item) => item.scope.binding.global === false));
+  assert.ok(statusAfterReauthorize.detail.items.every((item) => item.scope.binding.projects[0] === 'workspace-1'), '旧客户端重新授权不得把 project 范围静默提升为 global');
 
   const snapshotTool = tools.defs.get('mcp_connector_snapshot');
   const preview = await snapshotTool.execute({ action: 'preview', snapshotId: result.detail.snapshotId });
@@ -790,7 +804,8 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${server.address().port}/mcp`;
-  const { ctx, loader, tools } = makePluginContext();
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const { ctx, loader, tools, tables } = makePluginContext({ shared });
   const { apply } = await import('../lib/index.js');
 
   const connectors = [
@@ -811,9 +826,75 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
 
   try {
     const connect = tools.defs.get('mcp_connector_connect');
-    const none = await connect.execute({ connectorId: 'none-demo' }, { signal: undefined });
+    const none = await connect.execute({
+      connectorId: 'none-demo', scope: 'project', workspaceId: 'workspace-1',
+    }, { signal: undefined });
     assert.equal(none.ok, true, none.message);
     assert.ok(loader.entries.has('mcp-none-demo-a'));
+
+    const status = await tools.defs.get('mcp_connector_status').execute({ workspaceId: 'workspace-1' });
+    assert.deepEqual(status.detail.items[0].scope.binding, {
+      connectionKey: 'none-demo-a', global: false, projects: ['workspace-1'],
+    });
+    assert.equal(status.detail.items[0].scope.visibleInWorkspace, true);
+
+    const scopeTool = tools.defs.get('mcp_connector_scope');
+    const preview = await scopeTool.execute({
+      action: 'preview', key: 'none-demo-a', mode: 'copy', targetScope: 'global',
+    });
+    assert.equal(preview.ok, true, preview.message);
+    assert.equal(preview.detail.credentialsCopied, false);
+    assert.deepEqual(preview.detail.impact.servers.map((item) => item.serverName), ['none-a']);
+    const promoted = await scopeTool.execute({
+      action: 'apply', key: 'none-demo-a', mode: 'copy', targetScope: 'global',
+      expectedRevision: preview.detail.baseRevision,
+    });
+    assert.equal(promoted.ok, true, promoted.message);
+    assert.deepEqual(promoted.detail.connection.binding, {
+      connectionKey: 'none-demo-a', global: true, projects: ['workspace-1'],
+    });
+    const scopeDocument = await tables.get('connection_scopes').get('active');
+    assert.doesNotMatch(JSON.stringify(scopeDocument), /token|secret|header|grant|authorization/i);
+
+    const movedPreview = await scopeTool.execute({
+      action: 'preview', key: 'none-demo-a', mode: 'move', targetScope: 'project', targetWorkspaceId: 'workspace-1',
+    });
+    const moved = await scopeTool.execute({
+      action: 'apply', key: 'none-demo-a', mode: 'move', targetScope: 'project', targetWorkspaceId: 'workspace-1',
+      expectedRevision: movedPreview.detail.baseRevision,
+    });
+    assert.equal(moved.ok, true, moved.message);
+
+    const rollbackPreview = await scopeTool.execute({
+      action: 'preview-rollback', rollbackRevision: moved.detail.rollbackRevision,
+    });
+    assert.equal(rollbackPreview.ok, true, rollbackPreview.message);
+    assert.deepEqual(rollbackPreview.detail.impact.servers.map((item) => item.serverName), ['none-a']);
+    const rolledBack = await scopeTool.execute({
+      action: 'rollback', rollbackRevision: moved.detail.rollbackRevision,
+      expectedRevision: rollbackPreview.detail.baseRevision,
+    });
+    assert.equal(rolledBack.ok, true, rolledBack.message);
+    const restoreProjectPreview = await scopeTool.execute({
+      action: 'preview', key: 'none-demo-a', mode: 'move', targetScope: 'project', targetWorkspaceId: 'workspace-1',
+    });
+    const restoredProject = await scopeTool.execute({
+      action: 'apply', key: 'none-demo-a', mode: 'move', targetScope: 'project', targetWorkspaceId: 'workspace-1',
+      expectedRevision: restoreProjectPreview.detail.baseRevision,
+    });
+    assert.equal(restoredProject.ok, true, restoredProject.message);
+
+    const duplicate = await tools.defs.get('mcp_connector_configure').execute({
+      name: 'Duplicate server owner', serverName: 'none-a', url, authMode: 'none', scope: 'global',
+    });
+    assert.equal(duplicate.ok, false);
+    assert.match(duplicate.message, /不能静默覆盖/);
+
+    const restarted = makePluginContext({ shared });
+    await apply(restarted.ctx, baseConfig({ connectors }));
+    const restoredStatus = await restarted.tools.defs.get('mcp_connector_status').execute({ workspaceId: 'workspace-1' });
+    assert.deepEqual(restoredStatus.detail.items[0].scope.binding.projects, ['workspace-1']);
+    assert.equal(restoredStatus.detail.items[0].scope.binding.global, false);
 
     const key = await connect.execute({ connectorId: 'apikey-demo' }, { signal: undefined });
     assert.equal(key.ok, false);
@@ -970,7 +1051,9 @@ test('stdio Host 启动失败时不保存且返回进程诊断', { timeout: 1500
     }],
   }));
 
-  const connected = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'stdio-failure' }, { signal: undefined });
+  const connected = await tools.defs.get('mcp_connector_connect').execute({
+    connectorId: 'stdio-failure', scope: 'project', workspaceId: 'workspace-1',
+  }, { signal: undefined });
   assert.equal(connected.ok, false);
   assert.equal(connected.detail.kind, 'process-not-found');
   assert.match(connected.message, /启动命令不存在/);
@@ -978,6 +1061,8 @@ test('stdio Host 启动失败时不保存且返回进程诊断', { timeout: 1500
   assert.equal(loader.entries.size, 0);
   assert.equal((await tools.defs.get('mcp_connector_status').execute({})).detail.items.length, 0);
   assert.equal([...tables.get('connections').entries()].length, 0);
+  const scopeAfterFailure = await tables.get('connection_scopes').get('active');
+  assert.deepEqual(scopeAfterFailure.bindings, [], '连接提交失败必须回滚作用域绑定');
 });
 
 test('stdio 市场连接、自定义配置与 JSON 导入均透传给 dsh-mcp-client', { timeout: 15000 }, async () => {

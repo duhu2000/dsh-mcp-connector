@@ -56,6 +56,11 @@ const api = {
   previewPolicy: async (input) => ({ ok: true, message: 'preview', detail: input }),
   applyPolicy: async (input) => ({ ok: true, message: 'applied', detail: input }),
   rollbackPolicy: async (revision) => ({ ok: true, message: 'rolled back', detail: { revision } }),
+  scopeContext: async (workspaceId) => ({ ok: true, message: 'scope context', detail: { workspaceId } }),
+  previewConnectionScope: async (input) => ({ ok: true, message: 'scope preview', detail: input }),
+  applyConnectionScope: async (input) => ({ ok: true, message: 'scope applied', detail: input }),
+  previewConnectionScopeRollback: async (revision) => ({ ok: true, message: 'scope rollback preview', detail: { revision } }),
+  rollbackConnectionScope: async (revision) => ({ ok: true, message: 'scope rolled back', detail: { revision } }),
   catalog: async () => ({ ok: true, message: '3 个连接器', detail: { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }),
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
@@ -123,6 +128,18 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   }), policyRes);
   assert.equal(policyRes.status, 200);
   assert.equal(JSON.parse(policyRes.body).detail.scope, 'tool');
+
+  const scopeRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'previewConnectionScope', params: {
+      key: 'a', mode: 'copy', targetScope: 'project', targetWorkspaceId: 'workspace-1',
+    } }),
+  }), scopeRes);
+  assert.equal(scopeRes.status, 200);
+  assert.equal(JSON.parse(scopeRes.body).detail.targetWorkspaceId, 'workspace-1');
 
   const res2 = new FakeRes();
   await route.handler(fakeReq({

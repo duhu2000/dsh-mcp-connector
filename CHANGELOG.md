@@ -6,6 +6,8 @@
 
 ### Added
 
+- 新增 Workspace project / profile global 连接作用域：新连接明确选择目标，已有连接可先预览 Server/工具影响，再复制、移动或按 revision 回滚。
+- project-only 连接通过 DSH Workspace Registry 解析 Agent 归属，并由逐 Agent `tools.restrict()` 和全局 `tools.guard()` 同时强制可见性与执行隔离。
 - 连接健康摘要新增可解释诊断：失败阶段、稳定错误码、说明、建议动作、检查时间和插件进程内最近成功时间，并同步到目录、状态、健康检查、工具发现与图形界面。
 - 新增可携带脱敏配置导出，以及连接变更前自动保存、最多保留 20 个的本机配置快照；页面和对话工具均可创建、列出、预览并原子恢复。
 - 新增 Connection / Server / Tool 三层治理策略，支持影响预览、revision 并发校验、最近 20 版回滚，以及工具增删和重命名后的安全失效处理。
@@ -13,11 +15,13 @@
 
 ### Changed
 
+- 作用域文档与连接/凭据分离存储，只包含 connection key、Workspace id 和历史 revision；旧连接按 profile global 兼容，重新授权不会静默改变原范围。同名 Server 由不同连接管理时拒绝覆盖。
 - 已保存但尚未观察到检查结果的连接，以及 Host 暂时无法确认的 stdio 注册状态，现在明确显示“状态未知”；不再以“已配置”暗示连接可用。
 - JSON 脱敏导出会移除 Token、API Key、OAuth Grant、本地路径、Header/env 值与 stdio 参数；占位符未重填时整批拒绝导入。连接配置、导入、启停或断开失败时不保留无效快照。
 
 ### Documentation
 
+- 新增 project/global 作用域文档，说明继承、Host 强制执行、凭据单份存储、同名 Server 冲突、Workspace 删除和失败回滚边界。
 - 补充兼容矩阵、插件/Host/MCP Server 责任边界、当前限制与按诊断代码排障入口；工具试运行明确等待 DSH 官方执行、权限与审批 API。
 - 补充脱敏矩阵、快照存储边界、原子恢复流程，以及服务端 OAuth 撤销不可由本机快照逆转的责任边界。
 - 补充三层策略优先级、Host 强制执行、未知工具状态、失效规则和回滚边界。
@@ -25,7 +29,7 @@
 
 ### Verification
 
-- 179 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
+- 189 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
 
 ## [0.2.32] - 2026-08-31
 
