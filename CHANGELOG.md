@@ -19,6 +19,10 @@
 - 已保存但尚未观察到检查结果的连接，以及 Host 暂时无法确认的 stdio 注册状态，现在明确显示“状态未知”；不再以“已配置”暗示连接可用。
 - JSON 脱敏导出会移除 Token、API Key、OAuth Grant、本地路径、Header/env 值与 stdio 参数；占位符未重填时整批拒绝导入。连接配置、导入、启停或断开失败时不保留无效快照。
 
+### Fixed
+
+- 客户端入口移除对 Host 版本特有的 Store、Runtime 和 UI Primitives 模块依赖；弹窗状态改用内置标准 Slot Store contract，避免 Windows Desktop 模块表差异导致插件树加载失败并进入 Safe Mode。
+
 ### Documentation
 
 - 新增 project/global 作用域文档，说明继承、Host 强制执行、凭据单份存储、同名 Server 冲突、Workspace 删除和失败回滚边界。
@@ -29,7 +33,7 @@
 
 ### Verification
 
-- 189 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
+- 190 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
 
 ## [0.2.32] - 2026-08-31
 

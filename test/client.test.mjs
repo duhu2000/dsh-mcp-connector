@@ -8,7 +8,6 @@ async function loadClient({
   reactDomApi = { createPortal() {} },
   jsxRuntime = { jsx() {}, jsxs() {} },
   windowExtras = {},
-  storeModule = 'runtime',
   sourceTransform = (source) => source,
 } = {}) {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
@@ -26,13 +25,6 @@ async function loadClient({
           if (id === 'react/jsx-runtime') return jsxRuntime;
           if (id === 'react') return reactApi;
           if (id === 'react-dom') return reactDomApi;
-          if (id === '@deepseek-ai/dsh-client-store' && storeModule === 'store') {
-            return { defineStore: (definition) => definition };
-          }
-          if (id === '@deepseek-ai/dsh-client-runtime/client' && storeModule === 'runtime') {
-            return { defineStore: (definition) => definition };
-          }
-          if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Button() {} };
           throw new Error(`unexpected client import: ${id}`);
         });
       },
@@ -94,10 +86,32 @@ test('客户端声明新会话所需服务', async () => {
   assert.deepEqual(plugin.inject, ['slots', 'sessions', 'workspaces', 'conversation']);
 });
 
-test('客户端 Store 兼容 Alpha.1 新模块与 0.1.1 旧模块', async () => {
-  await assert.doesNotReject(() => loadClient({ storeModule: 'store' }));
-  await assert.doesNotReject(() => loadClient({ storeModule: 'runtime' }));
-  await assert.rejects(() => loadClient({ storeModule: 'missing' }), /DSH client store is unavailable/);
+test('客户端入口不依赖 Host 版本特有的 Store、Runtime 或 UI Primitives 模块', async () => {
+  await assert.doesNotReject(() => loadClient());
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /require\("@deepseek-ai\/dsh-client-(?:store|runtime|ui-primitives)/);
+});
+
+test('内置弹框 Store 实现标准快照、订阅与动作 contract', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const handle = registrations.get('shell.overlay').options.store;
+  const instance = handle.create();
+  let changes = 0;
+  const unsubscribe = instance.subscribe(() => { changes += 1; });
+
+  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false });
+  instance.actions.open();
+  instance.actions.detailOpened();
+  assert.deepEqual(instance.getSnapshot(), { open: true, detailOpen: true });
+  instance.actions.close();
+  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false });
+  assert.equal(changes, 3);
+  unsubscribe();
+  instance.actions.open();
+  assert.equal(changes, 3);
+  assert.doesNotThrow(() => instance.clearPersisted());
 });
 
 test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与底部降级', async () => {
