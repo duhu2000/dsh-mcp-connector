@@ -32,16 +32,14 @@ test('bundle patch uses the same jsDelivr primary catalog source', () => {
   assert.doesNotMatch(patch, /catalogUrl:\s*['"]https:\/\/raw\.githubusercontent\.com/);
 });
 
-test('client bundle uses the host-version store baseline without impossible dynamic externals', () => {
+test('client bundle is self-contained across Host store/runtime module layouts', () => {
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const clientSource = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
-  const storeSpecifier = '@deepseek-ai/dsh-client-store';
-  const runtimeSpecifier = '@deepseek-ai/dsh-client-runtime/client';
 
-  assert.match(clientSource, new RegExp(`require\\(\"${storeSpecifier}\"\\)`));
-  assert.match(clientSource, new RegExp(`require\\(\"${runtimeSpecifier}\"\\)`));
-  assert.match(clientSource, /catch \(storeError\)/);
+  assert.doesNotMatch(clientSource, /require\("@deepseek-ai\/dsh-client-(?:store|runtime|ui-primitives)/);
   assert.equal(packageJson.dsh.client.external, undefined);
   assert.ok(!packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-runtime'));
+  assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-store'], undefined);
+  assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-ui-primitives'], undefined);
   assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-runtime'], undefined);
 });
