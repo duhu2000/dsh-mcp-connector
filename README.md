@@ -112,6 +112,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 - [用户手册：安装、授权、诊断、兼容性与故障排查](docs/USER-GUIDE.md)
 - [配置备份：脱敏导出、快照与恢复边界](docs/CONFIG-BACKUP.md)
 - [连接、Server 与 Tool 治理](docs/TOOL-GOVERNANCE.md)
+- [工具试运行：官方 API 证据与安全设计](docs/TOOL-TRIAL-DESIGN.md)
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
 - [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
@@ -185,7 +186,7 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - 脱敏导出把 Token/API Key、静态 Header/env 值、stdio 参数、本地目录及带查询参数的 URL 替换为占位符；OAuth 只保留重新授权引用。快照中的完整配置仍只在当前 profile 的 storage domain 内。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。
-- 当前没有 project/global 作用域切换或工具试运行；治理规则作用于当前 profile，并由 DSH Host 正式工具执行链强制应用。快照不能恢复服务端已撤销的 OAuth Grant。
+- 当前没有 project/global 作用域切换或工具试运行；治理规则作用于当前 profile，并由 DSH Host 正式工具执行链强制应用。试运行已完成官方 API 复核，但在 out-of-turn 审批编排和 MCP 副作用元数据缺口补齐前保持 design blocked。快照不能恢复服务端已撤销的 OAuth Grant。
 
 ## License
 

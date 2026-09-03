@@ -109,6 +109,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 
 - [User guide: installation, authorization, diagnostics, compatibility, and troubleshooting](docs/USER-GUIDE.md)
 - [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)
+- [Tool trial: official API evidence and safety design](docs/TOOL-TRIAL-DESIGN.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
@@ -184,7 +185,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - OAuth DCR client secrets share the same local-only boundary as access and refresh tokens and are omitted from catalog/status responses and logs.
 - Redacted exports replace tokens, API keys, static header/env values, stdio arguments, local directories, and URLs containing query/user information with explicit placeholders. OAuth entries contain only a reconnect reference; full snapshots remain inside the current profile's storage domain.
 - The primary sidebar placement uses the stable DSH `data-slot` marker and falls back to the footer if that marker is removed.
-- Project/global scope selection and tool trials are not implemented. Governance is profile-scoped and enforced in the DSH Host execution path. A local snapshot cannot recreate a server-side OAuth grant after revocation.
+- Project/global scope selection and tool trials are not implemented. Governance is profile-scoped and enforced in the DSH Host execution path. The tool-trial design now records the official API evidence, but remains blocked until DSH exposes safe out-of-turn approval orchestration and the MCP bridge preserves side-effect metadata. A local snapshot cannot recreate a server-side OAuth grant after revocation.
 
 ## License
 
