@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.34] - 2026-09-04
+
 ### Added
 
 - 用户自建连接可对 RFC1918 IPv4 / RFC4193 IPv6 ULA 字面量显式授权明文 HTTP；默认仍拒绝，公网 HTTP、域名、链路本地与元数据地址不受该开关影响。
@@ -536,7 +538,10 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.31...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...HEAD
+[0.2.34]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.33...v0.2.34
+[0.2.33]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.32...v0.2.33
+[0.2.32]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.31...v0.2.32
 [0.2.31]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.30...v0.2.31
 [0.2.30]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.29...v0.2.30
 [0.2.29]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.28...v0.2.29
