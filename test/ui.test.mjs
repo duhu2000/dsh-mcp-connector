@@ -78,6 +78,15 @@ test('手动配置支持 stdio 并区分 URL 与本地进程字段', () => {
   assert.match(uiSource, /Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具/);
 });
 
+test('局域网明文 HTTP 需用户显式确认且告知限定范围', () => {
+  assert.match(uiSource, /id="cfg-allow-insecure-lan" type="checkbox"/);
+  assert.match(uiSource, /接受 HTTP 传输可被同网段监听或篡改的风险/);
+  assert.match(uiSource, /10\/8、172\.16\/12、192\.168\/16 和 IPv6 ULA/);
+  assert.match(uiSource, /allowInsecurePrivateNetwork: transport !== 'stdio'/);
+  assert.match(uiSource, /private-network HTTP requires explicit confirmation/);
+  assert.match(uiSource, /局域网 HTTP 风险已确认/);
+});
+
 test('连接、健康检查与工具加载均有有限超时和可重试提示', () => {
   assert.match(uiSource, /const API_TIMEOUTS = \{/);
   assert.match(uiSource, /connect: 145_000/);

@@ -113,6 +113,23 @@ test('normalizeJsonImport: connections 格式 api-key', () => {
   assert.equal(records[0].auth.apiKeyValue, 'v1');
 });
 
+test('normalizeJsonImport: 局域网 HTTP 必须按条目显式授权', () => {
+  assert.throws(
+    () => normalizeJsonImport({ mcpServers: { lan: { url: 'http://192.168.31.138:8188/mcp' } } }),
+    /explicit confirmation/,
+  );
+  const { records } = normalizeJsonImport({
+    mcpServers: {
+      lan: {
+        url: 'http://192.168.31.138:8188/mcp',
+        allowInsecurePrivateNetwork: true,
+      },
+    },
+  });
+  assert.equal(records[0].url, 'http://192.168.31.138:8188/mcp');
+  assert.equal(records[0].allowInsecurePrivateNetwork, true);
+});
+
 test('normalizeJsonImport: stdio 透传 + 缺 url 跳过', () => {
   const { records, skipped } = normalizeJsonImport({
     mcpServers: {
@@ -201,6 +218,17 @@ test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
     ...base, transport: 'stdio', command: 'uvx', auth: { mode: 'bearer', bearerToken: 'must-not-pass' },
   });
   assert.equal(staleAuth.auth, undefined);
+  const lan = normalizeConnectionRecord({
+    ...base,
+    transport: 'streamable-http',
+    url: 'http://10.0.0.8/mcp',
+    allowInsecurePrivateNetwork: true,
+  });
+  assert.equal(lan.allowInsecurePrivateNetwork, true);
+  assert.throws(
+    () => normalizeConnectionRecord({ ...base, transport: 'streamable-http', url: 'http://10.0.0.8/mcp' }),
+    /explicit confirmation/,
+  );
 });
 
 test('buildManualRecord: bearer / api-key / none', () => {
@@ -213,8 +241,20 @@ test('buildManualRecord: bearer / api-key / none', () => {
   assert.equal(none.auth, undefined);
 });
 
-test('buildManualRecord: 拒绝非 https 且非回环 http', () => {
+test('buildManualRecord: 局域网 HTTP 默认拒绝，仅显式授权的私有 IP 字面量放行', () => {
+  assert.throws(() => buildManualRecord({ name: 'LAN', url: 'http://192.168.31.138:8188/mcp' }), /explicit confirmation/);
+  const lan = buildManualRecord({
+    name: 'LAN',
+    url: 'http://192.168.31.138:8188/mcp',
+    allowInsecurePrivateNetwork: true,
+  });
+  assert.equal(lan.allowInsecurePrivateNetwork, true);
+  assert.equal(lan.url, 'http://192.168.31.138:8188/mcp');
+  const ula = buildManualRecord({ name: 'ULA', url: 'http://[fd12::8]/mcp', allowInsecurePrivateNetwork: true });
+  assert.equal(ula.allowInsecurePrivateNetwork, true);
   assert.throws(() => buildManualRecord({ name: 'A', url: 'http://evil.example.com/stream' }), /protocol/);
+  assert.throws(() => buildManualRecord({ name: 'A', url: 'http://evil.example.com/stream', allowInsecurePrivateNetwork: true }), /protocol/);
+  assert.throws(() => buildManualRecord({ name: 'Link local', url: 'http://169.254.169.254/latest', allowInsecurePrivateNetwork: true }), /protocol/);
   assert.throws(() => buildManualRecord({ name: 'A', url: 'ftp://x/stream' }), /protocol|invalid url/);
 });
 

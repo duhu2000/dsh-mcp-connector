@@ -180,11 +180,12 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - 凭证只持久化在本机 DSH storage 边界：连接记录使用 storage domain，OAuth 轮换凭据同步保存到 `$DSH_HOME/storages/mcp_connector_grants_v1`。该目录为 0700、文件为 0600；凭证不进入市场目录、Git 仓库、页面、日志或对话历史。
 - 市场 Key/Token 校验失败时不写入 storage domain；鉴权、超时、DNS、TLS/网络错误会分类提示。
 - 未检查或 Host 状态不可见时显示“状态未知”，不会冒充健康；健康摘要与最近成功时间当前只保留在插件进程内。
-- 外部 URL 仅允许 HTTPS，HTTP 仅允许回环地址；导入配置会校验 URL 与 Header。
+- 外部 URL 默认仅允许 HTTPS，HTTP 默认仅允许回环地址。用户自建连接可在明确风险确认后放行 RFC1918 IPv4 / RFC4193 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍拒绝。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
 - 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
 - stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录只能用 `credentialFields` + `credentialBindings` 声明输入与 env 映射，不得携带真实 token/secret；用户填写值只写入本机连接记录并交给 Host。
 - OAuth DCR 的 `client_secret` 与 Access/Refresh Token 采用相同的本机存储边界，不会进入市场 API、状态输出或日志。
+- OAuth 连接失败会标明资源发现、服务发现、客户端注册、授权回调或 Token 换取阶段；DCR HTTP 403 表示服务商拒绝未准入客户端，不是用户未点击授权。
 - 脱敏导出把 Token/API Key、静态 Header/env 值、stdio 参数、本地目录及带查询参数的 URL 替换为占位符；OAuth 只保留重新授权引用。快照中的完整配置仍只在当前 profile 的 storage domain 内。
 - 顶部入口通过 DSH 稳定 `data-slot` 定位并使用 React Portal；DSH 若移除该标记，入口会回退到底部，不影响连接器功能。
 - 旧授权迁移必须显式确认，只复制不删除；确认新连接可用后再手动停用旧插件。

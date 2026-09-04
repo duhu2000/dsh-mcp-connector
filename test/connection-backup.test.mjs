@@ -84,6 +84,16 @@ test('脱敏导出可回填凭据后再次导入，未回填时整体拒绝', ()
   });
 });
 
+test('脱敏导出保留局域网 HTTP 的显式授权标记', () => {
+  const exported = exportRedactedConnections([
+    record({ url: 'http://192.168.31.138:8188/mcp', allowInsecurePrivateNetwork: true }),
+  ]);
+  assert.equal(exported.connections[0].allowInsecurePrivateNetwork, true);
+  const { records } = normalizeJsonImport(exported);
+  assert.equal(records[0].allowInsecurePrivateNetwork, true);
+  assert.equal(records[0].url, 'http://192.168.31.138:8188/mcp');
+});
+
 test('快照公开摘要只暴露恢复范围与 OAuth 可恢复性', () => {
   const snapshot = {
     key: 'snapshot-1',

@@ -386,6 +386,8 @@
   .field-help a:hover { text-decoration: underline; }
   .form-note { color: var(--text-2); background: var(--accent-light); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 11px; line-height: 1.55; }
   .form-note strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 2px; }
+  .modal .insecure-network-consent { display: flex; align-items: flex-start; gap: 8px; color: var(--warn); line-height: 1.45; }
+  .modal .insecure-network-consent input { width: auto; margin: 2px 0 0; padding: 0; flex: 0 0 auto; }
   .server-preview { max-height: 132px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
   .server-preview div { padding: 7px 10px; border-top: 1px solid var(--line); color: var(--text-2); font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
   .server-preview div:first-child { border-top: 0; }
@@ -1091,13 +1093,14 @@
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
     const healthBadge = `<span class="badge ${healthClass}">${esc(healthLabels[r.connectionState] || '状态未知')}</span>`;
     const scopeBadge = `<span class="badge">${esc(r.scope?.label || '全局')}</span>`;
+    const insecureNetworkBadge = r.insecurePrivateNetwork === true ? '<span class="badge partial">局域网 HTTP 风险已确认</span>' : '';
     const enabled = r.enabled !== false;
     const diagnostic = r.diagnostic
       ? `<div class="rdiag">${esc(r.diagnostic.stageLabel || r.diagnostic.stage)} · ${esc(r.diagnostic.code)}：${esc(r.diagnostic.message)}；建议：${esc(r.diagnostic.action)}${r.lastSuccessfulAt ? `；最近成功：${esc(new Date(r.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}</div>`
       : '';
     return `<div class="row" data-key="${key}">
       <div class="info">
-        <div class="rname">${esc(r.name)} ${authMode} ${healthBadge} ${scopeBadge}</div>
+        <div class="rname">${esc(r.name)} ${authMode} ${healthBadge} ${scopeBadge} ${insecureNetworkBadge}</div>
         <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.endpoint || r.url || '')}</div>
         ${diagnostic}
       </div>
@@ -1113,7 +1116,8 @@
   function guidanceFor(message) {
     const text = String(message || '未知错误');
     const withAdvice = (advice) => `${text.replace(/[。！？.!?\s]+$/, '')}。${advice}`;
-    if (/protocol not allowed|only https/i.test(text)) return withAdvice('公网地址必须使用 HTTPS；HTTP 只允许 localhost/127.0.0.1。');
+    if (/private-network HTTP requires explicit confirmation/i.test(text)) return withAdvice('如目标是可信的局域网私有 IP，请勾选明文 HTTP 风险确认；请勿对公网或不可信服务开启。');
+    if (/protocol not allowed|only https/i.test(text)) return withAdvice('公网地址必须使用 HTTPS；HTTP 只允许回环地址，或经显式确认的私有 IP 字面量。');
     if (/JSON/i.test(text)) return withAdvice('请检查引号、逗号，并确认顶层是 mcpServers 或 connections。');
     if (/401|403|token|凭据|api.?key/i.test(text)) return withAdvice('请核对鉴权方式、Token/API Key 是否有效以及 Header 名。');
     if (/timeout|timed out|fetch|连接|network/i.test(text)) return withAdvice('请检查网络、端点是否可达以及 MCP URL 是否完整。');
@@ -1224,7 +1228,7 @@
       openModal('添加 MCP 连接', `${addTabs(mode)}
         <div class="field-label-row"><label for="import-json">粘贴 MCP JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
         <textarea id="import-json" rows="8" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
-        <div class="field-help">支持 <code>mcpServers</code> 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。</div>
+        <div class="field-help">支持 <code>mcpServers</code> 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。私有 IP 明文 HTTP 必须在对应条目显式设置 <code>"allowInsecurePrivateNetwork": true</code>。</div>
         ${scopeFieldHtml()}
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
@@ -1250,6 +1254,8 @@
       <label for="cfg-transport">传输方式</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">Streamable HTTP（兼容 SSE）</option><option value="stdio">stdio（本地进程）</option></select>
       <div id="cfg-http-fields">
         <label for="cfg-url">MCP URL（必填）</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+        <label class="insecure-network-consent" for="cfg-allow-insecure-lan"><input id="cfg-allow-insecure-lan" type="checkbox" />我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。</label>
+        <div class="field-help">仅放行 10/8、172.16/12、192.168/16 和 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍会被拒绝。</div>
         <label for="cfg-auth">鉴权方式</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>无鉴权</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
         <div id="cfg-bearer"><label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在本机" /></div>
         <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在本机" /></div></div>
@@ -1509,6 +1515,7 @@
         name, url: url || undefined, serverName, headersJson,
         transport, command: command || undefined, args, envJson, cwd: $('#cfg-cwd')?.value.trim() || undefined,
         authMode: transport === 'stdio' ? 'none' : authMode,
+        allowInsecurePrivateNetwork: transport !== 'stdio' && $('#cfg-allow-insecure-lan')?.checked === true,
         bearerToken: $('#cfg-token')?.value || undefined,
         apiKeyHeader: $('#cfg-key-header')?.value || undefined,
         apiKeyValue: $('#cfg-key-value')?.value || undefined,

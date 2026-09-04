@@ -75,7 +75,7 @@ Bearer/API Key 连接器会先执行 MCP `initialize` 验证。所有 Server 通
 
 stdio 市场卡片也可能显示一个或多个凭据字段，例如 API Token、区域或租户标识。卡片目录只声明字段名称及其环境变量映射；提交后，真实值仅保存到 DSH 本机连接记录，并由插件注入该 stdio 进程的 `env`。市场、状态页和日志不会返回这些值。插件会等待 Host 完成首次 MCP 初始化与工具同步后再保存连接；失败或超时不会增加已安装数量，卡片也不会提前显示“已连接”。
 
-OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据发现。动态客户端注册既支持无需客户端密钥的 `none`，也支持服务商签发密钥的 `client_secret_post` 与 `client_secret_basic`。客户端密钥仅与 OAuth Grant 一同保存在 DSH 本机，用于换取、刷新和撤销 Token；插件不会要求用户把 OAuth Token 或客户端密钥复制到聊天中。
+OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据发现。动态客户端注册既支持无需客户端密钥的 `none`，也支持服务商签发密钥的 `client_secret_post` 与 `client_secret_basic`。客户端密钥仅与 OAuth Grant 一同保存在 DSH 本机，用于换取、刷新和撤销 Token；插件不会要求用户把 OAuth Token 或客户端密钥复制到聊天中。如服务商在动态客户端注册阶段返回 HTTP 403，页面会明确提示“客户端注册被拒绝、尚未进入浏览器授权”；这通常需要服务商审核或登记客户端，重试用户授权无法绕过。
 
 当市场描述声明 `grantSharing: "issuer"` 时，同一账号下相同 issuer、scope 和客户端鉴权方式的卡片共享一组 Grant。首次授权仍只启用用户点击的卡片；之后连接同组卡片会直接复用现有授权，不再重复打开 OAuth 页面。升级时会验证并自动归并旧版本留下的同 issuer 多份 Grant；Desktop 与 `dsh web` 并发时，插件使用跨进程锁串行轮换，并从每 Grant 独立原子日志读取最新 Token，避免 DSH 整文件 storage 的旧进程快照覆盖新凭据。网络、OAuth 元数据发现或服务端 5xx 等暂时故障只进入“自动重试中”；确认 journal 中也没有更新 Token，且明确收到 Refresh Token/客户端失效错误时，才进入“需重新授权”。
 
@@ -120,11 +120,11 @@ OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据�
 }
 ```
 
-导入前请把示例占位符替换为自己的值。凭据只应在本机导入，不要把含真实 Token、API Key、密码或 Cookie 的 JSON 提交到 Git、Issue 或聊天。
+导入前请把示例占位符替换为自己的值。凭据只应在本机导入，不要把含真实 Token、API Key、密码或 Cookie 的 JSON 提交到 Git、Issue 或聊天。导入私有 IP 的明文 HTTP 端点时，必须在对应 Server 条目中显式增加 `"allowInsecurePrivateNetwork": true`；该标记会跟随脱敏导出保留。
 
 ### 6.2 手动配置
 
-- **HTTP**：填写名称、HTTPS MCP URL、可选 Header 和传输方式。
+- **HTTP**：填写名称、HTTPS MCP URL、可选 Header 和传输方式。回环 HTTP 可直接使用；局域网私有 IP 明文 HTTP 需勾选风险确认。
 - **stdio**：填写本机命令、参数、环境变量和可选工作目录。
 
 stdio 进程由 `@deepseek-ai/dsh-mcp-client` 管理，插件透传 `command`、`args`、`env`、`cwd`，并等待 Host 完成首次 MCP 初始化和工具同步。stdio 会以当前用户权限启动本机进程，只运行你信任的软件包和命令。手动 HTTP 配置也会在保存前执行 `initialize` 校验；验证失败时表单内容仍保留，且不会生成无效连接记录。
@@ -220,7 +220,7 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 - 凭据仅保存在 DSH storage domain，不进入市场目录、Git 仓库或对话历史。
 - stdio 目录只能声明凭据字段与 env 映射，不能给出真实值；Registry 探针不会执行目录中的本地命令。
 - OAuth 动态注册返回的 `client_secret` 不出现在目录、连接状态或日志中；断开连接时与 Refresh Token 一起尽力撤销并删除本机记录。
-- 外部 HTTP 地址必须使用 HTTPS；仅本机回环开发地址允许 HTTP。
+- 外部地址默认必须使用 HTTPS，本机回环地址允许 HTTP。用户自建连接只有在显式确认风险后，才允许 RFC1918 IPv4（`10/8`、`172.16/12`、`192.168/16`）或 RFC4193 IPv6 ULA 字面量使用明文 HTTP。域名、公网 HTTP、链路本地与云元数据地址仍拒绝；开启后凭据和工具数据可能被同网段监听或篡改。
 - Registry 健康探针不持有用户凭据，也绝不会执行目录里的 stdio 命令。
 - 连接器能看到的数据和能执行的操作取决于你授予的账户权限；优先使用最小权限 Token/API Key。
 - 生成、付费、写入、发布、删除、停止任务等有副作用的工具，应在执行前再次确认参数和影响。
