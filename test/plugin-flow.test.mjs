@@ -212,6 +212,44 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   await oauth.close();
 });
 
+test('OAuth DCR 403 明确识别客户端准入阶段，不误导用户重试浏览器授权', { timeout: 15000 }, async () => {
+  const oauth = await createMockQccServer({ registrationFailureStatus: 403 });
+  const { ctx, tools, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const connector = {
+    id: 'oauth-dcr-forbidden',
+    name: 'OAuth 准入测试',
+    category: '开发工具',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'unapproved-client' },
+    servers: [{
+      serverKey: 'company',
+      url: `${oauth.base}/mcp/company/stream`,
+      serverName: 'oauth-dcr-forbidden',
+      transport: 'streamable-http',
+      headers: {},
+    }],
+  };
+
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const result = await tools.defs.get('mcp_connector_connect').execute(
+      { connectorId: connector.id },
+      { signal: undefined },
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.detail.kind, 'oauth-client-registration-rejected');
+    assert.equal(result.detail.stage, 'client-registration');
+    assert.equal(result.detail.code, 'oauth-dcr-forbidden');
+    assert.equal(result.detail.httpStatus, 403);
+    assert.match(result.message, /客户端注册被服务商拒绝/);
+    assert.match(result.message, /尚未进入浏览器授权/);
+    assert.doesNotMatch(JSON.stringify({ result, logs }), /client is not on the approved catalog/);
+    assert.equal(logs.some((line) => line.includes('opening authorization page:')), false);
+  } finally {
+    await oauth.close();
+  }
+});
+
 test('OAuth DCR client_secret_post/basic：换取、刷新和撤销均使用动态客户端密钥且不对外泄露', { timeout: 30000 }, async () => {
   for (const tokenEndpointAuthMethod of ['client_secret_post', 'client_secret_basic']) {
     const oauth = await createMockQccServer({

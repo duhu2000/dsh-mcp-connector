@@ -43,6 +43,7 @@ function readBody(req) {
  * @param {boolean} [options.uniqueClientIds=false] 每次动态注册签发不同 client_id，用于验证重新授权后的旧 grant 清理
  * @param {'none'|'client_secret_post'|'client_secret_basic'} [options.tokenEndpointAuthMethod='none'] DCR 返回的客户端鉴权方式
  * @param {number} [options.refreshFailures=0] 前 N 次刷新返回暂时性 server_error
+ * @param {number} [options.registrationFailureStatus=0] DCR 固定返回的失败 HTTP 状态（用于客户端准入回归）
  */
 export function createMockQccServer({
   expiresIn = 3600,
@@ -50,6 +51,7 @@ export function createMockQccServer({
   uniqueClientIds = false,
   tokenEndpointAuthMethod = 'none',
   refreshFailures = 0,
+  registrationFailureStatus = 0,
 } = {}) {
   const state = {
     clientId: 'wb_dyn_mock_0001',
@@ -142,6 +144,9 @@ export function createMockQccServer({
 
     // ── 动态注册 ──
     if (pathname === '/oauth/register' && req.method === 'POST') {
+      if (registrationFailureStatus > 0) {
+        return oauthError(res, 'access_denied', 'client is not on the approved catalog', registrationFailureStatus);
+      }
       const body = JSON.parse((await readBody(req)) || '{}');
       if (!body.client_name || !Array.isArray(body.redirect_uris) || body.redirect_uris.length === 0) {
         return oauthError(res, 'invalid_client_metadata', 'client_name and redirect_uris are required');
