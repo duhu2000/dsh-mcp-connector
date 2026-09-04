@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.33] - 2026-09-04
+
 ### Added
 
 - 新增 Workspace project / profile global 连接作用域：新连接明确选择目标，已有连接可先预览 Server/工具影响，再复制、移动或按 revision 回滚。
