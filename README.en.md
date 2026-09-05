@@ -66,7 +66,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
 
 <!-- catalog-stats:start -->
-As of 2026-09-04, the public Registry publishes 100 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 104 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
+As of 2026-09-05, the public Registry publishes 105 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 109 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
 <!-- catalog-stats:end -->
 
 ## Interface and demo
