@@ -119,13 +119,27 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.match(trySource, /openAddConnection\('manual', detailConnector\)/);
   assert.ok(trySource.indexOf("openAddConnection('manual', detailConnector)") < trySource.indexOf("call('connect'"));
   assert.match(uiSource, /configureConnect: '🔑 录入凭据并连接'/);
-  assert.match(uiSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
+  assert.match(uiSource, /showToast\(r\.message, true\); await refreshConnectionUi\(connectorId\)/);
   assert.match(uiSource, /正在验证凭据与连接…/);
   assert.match(uiSource, /detailNeedsReconfigure[\s\S]*?reconfigureCredential/);
   assert.match(uiSource, /detailConnector\?\.connected\?\.length > 0 && !detailNeedsReconfigure/);
   assert.match(uiSource, /当前连接异常/);
   assert.match(uiSource, /授权已失效/);
   assert.match(uiSource, /重新检查/);
+});
+
+test('连接成功后原地重载已打开的详情与工具清单', () => {
+  const connectSource = uiSource.match(/async connect\(connectorId\) \{[\s\S]*?\n    \},/)?.[0] ?? '';
+  const configureSource = uiSource.match(/async submitConfig\(\) \{[\s\S]*?\n    \},\n    async submitImport/)?.[0] ?? '';
+  const trySource = uiSource.match(/\$\('#detail-try-btn'\)\.addEventListener\('click', async \(\) => \{[\s\S]*?\n  \}\);/)?.[0] ?? '';
+  assert.match(uiSource, /async function refreshConnectionUi\(connectorId\)/);
+  assert.match(uiSource, /const reloadOpenDetail = isDetailOpenFor\(connectorId\)/);
+  assert.match(uiSource, /detailLoadId !== openDetailLoadId/);
+  assert.match(uiSource, /await window\.__mcp\.showDetail\(connectorId\)/);
+  assert.match(connectSource, /await refreshConnectionUi\(connectorId\)/);
+  assert.match(configureSource, /await refreshConnectionUi\(connectorId\)/);
+  assert.match(trySource, /await refreshConnectionUi\(id\)/);
+  assert.doesNotMatch(configureSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
 });
 
 test('未连接且无工具快照的市场卡片不误报连接异常', () => {

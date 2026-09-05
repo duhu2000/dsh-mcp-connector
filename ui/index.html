@@ -696,6 +696,18 @@
     setDetailOpen(false);
   }
 
+  function isDetailOpenFor(connectorId) {
+    return detailConnector?.id === connectorId && $('#detail-overlay').classList.contains('active');
+  }
+
+  async function refreshConnectionUi(connectorId) {
+    const reloadOpenDetail = isDetailOpenFor(connectorId);
+    const openDetailLoadId = detailLoadId;
+    await refresh();
+    if (!reloadOpenDetail || detailLoadId !== openDetailLoadId || !isDetailOpenFor(connectorId)) return;
+    await window.__mcp.showDetail(connectorId);
+  }
+
   function promptVariableNames(text) {
     const names = [];
     const seen = new Set();
@@ -1337,7 +1349,7 @@
         markCommunityCtaEligible();
         closeModal();
         await call('healthCheck', { connectorId });
-        await refresh();
+        await refreshConnectionUi(connectorId);
       }
     },
     confirmConnect() {
@@ -1484,11 +1496,9 @@
         });
         setModalBusy(false);
         if (!r.ok) { showModalError(r.message); return; }
-        const configuredFromDetail = detailConnector?.id === connectorId && $('#detail-overlay').classList.contains('active');
         closeModal();
-        if (configuredFromDetail) closeDetail();
         markCommunityCtaEligible();
-        showToast(r.message, true); await refresh();
+        showToast(r.message, true); await refreshConnectionUi(connectorId);
         return;
       }
       const name = $('#cfg-name').value.trim();
@@ -1749,8 +1759,7 @@
         if (r.ok) {
           markCommunityCtaEligible();
           await call('healthCheck', { connectorId: id });
-          closeDetail();
-          await refresh();
+          await refreshConnectionUi(id);
         }
         return;
       }
