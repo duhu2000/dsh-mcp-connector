@@ -4,9 +4,15 @@
 
 ## [Unreleased]
 
+## [0.2.35] - 2026-09-05
+
 ### Fixed
 
 - 市场详情内完成免密连接、凭据配置或 OAuth 重新授权后，现在会原地重新读取连接状态与工具清单，并同步启用 Prompt 和试用按钮；用户在刷新期间主动关闭或切换详情时不会被强制重新打开。
+
+### Verification
+
+- 195 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
 
 ## [0.2.34] - 2026-09-04
 
@@ -542,7 +548,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...HEAD
+[0.2.35]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...v0.2.35
 [0.2.34]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.33...v0.2.34
 [0.2.33]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.32...v0.2.33
 [0.2.32]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.31...v0.2.32
