@@ -167,7 +167,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.34`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.34](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.34)。
+当前公开版本为 [`dsh-mcp-connector@0.2.35`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.35](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.35)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

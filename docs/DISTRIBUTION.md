@@ -1,6 +1,6 @@
 # DSH MCP Connector Distribution Ledger
 
-Last updated: 2026-09-04 (Asia/Shanghai)
+Last updated: 2026-09-05 (Asia/Shanghai)
 
 This document is the source of truth for external distribution of
 [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector).
@@ -15,7 +15,7 @@ the same upstream data source.
 | Product | MCP Connector / MCP连接器 |
 | Repository | [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector) |
 | npm package | [`dsh-mcp-connector`](https://www.npmjs.com/package/dsh-mcp-connector) |
-| Current release | `0.2.34` |
+| Current release | `0.2.35` |
 | License | MIT |
 | GitHub discovery topic | `dsh-plugin` |
 | Plugin type | DSH client plugin, MCP connection manager, and connector marketplace |
@@ -109,7 +109,7 @@ the destination schema without changing the product identity.
 
 - Repository: `https://github.com/duhu2000/dsh-mcp-connector`
 - npm: `https://www.npmjs.com/package/dsh-mcp-connector`
-- Release: `0.2.34`
+- Release: `0.2.35`
 - License: MIT
 - Category preference: `Integrations & Connectors`; otherwise
   `Plugins & Runtime`, `Integration`, or `Plugin Markets & Managers`
