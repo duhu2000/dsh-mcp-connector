@@ -13,32 +13,32 @@
   "screenshots": [
     {
       "path": "docs/screenshots/01-market-overview.jpg",
-      "sha256": "bf9973a1d0cd03fe7b284a5667fde3ea12d983e1ed9a3bdaaf008978d1cfaf93",
+      "sha256": "9c9bc1c6f9e5b247c71ce283b86895b9e971f6283dc6eabaa9dbb1c42ae408c3",
       "width": 1280,
       "height": 720
     },
     {
       "path": "docs/screenshots/02-connector-detail.jpg",
-      "sha256": "4cf2cf295f9f3ffb916de6c21c3114136fd1af4f92b44df59344dcd3b41e8884",
+      "sha256": "dbb7a1493378c30e743dd77c8a35c1779f443a2f8b720871de1efc61ee54eb27",
       "width": 1280,
       "height": 720
     },
     {
       "path": "docs/screenshots/03-tool-discovery.jpg",
-      "sha256": "642c9535dde9b968860cbcf689809acf22e24bbda1faf109f151844aec95d449",
+      "sha256": "5eeb896db75a5f141a8463f128f7733ffe89af6a447cecb2d1b19f8287a3e1ec",
       "width": 1280,
       "height": 720
     },
     {
       "path": "docs/screenshots/04-json-import.jpg",
-      "sha256": "98700c4b0aaacd24b565db3e226faab05af096ec4a053704b4d6ae202282280e",
+      "sha256": "de0a87cc7f247fad40ac37188f5a1d026f4087571e98d64595e80f8bcd9410be",
       "width": 1280,
       "height": 720
     }
   ],
   "demo": {
     "path": "docs/demo.gif",
-    "sha256": "939109678b922f70a262830fcfc5abb1ecd530e80919b85f8e87dfd84381a7fc",
+    "sha256": "c9a84ce9c164c1b9f846f8b5a65afd8dd5c49741c9dfc530f1ad766e47b3d2b6",
     "width": 960,
     "height": 540,
     "durationSeconds": 16
