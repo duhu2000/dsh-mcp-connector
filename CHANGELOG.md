@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.36] - 2026-09-06
+
 ### Changed
 
 - “企查查·文档报告”更名为“企查查·智能文档解析”，产品说明、搜索标签、官网入口和示例 Prompt 调整为 OCR、文档结构化解析及 Markdown 输出场景。
@@ -13,6 +15,11 @@
 
 - 市场目录会比较已安装连接与卡片声明的 Server；旧版本仅安装远程入口时显示“补充本地解析”，凭据失效时显示“重新配置凭据”，不再误报完整连接或提示 OAuth 重新授权。
 - 配置页明确区分智能文档解析 API Key 与旧版企查查 OAuth 登录令牌，避免本地上传网关返回 `200215` 身份认证失败。
+
+### Verification
+
+- 196 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过。
+- 远端 `qcc-document` 已用公开 PDF 完成真实解析；本地 `qcc-document-mcp` 已完成 stdio 启动和工具注册验证，并确认旧 OAuth Token 会被上传网关按预期拒绝，必须改用智能文档解析 API Key。
 
 ## [0.2.35] - 2026-09-05
 
@@ -558,7 +565,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...HEAD
+[0.2.36]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...v0.2.36
 [0.2.35]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...v0.2.35
 [0.2.34]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.33...v0.2.34
 [0.2.33]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.32...v0.2.33
