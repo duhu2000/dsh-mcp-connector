@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.37] - 2026-09-06
+
 ### Changed
 
 - “企查查·智能文档解析”改为 OAuth 2.0 PKCE 一键授权，一次授权同时启用远程在线 URL 与本地文件解析两个 Server；无需再手工复制 API Key。
@@ -578,7 +580,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...HEAD
+[0.2.37]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...v0.2.37
 [0.2.36]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...v0.2.36
 [0.2.35]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...v0.2.35
 [0.2.34]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.33...v0.2.34
