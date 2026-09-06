@@ -521,7 +521,7 @@
     reauthorize: '需重新授权', recovering: '自动重试中', connectionError: '连接异常', partialError: '部分异常', disabled: '已停用',
     send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
     connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
-    reconfigureCredential: '🔑 重新配置凭据', loading: '加载中…',
+    reconfigureCredential: '🔑 重新配置凭据', completeSetup: '补充本地解析', loading: '加载中…',
   };
   const t = (key) => LABELS[key] || key;
   const MCP_JSON_EXAMPLE = JSON.stringify({
@@ -1059,13 +1059,21 @@
   function actionHtml(d) {
     const id = esc(d.id);
     const configured = d.connected?.length > 0;
+    const incomplete = configured && d.connectionComplete === false;
     const state = d.connectionState || (configured ? 'configured' : 'disconnected');
+    if (incomplete && ['bearer', 'api-key'].includes(d.authMode)) {
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.openConfig('${id}')">${t('completeSetup')}</button>`;
+    }
     if (configured) {
       if (state === 'healthy') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
       if (state === 'unknown') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('unknown')}</button>`;
       if (state === 'configured') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('configured')}</button>`;
       if (state === 'disabled') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('disabled')}</button>`;
-      if (state === 'reauth') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('reauthorize')}</button>`;
+      if (state === 'reauth') {
+        const credentialAuth = ['bearer', 'api-key'].includes(d.authMode);
+        const action = credentialAuth ? `window.__mcp.openConfig('${id}')` : `window.__mcp.showDetail('${id}')`;
+        return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();${action}">${credentialAuth ? t('reconfigureCredential') : t('reauthorize')}</button>`;
+      }
       if (state === 'recovering') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('recovering')}</button>`;
       if (state === 'degraded') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('partialError')}</button>`;
       if (state === 'unavailable') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-bad" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('connectionError')}</button>`;
@@ -1190,15 +1198,18 @@
         ? `<label for="cfg-token">${esc(credentialName)}（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
         : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
     const serverPreview = servers.map((server) => {
+      const modeLabel = server.transport === 'stdio' ? '本地 Agent · 本机文件' : '远程 Agent · 在线链接文档';
       const endpoint = server.transport === 'stdio'
         ? `stdio · ${server.command || ''} ${(server.args || []).join(' ')}`.trim()
         : server.url;
-      return `<div>${esc(server.serverName)} · ${esc(endpoint)}</div>`;
+      return `<div><strong>${esc(modeLabel)}</strong><br>${esc(server.serverName)} · ${esc(endpoint)}</div>`;
     }).join('');
+    const mixedDocumentModes = usesStdio && servers.some((server) => server.transport !== 'stdio');
     openModal(`配置 ${preset.name}`, `
       <input id="cfg-connector-id" type="hidden" value="${esc(preset.id)}" />
       <input id="cfg-auth" type="hidden" value="${esc(authMode)}" />
       <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一份 ${esc(credentialName)}；凭据仅保存在本机，不会写入市场目录。</div>
+      ${mixedDocumentModes ? '<div class="form-note"><strong>在线链接 + 本机文件同时启用</strong>远程入口解析公网可访问的 URL；本地入口读取对话中上传、粘贴或指定路径的文件并自动提交解析，需 Node.js 20+。</div>' : ''}
       <div class="server-preview">${serverPreview}</div>
       ${scopeFieldHtml()}
       ${credentialFields}
@@ -1591,14 +1602,17 @@
       const d = marketItems[connectorId];
       if (!d) return;
       detailConnector = d;
-      detailFailureState = d.connectionState || '';
-      detailNeedsReconfigure = ['reauth', 'recovering', 'unavailable'].includes(detailFailureState);
+      const incomplete = d.connected?.length > 0 && d.connectionComplete === false;
+      detailFailureState = incomplete ? 'incomplete' : (d.connectionState || '');
+      detailNeedsReconfigure = incomplete || ['reauth', 'recovering', 'unavailable'].includes(detailFailureState);
       const loadId = ++detailLoadId;
       $('#detail-icon').innerHTML = isImageIcon(d.icon)
         ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
         : `<span style="font-size:24px;">${esc(d.icon || '')}</span>`;
       $('#detail-name').textContent = d.name || '';
-      const initialStateLabel = d.connectionLabel || (d.connected?.length ? '已配置' : '未连接');
+      const initialStateLabel = incomplete
+        ? `待补充 ${d.missingServers?.length || 1} 个服务`
+        : (d.connectionLabel || (d.connected?.length ? '已配置' : '未连接'));
       $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${initialStateLabel} ${d.connected?.length || 0} 个服务` : `${initialStateLabel} ${d.connected?.length || 0} 个服务`;
       $('#detail-desc').textContent = d.description || d.summary || '';
       detailPrompts = (d.prompts || []).filter((prompt) => prompt?.text || prompt?.title);
@@ -1616,7 +1630,7 @@
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
       const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
       $('#detail-try-btn').textContent = detailNeedsReconfigure
-        ? d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
+        ? detailFailureState === 'incomplete' ? t('completeSetup') : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
         : d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry');
       if (!d.connected?.length && !d.toolsSnapshot?.length) {
         $('#tools-summary').textContent = '连接后查看工具';
@@ -1657,10 +1671,13 @@
         renderPromptPage();
         return;
       }
-      detailFailureState = toolsResult.detail?.connectionState || 'healthy';
-      detailNeedsReconfigure = false;
-      $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${detailFailureState === 'degraded' ? '部分服务可用' : '已连接'} ${d.connected?.length || 0} 个服务` : `${detailFailureState === 'degraded' ? '部分服务可用' : '已连接'} ${d.connected?.length || 0} 个服务`;
-      $('#detail-try-btn').textContent = t('try');
+      detailFailureState = incomplete ? 'incomplete' : (toolsResult.detail?.connectionState || 'healthy');
+      detailNeedsReconfigure = incomplete;
+      const connectedLabel = incomplete
+        ? `待补充 ${d.missingServers?.length || 1} 个服务`
+        : `${detailFailureState === 'degraded' ? '部分服务可用' : '已连接'} ${d.connected?.length || 0} 个服务`;
+      $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${connectedLabel}` : connectedLabel;
+      $('#detail-try-btn').textContent = incomplete ? t('completeSetup') : t('try');
       renderPromptPage();
       detailToolServers = toolsResult.detail?.servers || [];
       updateToolsSummary();
@@ -1748,6 +1765,10 @@
   });
   $('#detail-try-btn').addEventListener('click', async () => {
     if (detailNeedsReconfigure) {
+      if (detailFailureState === 'incomplete' && ['bearer', 'api-key'].includes(detailConnector?.authMode)) {
+        openAddConnection('manual', detailConnector);
+        return;
+      }
       if (detailFailureState === 'reauth' && ['bearer', 'api-key'].includes(detailConnector?.authMode)) {
         openAddConnection('manual', detailConnector);
         return;
