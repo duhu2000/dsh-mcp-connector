@@ -1258,6 +1258,63 @@ test('stdio 市场凭据绑定：多字段只在本机注入 env，目录和状�
   assert.doesNotMatch(JSON.stringify({ connect, configured, catalog, status, logs }), /stdio-local-secret/);
 });
 
+test('目录识别旧版单入口连接并提示补齐新增的本地文件 Server', async () => {
+  const now = Date.now();
+  const connections = makeTable();
+  await connections.put('qcc-document-document', {
+    key: 'qcc-document-document',
+    connectorId: 'qcc-document',
+    kind: 'manual',
+    name: '企查查·智能文档解析',
+    serverKey: 'document',
+    transport: 'streamable-http',
+    url: 'https://agent.qcc.com/mcp/document/stream',
+    serverName: 'qcc-document',
+    headers: {},
+    auth: { mode: 'api-key', apiKeyHeader: 'Authorization', apiKeyValue: 'Bearer existing-key' },
+    enabled: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  const shared = {
+    tables: new Map([
+      ['connections', connections],
+      ['grants', makeTable()],
+      ['catalog', makeTable()],
+    ]),
+  };
+  const connector = {
+    id: 'qcc-document',
+    name: '企查查·智能文档解析',
+    auth: {
+      mode: 'api-key',
+      apiKeyHeader: 'Authorization',
+      credentialFields: [{ key: 'authorization', label: 'Authorization', required: true, secret: true }],
+    },
+    servers: [
+      { serverKey: 'document', url: 'https://agent.qcc.com/mcp/document/stream', serverName: 'qcc-document', transport: 'streamable-http' },
+      {
+        serverKey: 'document-local', serverName: 'qcc-document-mcp', transport: 'stdio',
+        command: 'npx', args: ['-y', 'qcc-document-mcp'],
+        credentialBindings: { QCC_DOCUMENT_AUTHORIZATION: 'authorization' },
+      },
+    ],
+  };
+  const { ctx, tools } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig({ connectors: [connector] }));
+
+  const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'qcc-document' });
+  const item = catalog.detail.items[0];
+  assert.equal(item.connectionComplete, false);
+  assert.deepEqual(item.missingServers, [{
+    serverKey: 'document-local',
+    serverName: 'qcc-document-mcp',
+    transport: 'stdio',
+  }]);
+  assert.doesNotMatch(JSON.stringify(item), /existing-key/);
+});
+
 test('市场 Bearer 连接器一次填写凭据批量连接全部 Server', { timeout: 15000 }, async () => {
   const marketServer = createServer(async (req, res) => {
     for await (const _chunk of req) {}

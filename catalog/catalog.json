@@ -131,34 +131,50 @@
     },
     {
       "id": "qcc-document",
-      "name": "企查查·文档报告",
+      "name": "企查查·智能文档解析",
       "vendor": "企查查 Qichacha",
       "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
       "category": "效率工具",
-      "summary": "企业报告生成 / 文档分析",
-      "description": "基于企业数据自动生成分析报告、尽职调查文档，支持文档结构化解析与内容提取。",
-      "tags": ["文档", "报告", "分析"],
+      "summary": "本机文件 / 在线链接 · OCR 与结构化解析",
+      "description": "智能解析 PDF、图片等文档：远程入口处理公网可访问的在线链接，本地入口读取对话中上传、粘贴或指定路径的本机文件并自动提交解析，输出 Markdown 与结构化内容。本地入口需 Node.js 20+。",
+      "tags": ["智能文档解析", "OCR", "本机文件", "在线文档", "PDF", "图片", "Markdown"],
       "published": true,
       "featured": true,
-      "homepage": "https://open.qcc.com",
-      "promptVariables": [
-        { "name": "company", "label": "企业名称", "default": "小米科技有限责任公司", "placeholder": "例如：小米科技有限责任公司", "required": true }
-      ],
+      "homepage": "https://agent.qcc.com/doc",
       "auth": {
-        "mode": "oauth2-pkce",
-        "issuer": "https://agent.qcc.com",
-        "scope": "mcp:tools",
-        "clientName": "DeepSeek Harness - MCP 连接器",
-        "tokenEndpointAuthMethod": "none",
-        "grantSharing": "issuer"
+        "mode": "api-key",
+        "apiKeyHeader": "Authorization",
+        "credentialName": "智能文档解析 API Key Authorization",
+        "credentialPlaceholder": "Bearer YOUR_API_KEY",
+        "credentialDescription": "请输入智能文档解析产品签发的完整 Authorization 值（Bearer + 空格 + API Key），不是企查查 OAuth 登录令牌。一次配置后，远程在线链接与本地文件解析共用此凭据。",
+        "credentialHelpLabel": "前往企查查智能文档解析获取 API Key",
+        "credentialFields": [
+          {
+            "key": "authorization",
+            "label": "Authorization",
+            "placeholder": "Bearer YOUR_API_KEY",
+            "description": "格式为 Bearer + 空格 + 智能文档解析 API Key；OAuth 登录令牌不能用于本地文件上传。凭据仅保存在 DSH 本机。",
+            "helpLabel": "前往企查查智能文档解析获取 API Key",
+            "required": true,
+            "secret": true
+          }
+        ]
       },
       "servers": [
-        { "serverKey": "document", "url": "https://agent.qcc.com/mcp/document/stream", "serverName": "qcc-document", "transport": "streamable-http", "headers": {} }
+        { "serverKey": "document", "url": "https://agent.qcc.com/mcp/document/stream", "serverName": "qcc-document", "transport": "streamable-http", "headers": {} },
+        {
+          "serverKey": "document-local",
+          "serverName": "qcc-document-mcp",
+          "transport": "stdio",
+          "command": "npx",
+          "args": ["-y", "qcc-document-mcp"],
+          "credentialBindings": { "QCC_DOCUMENT_AUTHORIZATION": "authorization" }
+        }
       ],
       "prompts": [
-        { "title": "企业尽调报告", "text": "为 {{company}} 生成一份企业尽职调查报告", "server": "document" },
-        { "title": "企业风险报告", "text": "为 {{company}} 生成一份企业风险分析报告", "server": "document" },
-        { "title": "工商信息摘要", "text": "整理 {{company}} 的工商与股权信息摘要", "server": "document" }
+        { "title": "解析在线文档", "text": "解析这份在线文档：请把公网可访问的 PDF 或图片 URL 粘贴到这里，并输出 Markdown 与关键字段。", "server": "document" },
+        { "title": "解析上传文件", "text": "解析我在对话中上传或粘贴的这份 PDF 或图片，提取正文、表格和关键字段。", "server": "document-local" },
+        { "title": "解析本机文件", "text": "解析本机文件：请把文件路径替换为 ~/Desktop/example.pdf，并输出 Markdown 与结构化摘要。", "server": "document-local" }
       ]
     },
     {

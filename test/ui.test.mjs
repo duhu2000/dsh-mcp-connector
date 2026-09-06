@@ -111,6 +111,11 @@ test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /data-credential-key=/);
   assert.match(uiSource, /field\.secret === false \? 'text' : 'password'/);
   assert.match(uiSource, /connectorId,\s*authMode,\s*credentialValues,\s*bearerToken/);
+  assert.match(uiSource, /本地 Agent · 本机文件/);
+  assert.match(uiSource, /远程 Agent · 在线链接文档/);
+  assert.match(uiSource, /在线链接 \+ 本机文件同时启用/);
+  assert.match(uiSource, /connectionComplete === false/);
+  assert.match(uiSource, /completeSetup: '补充本地解析'/);
 });
 
 test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
