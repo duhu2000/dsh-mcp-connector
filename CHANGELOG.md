@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+- “企查查·智能文档解析”改为 OAuth 2.0 PKCE 一键授权，一次授权同时启用远程在线 URL 与本地文件解析两个 Server；无需再手工复制 API Key。
+- 更新产品截图和演示 GIF，同步当前 109 张市场卡片、智能文档解析名称及 OAuth 双入口说明。
+
+### Security
+
+- 新增受限制的 OAuth-to-stdio 运行时注入：目录必须将 `oauthResource` 精确绑定到同连接器的 HTTPS MCP resource，Access Token 只注入子进程声明的 `oauthTokenEnv`，不写入连接记录、市场输出或日志。
+
+### Fixed
+
+- 从旧版 API Key 单入口升级时显示“升级一键授权”；只有 OAuth 与远程/本地两个 Server 全部启动成功后才原子替换旧连接，失败时保留旧配置。
+
 ## [0.2.36] - 2026-09-06
 
 ### Changed

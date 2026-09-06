@@ -88,7 +88,7 @@ const CATEGORIES = [
 
 - `qcc-company`、`qcc-tender`：企业数据。
 - `qcc-legal`：法律合规。
-- `qcc-document`：效率工具；远程在线链接与本地文件解析双入口共用一次 Authorization 配置，依靠精选排序与目录声明顺序排在该章节首位。
+- `qcc-document`：效率工具；远程在线链接与本地文件解析双入口共用一次 OAuth 授权，依靠精选排序与目录声明顺序排在该章节首位。
 
 ### 4.2 企业数据不收录竞品
 

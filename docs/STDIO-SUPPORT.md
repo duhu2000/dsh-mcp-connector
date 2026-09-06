@@ -152,7 +152,7 @@ const Config = z.union([
 
 - stdio 是本地进程，密钥最终仍通过环境变量传递（如 `GITHUB_TOKEN`、`OPENAI_API_KEY`）。
 - 无凭据的 stdio 连接器使用 `auth.mode: "none"`；需要用户输入的卡片使用 `bearer` 或 `api-key`，并在 `auth.credentialFields` 声明一个或多个输入字段。
-- `servers[].credentialBindings` 只保存“环境变量名 → 凭据字段 key”的映射；`servers[].env` 只能包含非敏感默认值。
+- `servers[].credentialBindings` 只保存“环境变量名 → 凭据字段 key”的映射；OAuth stdio 只能用 `oauthResource` 引用同连接器的 HTTP resource，并通过 `oauthTokenEnv` 声明运行时 Token 环境变量。`servers[].env` 只能包含非敏感默认值。
 - 用户输入存入本机 `ConnectionRecord.env` 并透传给 `dsh-mcp-client`，不回写目录，也不出现在 catalog/status/log 输出。
 - Registry 探针只校验声明与命令形状，绝不执行本地 stdio 命令。
 
@@ -614,7 +614,7 @@ cwd: { type: 'string', description: 'transport=stdio 时的工作目录，默认
 | stdio `command` 可执行任意本地命令 | command 来自（a）维护者审核的 catalog，或（b）用户主动 configure，风险可控；DSH 运行时沙箱机制兜底 |
 | `env` 里的密钥泄露到日志 | dsh-mcp-client 的 `buildChildEnv` 已用 `scrubbedParentEnv()` 清理敏感父环境变量；我们持久化 env 到 storage domain 与现有 headers 鉴权一致，无新增泄露面 |
 | `cwd` 空字符串导致 spawn 异常 | provisioning 层显式 `record.cwd \|\| process.cwd()` |
-| 目录夹带密钥 | `auditRawDescriptor` 拒绝真实凭据字段，`auditDescriptor` 拒绝 `env` 中的 token/secret/API Key/password 类变量；只允许 `credentialBindings` 引用已声明字段 |
+| 目录夹带密钥 | `auditRawDescriptor` 拒绝真实凭据字段，`auditDescriptor` 拒绝 `env` 中的 token/secret/API Key/password 类变量；手工凭据只允许 `credentialBindings` 引用已声明字段，OAuth Token 只允许按同连接器 `oauthResource` 在运行时注入 `oauthTokenEnv` |
 | 凭据映射错误或未使用 | Schema 与目录审计检查字段 key、env 名、重复映射、未知引用及未被任何 HTTP/stdio Server 使用的必填字段 |
 
 ---

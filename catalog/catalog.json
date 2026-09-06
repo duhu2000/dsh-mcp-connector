@@ -136,29 +136,18 @@
       "icon": "/mcp-connector/ui/assets/qcc-logo.svg",
       "category": "效率工具",
       "summary": "本机文件 / 在线链接 · OCR 与结构化解析",
-      "description": "智能解析 PDF、图片等文档：远程入口处理公网可访问的在线链接，本地入口读取对话中上传、粘贴或指定路径的本机文件并自动提交解析，输出 Markdown 与结构化内容。本地入口需 Node.js 20+。",
+      "description": "一次 OAuth 授权同时连接远程与本地 Agent：远程入口解析公网 PDF/图片 URL，本地入口读取对话中上传、粘贴或指定路径的本机文件，自动上传并输出 Markdown 与结构化内容。本地入口需 Node.js 20+。",
       "tags": ["智能文档解析", "OCR", "本机文件", "在线文档", "PDF", "图片", "Markdown"],
       "published": true,
       "featured": true,
       "homepage": "https://agent.qcc.com/doc",
       "auth": {
-        "mode": "api-key",
-        "apiKeyHeader": "Authorization",
-        "credentialName": "智能文档解析 API Key Authorization",
-        "credentialPlaceholder": "Bearer YOUR_API_KEY",
-        "credentialDescription": "请输入智能文档解析产品签发的完整 Authorization 值（Bearer + 空格 + API Key），不是企查查 OAuth 登录令牌。一次配置后，远程在线链接与本地文件解析共用此凭据。",
-        "credentialHelpLabel": "前往企查查智能文档解析获取 API Key",
-        "credentialFields": [
-          {
-            "key": "authorization",
-            "label": "Authorization",
-            "placeholder": "Bearer YOUR_API_KEY",
-            "description": "格式为 Bearer + 空格 + 智能文档解析 API Key；OAuth 登录令牌不能用于本地文件上传。凭据仅保存在 DSH 本机。",
-            "helpLabel": "前往企查查智能文档解析获取 API Key",
-            "required": true,
-            "secret": true
-          }
-        ]
+        "mode": "oauth2-pkce",
+        "issuer": "https://agent.qcc.com",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "issuer"
       },
       "servers": [
         { "serverKey": "document", "url": "https://agent.qcc.com/mcp/document/stream", "serverName": "qcc-document", "transport": "streamable-http", "headers": {} },
@@ -168,7 +157,8 @@
           "transport": "stdio",
           "command": "npx",
           "args": ["-y", "qcc-document-mcp"],
-          "credentialBindings": { "QCC_DOCUMENT_AUTHORIZATION": "authorization" }
+          "oauthResource": "https://agent.qcc.com/mcp/document/stream",
+          "oauthTokenEnv": "QCC_DOCUMENT_AUTHORIZATION"
         }
       ],
       "prompts": [
