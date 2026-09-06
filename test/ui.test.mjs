@@ -116,6 +116,9 @@ test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /在线链接 \+ 本机文件同时启用/);
   assert.match(uiSource, /connectionComplete === false/);
   assert.match(uiSource, /completeSetup: '补充本地解析'/);
+  assert.match(uiSource, /upgradeOauth: '升级一键授权'/);
+  assert.match(uiSource, /incomplete && d\.authMode === 'oauth2-pkce'[\s\S]*?window\.__mcp\.connect/);
+  assert.match(uiSource, /detailFailureState === 'incomplete' && detailConnector\?\.authMode === 'oauth2-pkce'/);
 });
 
 test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {

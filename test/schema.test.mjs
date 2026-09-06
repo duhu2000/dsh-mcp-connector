@@ -208,6 +208,36 @@ test('stdio 市场凭据仅声明字段和 env 绑定，支持多字段且拒绝
   assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(staticSecret)), /env.*密钥类变量/);
 });
 
+test('OAuth stdio 只允许把同连接器 HTTP resource 的 Token 注入声明的环境变量', () => {
+  const raw = {
+    id: 'oauth-stdio', name: 'OAuth stdio',
+    auth: { mode: 'oauth2-pkce', issuer: 'https://agent.example.com' },
+    servers: [
+      { serverKey: 'remote', url: 'https://agent.example.com/mcp/document/stream', serverName: 'document', transport: 'streamable-http' },
+      {
+        serverKey: 'local', transport: 'stdio', command: 'npx', args: ['-y', 'document-mcp'],
+        serverName: 'document-local', oauthResource: 'https://agent.example.com/mcp/document/stream',
+        oauthTokenEnv: 'DOCUMENT_AUTHORIZATION',
+      },
+    ],
+  };
+  const descriptor = auditDescriptor(normalizeConnectorDescriptor(raw));
+  assert.equal(descriptor.servers[1].oauthResource, raw.servers[1].oauthResource);
+  assert.equal(descriptor.servers[1].oauthTokenEnv, 'DOCUMENT_AUTHORIZATION');
+
+  const missingBinding = structuredClone(raw);
+  delete missingBinding.servers[1].oauthTokenEnv;
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(missingBinding)), /oauthResource 和 oauthTokenEnv/);
+
+  const foreignResource = structuredClone(raw);
+  foreignResource.servers[1].oauthResource = 'https://other.example.com/mcp';
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(foreignResource)), /同一连接器的 HTTP resource/);
+
+  const conflictingBinding = structuredClone(raw);
+  conflictingBinding.servers[1].credentialBindings = { DOCUMENT_AUTHORIZATION: 'credential' };
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(conflictingBinding)), /不能同时声明 credentialBindings/);
+});
+
 test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
   const base = { key: 'x', connectorId: 'x', kind: 'json', name: 'X', serverName: 'x', createdAt: 1, updatedAt: 1 };
   assert.equal(normalizeConnectionRecord({ ...base, transport: 'sse', url: 'https://mcp.example.com/sse' }).transport, 'streamable-http');
@@ -218,6 +248,12 @@ test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
     ...base, transport: 'stdio', command: 'uvx', auth: { mode: 'bearer', bearerToken: 'must-not-pass' },
   });
   assert.equal(staleAuth.auth, undefined);
+  const oauthStdio = normalizeConnectionRecord({
+    ...base, transport: 'stdio', command: 'npx', oauthTokenEnv: 'DOCUMENT_AUTHORIZATION',
+    auth: { mode: 'oauth', grantKey: 'grant:test' },
+  });
+  assert.deepEqual(oauthStdio.auth, { mode: 'oauth', grantKey: 'grant:test' });
+  assert.equal(oauthStdio.oauthTokenEnv, 'DOCUMENT_AUTHORIZATION');
   const lan = normalizeConnectionRecord({
     ...base,
     transport: 'streamable-http',
@@ -289,6 +325,20 @@ test('buildEntryConfig: stdio 仅透传进程字段，不混入 HTTP headers', (
     transport: 'stdio', serverName: 'local', command: 'uvx', args: [], env: {}, cwd: '/tmp',
   }, new Map(), { failOnStartupError: true });
   assert.equal(strict.failOnStartupError, true);
+});
+
+test('buildEntryConfig: OAuth stdio 仅在运行时注入 Bearer Token', () => {
+  const record = {
+    transport: 'stdio', serverName: 'document-local', command: 'npx', args: ['-y', 'document-mcp'],
+    env: { LOG_LEVEL: 'info' }, oauthTokenEnv: 'DOCUMENT_AUTHORIZATION',
+    auth: { mode: 'oauth', grantKey: 'grant:document' },
+  };
+  const config = buildEntryConfig(record, new Map([['grant:document', { accessToken: 'runtime-only-token' }]]));
+  assert.deepEqual(config.env, {
+    LOG_LEVEL: 'info',
+    DOCUMENT_AUTHORIZATION: 'Bearer runtime-only-token',
+  });
+  assert.deepEqual(record.env, { LOG_LEVEL: 'info' }, '运行时注入不得污染持久化 record');
 });
 
 test('OAuth protected resource metadata fallback 保留 MCP 路径', () => {

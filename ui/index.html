@@ -521,7 +521,7 @@
     reauthorize: '需重新授权', recovering: '自动重试中', connectionError: '连接异常', partialError: '部分异常', disabled: '已停用',
     send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
     connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
-    reconfigureCredential: '🔑 重新配置凭据', completeSetup: '补充本地解析', loading: '加载中…',
+    reconfigureCredential: '🔑 重新配置凭据', completeSetup: '补充本地解析', upgradeOauth: '升级一键授权', loading: '加载中…',
   };
   const t = (key) => LABELS[key] || key;
   const MCP_JSON_EXAMPLE = JSON.stringify({
@@ -1063,6 +1063,9 @@
     const state = d.connectionState || (configured ? 'configured' : 'disconnected');
     if (incomplete && ['bearer', 'api-key'].includes(d.authMode)) {
       return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.openConfig('${id}')">${t('completeSetup')}</button>`;
+    }
+    if (incomplete && d.authMode === 'oauth2-pkce') {
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.connect('${id}')">${t('upgradeOauth')}</button>`;
     }
     if (configured) {
       if (state === 'healthy') return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn ghost" disabled>${t('connected')}</button>`;
@@ -1630,7 +1633,7 @@
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
       const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
       $('#detail-try-btn').textContent = detailNeedsReconfigure
-        ? detailFailureState === 'incomplete' ? t('completeSetup') : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
+        ? detailFailureState === 'incomplete' ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
         : d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry');
       if (!d.connected?.length && !d.toolsSnapshot?.length) {
         $('#tools-summary').textContent = '连接后查看工具';
@@ -1677,7 +1680,7 @@
         ? `待补充 ${d.missingServers?.length || 1} 个服务`
         : `${detailFailureState === 'degraded' ? '部分服务可用' : '已连接'} ${d.connected?.length || 0} 个服务`;
       $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${connectedLabel}` : connectedLabel;
-      $('#detail-try-btn').textContent = incomplete ? t('completeSetup') : t('try');
+      $('#detail-try-btn').textContent = incomplete ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : t('try');
       renderPromptPage();
       detailToolServers = toolsResult.detail?.servers || [];
       updateToolsSummary();
@@ -1771,6 +1774,17 @@
       }
       if (detailFailureState === 'reauth' && ['bearer', 'api-key'].includes(detailConnector?.authMode)) {
         openAddConnection('manual', detailConnector);
+        return;
+      }
+      if (detailFailureState === 'incomplete' && detailConnector?.authMode === 'oauth2-pkce') {
+        const id = detailConnector.id;
+        const r = await call('connect', { connectorId: id }, { timeoutMs: 310_000 });
+        showToast(r.message, r.ok);
+        if (r.ok) {
+          markCommunityCtaEligible();
+          await call('healthCheck', { connectorId: id });
+          await refreshConnectionUi(id);
+        }
         return;
       }
       if (detailFailureState === 'reauth' && detailConnector?.authMode === 'oauth2-pkce') {

@@ -212,6 +212,61 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   await oauth.close();
 });
 
+test('OAuth 一键授权同时挂载远程 HTTP 与本地 stdio，Token 仅在运行时注入', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['document'] });
+  const connector = {
+    id: 'document-oauth', name: '智能文档解析',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'document-client' },
+    servers: [
+      { serverKey: 'document', url: `${oauth.base}/mcp/document/stream`, serverName: 'document-remote', transport: 'streamable-http' },
+      {
+        serverKey: 'document-local', serverName: 'document-local', transport: 'stdio',
+        command: 'npx', args: ['-y', 'document-mcp'],
+        oauthResource: `${oauth.base}/mcp/document/stream`, oauthTokenEnv: 'DOCUMENT_AUTHORIZATION',
+      },
+    ],
+  };
+  const { ctx, loader, tools, tables, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    const now = Date.now();
+    await tables.get('connections').put('document-oauth-document', {
+      key: 'document-oauth-document', connectorId: connector.id, kind: 'manual', name: connector.name,
+      serverKey: 'document', transport: 'streamable-http', url: `${oauth.base}/mcp/document/stream`,
+      serverName: 'document-remote', headers: {},
+      auth: { mode: 'api-key', apiKeyHeader: 'Authorization', apiKeyValue: 'Bearer legacy-api-key' },
+      enabled: true, createdAt: now, updatedAt: now,
+    });
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const promise = tools.defs.get('mcp_connector_connect').execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApprove(logs);
+    const result = await promise;
+    assert.equal(result.ok, true, result.message);
+    assert.deepEqual(result.detail.keys.sort(), ['document-oauth-document', 'document-oauth-document-local']);
+
+    const remote = loader.entries.get('mcp-document-oauth-document').options.config;
+    const local = loader.entries.get('mcp-document-oauth-document-local').options.config;
+    assert.match(remote.headers.Authorization, /^Bearer /);
+    assert.equal(local.transport, 'stdio');
+    assert.match(local.env.DOCUMENT_AUTHORIZATION, /^Bearer /);
+    assert.equal(local.env.DOCUMENT_AUTHORIZATION.slice(7), remote.headers.Authorization.slice(7));
+
+    const persistedLocal = await tables.get('connections').get('document-oauth-document-local');
+    const persistedRemote = await tables.get('connections').get('document-oauth-document');
+    assert.equal(persistedLocal.env.DOCUMENT_AUTHORIZATION, undefined);
+    assert.equal(persistedLocal.oauthTokenEnv, 'DOCUMENT_AUTHORIZATION');
+    assert.deepEqual(persistedLocal.auth, { mode: 'oauth', grantKey: result.detail.grantKey });
+    assert.deepEqual(persistedRemote.auth, { mode: 'oauth', grantKey: result.detail.grantKey });
+    const catalog = await tools.defs.get('mcp_connector_catalog').execute({ keyword: connector.id });
+    const status = await tools.defs.get('mcp_connector_status').execute({});
+    const runtimeToken = remote.headers.Authorization.slice(7);
+    assert.doesNotMatch(JSON.stringify({ result, persistedLocal, persistedRemote, catalog, status, logs }), new RegExp(runtimeToken));
+    assert.doesNotMatch(JSON.stringify({ result, persistedLocal, persistedRemote, catalog, status, logs }), /legacy-api-key/);
+  } finally {
+    await oauth.close();
+  }
+});
+
 test('OAuth DCR 403 明确识别客户端准入阶段，不误导用户重试浏览器授权', { timeout: 15000 }, async () => {
   const oauth = await createMockQccServer({ registrationFailureStatus: 403 });
   const { ctx, tools, logs } = makePluginContext();
@@ -1258,7 +1313,7 @@ test('stdio 市场凭据绑定：多字段只在本机注入 env，目录和状�
   assert.doesNotMatch(JSON.stringify({ connect, configured, catalog, status, logs }), /stdio-local-secret/);
 });
 
-test('目录识别旧版单入口连接并提示补齐新增的本地文件 Server', async () => {
+test('目录识别旧版 API Key 单入口并提示升级 OAuth 一键授权', async () => {
   const now = Date.now();
   const connections = makeTable();
   await connections.put('qcc-document-document', {
@@ -1287,16 +1342,14 @@ test('目录识别旧版单入口连接并提示补齐新增的本地文件 Serv
     id: 'qcc-document',
     name: '企查查·智能文档解析',
     auth: {
-      mode: 'api-key',
-      apiKeyHeader: 'Authorization',
-      credentialFields: [{ key: 'authorization', label: 'Authorization', required: true, secret: true }],
+      mode: 'oauth2-pkce', issuer: 'https://agent.qcc.com', scope: 'mcp:tools',
     },
     servers: [
       { serverKey: 'document', url: 'https://agent.qcc.com/mcp/document/stream', serverName: 'qcc-document', transport: 'streamable-http' },
       {
         serverKey: 'document-local', serverName: 'qcc-document-mcp', transport: 'stdio',
         command: 'npx', args: ['-y', 'qcc-document-mcp'],
-        credentialBindings: { QCC_DOCUMENT_AUTHORIZATION: 'authorization' },
+        oauthResource: 'https://agent.qcc.com/mcp/document/stream', oauthTokenEnv: 'QCC_DOCUMENT_AUTHORIZATION',
       },
     ],
   };

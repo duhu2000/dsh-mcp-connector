@@ -1,9 +1,9 @@
 # UI 素材说明
 
-本目录用于保存 `dsh-mcp-connector` 的公开界面截图。素材于 2026-08-30 从当前源码的
+本目录用于保存 `dsh-mcp-connector` 的公开界面截图。素材于 2026-09-06 从 `v0.2.36` 源码的
 无凭据 UI harness 采集：外层浏览器视口为 1280×720，harness 复刻产品宿主在
 `lib/client.js` 中定义的 800px 市场面板，因此桌面端稳定为一行 2 张卡片。公开 Registry
-快照含 79 条描述，与 4 张随包唯一卡片合并后市场显示 83 张。画面只展示公开市场元数据、
+快照含 105 条描述，与 4 张随包唯一卡片合并后市场显示 109 张。画面只展示公开市场元数据、
 示例 Prompt 和明确标识为 Mock 的工具数据，不包含 OAuth Token、API Key、本机路径、
 用户会话或查询结果。
 
@@ -21,8 +21,8 @@ SHA-256、尺寸与 GIF 时长。
 
 | 文件 | 展示内容 |
 |---|---|
-| `01-market-overview.jpg` | 83 张合并市场卡片、桌面两列、推荐章节、9 分类和固定分类栏；企查查卡片均为未连接的“连接”状态 |
-| `02-connector-detail.jpg` | Seedream 第三方服务说明、精选 Prompt 和未连接状态 |
+| `01-market-overview.jpg` | 109 张合并市场卡片、桌面两列、推荐章节、9 分类和固定分类栏；展示“企查查·智能文档解析”新名称与未配置状态 |
+| `02-connector-detail.jpg` | 智能文档解析一次 OAuth 授权同时连接 2 个 Server：远程 Agent 解析在线 URL，本地 Agent 通过 `npx -y qcc-document-mcp` 解析本机文件 |
 | `03-tool-discovery.jpg` | Context7 无凭据 Mock 健康状态、Mock 工具数量/描述、搜索和独立滚动区 |
 | `04-json-import.jpg` | Streamable HTTP / stdio JSON 导入与本机凭据提示 |
 

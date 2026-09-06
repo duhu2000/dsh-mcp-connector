@@ -13,7 +13,7 @@ import { createServer } from 'node:http';
 import { createHash, randomBytes } from 'node:crypto';
 
 const SCOPES = ['mcp:tools'];
-const RESOURCES = ['company', 'risk', 'ipr', 'operation', 'history', 'executive'];
+const RESOURCES = ['company', 'risk', 'ipr', 'operation', 'history', 'executive', 'document'];
 
 function json(res, status, body, extraHeaders = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json', ...extraHeaders });
