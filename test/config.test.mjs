@@ -15,6 +15,7 @@ test('default config uses the independent public registry', () => {
   ]);
   assert.equal(Config({}).catalogUrl, DEFAULT_CATALOG_URL);
   assert.equal(Config({}).startupTimeoutMs, DEFAULT_STARTUP_TIMEOUT_MS);
+  assert.equal(Config({}).showSidebarEntry, true);
 });
 
 test('an explicit empty catalogUrl keeps bundled-only mode available', () => {
@@ -30,6 +31,7 @@ test('bundle patch uses the same jsDelivr primary catalog source', () => {
   const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8');
   assert.match(patch, new RegExp(DEFAULT_CATALOG_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(patch, /catalogUrl:\s*['"]https:\/\/raw\.githubusercontent\.com/);
+  assert.match(patch, /showSidebarEntry:\s*true/);
 });
 
 test('client bundle is self-contained across Host store/runtime module layouts', () => {
