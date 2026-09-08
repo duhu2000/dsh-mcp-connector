@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.38] - 2026-09-08
+
+### Added
+
+- 在 `设置 → 插件 → 插件配置` 新增“MCP连接器”卡片，可按当前 DSH profile 显示或隐藏侧边栏入口。
+- 设置卡片新增“打开 MCP连接器”快捷动作；入口隐藏后仍可随时打开、连接和管理 MCP Server，关闭弹框后返回原操作位置。
+
+### Changed
+
+- 侧边栏可见性保存后即时生效；仅隐藏入口，不影响插件、连接、工具、后台刷新或对话内调用。
+- Settings Host 与客户端服务均采用可选注入；旧版 DSH 或服务暂不可用时安全回退为显示侧边栏，避免升级后失去入口。
+
+### Verification
+
+- 205 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过；新增覆盖 Host 设置注册、客户端持久化、快捷打开、隐藏态零挂载、键盘焦点恢复和兼容回退。
+
 ## [0.2.37] - 2026-09-06
 
 ### Changed
@@ -580,7 +596,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...HEAD
+[0.2.38]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...v0.2.38
 [0.2.37]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...v0.2.37
 [0.2.36]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...v0.2.36
 [0.2.35]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.34...v0.2.35

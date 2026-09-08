@@ -26,7 +26,7 @@
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「🧩 MCP连接器」。
+安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「🧩 MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
 
 ![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
@@ -49,6 +49,7 @@ dsh plugin --profile web add dsh-mcp-connector
 ## 功能
 
 - 左侧主导航入口：目标位置为“新会话”下方、“工作区/会话列表”上方；若 DSH DOM 结构不兼容，自动回退到底部公开插槽。
+- 侧边栏入口可按当前 profile 隐藏；隐藏后仍可从“设置 → 插件 → 插件配置 → MCP连接器”临时打开现有连接器弹框，用完即关。
 - 图形化市场：默认“全部”按推荐与 9 类业务分类分章节展示，每章先展示 4 张并可展开；分类栏固定可见，单分类页展示全部卡片。
 - 图形化添加：手动 HTTP/stdio、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
@@ -99,7 +100,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 ## 使用
 
-1. 点击左侧“🧩 MCP连接器”。
+1. 点击左侧“🧩 MCP连接器”，或从“设置 → 插件 → 插件配置 → MCP连接器”点击“打开 MCP连接器”。
 2. 在市场中选择连接器，确认“当前项目”或“所有项目（全局）”，再完成授权或配置。
 3. 打开卡片详情，可点击示例 Prompt 的发送按钮，在当前工作区创建/复用空白会话并写入草稿。
 4. 在“已安装”或对话工具中查看、停用、恢复或断开连接。
@@ -135,9 +136,12 @@ Bundle 默认配置位于 `cordis.patch.yml`：
     entryPrefix: mcp
     refreshSkewMs: 300000
     openBrowser: true
+    showSidebarEntry: true
 ```
 
 `catalogUrl` 默认通过 jsDelivr CDN 读取公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；主源失败时自动尝试 GitHub raw 备用源，再回退到上次缓存或随包内置目录。jsDelivr 的分支 URL 可能存在缓存延迟，因此 Registry 合并后的新卡片不保证秒级出现。需要离线/私有模式时可将 `catalogUrl` 显式设为空字符串；显式配置其他目录 URL 时不会自动切换到公共备用源。
+
+`showSidebarEntry` 默认为 `true`。用户可在 DSH 插件配置页覆盖该值；关闭后只隐藏侧边栏快捷入口，不停用连接器、已连接 MCP Server 或工具。
 
 ## 兼容性与责任边界
 
@@ -167,7 +171,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.37`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.37](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.37)。
+当前公开版本为 [`dsh-mcp-connector@0.2.38`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.38](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.38)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

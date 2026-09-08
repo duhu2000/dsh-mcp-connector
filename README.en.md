@@ -26,7 +26,7 @@ Manage MCP connections from different providers in one place inside DeepSeek Har
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar.
+Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 
 ![16-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
@@ -49,6 +49,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 ## Features
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
+- A profile-wide sidebar visibility preference; even when the shortcut is hidden, the existing connector dialog remains available from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 - Searchable Marketplace and Installed views; the default Marketplace groups cards into Featured plus nine business-category sections, previews four cards per section, keeps the category bar visible while scrolling, and shows every card when a single category is selected.
 - OAuth 2.0 Authorization Code with PKCE, including DCR public clients and `client_secret_post` / `client_secret_basic`; API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
@@ -97,7 +98,7 @@ Run the same command again to upgrade. Fully quit and restart DeepSeek Harness D
 
 ## Usage
 
-1. Select **MCP Connector** in the primary sidebar.
+1. Select **MCP Connector** in the primary sidebar, or choose **Open MCP Connector** from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 2. Choose a connector, confirm **Current project** or **All projects (global)**, and complete authorization or configuration.
 3. Open its details to inspect tools or send an example prompt to a new conversation draft.
 4. Use Installed or the conversation tools to enable, disable, inspect, or disconnect a connection.
@@ -139,9 +140,12 @@ The default bundle configuration is in `cordis.patch.yml`:
     entryPrefix: mcp
     refreshSkewMs: 300000
     openBrowser: true
+    showSidebarEntry: true
 ```
 
 Set `catalogUrl` to an empty string for an explicitly offline/private setup. A custom non-default URL is used as-is and does not fall back to the public registry.
+
+`showSidebarEntry` defaults to `true`. Users can override it from the DSH plugin configuration page; turning it off hides only the shortcut and does not disable the connector, connected MCP servers, or tools.
 
 ## Compatibility and responsibility boundary
 
@@ -171,7 +175,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.37`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.37](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.37).
+The current public version is [`dsh-mcp-connector@0.2.38`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.38](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.38).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

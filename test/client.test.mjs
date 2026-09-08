@@ -34,7 +34,7 @@ async function loadClient({
   return plugin;
 }
 
-function clientContext({ workspaceId = 'workspace-1' } = {}) {
+function clientContext({ workspaceId = 'workspace-1', settingsScope } = {}) {
   const registrations = new Map();
   const calls = [];
   const shell = {
@@ -78,7 +78,51 @@ function clientContext({ workspaceId = 'workspace-1' } = {}) {
       return undefined;
     },
   };
+  ctx.inject = (services, callback) => {
+    if (services.includes('settingsScope') && settingsScope !== undefined) {
+      callback({ ...ctx, settingsScope });
+    }
+  };
   return { ctx, registrations, calls };
+}
+
+function mutableSettingsScope(initial) {
+  let snapshot = initial;
+  const listeners = new Set();
+  const writes = [];
+  const scope = {
+    getSnapshot: () => snapshot,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async set(field, value) {
+      writes.push(['set', field, value]);
+      snapshot = {
+        ...snapshot,
+        status: 'ready',
+        value: { ...snapshot.value, [field]: value },
+        user: { ...snapshot.user, [field]: value },
+      };
+      for (const listener of listeners) listener();
+    },
+    async unset(field) {
+      writes.push(['unset', field]);
+      const { [field]: _removed, ...user } = snapshot.user ?? {};
+      snapshot = {
+        ...snapshot,
+        status: 'ready',
+        value: { ...snapshot.value, [field]: snapshot.base?.[field] ?? true },
+        user,
+      };
+      for (const listener of listeners) listener();
+    },
+    publish(next) {
+      snapshot = next;
+      for (const listener of listeners) listener();
+    },
+  };
+  return { scope, writes };
 }
 
 test('客户端声明新会话所需服务', async () => {
@@ -89,7 +133,7 @@ test('客户端声明新会话所需服务', async () => {
 test('客户端入口不依赖 Host 版本特有的 Store、Runtime 或 UI Primitives 模块', async () => {
   await assert.doesNotReject(() => loadClient());
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(source, /require\("@deepseek-ai\/dsh-client-(?:store|runtime|ui-primitives)/);
+  assert.doesNotMatch(source, /require\("@deepseek-ai\/dsh-client-(?:store|runtime|ui-primitives|ui-settings)/);
 });
 
 test('内置弹框 Store 实现标准快照、订阅与动作 contract', async () => {
@@ -101,17 +145,161 @@ test('内置弹框 Store 实现标准快照、订阅与动作 contract', async (
   let changes = 0;
   const unsubscribe = instance.subscribe(() => { changes += 1; });
 
-  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false });
+  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false, sidebarVisible: true });
   instance.actions.open();
   instance.actions.detailOpened();
-  assert.deepEqual(instance.getSnapshot(), { open: true, detailOpen: true });
+  assert.deepEqual(instance.getSnapshot(), { open: true, detailOpen: true, sidebarVisible: true });
   instance.actions.close();
-  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false });
+  assert.deepEqual(instance.getSnapshot(), { open: false, detailOpen: false, sidebarVisible: true });
   assert.equal(changes, 3);
   unsubscribe();
   instance.actions.open();
   assert.equal(changes, 3);
   assert.doesNotThrow(() => instance.clearPersisted());
+});
+
+test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口', async () => {
+  const plugin = await loadClient();
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: false },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  let bindSpec;
+  const { ctx, registrations } = clientContext({
+    settingsScope: {
+      bind(spec) {
+        bindSpec = spec;
+        return settings.scope;
+      },
+    },
+  });
+
+  plugin.apply(ctx);
+
+  assert.equal(bindSpec.namespace, 'mcp-connector');
+  assert.deepEqual(bindSpec.decode({ showSidebarEntry: false }), { showSidebarEntry: false });
+  assert.equal(bindSpec.decode({}), undefined);
+  const overlay = registrations.get('shell.overlay');
+  const settingsCard = registrations.get('settings.plugin.item');
+  assert.ok(settingsCard, '应在原生插件配置页注册 MCP连接器卡片');
+  assert.equal(settingsCard.options.key, 'mcp-connector');
+  assert.equal(settingsCard.options.store, overlay.options.store, '快捷按钮必须复用现有弹框 Store');
+
+  const store = overlay.options.store.create();
+  assert.equal(store.getSnapshot().sidebarVisible, false);
+  settings.scope.publish({
+    ...settings.scope.getSnapshot(),
+    value: { showSidebarEntry: true },
+    user: { showSidebarEntry: true },
+    revision: 2,
+  });
+  assert.equal(store.getSnapshot().sidebarVisible, true);
+  settings.scope.publish({ status: 'unavailable', writable: false, mode: 'memory' });
+  assert.equal(store.getSnapshot().sidebarVisible, true, '不可用时应 fail-open');
+});
+
+test('设置卡片可隐藏入口、恢复默认并直接打开现有弹框', async () => {
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: true },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: true },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  let stateCursor = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    clientDocument: {
+      documentElement: { lang: 'zh-CN' },
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    reactApi: {
+      useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot(); },
+      useState(initial) {
+        const current = stateCursor === 0 ? true : initial;
+        stateCursor += 1;
+        return [current, () => {}];
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext({ settingsScope: { bind: () => settings.scope } });
+  plugin.apply(ctx);
+  const registration = registrations.get('settings.plugin.item');
+  let opens = 0;
+  const tree = registration.component({
+    ...registration.options.inject(),
+    actions: { open() { opens += 1; } },
+  });
+  const descendants = [];
+  const visit = (node) => {
+    if (node == null || typeof node !== 'object') return;
+    descendants.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) visit(child);
+  };
+  visit(tree);
+
+  const toggle = descendants.find((node) => node.type === 'input' && node.props?.role === 'switch');
+  const reset = descendants.find((node) => node.type === 'button' && node.props?.children === '恢复默认');
+  const open = descendants.find((node) => node.type === 'button' && node.props?.children === '打开 MCP连接器');
+  assert.ok(toggle);
+  assert.ok(reset);
+  assert.ok(open);
+
+  toggle.props.onChange({ target: { checked: false } });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(settings.writes[0], ['set', 'showSidebarEntry', false]);
+
+  reset.props.onClick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(settings.writes[1], ['unset', 'showSidebarEntry']);
+
+  open.props.onClick();
+  assert.equal(opens, 1);
+});
+
+test('隐藏状态不创建侧边栏 Portal 或观察器', async () => {
+  let observers = 0;
+  const plugin = await loadClient({
+    jsxRuntime: {
+      jsx(type, props) { return { type, props }; },
+      jsxs(type, props) { return { type, props }; },
+    },
+    reactApi: {
+      useState(initial) { return [initial, () => {}]; },
+      useEffect(start) { start(); },
+    },
+    windowExtras: {
+      MutationObserver: class {
+        constructor() { observers += 1; }
+        observe() {}
+        disconnect() {}
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const entry = registrations.get('sidebar.footer.action');
+  const rendered = entry.component({
+    wide: true,
+    useStore: (select) => select({ open: false, sidebarVisible: false }),
+    actions: { open() {} },
+  });
+  assert.equal(rendered, null);
+  assert.equal(observers, 0);
 });
 
 test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与底部降级', async () => {
@@ -230,6 +418,8 @@ test('市场弹框具备主题与键盘可访问性样式', async () => {
   assert.match(source, /aria-modal/);
   assert.match(source, /event\.key === "Escape"/);
   assert.match(source, /mcpConnectorMarketClose:focus-visible/);
+  assert.match(source, /const opener = document\.activeElement/);
+  assert.match(source, /opener\?\.focus\?\.\(\)/);
 });
 
 test('市场标题展示安装版本，并通过 Provider 适配层一键更新', async () => {

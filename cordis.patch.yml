@@ -10,3 +10,4 @@
         entryPrefix: 'mcp'
         refreshSkewMs: 300000
         openBrowser: true
+        showSidebarEntry: true
