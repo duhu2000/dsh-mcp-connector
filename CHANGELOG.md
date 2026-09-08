@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.2.39] - 2026-09-08
+
+### Fixed
+
+- 从“设置 → 插件 → 插件配置”快捷打开 MCP连接器时，将连接器弹框 Portal 到页面根层并显示在设置弹框之上；关闭后仍返回原设置位置。
+- MCP连接器位于设置弹框上方时会优先处理 Escape，只关闭最上层连接器弹框，不连带关闭底层设置弹框。
+
+### Verification
+
+- 206 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过；新增覆盖连接器弹框根层 Portal、层级与嵌套弹框 Escape 行为。
+
 ## [0.2.38] - 2026-09-08
 
 ### Added
@@ -596,7 +607,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...HEAD
+[0.2.39]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...v0.2.39
 [0.2.38]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...v0.2.38
 [0.2.37]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...v0.2.37
 [0.2.36]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.35...v0.2.36

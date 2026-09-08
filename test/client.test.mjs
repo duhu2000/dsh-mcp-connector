@@ -416,10 +416,55 @@ test('市场弹框具备主题与键盘可访问性样式', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.match(source, /prefers-color-scheme: dark/);
   assert.match(source, /aria-modal/);
-  assert.match(source, /event\.key === "Escape"/);
+  assert.match(source, /event\.key !== "Escape"/);
   assert.match(source, /mcpConnectorMarketClose:focus-visible/);
   assert.match(source, /const opener = document\.activeElement/);
   assert.match(source, /opener\?\.focus\?\.\(\)/);
+  assert.match(source, /event\.stopPropagation\(\)/);
+  assert.match(source, /addEventListener\("keydown", onKeyDown, true\)/);
+});
+
+test('从设置快捷打开时弹框 Portal 到 body 并高于 DSH 设置层', async () => {
+  const body = {};
+  let portal;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    clientDocument: {
+      body,
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    jsxRuntime,
+    reactApi: {
+      useState(initial) { return [initial, () => {}]; },
+      useRef(initial) { return { current: initial }; },
+      useEffect() {},
+    },
+    reactDomApi: {
+      createPortal(node, target) {
+        portal = { node, target };
+        return portal;
+      },
+    },
+    windowExtras: { location: { origin: 'http://127.0.0.1:3080' } },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  const component = registrations.get('shell.overlay').component;
+  const rendered = component({
+    wide: true,
+    useStore: (select) => select({ open: true, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} },
+    startPromptSession() {},
+  });
+
+  assert.equal(rendered, portal);
+  assert.equal(portal.target, body, '必须逃出 shell.overlay 的 z-index:20 堆叠上下文');
+  assert.ok(portal.node.props.style.zIndex > 1000, '必须高于 DSH Settings 的 z-index:1000');
 });
 
 test('市场标题展示安装版本，并通过 Provider 适配层一键更新', async () => {

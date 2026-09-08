@@ -1,6 +1,6 @@
 # Issue #63 详细设计：可配置的侧边栏入口
 
-> 状态：已实现（v0.2.38）
+> 状态：已实现（v0.2.38；弹框层级修复 v0.2.39）
 > Issue：https://github.com/duhu2000/dsh-mcp-connector/issues/63
 > 基线：`main@aa918f2257eb1cdf5d9a9bdd90e847a5c6f9dbd8`（v0.2.37）
 > 目标版本：v0.2.38
@@ -442,6 +442,7 @@ Issue #49 暴露过客户端模块表和模块到达顺序差异。本功能必�
 14. bundle 继续拒绝 Host 版本专属 Store、Runtime、Settings 和 UI Primitives 值依赖。
 15. 入口隐藏时，“打开 MCP连接器”仍能打开同一个 `MarketOverlay`，关闭后焦点返回设置卡片。
 16. 快捷打开不会把 `showSidebarEntry` 改回 `true`，也不会创建第二个 Overlay 实例。
+17. 快捷打开的连接器弹框 Portal 到页面根层并高于 Settings；Escape 只关闭最上层连接器弹框。
 
 ### 9.3 自动化门禁
 
@@ -475,7 +476,7 @@ Windows 验收应复用 Issue #49 建立的真实 Desktop 加载检查，不只�
 4. 入口隐藏后不残留空白行、不可见按钮、Portal mount 或 Observer。
 5. 隐藏不影响已连接 MCP Server、工具调用和 MCP连接器 Host 服务。
 6. 用户可以从同一设置页重新开启入口。
-7. 入口隐藏时仍可从同一卡片点击“打开 MCP连接器”，完成连接与使用后关闭，并返回设置页。
+7. 入口隐藏时仍可从同一卡片点击“打开 MCP连接器”；连接器弹框显示在设置弹框之上，完成连接与使用后关闭并返回设置页。
 8. 快捷打开复用现有 Overlay，不改变侧边栏开关状态，不创建第二套连接器 UI。
 9. Desktop 重启后保留设置。
 10. 不支持 Settings 的 Host 保持默认显示，且不进入 Safe Mode。
