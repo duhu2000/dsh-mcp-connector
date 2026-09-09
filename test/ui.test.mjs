@@ -60,6 +60,15 @@ test('配置备份提供脱敏导出、快照预览与原子恢复入口', () =>
   assert.match(uiSource, /恢复过程中任一 Server 失败会整体回滚/);
 });
 
+test('自定义和 JSON 连接可无中断修改显示名', () => {
+  assert.match(uiSource, /const canRename = r\.canRename === true/);
+  assert.match(uiSource, />重命名<\/button>/);
+  assert.match(uiSource, /function openRenameConnection\(key\)/);
+  assert.match(uiSource, /serverName（工具前缀，不可修改）/);
+  assert.match(uiSource, /call\('renameConnection', \{ key, name \}\)/);
+  assert.match(uiSource, /当前连接不会中断/);
+});
+
 test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
   assert.match(uiSource, /function openAddConnection\(mode = 'json'/);
   assert.match(uiSource, /#add-connection'\)\.addEventListener\('click', \(\) => openAddConnection\('json'\)\)/);

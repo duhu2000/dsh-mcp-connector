@@ -930,6 +930,10 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
       connectionKey: 'none-demo-a', global: false, projects: ['workspace-1'],
     });
     assert.equal(status.detail.items[0].scope.visibleInWorkspace, true);
+    assert.equal(status.detail.items[0].canRename, false);
+    const rejectedRename = await tools.defs.get('mcp_connector_rename').execute({ key: 'none-demo-a', name: '本机别名' });
+    assert.equal(rejectedRename.ok, false);
+    assert.match(rejectedRename.message, /市场连接器名称由目录维护/);
 
     const scopeTool = tools.defs.get('mcp_connector_scope');
     const preview = await scopeTool.execute({
@@ -997,7 +1001,7 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
   }
 });
 
-test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, async () => {
+test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', { timeout: 15000 }, async () => {
   const manualServer = createServer(async (req, res) => {
     for await (const _chunk of req) {}
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1005,7 +1009,7 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
   });
   await new Promise((resolve) => manualServer.listen(0, '127.0.0.1', resolve));
   const manualUrl = `http://127.0.0.1:${manualServer.address().port}/mcp`;
-  const { ctx, loader, tools } = makePluginContext();
+  const { ctx, loader, tools, tables } = makePluginContext();
   const { apply } = await import('../lib/index.js');
   await apply(ctx, baseConfig());
 
@@ -1028,6 +1032,37 @@ test('自定义 configure + JSON 导入 + 停用/断开', { timeout: 15000 }, as
     assert.equal(imp.ok, true, imp.message);
     assert.equal(imp.detail.keys.length, 1);
     assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
+
+    const beforeRenameConfig = structuredClone(loader.entries.get('mcp-json-vendor').options.config);
+    const renamed = await tools.defs.get('mcp_connector_rename').execute({ key: 'json-vendor', name: '  生产数据  ' });
+    assert.equal(renamed.ok, true, renamed.message);
+    assert.equal(renamed.detail.name, '生产数据');
+    assert.equal(renamed.detail.serverName, 'vendor');
+    assert.equal(renamed.detail.enabled, true);
+    assert.ok(renamed.detail.snapshotId);
+    assert.deepEqual(loader.entries.get('mcp-json-vendor').options.config, beforeRenameConfig, '重命名不应重配 Host 条目');
+    const renamedStatus = await tools.defs.get('mcp_connector_status').execute({});
+    const renamedItem = renamedStatus.detail.items.find((item) => item.key === 'json-vendor');
+    assert.equal(renamedItem.name, '生产数据');
+    assert.equal(renamedItem.serverName, 'vendor');
+    assert.equal(renamedItem.enabled, true);
+    assert.equal(renamedItem.canRename, true);
+    const exported = await tools.defs.get('mcp_connector_export_config').execute({});
+    assert.equal(JSON.parse(exported.detail.json).connections.find((item) => item.serverName === 'vendor').name, '生产数据');
+    assert.equal((await tables.get('snapshots').get(renamed.detail.snapshotId)).reason, 'rename');
+
+    for (const invalidName of ['  ', '生产\n数据', 'x'.repeat(81)]) {
+      const invalid = await tools.defs.get('mcp_connector_rename').execute({ key: 'json-vendor', name: invalidName });
+      assert.equal(invalid.ok, false);
+    }
+    const afterInvalidStatus = await tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(afterInvalidStatus.detail.items.find((item) => item.key === 'json-vendor').name, '生产数据');
+
+    const restarted = makePluginContext({ shared: { tables } });
+    await apply(restarted.ctx, baseConfig());
+    const restartedStatus = await restarted.tools.defs.get('mcp_connector_status').execute({});
+    assert.equal(restartedStatus.detail.items.find((item) => item.key === 'json-vendor').name, '生产数据');
+    assert.equal(restarted.loader.entries.get('mcp-json-vendor').options.config.serverName, 'vendor');
 
     const off = await tools.defs.get('mcp_connector_set_enabled').execute({ key, enabled: false });
     assert.equal(off.ok, true);

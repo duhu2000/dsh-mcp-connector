@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.2.40] - 2026-09-09
+
+### Added
+
+- “已安装”页为用户自定义和 JSON 导入的 MCP 连接新增“重命名”，启用状态下也可无中断修改显示名。
+- 新增 `mcp_connector_rename` 对话工具，便于按连接 key 修改显示名。
+
+### Changed
+
+- 重命名只更新本机连接元数据并创建可恢复快照；connection key、`serverName`、工具前缀、连接范围、凭据和 Host 挂载均保持不变。
+
+### Verification
+
+- 209 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过；新增覆盖显示名校验、Web API、对话工具、界面入口、启用状态下无重挂载、脱敏导出、快照与重启持久化。
+
 ## [0.2.39] - 2026-09-08
 
 ### Fixed
@@ -607,7 +622,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.40...HEAD
+[0.2.40]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...v0.2.40
 [0.2.39]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...v0.2.39
 [0.2.38]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...v0.2.38
 [0.2.37]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.36...v0.2.37

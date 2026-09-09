@@ -1111,6 +1111,7 @@
 
   function rowHtml(r) {
     const key = esc(r.key);
+    const canRename = r.canRename === true;
     const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
     const healthLabels = { healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
@@ -1131,6 +1132,7 @@
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
         <span class="slider"></span>
       </label>
+      ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename('${key}')">重命名</button>` : ''}
       <button class="btn ghost" type="button" onclick="window.__mcp.openScope('${key}')">范围</button>
       <button class="btn danger" onclick="window.__mcp.disconnect('${key}')">断开</button>
     </div>`;
@@ -1242,6 +1244,21 @@
       ${scopeFieldHtml({ id: 'scope-change-target' })}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitScopeChange()">预览并应用</button></div>`);
+  }
+
+  function openRenameConnection(key) {
+    const item = installedItems.find((candidate) => candidate.key === key);
+    if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
+    if (item.canRename !== true) {
+      showToast('市场连接器名称由目录维护', false);
+      return;
+    }
+    openModal('修改连接显示名', `
+      <div class="form-note"><strong>只修改页面显示名</strong>当前连接不会中断；<code>serverName</code>、工具前缀、作用范围和凭据均保持不变。</div>
+      <label for="rename-name">连接显示名（必填）</label><input id="rename-name" value="${esc(item.name)}" maxlength="80" autocomplete="off" />
+      <label for="rename-server-name">serverName（工具前缀，不可修改）</label><input id="rename-server-name" value="${esc(item.serverName || '')}" disabled />
+      <div class="inline-error" id="modal-error" tabindex="-1"></div>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitRename('${esc(key)}')">保存显示名</button></div>`);
   }
 
   function openAddConnection(mode = 'json', preset = {}) {
@@ -1371,6 +1388,18 @@
       if (connectorId) return window.__mcp.connect(connectorId);
     },
     openScope(key) { openScopeManager(key); },
+    openRename(key) { openRenameConnection(key); },
+    async submitRename(key) {
+      const name = $('#rename-name')?.value.trim() || '';
+      if (!name) { showModalError('连接显示名不能为空'); return; }
+      setModalBusy(true);
+      const result = await call('renameConnection', { key, name });
+      setModalBusy(false);
+      if (!result.ok) { showModalError(result.message); return; }
+      closeModal();
+      showToast(result.message, true);
+      await loadInstalled();
+    },
     async submitScopeChange() {
       if (!pendingScopeKey) return;
       let target;

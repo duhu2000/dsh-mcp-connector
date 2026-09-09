@@ -64,6 +64,7 @@ const api = {
   catalog: async () => ({ ok: true, message: '3 个连接器', detail: { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } }),
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
+  renameConnection: async (key, name) => ({ ok: true, message: 'renamed', detail: { key, name } }),
   exportConfig: async () => ({ ok: true, message: 'redacted', detail: { json: '{"redacted":true}' } }),
 };
 
@@ -118,6 +119,16 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   }), exportRes);
   assert.equal(exportRes.status, 200);
   assert.equal(JSON.parse(exportRes.body).detail.json, '{"redacted":true}');
+
+  const renameRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'renameConnection', params: { key: 'json-demo', name: '生产数据' } }),
+  }), renameRes);
+  assert.equal(renameRes.status, 200);
+  assert.deepEqual(JSON.parse(renameRes.body).detail, { key: 'json-demo', name: '生产数据' });
 
   const policyRes = new FakeRes();
   await route.handler(fakeReq({

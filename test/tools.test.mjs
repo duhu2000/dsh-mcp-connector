@@ -118,6 +118,24 @@ test('脱敏导出与快照工具只渲染公开结果', async () => {
   dispose();
 });
 
+test('重命名工具仅传递连接 key 和新显示名', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    renameConnection: async (key, name) => {
+      calls.push({ key, name });
+      return { ok: true, message: '已重命名', detail: { key, name, serverName: 'demo' } };
+    },
+  };
+  const dispose = registerTools(ctx, api);
+  const result = await tools.get('mcp_connector_rename').execute({ key: 'json-demo', name: '生产数据' });
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, [{ key: 'json-demo', name: '生产数据' }]);
+  assert.equal(tools.get('mcp_connector_rename').parameters.additionalProperties, false);
+  dispose();
+});
+
 test('治理工具支持 list/preview/apply/rollback 并渲染规则来源', async () => {
   const tools = new Map();
   const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };

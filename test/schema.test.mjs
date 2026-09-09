@@ -5,6 +5,7 @@ import { auditDescriptor, auditRawDescriptor } from '../lib/catalog.js';
 import { normalizeJsonImport } from '../lib/connectors/json-connector.js';
 import { buildManualRecord } from '../lib/connectors/manual-connector.js';
 import { resourceMetadataUrlFallback } from '../lib/oauth.js';
+import { normalizeConnectionDisplayName } from '../lib/util.js';
 import { buildEntryConfig } from '../lib/mcp-provision.js';
 
 test('normalizeConnectorDescriptor 补齐默认值', () => {
@@ -100,6 +101,14 @@ test('normalizeJsonImport: mcpServers 格式 + Bearer 提升', () => {
   assert.equal(r.auth.bearerToken, 'tok123');
   assert.equal(r.headers['X-Extra'], '1');
   assert.equal('Authorization' in r.headers, false);
+});
+
+test('连接显示名去除首尾空格并拒绝空值、控制字符与超长值', () => {
+  assert.equal(normalizeConnectionDisplayName('  生产数据  '), '生产数据');
+  assert.throws(() => normalizeConnectionDisplayName('  '), /不能为空/);
+  assert.throws(() => normalizeConnectionDisplayName('生产\n数据'), /控制字符/);
+  assert.throws(() => normalizeConnectionDisplayName('x'.repeat(81)), /80/);
+  assert.equal(normalizeConnectionDisplayName('📦'.repeat(80)), '📦'.repeat(80));
 });
 
 test('normalizeJsonImport: connections 格式 api-key', () => {
