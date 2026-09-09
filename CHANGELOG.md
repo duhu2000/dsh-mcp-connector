@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.2.41] - 2026-09-09
+
+### Added
+
+- “已安装”页为用户自定义和 JSON 导入的连接新增“编辑配置”，可修改标准化单连接 JSON 并保存后重新连接，无需先断开和删除。
+- 新增 `mcp_connector_get_editable_config` 与 `mcp_connector_reconfigure` 对话工具，提供相同的安全编辑和原子更新能力。
+
+### Changed
+
+- 已有 Token/API Key、Header/env 值、stdio 参数、本地路径及可能含凭据的 URL 只以 `<KEEP_EXISTING>` 返回；提交时在本机 storage-domain 内合并，也可显式替换或删除，不会将真实值发送到页面或对话。
+- 配置更新锁定 connection key 与 `serverName`，保留原连接范围和启停状态；更新前完成连接校验并创建快照，校验、Host 启动或持久化失败时原连接保持可用。
+
+### Verification
+
+- 216 项自动测试、lint、版本/营销元数据/商店截图门禁和 npm 发布包白名单/敏感内容扫描全部通过；新增覆盖敏感值保留/替换/清除、HTTP/stdio、连接身份约束、Web API、对话工具、停用状态、失败保留与快照。
+
 ## [0.2.40] - 2026-09-09
 
 ### Added
@@ -622,7 +638,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.40...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.41...HEAD
+[0.2.41]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.40...v0.2.41
 [0.2.40]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...v0.2.40
 [0.2.39]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...v0.2.39
 [0.2.38]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.37...v0.2.38

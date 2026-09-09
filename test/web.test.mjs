@@ -65,6 +65,8 @@ const api = {
   status: async () => ({ ok: true, message: '0 条', detail: { items: [] } }),
   connect: async (connectorId) => ({ ok: true, message: `connected ${connectorId}`, detail: {} }),
   renameConnection: async (key, name) => ({ ok: true, message: 'renamed', detail: { key, name } }),
+  editableConnectionConfig: async (key) => ({ ok: true, message: 'editable', detail: { key, json: '{"connections":[]}' } }),
+  reconfigureConnection: async (key, json) => ({ ok: true, message: 'reconfigured', detail: { key, jsonLength: json.length } }),
   exportConfig: async () => ({ ok: true, message: 'redacted', detail: { json: '{"redacted":true}' } }),
 };
 
@@ -129,6 +131,26 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   }), renameRes);
   assert.equal(renameRes.status, 200);
   assert.deepEqual(JSON.parse(renameRes.body).detail, { key: 'json-demo', name: '生产数据' });
+
+  const editableRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'editableConnectionConfig', params: { key: 'json-demo' } }),
+  }), editableRes);
+  assert.equal(editableRes.status, 200);
+  assert.equal(JSON.parse(editableRes.body).detail.key, 'json-demo');
+
+  const reconfigureRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'reconfigureConnection', params: { key: 'json-demo', json: '{}' } }),
+  }), reconfigureRes);
+  assert.equal(reconfigureRes.status, 200);
+  assert.deepEqual(JSON.parse(reconfigureRes.body).detail, { key: 'json-demo', jsonLength: 2 });
 
   const policyRes = new FakeRes();
   await route.handler(fakeReq({

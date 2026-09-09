@@ -57,6 +57,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Dynamic tool discovery grouped by MCP server, including descriptions, search, batched rendering, and an independent scroll region.
 - Curated prompt templates that can open a DSH conversation and prefill its draft; missing variables are requested before the prompt is sent.
 - Persistent connection lifecycle management: restore on restart, enable/disable, disconnect, retry transient OAuth refresh failures with bounded backoff, and revoke authorization. Cards declaring issuer-level sharing reuse one grant; a cross-process lock and per-grant atomic journal prevent Desktop and Web hosts from consuming or overwriting the same rotating refresh token.
+- In-place configuration editing for custom and JSON-imported connections: edit normalized JSON from Installed and reconnect without deleting the connection. Existing sensitive values use local keep markers, and validation, startup, or persistence failures leave the previous connection usable.
 - Portable redacted configuration export plus up to 20 local pre-change snapshots, with preview and atomic restore. Credentials, local paths, and OAuth grants never enter the export.
 - Project/global connection scopes: choose the current DSH Workspace or profile-global visibility when connecting, preview affected servers/tools, then copy, move, or roll back by revision. Credentials remain single-copy and project-only tools are enforced by the DSH Host.
 - Three-layer Connection, Server, and Tool governance with Tool > Server > Connection > default-allow precedence, preview, revision-checked commits, and rollback. DSH Host restrictions narrow schemas/lookups/dispatch while a final execution guard prevents UI-only enforcement.
@@ -175,7 +176,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.40`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.40](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.40).
+The current public version is [`dsh-mcp-connector@0.2.41`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.41](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.41).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

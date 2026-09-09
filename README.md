@@ -57,6 +57,7 @@ dsh plugin --profile web add dsh-mcp-connector
 - 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片共享一次授权，跨进程锁与独立原子 Grant journal 防止 Desktop/Web 并行时重复消耗 Refresh Token。
+- 配置原地编辑：自定义和 JSON 导入连接可在“已安装”中编辑标准化 JSON 并重新连接；敏感值以本机保留标记处理，校验、启动或保存失败时原连接继续可用。
 - 配置备份：一键复制/下载可再次导入的脱敏 JSON；连接变更前自动保存最多 20 个本机快照，支持预览与原子恢复。凭据、本地路径和 OAuth Grant 不进入导出结果。
 - 连接作用域：新连接可选当前 Workspace 项目或 profile 全局；支持先预览 Server/工具影响，再复制、移动或按 revision 回滚。凭据只存一份，project-only 工具由 DSH Host 强制隔离。
 - 三层治理：Connection、Server、Tool 规则按 Tool > Server > Connection > 默认允许解析；变更先预览、按 revision 提交并可回滚，由 DSH Host 的 schema/lookup/dispatch restriction 与最终执行 Guard 真实生效。
@@ -171,7 +172,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.40`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.40](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.40)。
+当前公开版本为 [`dsh-mcp-connector@0.2.41`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.41](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.41)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

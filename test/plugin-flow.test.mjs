@@ -1004,6 +1004,9 @@ test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', {
 test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', { timeout: 15000 }, async () => {
   const manualServer = createServer(async (req, res) => {
     for await (const _chunk of req) {}
+    if (req.headers.authorization === 'Bearer denied') {
+      res.writeHead(401); res.end(); return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: {}, serverInfo: { name: 'manual', version: '1' } } }));
   });
@@ -1033,6 +1036,38 @@ test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', {
     assert.equal(imp.detail.keys.length, 1);
     assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
 
+    const editable = await tools.defs.get('mcp_connector_get_editable_config').execute({ key: 'json-vendor' });
+    assert.equal(editable.ok, true, editable.message);
+    assert.match(editable.detail.json, /<KEEP_EXISTING>/);
+    assert.doesNotMatch(editable.detail.json, /vtok/);
+    const rejectedDocument = JSON.parse(editable.detail.json);
+    rejectedDocument.connections[0].bearerToken = 'denied';
+    const rejectedUpdate = await tools.defs.get('mcp_connector_reconfigure').execute({
+      key: 'json-vendor', json: JSON.stringify(rejectedDocument),
+    });
+    assert.equal(rejectedUpdate.ok, false);
+    assert.match(rejectedUpdate.message, /已保留原连接和配置/);
+    assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
+
+    const updatedDocument = JSON.parse(editable.detail.json);
+    updatedDocument.connections[0].bearerToken = 'next-token';
+    updatedDocument.connections[0].headers['X-Tenant'] = 'qcc';
+    const updated = await tools.defs.get('mcp_connector_reconfigure').execute({
+      key: 'json-vendor', json: JSON.stringify(updatedDocument),
+    });
+    assert.equal(updated.ok, true, updated.message);
+    assert.equal(updated.detail.key, 'json-vendor');
+    assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer next-token');
+    assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers['X-Tenant'], 'qcc');
+    assert.equal((await tables.get('snapshots').get(updated.detail.snapshotId)).reason, 'reconfigure');
+
+    updatedDocument.connections[0].serverName = 'renamed-server';
+    const identityChange = await tools.defs.get('mcp_connector_reconfigure').execute({
+      key: 'json-vendor', json: JSON.stringify(updatedDocument),
+    });
+    assert.equal(identityChange.ok, false);
+    assert.match(identityChange.message, /serverName 是连接身份/);
+
     const beforeRenameConfig = structuredClone(loader.entries.get('mcp-json-vendor').options.config);
     const renamed = await tools.defs.get('mcp_connector_rename').execute({ key: 'json-vendor', name: '  生产数据  ' });
     assert.equal(renamed.ok, true, renamed.message);
@@ -1047,6 +1082,7 @@ test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', {
     assert.equal(renamedItem.serverName, 'vendor');
     assert.equal(renamedItem.enabled, true);
     assert.equal(renamedItem.canRename, true);
+    assert.equal(renamedItem.canEditConfiguration, true);
     const exported = await tools.defs.get('mcp_connector_export_config').execute({});
     assert.equal(JSON.parse(exported.detail.json).connections.find((item) => item.serverName === 'vendor').name, '生产数据');
     assert.equal((await tables.get('snapshots').get(renamed.detail.snapshotId)).reason, 'rename');
@@ -1067,6 +1103,18 @@ test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', {
     const off = await tools.defs.get('mcp_connector_set_enabled').execute({ key, enabled: false });
     assert.equal(off.ok, true);
     assert.equal(loader.entries.get(`mcp-${key}`).disabled, true);
+
+    const disabledEditable = await tools.defs.get('mcp_connector_get_editable_config').execute({ key });
+    const disabledDocument = JSON.parse(disabledEditable.detail.json);
+    disabledDocument.connections[0].headers['X-Mode'] = 'disabled-edit';
+    const disabledUpdate = await tools.defs.get('mcp_connector_reconfigure').execute({
+      key, json: JSON.stringify(disabledDocument),
+    });
+    assert.equal(disabledUpdate.ok, true, disabledUpdate.message);
+    assert.equal(disabledUpdate.detail.enabled, false);
+    assert.match(disabledUpdate.message, /连接保持停用/);
+    assert.equal(loader.entries.get(`mcp-${key}`).disabled, true);
+    assert.equal(loader.entries.get(`mcp-${key}`).options.config.headers['X-Mode'], 'disabled-edit');
 
     const dis = await tools.defs.get('mcp_connector_disconnect').execute({ key }, { signal: undefined });
     assert.equal(dis.ok, true);

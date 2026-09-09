@@ -394,6 +394,7 @@
   .inline-error { color: var(--bad); background: var(--bad-bg); border-radius: 7px; padding: 8px 10px; margin-top: 12px; font-size: 12px; display: none; }
   .inline-error.show { display: block; }
   #backup-json { height: 190px; resize: vertical; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  #edit-connection-json { height: 260px; resize: vertical; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   .snapshot-list { border: 1px solid var(--line); border-radius: 9px; margin-top: 8px; max-height: 210px; overflow-y: auto; }
   .snapshot-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-top: 1px solid var(--line); }
   .snapshot-item:first-child { border-top: 0; }
@@ -498,6 +499,7 @@
     connect: 145_000,
     configure: 145_000,
     importJson: 145_000,
+    reconfigureConnection: 145_000,
     installFromUrl: 145_000,
     setEnabled: 130_000,
     restoreSnapshot: 145_000,
@@ -1112,6 +1114,7 @@
   function rowHtml(r) {
     const key = esc(r.key);
     const canRename = r.canRename === true;
+    const canEditConfiguration = r.canEditConfiguration === true;
     const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
     const healthLabels = { healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
@@ -1132,6 +1135,7 @@
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
         <span class="slider"></span>
       </label>
+      ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor('${key}')">编辑配置</button>` : ''}
       ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename('${key}')">重命名</button>` : ''}
       <button class="btn ghost" type="button" onclick="window.__mcp.openScope('${key}')">范围</button>
       <button class="btn danger" onclick="window.__mcp.disconnect('${key}')">断开</button>
@@ -1259,6 +1263,21 @@
       <label for="rename-server-name">serverName（工具前缀，不可修改）</label><input id="rename-server-name" value="${esc(item.serverName || '')}" disabled />
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitRename('${esc(key)}')">保存显示名</button></div>`);
+  }
+
+  async function openConnectionEditor(key) {
+    const item = installedItems.find((candidate) => candidate.key === key);
+    if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
+    const result = await call('editableConnectionConfig', { key });
+    if (!result.ok) { showToast(result.message, false); return; }
+    const action = item.enabled === false ? '保存配置' : '保存并重连';
+    openModal(`编辑配置 · ${item.name}`, `
+      <div class="form-note"><strong>安全编辑标准化 JSON</strong><code>serverName</code> 是连接身份，不可修改；原始排版、注释和字段别名不会被还原。<code>&lt;KEEP_EXISTING&gt;</code> 表示敏感值继续留在本机，可直接保留，或替换为新值；删除字段表示清除该项。</div>
+      <div class="field-label-row"><label for="edit-connection-json">单连接 JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatEditJson()">格式化 JSON</button></div>
+      <textarea id="edit-connection-json" rows="14" spellcheck="false">${esc(result.detail?.json || '')}</textarea>
+      <div class="field-help">提交前会先验证新配置并创建快照。任何校验、启动或保存失败都会保留原连接；连接 key、作用范围与启停状态不变。</div>
+      <div class="inline-error" id="modal-error" tabindex="-1"></div>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitReconfigure('${esc(key)}')">${action}</button></div>`);
   }
 
   function openAddConnection(mode = 'json', preset = {}) {
@@ -1389,6 +1408,36 @@
     },
     openScope(key) { openScopeManager(key); },
     openRename(key) { openRenameConnection(key); },
+    async openEditor(key) { await openConnectionEditor(key); },
+    formatEditJson() {
+      const input = $('#edit-connection-json');
+      if (!input) return;
+      try {
+        input.value = JSON.stringify(JSON.parse(input.value), null, 2);
+        $('#modal-error')?.classList.remove('show');
+      } catch (error) {
+        showModalError(`JSON 格式化失败: ${error.message}`);
+      }
+    },
+    async submitReconfigure(key) {
+      const input = $('#edit-connection-json');
+      if (!input?.value.trim()) { showModalError('连接配置不能为空'); return; }
+      let json;
+      try {
+        json = JSON.stringify(JSON.parse(input.value), null, 2);
+        input.value = json;
+      } catch (error) {
+        showModalError(`连接配置不是合法 JSON: ${error.message}`);
+        return;
+      }
+      setModalBusy(true, '正在校验并更新…');
+      const result = await call('reconfigureConnection', { key, json });
+      setModalBusy(false);
+      if (!result.ok) { showModalError(result.message); return; }
+      closeModal();
+      showToast(result.message, true);
+      await loadInstalled();
+    },
     async submitRename(key) {
       const name = $('#rename-name')?.value.trim() || '';
       if (!name) { showModalError('连接显示名不能为空'); return; }

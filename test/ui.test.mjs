@@ -69,6 +69,19 @@ test('自定义和 JSON 连接可无中断修改显示名', () => {
   assert.match(uiSource, /当前连接不会中断/);
 });
 
+test('自定义和 JSON 连接可安全编辑完整配置并原子重连', () => {
+  assert.match(uiSource, /const canEditConfiguration = r\.canEditConfiguration === true/);
+  assert.match(uiSource, />编辑配置<\/button>/);
+  assert.match(uiSource, /function openConnectionEditor\(key\)/);
+  assert.match(uiSource, /call\('editableConnectionConfig', \{ key \}\)/);
+  assert.match(uiSource, /id="edit-connection-json"/);
+  assert.match(uiSource, /&lt;KEEP_EXISTING&gt;/);
+  assert.match(uiSource, /serverName<\/code> 是连接身份，不可修改/);
+  assert.match(uiSource, /call\('reconfigureConnection', \{ key, json \}\)/);
+  assert.match(uiSource, /任何校验、启动或保存失败都会保留原连接/);
+  assert.match(uiSource, /reconfigureConnection: 145_000/);
+});
+
 test('添加连接默认打开 JSON 且首屏操作按钮保持可见', () => {
   assert.match(uiSource, /function openAddConnection\(mode = 'json'/);
   assert.match(uiSource, /#add-connection'\)\.addEventListener\('click', \(\) => openAddConnection\('json'\)\)/);

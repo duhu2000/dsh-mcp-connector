@@ -136,6 +136,31 @@ test('重命名工具仅传递连接 key 和新显示名', async () => {
   dispose();
 });
 
+test('安全编辑工具读取脱敏 JSON 并按 key 原子更新', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    editableConnectionConfig: async (key) => ({
+      ok: true, message: '安全配置', detail: { key, json: '{"connections":[{"bearerToken":"<KEEP_EXISTING>"}]}' },
+    }),
+    reconfigureConnection: async (key, json) => {
+      calls.push({ key, json });
+      return { ok: true, message: '已保存并重新连接', detail: { key } };
+    },
+  };
+  const dispose = registerTools(ctx, api);
+  const editable = await tools.get('mcp_connector_get_editable_config').execute({ key: 'json-demo' });
+  assert.doesNotMatch(editable.detail.json, /real-secret/);
+  assert.match(tools.get('mcp_connector_get_editable_config').output.render({}, editable)[0].text, /<KEEP_EXISTING>/);
+  const json = '{"connections":[]}';
+  const updated = await tools.get('mcp_connector_reconfigure').execute({ key: 'json-demo', json });
+  assert.equal(updated.ok, true);
+  assert.deepEqual(calls, [{ key: 'json-demo', json }]);
+  assert.equal(tools.get('mcp_connector_reconfigure').parameters.additionalProperties, false);
+  dispose();
+});
+
 test('治理工具支持 list/preview/apply/rollback 并渲染规则来源', async () => {
   const tools = new Map();
   const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
