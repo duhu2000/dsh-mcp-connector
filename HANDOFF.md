@@ -17,7 +17,7 @@
 - 管理：storage domain 持久化、重启恢复、启停、断开、OAuth 刷新与撤销。
 - UI：市场/已安装、全文搜索、服务商/接入方式组合筛选、4 个企查查连接器与北大法宝、Wind、盈米、QVeris、八爪鱼第三方连接器、本地品牌 Logo、详情弹框。
 - 详情：精选 Prompt 在上，工具默认折叠；按 Server 分组，含描述、搜索和 300px 独立滚动区。
-- Prompt：iframe 通过同源 `postMessage` 请求 Client，随后 `connectWorkspace → setDraft → sessions.open`。
+- Prompt：iframe 通过同源 `postMessage` 请求 Client，随后按能力探测使用 `uiWorkspace.connectWorkspace`（DSH 0.1.2）、`workspaces.connectWorkspace`（DSH 0.1.1）或 `sessions.create` 降级，再执行 `setDraft → sessions.open`。
 - P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；固定中文界面、深浅主题和键盘操作。
 - Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，当前包含北大法宝、Wind、盈米、QVeris 和八爪鱼 5 张第三方卡片、13 个 Server 与 21 个 Prompt；Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
