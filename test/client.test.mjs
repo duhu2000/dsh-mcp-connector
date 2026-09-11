@@ -34,7 +34,7 @@ async function loadClient({
   return plugin;
 }
 
-function clientContext({ workspaceId = 'workspace-1', settingsScope } = {}) {
+function clientContext({ workspaceId = 'workspace-1', settingsScope, workspaceNavigation = 'legacy' } = {}) {
   const registrations = new Map();
   const calls = [];
   const shell = {
@@ -42,6 +42,40 @@ function clientContext({ workspaceId = 'workspace-1', settingsScope } = {}) {
       calls.push(['setDraft', prompt]);
     },
   };
+  const workspaces = {
+    list: {
+      getSnapshot: () => ({
+        items: workspaceId == null ? [] : [{ workspaceId, sessionIds: ['session-current'] }],
+        recentWorkspaceId: workspaceId ?? undefined,
+      }),
+    },
+  };
+  if (workspaceNavigation === 'legacy' || workspaceNavigation === 'both') {
+    workspaces.connectWorkspace = async (id) => {
+      calls.push(['connectWorkspace', id]);
+      return 'session-new';
+    };
+  }
+  const sessions = {
+    list: { getSnapshot: () => ({ current: workspaceId == null ? undefined : 'session-current' }) },
+    open(id) {
+      calls.push(['open', id]);
+    },
+  };
+  if (workspaceNavigation === 'sessions') {
+    sessions.create = async (options) => {
+      calls.push(['create', options]);
+      return 'session-new';
+    };
+  }
+  const uiWorkspace = workspaceNavigation === 'ui' || workspaceNavigation === 'both'
+    ? {
+        async connectWorkspace(id) {
+          calls.push(['uiConnectWorkspace', id]);
+          return 'session-new';
+        },
+      }
+    : undefined;
   const ctx = {
     effect(start) {
       start();
@@ -55,25 +89,10 @@ function clientContext({ workspaceId = 'workspace-1', settingsScope } = {}) {
         return () => {};
       },
     },
-    workspaces: {
-      list: {
-        getSnapshot: () => ({
-          items: workspaceId == null ? [] : [{ workspaceId, sessionIds: ['session-current'] }],
-          recentWorkspaceId: workspaceId ?? undefined,
-        }),
-      },
-      async connectWorkspace(id) {
-        calls.push(['connectWorkspace', id]);
-        return 'session-new';
-      },
-    },
-    sessions: {
-      list: { getSnapshot: () => ({ current: workspaceId == null ? undefined : 'session-current' }) },
-      open(id) {
-        calls.push(['open', id]);
-      },
-    },
+    workspaces,
+    sessions,
     get(service) {
+      if (service === 'uiWorkspace') return uiWorkspace;
       if (service === 'conversation') return { input: { shell: () => shell } };
       return undefined;
     },
@@ -391,6 +410,43 @@ test('示例 Prompt 写入新会话草稿后再导航', async () => {
     ['setDraft', '查询企查查的对外投资布局'],
     ['open', 'session-new'],
   ]);
+});
+
+test('DSH 0.1.2 仅提供 uiWorkspace 时可创建 Prompt 会话', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ workspaceNavigation: 'ui' });
+  plugin.apply(ctx);
+  const props = registrations.get('shell.overlay').options.inject();
+  await props.startPromptSession('查询 SHOPLINE 商品创建接口');
+  assert.deepEqual(calls, [
+    ['uiConnectWorkspace', 'workspace-1'],
+    ['setDraft', '查询 SHOPLINE 商品创建接口'],
+    ['open', 'session-new'],
+  ]);
+});
+
+test('工作区导航桥均不可用时使用 sessions.create 安全降级', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ workspaceNavigation: 'sessions' });
+  plugin.apply(ctx);
+  const props = registrations.get('shell.overlay').options.inject();
+  await props.startPromptSession('查询 SHOPLINE GraphQL Schema');
+  assert.deepEqual(calls, [
+    ['create', { workspaceId: 'workspace-1' }],
+    ['setDraft', '查询 SHOPLINE GraphQL Schema'],
+    ['open', 'session-new'],
+  ]);
+});
+
+test('所有会话创建能力均不可用时返回可操作错误', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations } = clientContext({ workspaceNavigation: 'none' });
+  plugin.apply(ctx);
+  const props = registrations.get('shell.overlay').options.inject();
+  await assert.rejects(
+    () => props.startPromptSession('示例'),
+    /没有可用的工作区会话创建能力/,
+  );
 });
 
 test('市场 iframe 可读取当前 Workspace 作为项目连接作用域', async () => {

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 示例 Prompt 的“发送”动作会在 DSH 0.1.2 优先调用 `uiWorkspace.connectWorkspace`，并兼容 DSH 0.1.1 的 `workspaces.connectWorkspace` 与 `sessions.create` 安全降级；不再因工作区导航 API 迁移报错。
+
 ## [0.2.41] - 2026-09-09
 
 ### Added
