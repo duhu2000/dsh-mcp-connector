@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.42] - 2026-09-11
+
 ### Fixed
 
 - 示例 Prompt 的“发送”动作会在 DSH 0.1.2 优先调用 `uiWorkspace.connectWorkspace`，并兼容 DSH 0.1.1 的 `workspaces.connectWorkspace` 与 `sessions.create` 安全降级；不再因工作区导航 API 迁移报错。
@@ -642,7 +644,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.41...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.42...HEAD
+[0.2.42]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.41...v0.2.42
 [0.2.41]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.40...v0.2.41
 [0.2.40]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...v0.2.40
 [0.2.39]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.38...v0.2.39
