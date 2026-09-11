@@ -1,0 +1,98 @@
+name: External directory sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/distribution-sync.yml'
+      - 'scripts/check-distribution-sync.mjs'
+      - 'test/distribution-sync.test.mjs'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: external-directory-sync
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Compare external directories with npm latest
+        id: sync
+        continue-on-error: true
+        env:
+          DISTRIBUTION_REPORT_PATH: distribution-sync-report.json
+        run: node scripts/check-distribution-sync.mjs --strict-sync
+      - name: Upload machine-readable report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-directory-sync-report
+          path: distribution-sync-report.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Reconcile the single drift issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs')
+            const marker = '<!-- external-directory-sync-monitor -->'
+            const reportPath = 'distribution-sync-report.json'
+            if (!fs.existsSync(reportPath)) {
+              core.warning('No distribution report was produced; leaving any existing drift issue unchanged.')
+              return
+            }
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+            const icons = { current: '✅', stale: '⚠️', invalid: '❌', missing: '❌', unavailable: '⏳' }
+            const rows = report.targets.map((item) => {
+              const detail = String(item.detail ?? '').replaceAll('|', '\\|')
+              const tracking = item.trackingUrl ? `[follow-up](${item.trackingUrl})` : '-'
+              return `| [${item.label}](${item.url}) | ${icons[item.status]} ${item.status} | ${item.observedVersion ?? '-'} | ${tracking} | ${detail} |`
+            })
+            const body = [
+              marker,
+              '## External directory metadata drift',
+              '',
+              `Canonical npm version: \`${report.canonicalVersion}\``,
+              '',
+              '| Directory | Status | Observed | Tracking | Detail |',
+              '|---|---|---|---|---|',
+              ...rows,
+              '',
+              `Last checked: ${report.checkedAt}`,
+              '',
+              'This issue is maintained automatically. It will close after every required directory is current.',
+            ].join('\n')
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })
+            const existing = issues.find((issue) => issue.body?.includes(marker))
+            if (!report.ok) {
+              if (existing) {
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body })
+              } else {
+                await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title: 'External directory metadata is out of sync', body, labels: [] })
+              }
+            } else if (report.converged && existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body: `All monitored directories match npm \`${report.canonicalVersion}\`. Closing automatically.` })
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: 'closed' })
+            } else if (existing) {
+              core.warning('At least one directory is temporarily unavailable; keeping the existing drift issue open until every target is verified current.')
+            }
+      - name: Preserve failing status for metadata drift
+        if: steps.sync.outcome == 'failure'
+        run: exit 1
