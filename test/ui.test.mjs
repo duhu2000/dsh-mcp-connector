@@ -122,6 +122,18 @@ test('连接、健康检查与工具加载均有有限超时和可重试提示',
   assert.match(uiSource, /重新检查/);
 });
 
+test('页面通过同源 SSE 实时刷新，并在实时失败时显示最后成功工具缓存与参数详情', () => {
+  assert.match(uiSource, /new EventSource\('\/mcp-connector\/events'\)/);
+  assert.match(uiSource, /source\.addEventListener\('status'/);
+  assert.match(uiSource, /scheduleStatusRefresh/);
+  assert.match(uiSource, /statusEventSource\?\.close\(\)/);
+  assert.match(uiSource, /server\.cached/);
+  assert.match(uiSource, /最后成功缓存/);
+  assert.match(uiSource, /call\('toolDetail'/);
+  assert.match(uiSource, /data-tool-detail=/);
+  assert.match(uiSource, /schema 已安全裁剪/);
+});
+
 test('凭据型市场卡片提供多 Server 一次配置表单', () => {
   assert.match(uiSource, /function openCatalogCredentialForm\(preset\)/);
   assert.match(uiSource, /一次配置 \$\{servers\.length\} 个 MCP Server/);

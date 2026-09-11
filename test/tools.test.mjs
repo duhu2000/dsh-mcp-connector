@@ -93,6 +93,34 @@ test('健康检查工具向模型渲染状态、阶段、代码和建议', () =>
   dispose();
 });
 
+test('工具搜索与详情是只读发现工具，并渲染缓存来源和参数 schema', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    toolSearch: async (args) => {
+      calls.push(['search', args]);
+      return { ok: true, message: '找到 1 个', detail: { items: [{ connectorId: 'demo', serverName: 'search', name: 'lookup', description: '查询', stale: false }] } };
+    },
+    toolDetail: async (args) => {
+      calls.push(['detail', args]);
+      return { ok: true, message: '工具详情', detail: { tool: { name: 'lookup', description: '查询', inputSchema: { type: 'object' } } } };
+    },
+  };
+  const dispose = registerTools(ctx, api);
+  const searched = await tools.get('mcp_connector_tool_search').execute({ query: 'lookup', limit: 5 });
+  assert.match(tools.get('mcp_connector_tool_search').output.render({}, searched)[0].text, /demo\/search\/lookup/);
+  const detailed = await tools.get('mcp_connector_tool_detail').execute({ toolName: 'lookup', serverName: 'search' });
+  assert.match(tools.get('mcp_connector_tool_detail').output.render({}, detailed)[0].text, /"type": "object"/);
+  assert.deepEqual(calls, [
+    ['search', { query: 'lookup', limit: 5 }],
+    ['detail', { toolName: 'lookup', serverName: 'search' }],
+  ]);
+  assert.match(tools.get('mcp_connector_tool_search').description, /不调用目标 MCP 工具/);
+  assert.match(tools.get('mcp_connector_tool_detail').description, /不执行目标 MCP 工具/);
+  dispose();
+});
+
 test('脱敏导出与快照工具只渲染公开结果', async () => {
   const tools = new Map();
   const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };

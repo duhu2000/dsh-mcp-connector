@@ -325,6 +325,8 @@
   .tool-item:first-child { border-top: 0; }
   .tool-item:hover { background: var(--accent-light); }
   .tool-name-row { display: flex; align-items: center; gap: 7px; }
+  .tool-detail-btn { margin-left: auto; border: 0; background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; padding: 2px 4px; }
+  .tool-schema { margin: 10px 0 0; padding: 10px; border-radius: 8px; background: var(--bg); max-height: 320px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
   .tool-name { color: var(--text); font: 600 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
   .tool-deprecated { color: var(--warn); background: var(--warn-bg); border-radius: 999px; padding: 1px 6px; font-size: 10px; line-height: 1.5; flex: 0 0 auto; }
   .tool-description { color: var(--text-2); font-size: 12px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -872,7 +874,7 @@
     const groups = detailToolServers.map((server) => {
       const label = server.serverName || server.serverKey || 'MCP Server';
       const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', `${label} Server 策略`);
-      if (!server.ok) {
+      if (!server.ok && !server.cached) {
         if (query) return '';
         return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 加载失败</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
       }
@@ -891,12 +893,17 @@
           const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
           const deprecated = isDeprecatedTool(tool);
           const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, tool.name, tool.publicName, `${tool.name} Tool 策略`);
-          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}${policyBadge(tool.policy)}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
+          const detailButton = server.preview ? '' : `<button class="tool-detail-btn" type="button" data-tool-detail="true" data-server-name="${esc(server.serverName || '')}" data-tool-name="${esc(tool.name || '')}">参数详情</button>`;
+          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}${policyBadge(tool.policy)}${detailButton}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
         }).join('')
         : server.managed
           ? '<div class="tools-loading">Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。</div>'
           : '<div class="tools-loading">暂无工具</div>';
-      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个</span></span>${serverSelect}</div>${items}</div>`;
+      const cacheLabel = server.cached
+        ? ` · 最后成功缓存 ${server.cacheObservedAt ? esc(new Date(server.cacheObservedAt).toLocaleString('zh-CN', { hour12: false })) : ''}${server.stale ? ' · 已超过 24 小时' : ''}`
+        : '';
+      const cacheError = server.cached && server.error ? `<div class="tools-error">实时读取失败：${esc(server.error)}；以下为最后成功缓存。</div>` : '';
+      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个${cacheLabel}</span></span>${serverSelect}</div>${cacheError}${items}</div>`;
     }).filter(Boolean);
     $('#detail-tools').innerHTML = groups.length > 0
       ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">再显示 ${Math.min(50, matchedTools - renderedTools)} 个（剩余 ${matchedTools - renderedTools}）</button>` : ''}`
@@ -911,6 +918,28 @@
     $('#modalMask').classList.add('show');
     $('#modalMask').setAttribute('aria-hidden', 'false');
     setTimeout(() => $('#modal').querySelector('input, textarea, select, button')?.focus(), 0);
+  }
+
+  async function openToolDetail(serverName, toolName) {
+    if (!detailConnector || !toolName) return;
+    const result = await call('toolDetail', {
+      connectorId: detailConnector.id,
+      serverName,
+      toolName,
+      ...workspaceParams(),
+    });
+    if (!result.ok) {
+      showToast(result.message, false);
+      return;
+    }
+    const tool = result.detail?.tool || {};
+    const observed = tool.observedAt ? new Date(tool.observedAt).toLocaleString('zh-CN', { hour12: false }) : '未知';
+    const schema = tool.inputSchema ? JSON.stringify(tool.inputSchema, null, 2) : '未缓存输入参数 schema';
+    openModal(`工具参数 · ${tool.name || toolName}`, `
+      <p class="hint">${esc(tool.serverName || serverName)} · 最后成功 ${esc(observed)}${tool.stale ? ' · 缓存已超过 24 小时' : ''}${tool.schemaTruncated ? ' · schema 已安全裁剪' : ''}</p>
+      <p>${esc(tool.description || '暂无描述')}</p>
+      <pre class="tool-schema">${esc(schema)}</pre>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
   }
   function closeModal() {
     $('#modalMask').classList.remove('show');
@@ -1840,9 +1869,15 @@
     if (select) applyPolicySelection(select);
   });
   $('#detail-tools').addEventListener('click', (event) => {
-    if (!event.target.closest('#tools-more')) return;
-    toolRenderLimit += 50;
-    renderTools();
+    const detailButton = event.target.closest('button[data-tool-detail]');
+    if (detailButton) {
+      openToolDetail(detailButton.dataset.serverName, detailButton.dataset.toolName);
+      return;
+    }
+    if (event.target.closest('#tools-more')) {
+      toolRenderLimit += 50;
+      renderTools();
+    }
   });
   $('#detail-try-btn').addEventListener('click', async () => {
     if (detailNeedsReconfigure) {
@@ -1914,7 +1949,45 @@
     }
     if (e.key === 'Escape' && $('#detail-overlay').classList.contains('active')) closeDetail();
   });
-  window.addEventListener('pagehide', () => notifyDetailState(false));
+  let statusEventSource = null;
+  let statusRefreshTimer = null;
+
+  function scheduleStatusRefresh() {
+    if (document.hidden) return;
+    clearTimeout(statusRefreshTimer);
+    statusRefreshTimer = setTimeout(() => {
+      if (view === 'market') loadMarket({ checkHealth: false, preserveScroll: true });
+      else loadInstalled();
+    }, 150);
+  }
+
+  function connectStatusEvents() {
+    if (typeof EventSource !== 'function' || statusEventSource) return;
+    const source = new EventSource('/mcp-connector/events');
+    statusEventSource = source;
+    source.addEventListener('status', (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (['connections', 'catalog', 'status', 'tools', 'governance', 'scope'].includes(payload.type)) scheduleStatusRefresh();
+      } catch {}
+    });
+    source.addEventListener('error', () => {
+      if (source.readyState === EventSource.CLOSED && statusEventSource === source) statusEventSource = null;
+    });
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      connectStatusEvents();
+      scheduleStatusRefresh();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    notifyDetailState(false);
+    clearTimeout(statusRefreshTimer);
+    statusEventSource?.close();
+    statusEventSource = null;
+  });
 
   function refresh() { return view === 'market' ? loadMarket() : loadInstalled(); }
   function syncTabs() {
@@ -1964,6 +2037,7 @@
   });
 
   requestWorkspaceContext();
+  connectStatusEvents();
   refresh();
 })();
 </script>
