@@ -782,7 +782,7 @@
   }
 
   function policySelect(scope, current, serverName = '', toolName = '', publicName = '', label = '') {
-    if (!detailConnector?.connected?.length) return '';
+    if (!detailConnector?.connected?.length || detailConnector.connectionKey) return '';
     return `<select class="policy-select" data-policy-scope="${esc(scope)}" data-current-effect="${esc(current || 'inherit')}" data-server-name="${esc(serverName)}" data-tool-name="${esc(toolName)}" data-public-name="${esc(publicName)}" aria-label="${esc(label || `${scope} 策略`)}">${policyOptions(current)}</select>`;
   }
 
@@ -799,7 +799,7 @@
 
   function syncGovernanceBar() {
     const bar = $('#governance-bar');
-    const connected = detailConnector?.connected?.length > 0;
+    const connected = detailConnector?.connected?.length > 0 && !detailConnector.connectionKey;
     bar.hidden = !connected;
     if (!connected) return;
     const connectionEffect = detailGovernance?.connectionPolicy || 'inherit';
@@ -861,8 +861,34 @@
     if (result.ok && detailConnector) await window.__mcp.showDetail(detailConnector.id);
   }
 
+  function normalizeToolSearchText(value) {
+    return String(value ?? '').normalize('NFKC')
+      .replace(/([\p{Script=Han}])([A-Za-z0-9])/gu, '$1 $2')
+      .replace(/([A-Za-z0-9])([\p{Script=Han}])/gu, '$1 $2')
+      .toLocaleLowerCase('zh-CN').replace(/[^\p{Letter}\p{Number}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+  }
+
+  function toolSearchScore(tool, query) {
+    const terms = query.split(' ').filter(Boolean);
+    const fields = [tool.name, tool.title, tool.description].map(normalizeToolSearchText);
+    const compactQuery = query.replace(/ /g, '');
+    const compactFields = fields.map((field) => field.replace(/ /g, ''));
+    const fieldIndex = fields.findIndex((field, index) => (
+      terms.every((term) => field.includes(term)) || compactFields[index].includes(compactQuery)
+    ));
+    if (fieldIndex < 0) return -1;
+    const field = fields[fieldIndex];
+    const compact = compactFields[fieldIndex];
+    let score = fieldIndex === 0 ? 300 : fieldIndex === 1 ? 180 : 80;
+    if (field === query || compact === compactQuery) score += 1_000;
+    else if (field.startsWith(query) || compact.startsWith(compactQuery)) score += 500;
+    else if (field.includes(query) || compact.includes(compactQuery)) score += 250;
+    score -= Math.min(field.length, 200) / 1_000;
+    return score;
+  }
+
   function renderTools() {
-    const query = $('#tools-search').value.trim().toLowerCase();
+    const query = normalizeToolSearchText($('#tools-search').value);
     if (detailToolServers.length === 0) {
       updateToolsSummary();
       $('#detail-tools').innerHTML = '<div class="tools-empty">暂无可用工具</div>';
@@ -871,17 +897,22 @@
     let matchedTools = 0;
     let renderedTools = 0;
     let remaining = toolRenderLimit;
-    const groups = detailToolServers.map((server) => {
+    const rankedServers = query ? [...detailToolServers].sort((a, b) =>
+      Math.max(-1, ...(b.tools || []).map((tool) => toolSearchScore(tool, query)))
+      - Math.max(-1, ...(a.tools || []).map((tool) => toolSearchScore(tool, query)))) : detailToolServers;
+    const groups = rankedServers.map((server) => {
       const label = server.serverName || server.serverKey || 'MCP Server';
       const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', `${label} Server 策略`);
       if (!server.ok && !server.cached) {
         if (query) return '';
-        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 加载失败</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
+        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· ${server.pending ? '正在发现' : '加载失败'}</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
       }
       const matched = (server.tools || []).filter((tool) => {
         if (!query) return true;
-        return `${tool.name || ''}\n${tool.title || ''}\n${tool.description || ''}`.toLowerCase().includes(query);
-      }).sort((left, right) => Number(isDeprecatedTool(left)) - Number(isDeprecatedTool(right)));
+        return toolSearchScore(tool, query) >= 0;
+      }).sort((left, right) => query
+        ? toolSearchScore(right, query) - toolSearchScore(left, query) || left.name.localeCompare(right.name)
+        : Number(isDeprecatedTool(left)) - Number(isDeprecatedTool(right)));
       if (query && matched.length === 0) return '';
       matchedTools += matched.length;
       const tools = matched.slice(0, Math.max(0, remaining));
@@ -923,6 +954,7 @@
   async function openToolDetail(serverName, toolName) {
     if (!detailConnector || !toolName) return;
     const result = await call('toolDetail', {
+      connectionKey: detailConnector.connectionKey,
       connectorId: detailConnector.id,
       serverName,
       toolName,
@@ -1166,6 +1198,7 @@
       </label>
       ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor('${key}')">编辑配置</button>` : ''}
       ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename('${key}')">重命名</button>` : ''}
+      ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools('${key}')">工具</button>` : ''}
       <button class="btn ghost" type="button" onclick="window.__mcp.openScope('${key}')">范围</button>
       <button class="btn danger" onclick="window.__mcp.disconnect('${key}')">断开</button>
     </div>`;
@@ -1708,8 +1741,17 @@
       showToast(result.message, result.ok);
       await loadInstalled();
     },
-    async showDetail(connectorId) {
-      const d = marketItems[connectorId];
+    async showConnectionTools(key) {
+      const record = installedItems.find((item) => item.key === key);
+      if (!record) return;
+      await window.__mcp.showDetail(record.connectorId, {
+        id: record.connectorId, connectionKey: key, name: record.name, icon: '🔌',
+        authMode: record.authMode, connected: [record], connectionState: record.connectionState,
+        description: '本机连接的工具发现与参数详情；不会执行工具。',
+      });
+    },
+    async showDetail(connectorId, connectionDescriptor) {
+      const d = connectionDescriptor || marketItems[connectorId];
       if (!d) return;
       detailConnector = d;
       const incomplete = d.connected?.length > 0 && d.connectionComplete === false;
@@ -1738,6 +1780,8 @@
       syncGovernanceBar();
       setDetailOpen(true);
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
+      if (d.connectionKey) $('#detail-disconnect-btn').style.display = 'none';
+      $('#detail-try-btn').style.display = d.connectionKey ? 'none' : '';
       const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
       $('#detail-try-btn').textContent = detailNeedsReconfigure
         ? detailFailureState === 'incomplete' ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
@@ -1749,7 +1793,7 @@
         return;
       }
       const [toolsResult, governanceResult] = await Promise.all([
-        call('toolsList', { connectorId, ...workspaceParams() }),
+        call('toolsList', { connectorId, connectionKey: d.connectionKey, ...workspaceParams() }),
         call('governance', {}),
       ]);
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
@@ -1951,13 +1995,52 @@
   });
   let statusEventSource = null;
   let statusRefreshTimer = null;
+  let statusRefreshRunning = false;
+  let statusRefreshPending = false;
+
+  async function refreshOpenToolDetail() {
+    if (!detailConnector || !$('#detail-overlay').classList.contains('active')) return;
+    const id = detailLoadId;
+    const result = await call('toolsList', { connectorId: detailConnector.id, connectionKey: detailConnector.connectionKey, ...workspaceParams(), cachedOnly: true });
+    if (id !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
+    if (!result.detail?.servers) {
+      detailToolServers = [];
+      renderTools();
+      $('#tools-summary').textContent = result.message || '连接当前不可用';
+      return;
+    }
+    if (result.detail?.servers) {
+      detailToolServers = result.detail.servers;
+      renderTools();
+      const pending = detailToolServers.some((server) => server.pending);
+      const unknown = detailToolServers.some((server) => server.unknown);
+      const available = detailToolServers.filter((server) => server.ok).length;
+      const label = pending ? '正在后台发现工具' : unknown && available === 0 ? '工具状态尚未确认'
+        : available === detailToolServers.length ? '已连接'
+        : available > 0 ? '部分服务可用' : '当前连接异常';
+      detailFailureState = pending ? 'unknown' : available > 0 ? 'healthy' : 'unavailable';
+      detailNeedsReconfigure = !pending && available === 0;
+      $('#detail-vendor').textContent = detailConnector.vendor ? `${detailConnector.vendor} · ${label}` : label;
+      $('#detail-try-btn').textContent = detailNeedsReconfigure ? '🔄 重新检查' : t('try');
+    }
+  }
 
   function scheduleStatusRefresh() {
     if (document.hidden) return;
+    statusRefreshPending = true;
+    if (statusRefreshRunning) return;
     clearTimeout(statusRefreshTimer);
-    statusRefreshTimer = setTimeout(() => {
-      if (view === 'market') loadMarket({ checkHealth: false, preserveScroll: true });
-      else loadInstalled();
+    statusRefreshTimer = setTimeout(async () => {
+      statusRefreshRunning = true;
+      statusRefreshPending = false;
+      try {
+        if (view === 'market') await loadMarket({ checkHealth: false, preserveScroll: true });
+        else await loadInstalled();
+        await refreshOpenToolDetail();
+      } finally {
+        statusRefreshRunning = false;
+        if (statusRefreshPending) scheduleStatusRefresh();
+      }
     }, 150);
   }
 
@@ -1965,6 +2048,7 @@
     if (typeof EventSource !== 'function' || statusEventSource) return;
     const source = new EventSource('/mcp-connector/events');
     statusEventSource = source;
+    source.addEventListener('ready', scheduleStatusRefresh);
     source.addEventListener('status', (event) => {
       try {
         const payload = JSON.parse(event.data);

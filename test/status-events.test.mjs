@@ -63,3 +63,12 @@ test('SSE 限制并发客户端并拒绝未知事件类型', () => {
   assert.throws(() => hub.publish('credentials'), /unsupported status event type/);
   hub.dispose();
 });
+
+test('SSE 驱动的只读工具视图不再次发布事件，避免刷新循环', async () => {
+  const published = [];
+  const api = observeStatusEvents({ async toolsList() { return { ok: true }; } }, { publish(type) { published.push(type); } });
+  await api.toolsList('demo', 'workspace-1', true);
+  assert.deepEqual(published, []);
+  await api.toolsList('demo', 'workspace-1', false);
+  assert.deepEqual(published, ['tools']);
+});

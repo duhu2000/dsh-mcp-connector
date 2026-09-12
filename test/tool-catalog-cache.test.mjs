@@ -24,6 +24,24 @@ function connection(overrides = {}) {
   };
 }
 
+test('Schema 属性名与 Schema 关键字分层处理，保留合法同名参数但删除敏感默认值', () => {
+  const tool = sanitizeToolMetadata({ name: 'lookup', inputSchema: {
+    type: 'object', required: ['default', 'const', 'examples'],
+    properties: {
+      default: { type: 'string', default: 'secret' },
+      const: { type: 'object', properties: { examples: { type: 'string', examples: ['secret'] } } },
+      examples: { type: 'number' },
+    },
+    $defs: { default: { type: 'string', const: 'secret' } },
+  } });
+  assert.deepEqual(Object.keys(tool.inputSchema.properties), ['default', 'const', 'examples']);
+  assert.deepEqual(tool.inputSchema.properties.default, { type: 'string' });
+  assert.equal(tool.inputSchema.properties.const.properties.examples.type, 'string');
+  assert.equal(tool.inputSchema.$defs.default.type, 'string');
+  assert.doesNotMatch(JSON.stringify(tool), /secret/);
+  assert.equal(tool.schemaTruncated, true);
+});
+
 test('最后成功工具缓存只保留裁剪后的能力元数据', () => {
   const tool = sanitizeToolMetadata({
     name: 'search',

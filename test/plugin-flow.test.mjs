@@ -130,6 +130,116 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
   }
 }
 
+test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢复无需打开详情', { timeout: 15000 }, async () => {
+  let offline = false;
+  let generation = 1;
+  const methods = [];
+  const server = createServer(async (req, res) => {
+    if (req.method === 'DELETE') { res.writeHead(204); res.end(); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body || '{}');
+    methods.push(request.method);
+    if (offline) { res.writeHead(503); res.end(); return; }
+    if (!request.id) { res.writeHead(202); res.end(); return; }
+    const result = request.method === 'tools/list' ? { tools: [{
+      name: `lookup_${generation}`, inputSchema: { type: 'object', properties: { default: { type: 'string', default: 'sensitive-test' } } },
+    }] } : { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'mock', version: '1' } };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/mcp`;
+  const plugin = makePluginContext();
+  const { tools, tables, disposers } = plugin;
+  const { apply } = await import('../lib/index.js');
+  const connectors = [{ id: 'discovery-demo', name: 'Demo', auth: { mode: 'none' }, servers: [{ serverKey: 'one', serverName: 'catalog-demo', url }] }];
+  const execute = (name, input) => tools.defs.get(`mcp_connector_${name}`).execute(input, { signal: new AbortController().signal });
+  try {
+    await apply(plugin.ctx, baseConfig({ connectors }));
+    assert.equal((await execute('configure', { name: 'Manual', serverName: 'manual-demo', url, scope: 'project', workspaceId: 'workspace-1' })).ok, true);
+    assert.equal((await execute('import_json', { json: JSON.stringify({ mcpServers: { 'json-demo': { url } } }) })).ok, true);
+    assert.equal((await execute('connect', { connectorId: 'discovery-demo' })).ok, true);
+    await waitFor(() => [...tables.get('tool_catalog').entries()].length === 3);
+    const search = await execute('tool_search', { query: 'lookup_1', workspaceId: 'workspace-1' });
+    assert.equal(search.detail.items.length, 3);
+    const other = await execute('tool_search', { query: 'lookup_1', workspaceId: 'workspace-other' });
+    assert.equal(other.detail.items.length, 2);
+    const custom = search.detail.items.find((item) => item.connectionKey === 'custom-manual-demo');
+    assert.ok(custom);
+    const detail = await execute('tool_detail', { toolName: 'lookup_1', connectionKey: custom.connectionKey, workspaceId: 'workspace-1' });
+    assert.equal(detail.detail.tool.inputSchema.properties.default.type, 'string');
+    assert.doesNotMatch(JSON.stringify(detail), /sensitive-test/);
+    const denied = await execute('tools_list', { connectorId: custom.connectorId, connectionKey: custom.connectionKey, workspaceId: 'workspace-other' });
+    assert.equal(denied.ok, false);
+    offline = true;
+    const failed = await execute('tools_list', { connectorId: custom.connectorId, connectionKey: custom.connectionKey, workspaceId: 'workspace-1' });
+    assert.equal(failed.ok, false);
+    assert.equal(failed.detail.servers[0].cached, true);
+    assert.equal(failed.detail.servers[0].tools[0].name, 'lookup_1');
+    offline = false; generation = 2;
+    // A successful connection mutation schedules discovery without opening details.
+    assert.equal((await execute('configure', { name: 'Trigger', serverName: 'trigger', url })).ok, true);
+    await waitFor(() => [...tables.get('tool_catalog').entries()].some(([key, entry]) => key === custom.connectionKey && entry.tools[0]?.name === 'lookup_2'));
+    assert.equal((await execute('tool_search', { query: 'lookup_2', connectionKey: custom.connectionKey })).detail.items.length, 1);
+    assert.ok(!methods.includes('tools/call'));
+  } finally {
+    disposers.forEach((dispose) => dispose());
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('自定义 stdio 在 Host 注册工具后自动入缓存，停用即不可搜索', async () => {
+  const { ctx, tools, tables, disposers } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const configured = await tools.defs.get('mcp_connector_configure').execute({ name: 'Local', serverName: 'local-discovery', transport: 'stdio', command: 'node', args: ['server.js'] });
+    assert.equal(configured.ok, true, configured.message);
+    tools.register({ name: 'mcp__local-discovery__lookup', description: 'Lookup', parameters: { type: 'object', properties: { const: { type: 'string' } } } });
+    await waitFor(() => [...tables.get('tool_catalog').entries()].length === 1);
+    const result = await tools.defs.get('mcp_connector_tool_search').execute({ query: 'lookup', connectionKey: configured.detail.key });
+    assert.equal(result.detail.items.length, 1);
+    const toggle = tools.defs.get('mcp_connector_set_enabled');
+    assert.ok(toggle);
+    assert.equal((await toggle.execute({ key: configured.detail.key, enabled: false })).ok, true);
+    assert.equal((await tools.defs.get('mcp_connector_tool_search').execute({ query: 'lookup', connectionKey: configured.detail.key })).detail.items.length, 0);
+  } finally { disposers.forEach((dispose) => dispose()); }
+});
+
+test('后台 tools/list 晚于断开返回时不复活已删除缓存', { timeout: 10000 }, async () => {
+  let started = false;
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const server = createServer(async (req, res) => {
+    if (req.method === 'DELETE') { res.writeHead(204); res.end(); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body || '{}');
+    if (!request.id) { res.writeHead(202); res.end(); return; }
+    if (request.method === 'tools/list') { started = true; await gate; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: request.method === 'tools/list'
+      ? { tools: [{ name: 'old_tool' }] }
+      : { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'mock', version: '1' } } }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { ctx, tools, tables, disposers } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const configured = await tools.defs.get('mcp_connector_configure').execute({ name: 'Race', url: `http://127.0.0.1:${server.address().port}/mcp` });
+    assert.equal(configured.ok, true);
+    await waitFor(() => started);
+    assert.equal((await tools.defs.get('mcp_connector_disconnect').execute({ key: configured.detail.key }, { signal: new AbortController().signal })).ok, true);
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal([...tables.get('tool_catalog').entries()].length, 0);
+    assert.equal((await tools.defs.get('mcp_connector_tool_search').execute({ query: 'old_tool' })).detail.items.length, 0);
+  } finally {
+    release(); disposers.forEach((dispose) => dispose());
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 function extractAuthorizeUrl(logs) {
   const line = logs.find((l) => l.includes('opening authorization page:'));
   return line.slice(line.indexOf('opening authorization page:') + 'opening authorization page:'.length).trim();
