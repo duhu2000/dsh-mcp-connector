@@ -52,7 +52,8 @@ dsh plugin --profile web add dsh-mcp-connector
 - 侧边栏入口可按当前 profile 隐藏；隐藏后仍可从“设置 → 插件 → 插件配置 → MCP连接器”临时打开现有连接器弹框，用完即关。
 - 图形化市场：默认“全部”按推荐与 9 类业务分类分章节展示，每章先展示 4 张并可展开；分类栏固定可见，单分类页展示全部卡片。
 - 图形化添加：手动 HTTP/stdio、`mcpServers` JSON、连接器描述 URL 三种入口，失败时保留表单并给出修复建议。
-- 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索和独立滚动。
+- 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索、参数详情和独立滚动。实时发现失败时显示带时间/陈旧标记的最后成功工具缓存。
+- 实时状态：页面通过同源 SSE 接收连接、目录、健康、工具、治理和作用域变化通知并自动刷新；事件不携带连接标识、端点、错误或凭据。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
 - 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
@@ -67,7 +68,7 @@ dsh plugin --profile web add dsh-mcp-connector
 - 插件版本与一键更新：版本发现独立于安装来源；页面通过 Update Provider 适配层探测安全更新能力。DSH Market API v1 是首个适配器，支持进度、稳定失败码、回滚及按宿主能力提供的重启/刷新操作；无可用 Provider 时回退到当前插件市场或 npm。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；检测到旧插件仍启用并管理同名 Server 时阻断重复连接，避免凭据相互覆盖。
-- 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`。
+- 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
 截至 2026-09-11，公共 Registry 已发布 106 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 110 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。推荐位严格保留 4 张企查查卡片、北大法宝和 Wind，共 6 张；其他连接器按业务分类展示。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
@@ -172,7 +173,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.42`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.42](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.42)。
+当前公开版本为 [`dsh-mcp-connector@0.2.43`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.43](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.43)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

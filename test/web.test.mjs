@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mountWebRoutes, isTrustedWebRequest, resolveUiFile, splitUiPath } from '../lib/web.js';
+import { StatusEventHub } from '../lib/status-events.js';
 
 /* ───────────────────────── fake http 对象 ───────────────────────── */
 
@@ -16,6 +17,10 @@ class FakeRes {
   }
   end(body) {
     if (body !== undefined) this.body = Buffer.isBuffer(body) ? body.toString('utf8') : String(body);
+  }
+  write(body) {
+    this.body += String(body);
+    return true;
   }
 }
 
@@ -68,6 +73,8 @@ const api = {
   editableConnectionConfig: async (key) => ({ ok: true, message: 'editable', detail: { key, json: '{"connections":[]}' } }),
   reconfigureConnection: async (key, json) => ({ ok: true, message: 'reconfigured', detail: { key, jsonLength: json.length } }),
   exportConfig: async () => ({ ok: true, message: 'redacted', detail: { json: '{"redacted":true}' } }),
+  toolSearch: async (input) => ({ ok: true, message: 'found', detail: { items: [{ name: input.query }] } }),
+  toolDetail: async (input) => ({ ok: true, message: 'detail', detail: { tool: { name: input.toolName } } }),
 };
 
 /* ───────────────────────── 测试 ───────────────────────── */
@@ -152,6 +159,24 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   assert.equal(reconfigureRes.status, 200);
   assert.deepEqual(JSON.parse(reconfigureRes.body).detail, { key: 'json-demo', jsonLength: 2 });
 
+  const searchRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'toolSearch', params: { query: 'lookup' } }),
+  }), searchRes);
+  assert.equal(JSON.parse(searchRes.body).detail.items[0].name, 'lookup');
+
+  const detailRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'toolDetail', params: { toolName: 'lookup' } }),
+  }), detailRes);
+  assert.equal(JSON.parse(detailRes.body).detail.tool.name, 'lookup');
+
   const policyRes = new FakeRes();
   await route.handler(fakeReq({
     method: 'POST',
@@ -187,6 +212,29 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
   const res3 = new FakeRes();
   await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/api', headers: { host: '127.0.0.1:62929' } }), res3);
   assert.equal(res3.status, 405);
+});
+
+test('events 路由：同源 GET 建立 SSE，跨站与非 GET 被拒绝', async () => {
+  const wctx = makeWctx();
+  const eventHub = new StatusEventHub({ heartbeatMs: 60_000 });
+  mountWebRoutes(wctx, api, { logger: { warn() {} }, eventHub });
+  const route = wctx.routes.get('/mcp-connector/events');
+  assert.ok(route, 'events 路由已注册');
+
+  const res = new FakeRes();
+  await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/events', headers: { host: '127.0.0.1:62929' } }), res);
+  assert.equal(res.status, 200);
+  assert.match(res.headers['content-type'], /text\/event-stream/);
+  assert.match(res.body, /event: ready/);
+
+  const methodRes = new FakeRes();
+  await route.handler(fakeReq({ method: 'POST', url: '/mcp-connector/events', headers: { host: '127.0.0.1:62929' } }), methodRes);
+  assert.equal(methodRes.status, 405);
+
+  const forbiddenRes = new FakeRes();
+  await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/events', headers: { host: 'evil.example.com' } }), forbiddenRes);
+  assert.equal(forbiddenRes.status, 403);
+  eventHub.dispose();
 });
 
 test('api 路由：跨站被 fence 拒绝', async () => {

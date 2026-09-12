@@ -42,6 +42,15 @@ const bundledAssets = new Map([
   ['pkulaw-logo.png', 'image/png'],
   ['wind-logo.png', 'image/png'],
 ]);
+const eventClients = new Set();
+let eventSequence = 0;
+
+function publishStatus(type) {
+  const frame = `event: status\ndata: ${JSON.stringify({ type, sequence: ++eventSequence, at: Date.now() })}\n\n`;
+  for (const client of [...eventClients]) {
+    try { client.write(frame); } catch { eventClients.delete(client); }
+  }
+}
 
 function json(res, value, status = 200) {
   const body = JSON.stringify(value);
@@ -171,6 +180,17 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && assetName && bundledAssets.has(assetName)) {
     const body = await readFile(join(root, 'ui/assets', assetName));
     res.writeHead(200, { 'content-type': bundledAssets.get(assetName) }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/events') {
+    res.writeHead(200, {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-store',
+      connection: 'keep-alive',
+    });
+    res.write(`event: ready\ndata: ${JSON.stringify({ sequence: eventSequence, at: Date.now() })}\n\n`);
+    eventClients.add(res);
+    req.on('close', () => eventClients.delete(res));
+    return;
   }
   if (req.method !== 'POST' || req.url !== '/mcp-connector/api') { res.writeHead(404); res.end(); return; }
   const chunks = [];
@@ -394,9 +414,39 @@ const server = createServer(async (req, res) => {
       }],
     } }); return;
   }
+  if (method === 'toolSearch') {
+    const query = String(params.query ?? '').toLowerCase();
+    const items = Array.from({ length: 125 }, (_, index) => {
+      const name = `mock_tool_${String(index + 1).padStart(3, '0')}`;
+      return {
+        connectorId: params.connectorId || 'mock-connector',
+        serverName: catalog.find((item) => item.id === params.connectorId)?.servers?.[0]?.serverName ?? 'mock-server',
+        name,
+        title: `Mock 工具 ${index + 1}`,
+        description: `本地无凭据 UI 验收数据：第 ${index + 1} 个工具。`,
+        observedAt: Date.now(),
+        stale: false,
+      };
+    }).filter((tool) => `${tool.name} ${tool.title} ${tool.description}`.toLowerCase().includes(query)).slice(0, params.limit || 20);
+    json(res, { ok: true, message: `Mock 找到 ${items.length} 个工具`, detail: { items, source: 'last-success-cache', discoveryOnly: true } }); return;
+  }
+  if (method === 'toolDetail') {
+    json(res, { ok: true, message: `Mock 工具详情：${params.toolName}`, detail: { tool: {
+      connectorId: params.connectorId,
+      serverName: params.serverName,
+      name: params.toolName,
+      title: params.toolName,
+      description: '本地无凭据 UI 验收数据；不会执行真实 MCP 工具。',
+      inputSchema: { type: 'object', properties: { query: { type: 'string', description: '公开检索词' } }, required: ['query'] },
+      observedAt: Date.now(),
+      stale: false,
+      schemaTruncated: false,
+    }, source: 'last-success-cache', discoveryOnly: true } }); return;
+  }
   if (method === 'healthCheck') {
     const ids = params.connectorId ? [params.connectorId] : [...connected];
     ids.forEach((id) => healthStates.set(id, 'healthy'));
+    publishStatus('status');
     json(res, { ok: true, message: `已检查 ${ids.length} 个连接器：${ids.length} 个正常`, detail: { items: ids.map((connectorId) => ({ connectorId, connectionState: 'healthy' })) } }); return;
   }
   if (method === 'connect') {

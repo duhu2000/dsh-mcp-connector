@@ -76,10 +76,11 @@ function makePluginContext({ shared, loaderHooks, workspaces } = {}) {
   const logs = [];
   const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
-  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()], ['governance', makeTable()], ['connection_scopes', makeTable()]]);
+  const tables = shared?.tables ?? new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()], ['snapshots', makeTable()], ['governance', makeTable()], ['connection_scopes', makeTable()], ['tool_catalog', makeTable()]]);
   if (!tables.has('snapshots')) tables.set('snapshots', makeTable());
   if (!tables.has('governance')) tables.set('governance', makeTable());
   if (!tables.has('connection_scopes')) tables.set('connection_scopes', makeTable());
+  if (!tables.has('tool_catalog')) tables.set('tool_catalog', makeTable());
   const domain = { tables, close: async () => {} };
   const disposers = [];
   const ctx = {
@@ -1655,7 +1656,7 @@ test('凭据型连接器在有状态会话中携带 Bearer Token 并加载全部
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body.params?.cursor
       ? { jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'history', description: '查询历史行情' }] } }
-      : { jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'quote', description: '查询行情' }], nextCursor: 'page-2' } }));
+      : { jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'quote', description: '查询行情', inputSchema: { type: 'object', properties: { symbol: { type: 'string' } }, required: ['symbol'] } }], nextCursor: 'page-2' } }));
   });
   await new Promise((resolve) => mcpServer.listen(0, '127.0.0.1', resolve));
   const port = mcpServer.address().port;
@@ -1667,7 +1668,7 @@ test('凭据型连接器在有状态会话中携带 Bearer Token 并加载全部
       auth: { mode: 'bearer' },
       servers: [{ serverKey: 'stock', url: `http://127.0.0.1:${port}/mcp`, serverName: 'wind-demo', headers: {} }],
     }];
-    const { ctx, tools } = makePluginContext();
+    const { ctx, tools, tables } = makePluginContext();
     const { apply } = await import('../lib/index.js');
     await apply(ctx, baseConfig({ connectors }));
 
@@ -1688,8 +1689,40 @@ test('凭据型连接器在有状态会话中携带 Bearer Token 并加载全部
     assert.equal(seen.sessionIds[3], sessionId, 'tools/list 必须携带会话头');
     assert.equal(seen.protocolVersions[3], '2025-03-26');
     assert.equal(seen.protocolVersions[4], '2025-03-26');
-  } finally {
+
+    const searched = await tools.defs.get('mcp_connector_tool_search').execute({ query: '行情', connectorId: 'wind-demo' });
+    assert.equal(searched.ok, true, searched.message);
+    assert.deepEqual(searched.detail.items.map((tool) => tool.name), ['quote', 'history']);
+    assert.equal(searched.detail.discoveryOnly, true);
+    assert.doesNotMatch(JSON.stringify(searched), /wind-key/);
+
+    const detail = await tools.defs.get('mcp_connector_tool_detail').execute({
+      toolName: 'quote', connectorId: 'wind-demo', serverName: 'wind-demo',
+    });
+    assert.equal(detail.ok, true, detail.message);
+    assert.deepEqual(detail.detail.tool.inputSchema.required, ['symbol']);
+    assert.equal(tables.get('tool_catalog').entries().next().value[1].tools.length, 2);
+
     await new Promise((resolve) => mcpServer.close(resolve));
+    const cached = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: 'wind-demo' });
+    assert.equal(cached.ok, false);
+    assert.equal(cached.detail.cachedServers, 1);
+    assert.equal(cached.detail.servers[0].cached, true);
+    assert.deepEqual(cached.detail.servers[0].tools.map((tool) => tool.name), ['quote', 'history']);
+
+    const restarted = makePluginContext({ shared: { tables } });
+    await apply(restarted.ctx, baseConfig({ connectors }));
+    const afterRestart = await restarted.tools.defs.get('mcp_connector_tool_search').execute({ query: '行情', connectorId: 'wind-demo' });
+    assert.deepEqual(afterRestart.detail.items.map((tool) => tool.name), ['quote', 'history']);
+    const status = await restarted.tools.defs.get('mcp_connector_status').execute({});
+    const disconnected = await restarted.tools.defs.get('mcp_connector_disconnect').execute(
+      { key: status.detail.items[0].key },
+      { signal: new AbortController().signal },
+    );
+    assert.equal(disconnected.ok, true, disconnected.message);
+    assert.equal([...tables.get('tool_catalog').entries()].length, 0, '断开连接同时清理最后成功工具缓存');
+  } finally {
+    if (mcpServer.listening) await new Promise((resolve) => mcpServer.close(resolve));
   }
 });
 
