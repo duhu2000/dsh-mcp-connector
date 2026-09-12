@@ -8,6 +8,12 @@
 
 [English](README.en.md)
 
+### 工具查找与故障处理
+
+打开“工具”页可跨连接搜索工具，并按连接、服务和最近发现状态筛选。结果标注来源与最后成功缓存时间；缓存可查不代表服务当前可调用。参数详情提供易读摘要与原始安全 Schema，不执行工具。
+
+遇到故障时展开“连接状态与故障处理”，按诊断建议使用“检查连接”或“重新发现工具”。后台健康连接每五分钟到期，失败指数退避；限流遵守 Retry-After，鉴权失败暂停自动重试。未选择工作区时仅显示全局连接。
+
 [用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [首次贡献](docs/FIRST-CONTRIBUTION.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
@@ -173,7 +179,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.44`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.44](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.44)。
+当前公开版本为 [`dsh-mcp-connector@0.2.45`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.45](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.45)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
