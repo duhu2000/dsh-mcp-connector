@@ -8,6 +8,7 @@ import { normalizeConnectorDescriptor } from '../lib/schema.js';
 import { auditDescriptor, auditRawDescriptor, mergeCatalog } from '../lib/catalog.js';
 import { normalizeGovernanceMutation, publicToolName, resolveGovernancePolicy } from '../lib/governance.js';
 import { ConnectionScopeService, bindingForConnection, scopeLabel } from '../lib/connection-scopes.js';
+import { browseToolCatalog, createToolCatalogRecord } from '../lib/tool-catalog-cache.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
@@ -43,6 +44,8 @@ const bundledAssets = new Map([
   ['wind-logo.png', 'image/png'],
 ]);
 const eventClients = new Set();
+const mockExplorerRecovered = new Set();
+const mockObservedAt = Date.now();
 let eventSequence = 0;
 
 function publishStatus(type) {
@@ -359,6 +362,28 @@ const server = createServer(async (req, res) => {
       json(res, { ok: false, message: `Mock 作用域回滚失败: ${error.message}` }); return;
     }
   }
+  if (method === 'toolExplorer') {
+    const connections = catalog.filter((item) => connected.has(item.id)).flatMap((item) => item.servers.map((server, index) => {
+      const key = `${item.id}:${server.serverKey}`;
+      const failed = index === 1 && !mockExplorerRecovered.has(key);
+      return { connectionKey: key, connectorId: item.id, connectorName: item.name, connectionName: `${item.name} · ${server.serverKey}`,
+        serverName: server.serverName, status: failed ? 'failed' : 'success', checkedAt: mockObservedAt, observedAt: mockObservedAt,
+        toolCount: 125, diagnostic: failed ? { stageLabel: '网络与传输', message: '模拟连接超时（非真实服务故障）', action: '检查网络后重新发现工具' } : null };
+    }));
+    const selectedConnections = connections.filter((c) => (!params.connectionKey || c.connectionKey === params.connectionKey)
+      && (!params.serverName || c.serverName === params.serverName) && (!params.status || c.status === params.status));
+    const entries = selectedConnections.map((c) => createToolCatalogRecord({ key: c.connectionKey, connectorId: c.connectorId, serverName: c.serverName, transport: 'stdio' },
+      Array.from({ length: 125 }, (_, i) => ({ name: `mock_tool_${String(i + 1).padStart(3, '0')}`, title: `Mock 工具 ${i + 1}`, description: '本机无凭据测试数据，不执行真实工具。' })), mockObservedAt));
+    const result = browseToolCatalog(entries, params);
+    json(res, { ok: true, message: 'Mock 工具浏览', detail: { ...result,
+      items: result.items.map((item) => ({ ...item, connection: connections.find((c) => c.connectionKey === item.connectionKey) })),
+      connections, selectedConnections, scopeLabel: '本机无凭据模拟连接' } }); return;
+  }
+  if (method === 'toolExplorerAction') {
+    mockExplorerRecovered.add(params.connectionKey);
+    publishStatus('tools');
+    json(res, { ok: true, message: '模拟操作完成：未访问真实服务' }); return;
+  }
   if (method === 'toolsList') {
     const connector = catalog.find((item) => item.id === params.connectorId);
     const server = connector?.servers?.[0] ?? { serverKey: 'mock', serverName: 'mock-server' };
@@ -430,14 +455,17 @@ const server = createServer(async (req, res) => {
     }).filter((tool) => `${tool.name} ${tool.title} ${tool.description}`.toLowerCase().includes(query)).slice(0, params.limit || 20);
     json(res, { ok: true, message: `Mock 找到 ${items.length} 个工具`, detail: { items, source: 'last-success-cache', discoveryOnly: true } }); return;
   }
-  if (method === 'toolDetail') {
+  if (method === 'toolDetail' || method === 'toolExplorerDetail') {
     json(res, { ok: true, message: `Mock 工具详情：${params.toolName}`, detail: { tool: {
       connectorId: params.connectorId,
       serverName: params.serverName,
       name: params.toolName,
       title: params.toolName,
       description: '本地无凭据 UI 验收数据；不会执行真实 MCP 工具。',
-      inputSchema: { type: 'object', properties: { query: { type: 'string', description: '公开检索词' } }, required: ['query'] },
+      inputSchema: { type: 'object', properties: { query: { type: 'string', description: '公开检索词', minLength: 1 },
+        mode: { type: 'string', enum: ['basic', 'full'], description: '返回详细程度' },
+        filters: { type: 'object', properties: { regions: { type: 'array', items: { type: 'string' } } } },
+        target: { oneOf: [{ type: 'string' }, { type: 'number' }] } }, required: ['query'] },
       observedAt: Date.now(),
       stale: false,
       schemaTruncated: false,

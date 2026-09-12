@@ -72,7 +72,7 @@ function makeToolsRegistry() {
   };
 }
 
-function makePluginContext({ shared, loaderHooks, workspaces } = {}) {
+function makePluginContext({ shared, loaderHooks, workspaces, withWeb = false } = {}) {
   const logs = [];
   const loader = makeLoader(loaderHooks);
   const tools = makeToolsRegistry();
@@ -101,7 +101,20 @@ function makePluginContext({ shared, loaderHooks, workspaces } = {}) {
       if (typeof d === 'function') disposers.push(d);
     },
   };
-  return { ctx, loader, tools, domain, tables, logs, disposers };
+  const routes = new Map();
+  if (withWeb) ctx.inject = (dependencies, callback) => {
+    if (dependencies.includes('webServer')) callback({
+      webRuntime: {}, webServer: { register(route) { routes.set(route.path, route.handler); return () => routes.delete(route.path); } },
+    });
+  };
+  async function webCall(method, params = {}) {
+    const req = { method: 'POST', headers: { host: '127.0.0.1', origin: 'http://127.0.0.1' }, socket: { remoteAddress: '127.0.0.1' },
+      async *[Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify({ method, params })); } };
+    let output;
+    await routes.get('/mcp-connector/api')(req, { writeHead() {}, end(body) { output = JSON.parse(body); } });
+    return output;
+  }
+  return { ctx, loader, tools, domain, tables, logs, disposers, webCall };
 }
 
 function baseConfig(overrides = {}) {
@@ -177,8 +190,10 @@ test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢�
     assert.equal(failed.detail.servers[0].cached, true);
     assert.equal(failed.detail.servers[0].tools[0].name, 'lookup_1');
     offline = false; generation = 2;
-    // A successful connection mutation schedules discovery without opening details.
+    // A new connection does not bypass the failed server's backoff.
     assert.equal((await execute('configure', { name: 'Trigger', serverName: 'trigger', url })).ok, true);
+    const recovered = await execute('tools_list', { connectorId: custom.connectorId, connectionKey: custom.connectionKey });
+    assert.equal(recovered.ok, true);
     await waitFor(() => [...tables.get('tool_catalog').entries()].some(([key, entry]) => key === custom.connectionKey && entry.tools[0]?.name === 'lookup_2'));
     assert.equal((await execute('tool_search', { query: 'lookup_2', connectionKey: custom.connectionKey })).detail.items.length, 1);
     assert.ok(!methods.includes('tools/call'));
@@ -186,6 +201,65 @@ test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢�
     disposers.forEach((dispose) => dispose());
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test('工具浏览 API：分页与筛选、无 Workspace 仅全局、只读搜索零请求、单连接动作与限流等待', { timeout: 15000 }, async () => {
+  const requests = [];
+  let limited = false;
+  const server = createServer(async (req, res) => {
+    if (req.method === 'DELETE') { res.writeHead(204); res.end(); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body || '{}'); requests.push({ path: req.url, method: request.method });
+    if (limited && req.url === '/b') { res.writeHead(429, { 'retry-after': '600' }); res.end(); return; }
+    if (!request.id) { res.writeHead(202); res.end(); return; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: request.method === 'tools/list'
+      ? { tools: Array.from({ length: 25 }, (_, i) => ({ name: `lookup_${i}`, description: 'demo', inputSchema: { type: 'object', properties: { query: { type: 'string' } } } })) }
+      : { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'mock', version: '1' } } }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}`;
+  const { ctx, tools, tables, webCall, disposers } = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    for (const name of ['a', 'b', 'c']) {
+      const configured = await tools.defs.get('mcp_connector_configure').execute({ name, serverName: name, url: `${url}/${name}`,
+        ...(name === 'a' ? { scope: 'project', workspaceId: 'workspace-1' } : {}) });
+      assert.equal(configured.ok, true, configured.message);
+    }
+    await waitFor(() => [...tables.get('tool_catalog').entries()].length === 3);
+    const before = requests.length;
+    const all = await webCall('toolExplorer', {});
+    assert.equal(all.detail.total, 50);
+    assert.equal(all.detail.connections.length, 2);
+    assert.equal((await webCall('toolExplorer', { workspaceId: 'workspace-1' })).detail.total, 75);
+    assert.equal((await webCall('toolExplorer', { connectionKey: 'custom-b', serverName: 'b' })).detail.total, 25);
+    assert.equal((await webCall('toolExplorer', { connectionKey: 'custom-b', serverName: 'c' })).detail.total, 0);
+    const page = await webCall('toolExplorer', { query: 'lookup_1', limit: 1, offset: 1 });
+    assert.equal(page.detail.items[0].name, 'lookup_1');
+    assert.equal(page.detail.items[0].connection.connectionName, 'c');
+    assert.equal((await webCall('toolExplorerDetail', { connectionKey: 'custom-a', toolName: 'lookup_1' })).ok, false);
+    assert.equal((await webCall('toolExplorerAction', { connectionKey: 'custom-a', action: 'discover' })).ok, false);
+    for (let i = 0; i < 20; i++) await webCall('toolExplorer', { query: 'lookup', status: 'success' });
+    assert.equal(requests.length, before, '搜索、筛选、越权请求均不产生远端请求');
+    const check = await webCall('toolExplorerAction', { connectionKey: 'custom-c', action: 'check' });
+    assert.equal(check.ok, true, check.message);
+    assert.ok(requests.slice(before).every((request) => request.path === '/c'));
+    limited = true;
+    const failed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: '__custom__', connectionKey: 'custom-b' });
+    assert.equal(failed.ok, false);
+    const status = await webCall('toolExplorer', { connectionKey: 'custom-b' });
+    assert.equal(status.detail.selectedConnections[0].status, 'failed');
+    assert.equal(status.detail.selectedConnections[0].retryReason, 'rate-limit');
+    assert.ok(status.detail.selectedConnections[0].nextDiscoveryAt > Date.now() + 590_000);
+    assert.equal(status.detail.total, 25, '限流时仍可搜索最后成功缓存');
+    const count = requests.length;
+    assert.equal((await webCall('toolExplorerAction', { connectionKey: 'custom-b', action: 'discover' })).ok, false);
+    assert.equal((await webCall('toolExplorerAction', { connectionKey: 'custom-b', action: 'check' })).ok, false);
+    assert.equal(requests.length, count);
+    assert.ok(!requests.some((request) => request.method === 'tools/call'));
+  } finally { disposers.forEach((dispose) => dispose()); await new Promise((resolve) => server.close(resolve)); }
 });
 
 test('自定义 stdio 在 Host 注册工具后自动入缓存，停用即不可搜索', async () => {

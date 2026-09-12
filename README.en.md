@@ -8,6 +8,12 @@ Manage MCP connections from different providers in one place inside DeepSeek Har
 
 [简体中文](README.md)
 
+### Tool discovery and troubleshooting
+
+The Tools tab searches cached tools across connections, with connection, service and discovery-status filters. Results show their source and last successful cache time. Readable parameter summaries retain access to the original sanitized schema. Browsing never executes tools; cached availability does not guarantee a live call will succeed.
+
+Expand connection diagnostics to check a connection or rediscover its tools. Healthy background discovery is due every five minutes; failures back off, rate limits honor Retry-After, and authentication failures pause automatic retries. Without a selected workspace, only global connections appear.
+
 [Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [First contribution](docs/FIRST-CONTRIBUTION.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)
@@ -178,7 +184,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.44`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.44](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.44).
+The current public version is [`dsh-mcp-connector@0.2.45`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.45](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.45).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

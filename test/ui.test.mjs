@@ -7,6 +7,33 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('参数摘要保留必填、嵌套与约束，转义所有远端文本并对复杂结构降级', () => {
+  const start = uiSource.indexOf('  function schemaSummary(');
+  const end = uiSource.indexOf('  function showToolParameters(', start);
+  const escape = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  const render = new Function('esc', `${uiSource.slice(start, end)}; return schemaSummary;`)(escape);
+  const html = render({ type: 'object', required: ['query'], properties: {
+    query: { type: 'string', description: '<img src=x onerror=alert(1)>', minLength: 1 },
+    filters: { type: 'object', properties: { names: { type: 'array', items: { type: 'string' } } } },
+    target: { oneOf: [{ type: 'string' }, { type: 'number' }] },
+  } });
+  assert.match(html, /必填/); assert.match(html, /minLength/); assert.match(html, /数组元素/);
+  assert.match(html, /摘要不代表完整规则/); assert.doesNotMatch(html, /<img/); assert.match(html, /&lt;img/);
+  let nested = { type: 'string' };
+  for (let i = 0; i < 20; i++) nested = { type: 'object', properties: { nested } };
+  assert.match(render(nested), /结构较大/);
+});
+
+test('工具工作台提供筛选分页和独立的检查/发现，过期响应和工作区切换有保护', () => {
+  assert.match(uiSource, /data-view="tools"/);
+  assert.match(uiSource, /按连接筛选/); assert.match(uiSource, /按服务筛选/);
+  assert.match(uiSource, /data-explorer-page="next"/);
+  assert.match(uiSource, /data-explorer-action="discover"/); assert.match(uiSource, /data-explorer-action="check"/);
+  assert.match(uiSource, /sequence !== explorerSequence/);
+  assert.match(uiSource, /requestId !== explorerDetailSequence/);
+  assert.match(uiSource, /原始 Schema（安全缓存）/);
+});
+
 test('工具页面排序与缓存搜索一致，精确工具名优先并支持中英混排', async () => {
   const start = uiSource.indexOf('  function normalizeToolSearchText(');
   const end = uiSource.indexOf('  function renderTools()', start);

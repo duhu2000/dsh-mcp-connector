@@ -331,6 +331,16 @@
   .tool-deprecated { color: var(--warn); background: var(--warn-bg); border-radius: 999px; padding: 1px 6px; font-size: 10px; line-height: 1.5; flex: 0 0 auto; }
   .tool-description { color: var(--text-2); font-size: 12px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .tool-description.empty { color: var(--muted); font-style: italic; }
+  .explorer-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
+  .explorer-filters label { display:flex; flex:1 1 150px; flex-direction:column; gap:5px; font-size:12px; }
+  .explorer-filters select { width:100%; min-width:0; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); }
+  .explorer-card { border:1px solid var(--line); padding:14px; border-radius:10px; margin:10px 0; overflow-wrap:anywhere; }
+  .explorer-card p { margin:8px 0; white-space:pre-wrap; }
+  .parameter-scroll { overflow-x:auto; }
+  .parameter-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .parameter-table th, .parameter-table td { border-bottom:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+  .parameter-table th { white-space:nowrap; }
+  .parameter-table details { margin-top:6px; }
   .tools-loading, .tools-error { font-size: 13px; color: var(--muted); padding: 8px; }
   .tools-error { color: var(--bad); }
   .tools-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 24px 8px; }
@@ -429,6 +439,7 @@
     <div class="tabs" id="tabs">
       <button data-view="market" class="active">市场 <span class="tab-count" id="market-tab-count"></span></button>
       <button data-view="installed">已安装 <span class="tab-count" id="installed-tab-count"></span></button>
+      <button data-view="tools">工具</button>
     </div>
     <div class="header-spacer"></div>
     <div class="search-box">
@@ -546,6 +557,13 @@
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
+  let explorerFilter = { connectionKey: '', serverName: '', status: '' };
+  let explorerOffset = 0;
+  let explorerSequence = 0;
+  let explorerDetailSequence = 0;
+  let explorerData = null;
+  let searchTimer = null;
+  const explorerBusy = new Set();
   let marketCategory = '';
   const PROMPT_PAGE_SIZE = 4;
   let detailPrompts = [];
@@ -649,7 +667,14 @@
       currentWorkspace = workspace && typeof workspace.workspaceId === 'string'
         ? { workspaceId: workspace.workspaceId, title: String(workspace.title || workspace.workspaceId) }
         : null;
-      if ((currentWorkspace?.workspaceId ?? null) !== previousWorkspaceId) refresh();
+      if ((currentWorkspace?.workspaceId ?? null) !== previousWorkspaceId) {
+        explorerSequence++; explorerDetailSequence++;
+        explorerData = null; explorerOffset = 0;
+        explorerFilter = { connectionKey: '', serverName: '', status: '' };
+        closeModal(); closeDetail();
+        if (view === 'tools') main.innerHTML = '';
+        refresh();
+      }
       return;
     }
     if (event.data?.type === PROMPT_RESULT_TYPE) {
@@ -965,15 +990,42 @@
       return;
     }
     const tool = result.detail?.tool || {};
+    showToolParameters(tool, toolName, serverName);
+  }
+
+  function schemaSummary(schema, depth = 0, budget = { remaining: 150 }) {
+    if (depth > 5 || --budget.remaining < 0) return '<p class="hint">结构较大，请查看原始 Schema。</p>';
+    if (typeof schema === 'boolean') return `<p>${schema ? '允许任意输入' : '不允许任何输入'}</p>`;
+    if (!schema || typeof schema !== 'object') return '<p class="hint">暂无参数定义。</p>';
+    const complex = ['$ref', 'oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not'].some((key) => key in schema);
+    const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+    const allEntries = Object.entries(schema.properties || {});
+    const entries = allEntries.slice(0, 100);
+    const rows = entries.map(([key, raw]) => {
+      if (--budget.remaining < 0) return '';
+      const field = raw && typeof raw === 'object' ? raw : {};
+      const type = typeof raw === 'boolean' ? (raw ? '任意类型' : '禁止输入') : Array.isArray(field.type) ? field.type.join(' / ') : field.type || (field.properties ? 'object' : '未声明');
+      const constraints = ['enum', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern'].filter((name) => field[name] !== undefined)
+        .map((name) => `${name}: ${JSON.stringify(field[name])}`).join('；');
+      const nested = field.properties || field.items || ['$ref', 'oneOf', 'anyOf', 'allOf'].some((name) => name in field);
+      return `<tr><td><code>${esc(key)}</code></td><td>${esc(type)}</td><td>${required.has(key) ? '必填' : '可选'}</td><td>${esc(field.description || '暂无说明')}${constraints ? `<div class="hint">${esc(constraints)}</div>` : ''}${nested ? `<details><summary>展开结构</summary>${schemaSummary(field, depth + 1, budget)}</details>` : ''}</td></tr>`;
+    }).join('');
+    const items = (allEntries.length > 100 || budget.remaining < 0 ? '<p class="hint">摘要已截断，请查看原始 Schema 中的其余字段。</p>' : '') + (schema.items !== undefined ? `<details><summary>数组元素</summary>${schemaSummary(schema.items, depth + 1, budget)}</details>` : '');
+    return `${complex ? '<p class="hint">包含引用或组合约束，摘要不代表完整规则，请同时查看原始 Schema。</p>' : ''}${rows ? `<div class="parameter-scroll"><table class="parameter-table"><thead><tr><th>参数</th><th>类型</th><th>要求</th><th>说明与约束</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="hint">类型：${esc(Array.isArray(schema.type) ? schema.type.join(' / ') : schema.type || '未声明')}；无可展开的具名参数，请查看原始 Schema。</p>`}${items}`;
+  }
+
+  function showToolParameters(tool, toolName, serverName) {
     const observed = tool.observedAt ? new Date(tool.observedAt).toLocaleString('zh-CN', { hour12: false }) : '未知';
     const schema = tool.inputSchema ? JSON.stringify(tool.inputSchema, null, 2) : '未缓存输入参数 schema';
     openModal(`工具参数 · ${tool.name || toolName}`, `
       <p class="hint">${esc(tool.serverName || serverName)} · 最后成功 ${esc(observed)}${tool.stale ? ' · 缓存已超过 24 小时' : ''}${tool.schemaTruncated ? ' · schema 已安全裁剪' : ''}</p>
       <p>${esc(tool.description || '暂无描述')}</p>
-      <pre class="tool-schema">${esc(schema)}</pre>
+      ${schemaSummary(tool.inputSchema)}
+      <details><summary>原始 Schema（安全缓存）</summary><pre class="tool-schema">${esc(schema)}</pre></details>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
   }
   function closeModal() {
+    explorerDetailSequence++;
     $('#modalMask').classList.remove('show');
     $('#modalMask').setAttribute('aria-hidden', 'true');
     pendingPrompt = null;
@@ -1152,6 +1204,68 @@
     }
     return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail('${id}')">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.openConfig('${id}')">${t('configure')}</button>`;
   }
+
+  const EXPLORER_STATUS = { pending: '尚未发现', unknown: 'Host 状态未知', success: '最近发现成功', failed: '最近发现失败' };
+  const formatObserved = (value) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '尚无记录';
+
+  async function loadToolExplorer() {
+    const sequence = ++explorerSequence;
+    const workspaceId = currentWorkspace?.workspaceId;
+    syncMarketNav();
+    if (!$('#tool-explorer')) {
+      main.innerHTML = `<section id="tool-explorer"><p class="hint">搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。</p><div class="explorer-filters"><label>连接<select id="explorer-connection" aria-label="按连接筛选"></select></label><label>服务<select id="explorer-server" aria-label="按服务筛选"></select></label><label>发现状态<select id="explorer-status" aria-label="按发现状态筛选"><option value="">全部状态</option>${Object.entries(EXPLORER_STATUS).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}</select></label><button class="btn ghost" data-explorer-clear>清除筛选</button></div><p id="explorer-summary" role="status">正在读取缓存…</p><div id="explorer-connections"></div><div id="explorer-results"></div><div id="explorer-pages" class="m-actions"></div></section>`;
+    }
+    const response = await call('toolExplorer', { ...workspaceParams(), ...explorerFilter, query: searchQuery, offset: explorerOffset, limit: 20 });
+    if (sequence !== explorerSequence || view !== 'tools' || workspaceId !== currentWorkspace?.workspaceId) return;
+    if (!response.ok) { $('#explorer-summary').textContent = response.message; return; }
+    explorerData = response.detail;
+    const { connections = [], selectedConnections = [], items = [], total = 0 } = explorerData;
+    if (explorerOffset >= total && explorerOffset > 0) { explorerOffset = Math.max(0, Math.floor((total - 1) / 20) * 20); return loadToolExplorer(); }
+    $('#explorer-connection').innerHTML = '<option value="">全部连接</option>' + connections.map((c) => `<option value="${esc(c.connectionKey)}">${esc(c.connectionName)} · ${esc(c.serverName)}</option>`).join('');
+    const services = [...new Set(connections.filter((c) => !explorerFilter.connectionKey || c.connectionKey === explorerFilter.connectionKey).map((c) => c.serverName))];
+    $('#explorer-server').innerHTML = '<option value="">全部服务</option>' + services.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+    $('#explorer-connection').value = explorerFilter.connectionKey;
+    $('#explorer-server').value = explorerFilter.serverName;
+    $('#explorer-status').value = explorerFilter.status;
+    $('#explorer-summary').textContent = `${explorerData.scopeLabel} · ${connections.length} 条连接 · 匹配 ${total} 个工具 · 显示 ${items.length} 个`;
+    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>连接状态与故障处理（${selectedConnections.length}）</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(EXPLORER_STATUS[c.status] || c.status)} · 缓存 ${c.toolCount} 个工具</div><div class="hint">最近发现：${esc(formatObserved(c.checkedAt))}；最后成功：${esc(formatObserved(c.observedAt))}${c.stale ? ' · 缓存超过 24 小时' : ''}${c.cacheTruncated ? ' · 缓存清单已截断' : ''}</div>${c.diagnostic ? `<div>${esc(c.diagnostic.stageLabel)}：${esc(c.diagnostic.message)}<br>建议：${esc(c.diagnostic.action)}</div>` : ''}${c.retryReason === 'auth' ? '<p>鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。</p>' : c.nextDiscoveryAt ? `<p class="hint">下次后台发现不早于：${esc(formatObserved(c.nextDiscoveryAt))}（页面保持连接时）</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>重新发现工具</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>检查连接</button></div></div>`).join('') || '<p>当前筛选下没有连接。</p>'}</details>`;
+    $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || '暂无描述')}</p><div class="hint">来源：${esc(item.connection.connectorName)} / ${esc(item.connection.connectionName)} / ${esc(item.serverName)}<br>${esc(EXPLORER_STATUS[item.connection.status])} · 最后成功缓存 ${esc(formatObserved(item.observedAt))}${item.stale ? ' · 已超过 24 小时' : ''}</div><button class="btn ghost" data-explorer-detail="${index}">参数详情</button></article>`).join('') || `<p class="empty">${connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。'}</p>`;
+    $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>上一页</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>下一页</button>`;
+  }
+
+  main.addEventListener('change', (event) => {
+    const fields = { 'explorer-connection': 'connectionKey', 'explorer-server': 'serverName', 'explorer-status': 'status' };
+    const field = fields[event.target.id];
+    if (!field) return;
+    explorerFilter[field] = event.target.value;
+    if (field === 'connectionKey') explorerFilter.serverName = '';
+    explorerOffset = 0; void loadToolExplorer();
+  });
+
+  main.addEventListener('click', async (event) => {
+    const button = event.target.closest('button');
+    if (!button || view !== 'tools') return;
+    if (button.hasAttribute('data-explorer-clear')) {
+      explorerFilter = { connectionKey: '', serverName: '', status: '' }; explorerOffset = 0; await loadToolExplorer();
+    } else if (button.dataset.explorerPage) {
+      explorerOffset = Math.max(0, explorerOffset + (button.dataset.explorerPage === 'next' ? 20 : -20)); await loadToolExplorer();
+    } else if (button.dataset.explorerDetail !== undefined) {
+      const item = explorerData?.items[Number(button.dataset.explorerDetail)];
+      if (!item) return;
+      const requestId = ++explorerDetailSequence;
+      const result = await call('toolExplorerDetail', { connectionKey: item.connectionKey, serverName: item.serverName, toolName: item.name, ...workspaceParams() });
+      if (requestId !== explorerDetailSequence || view !== 'tools') return;
+      if (result.ok) showToolParameters(result.detail.tool, item.name, item.serverName);
+      else showToast(result.message, false);
+    } else if (button.dataset.explorerAction) {
+      const key = button.dataset.key;
+      if (explorerBusy.has(key)) return;
+      explorerBusy.add(key); button.disabled = true;
+      const result = await call('toolExplorerAction', { connectionKey: key, action: button.dataset.explorerAction, ...workspaceParams() });
+      explorerBusy.delete(key); showToast(result.message, result.ok);
+      if (view === 'tools') await loadToolExplorer();
+    }
+  });
 
   async function loadInstalled() {
     syncMarketNav();
@@ -2034,7 +2148,8 @@
       statusRefreshRunning = true;
       statusRefreshPending = false;
       try {
-        if (view === 'market') await loadMarket({ checkHealth: false, preserveScroll: true });
+        if (view === 'tools') await loadToolExplorer();
+        else if (view === 'market') await loadMarket({ checkHealth: false, preserveScroll: true });
         else await loadInstalled();
         await refreshOpenToolDetail();
       } finally {
@@ -2073,8 +2188,11 @@
     statusEventSource = null;
   });
 
-  function refresh() { return view === 'market' ? loadMarket() : loadInstalled(); }
+  function refresh() { return view === 'tools' ? loadToolExplorer() : view === 'market' ? loadMarket() : loadInstalled(); }
   function syncTabs() {
+    searchInput.placeholder = view === 'tools' ? '搜索工具名称或描述…' : '搜索连接器…';
+    $('#refresh').textContent = view === 'tools' ? '刷新工具视图' : '刷新连接器目录';
+    $('#refresh').title = $('#refresh').textContent;
     document.querySelectorAll('#tabs button').forEach((button) => button.classList.toggle('active', button.dataset.view === view));
     syncMarketNav();
   }
@@ -2097,6 +2215,7 @@
     }
   });
   $('#refresh').addEventListener('click', async () => {
+    if (view === 'tools') { await loadToolExplorer(); return; }
     const r = await call('refreshCatalog', {});
     showToast(r.message, r.ok);
     if (r.ok) {
@@ -2110,12 +2229,16 @@
     const btn = e.target.closest('button[data-view]');
     if (!btn) return;
     view = btn.dataset.view;
+    explorerSequence++; explorerDetailSequence++;
     syncTabs();
     refresh();
   });
 
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
+    explorerSequence++; explorerOffset = 0;
+    clearTimeout(searchTimer);
+    if (view === 'tools') { searchTimer = setTimeout(() => { if (view === 'tools') void loadToolExplorer(); }, 200); return; }
     expandedMarketSections.clear();
     refresh();
   });
