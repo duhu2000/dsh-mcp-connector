@@ -7,6 +7,33 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('工具页面排序与缓存搜索一致，精确工具名优先并支持中英混排', async () => {
+  const start = uiSource.indexOf('  function normalizeToolSearchText(');
+  const end = uiSource.indexOf('  function renderTools()', start);
+  const { normalizeToolSearchText, toolSearchScore } = new Function(`${uiSource.slice(start, end)}; return { normalizeToolSearchText, toolSearchScore };`)();
+  const { createToolCatalogRecord, searchToolCatalog } = await import('../lib/tool-catalog-cache.js');
+  const tools = [
+    { name: 'other', description: 'get_company_profile' },
+    { name: 'get_company_profile_extended' },
+    { name: 'get_company_profile' },
+    { name: 'find', title: 'MCP连接器' },
+  ];
+  const record = createToolCatalogRecord({ key: 'k', connectorId: 'c', serverName: 's', transport: 'stdio' }, tools);
+  for (const query of ['get_company_profile', 'MCP连接器', 'find']) {
+    const normalized = normalizeToolSearchText(query);
+    const uiOrder = tools.filter((tool) => toolSearchScore(tool, normalized) >= 0)
+      .sort((a, b) => toolSearchScore(b, normalized) - toolSearchScore(a, normalized) || a.name.localeCompare(b.name)).map((tool) => tool.name);
+    assert.deepEqual(uiOrder, searchToolCatalog([record], { query }).map((tool) => tool.name));
+  }
+});
+
+test('实时详情采用只读缓存、重连补同步与请求合并，已安装连接有工具入口', () => {
+  assert.match(uiSource, /source.addEventListener\('ready', scheduleStatusRefresh\)/);
+  assert.match(uiSource, /cachedOnly: true/);
+  assert.match(uiSource, /if \(statusRefreshRunning\) return/);
+  assert.match(uiSource, /showConnectionTools\('/);
+});
+
 test('截图 harness 复刻产品 800px 面板并从无授权状态启动', () => {
   assert.match(clientSource, /width: "min\(800px, 90%\)"/);
   assert.match(harnessSource, /width: min\(800px, 90vw\)/);
@@ -189,7 +216,7 @@ test('未连接且无工具快照的市场卡片不误报连接异常', () => {
   assert.match(uiSource, /连接后查看工具/);
   assert.match(uiSource, /连接后可读取服务端工具清单/);
   assert.ok(
-    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("call('toolsList', { connectorId, ...workspaceParams() })"),
+    uiSource.indexOf('if (!d.connected?.length && !d.toolsSnapshot?.length)') < uiSource.indexOf("call('toolsList', { connectorId, connectionKey: d.connectionKey, ...workspaceParams() })"),
   );
 });
 
