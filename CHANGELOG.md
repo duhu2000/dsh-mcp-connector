@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.2.46] - 2026-09-13
+
+### Changed
+
+- 重写中英文 README 首屏，围绕接入 MCP Server、跨连接工具查找和连接排障统一产品表达，并用可核验的能力表替换竞品比较文案。
+- 扩充统一工具工作台用户指南，补齐来源定位、参数阅读、发现/缓存语义、连接检查与逐连接重新发现流程。
+- 同步 npm、GitHub About、README 与外部目录的双语描述，新增 npm 250 字符商店描述上限及用户结果关键词自动校验。
+
+### Verification
+
+- 248 项自动测试通过；4 张现有 storefront 截图通过完整性和无凭据检查；72 个发布文件通过白名单与敏感信息扫描。
+
 ## [0.2.45] - 2026-09-12
 
 ### Added
@@ -692,7 +704,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.45...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.46...HEAD
+[0.2.46]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.45...v0.2.46
 [0.2.45]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.44...v0.2.45
 [0.2.44]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.43...v0.2.44
 [0.2.43]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.42...v0.2.43
