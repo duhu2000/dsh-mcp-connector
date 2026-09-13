@@ -12,7 +12,6 @@ export const DEFAULT_TARGETS = [
     label: 'awesome-dsh-plugin / DSH Market upstream',
     url: 'https://awesome-dsh-plugin.com/plugins.json',
     parser: 'awesome',
-    trackingUrl: 'https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4821',
   },
   {
     id: 'dshfind',
