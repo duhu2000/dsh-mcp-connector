@@ -692,7 +692,10 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.42...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.45...HEAD
+[0.2.45]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.44...v0.2.45
+[0.2.44]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.43...v0.2.44
+[0.2.43]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.42...v0.2.43
 [0.2.42]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.41...v0.2.42
 [0.2.41]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.40...v0.2.41
 [0.2.40]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.39...v0.2.40

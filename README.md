@@ -1,8 +1,8 @@
-# MCP连接器：DeepSeek Harness MCP Server 连接与管理市场
+# MCP连接器：在 DeepSeek Harness 接入、查找和排障 MCP Server
 
-> DeepSeek Harness 的 MCP连接器与 MCP Server 市场，收录超百个 MCP连接器并持续更新；统一发现、授权和连接管理，支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、mcpServers JSON 导入，以及工具与 Prompt 发现；由企查查/QCC 团队维护
+> DeepSeek Harness 的超百个 MCP连接器，一个入口完成 MCP Server 接入、跨连接工具查找与连接排障。
 
-在 DeepSeek Harness Desktop/Web 中一站式管理不同厂商的 MCP 连接：支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、`mcpServers` JSON 导入、工具与 Prompt 发现，并通过独立 Registry 持续更新精选连接器目录。
+从持续更新的连接器目录接入 MCP Server；跨当前范围内已启用连接查找工具，查看易读参数、来源和最后成功缓存时间，并在发现异常时检查连接或重新发现工具。支持 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 与 `mcpServers` JSON 导入。
 
 > 注：“技能扩展”指通过 MCP 工具和 Prompt 扩展智能体能力，本包不会伪装成独立 DSH Skill。
 
@@ -10,9 +10,11 @@
 
 ### 工具查找与故障处理
 
-打开“工具”页可跨连接搜索工具，并按连接、服务和最近发现状态筛选。结果标注来源与最后成功缓存时间；缓存可查不代表服务当前可调用。参数详情提供易读摘要与原始安全 Schema，不执行工具。
+在“工具”页统一查找当前工作区可见、已启用连接的工具。输入工具名或描述，再按连接、服务和最近发现状态筛选；点击“参数详情”查看类型、必填项与嵌套结构。未选择工作区时，仅展示全局连接。
 
-遇到故障时展开“连接状态与故障处理”，按诊断建议使用“检查连接”或“重新发现工具”。后台健康连接每五分钟到期，失败指数退避；限流遵守 Retry-After，鉴权失败暂停自动重试。未选择工作区时仅显示全局连接。
+结果标注来源和最后成功缓存时间。发现失败时仍可查看已有缓存，但不代表服务当前可调用。展开“连接状态与故障处理”，按建议使用“检查连接”或“重新发现工具”。健康连接五分钟后到期，页面保持连接时后台检查到期任务；失败时退避，鉴权失败暂停自动重试。
+
+详见[工具工作台教程](docs/USER-GUIDE.md#51-工具工作台统一查找工具)。工具页用于发现与诊断，不执行目标工具；参数摘要与原始安全缓存均有裁剪边界。
 
 [用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [首次贡献](docs/FIRST-CONTRIBUTION.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
@@ -38,19 +40,18 @@ dsh plugin --profile web add dsh-mcp-connector
 
 如果它帮你更快地接入 MCP Server，欢迎 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)、[提交新的连接器](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)或[参与贡献](CONTRIBUTING.md)。
 
-## 为什么使用 MCP连接器
+## MCP连接器能做什么
 
-| 能力 | 普通 MCP 配置面板 | MCP连接器 |
-|---|:---:|:---:|
-| 手工配置 MCP Server | ✅ | ✅ |
-| 持续更新的精选连接器目录 | 通常无 | ✅ |
-| OAuth 2.0 PKCE 与 API Key | 部分 | ✅ |
-| HTTP、stdio 与 `mcpServers` JSON 导入 | 部分 | ✅ |
-| 工具与 Prompt 发现 | 视实现而定 | ✅ |
-| 授权恢复与连接生命周期管理 | 通常无 | ✅ |
-| 连接健康检查与 Registry 刷新 | 通常无 | ✅ |
-| 可解释诊断与诚实的未知状态 | 通常无 | ✅ |
-| 插件版本检测与安全更新 | 通常无 | ✅ |
+| 能力 | 用户得到什么 |
+|---|---|
+| 持续更新的连接器目录 | 浏览精选与 9 类业务连接器；Registry 更新后刷新即可获取新卡片 |
+| 多种接入方式 | 使用 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 或 `mcpServers` JSON 接入 |
+| 跨连接工具查找 | 在当前范围内已启用连接的最后成功缓存中按名称或描述搜索，并按连接、服务和状态筛选 |
+| 易读参数与来源 | 查看类型、必填、枚举、嵌套摘要、来源、缓存时间及安全裁剪后的 Schema |
+| 连接排障 | 根据明确的阶段和错误码检查连接或重新发现工具，同时保留可用的最后成功缓存 |
+| 作用域与治理 | 管理 project/global 可见范围以及 Connection、Server、Tool 三层规则 |
+| 安全生命周期 | 支持凭据本机存储、授权刷新、脱敏备份、快照回滚及失败时保留原连接 |
+| 插件更新 | 检测新版本，并在宿主提供兼容 Update Provider 时显示进度、失败原因和回滚结果 |
 
 ## 功能
 
@@ -112,6 +113,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 2. 在市场中选择连接器，确认“当前项目”或“所有项目（全局）”，再完成授权或配置。
 3. 打开卡片详情，可点击示例 Prompt 的发送按钮，在当前工作区创建/复用空白会话并写入草稿。
 4. 在“已安装”或对话工具中查看、停用、恢复或断开连接。
+5. 连接后打开“工具”页，按工具名或描述查找能力，使用连接/服务筛选定位来源；授权、费用及正式调用仍由相应服务与 DSH Host 管理。
 
 连接成功后，工具按 `mcp__<serverName>__*` 前缀提供给模型。
 

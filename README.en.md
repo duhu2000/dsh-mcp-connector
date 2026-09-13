@@ -1,8 +1,8 @@
-# MCP Connector and MCP Server Marketplace for DeepSeek Harness
+# Connect, Find, and Troubleshoot MCP Servers in DeepSeek Harness
 
-> DeepSeek Harness MCP Connector and MCP Server marketplace with over one hundred MCP connectors, continuously updated; discover, authorize, and manage connections in one place with OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, and tool and prompt discovery; maintained by Qichacha/QCC
+> 100+ MCP connectors for DeepSeek Harness, one place to connect MCP servers, search tools across connections, and troubleshoot connections.
 
-Manage MCP connections from different providers in one place inside DeepSeek Harness Desktop/Web. Use OAuth 2.0 PKCE, API keys, stdio/HTTP, `mcpServers` JSON import, tool and prompt discovery, and an independently updated Registry of curated connectors.
+Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
 
 > Here, “skill extension” means extending an agent through MCP tools and prompts; this package does not present itself as a standalone DSH Skill.
 
@@ -10,9 +10,11 @@ Manage MCP connections from different providers in one place inside DeepSeek Har
 
 ### Tool discovery and troubleshooting
 
-The Tools tab searches cached tools across connections, with connection, service and discovery-status filters. Results show their source and last successful cache time. Readable parameter summaries retain access to the original sanitized schema. Browsing never executes tools; cached availability does not guarantee a live call will succeed.
+Search cached tools across enabled connections visible to the current workspace in the Tools tab. Filter by connection, service and latest discovery status, then open parameter details for types, required fields and nested structures. Without a selected workspace, only global connections appear.
 
-Expand connection diagnostics to check a connection or rediscover its tools. Healthy background discovery is due every five minutes; failures back off, rate limits honor Retry-After, and authentication failures pause automatic retries. Without a selected workspace, only global connections appear.
+Results identify their source and last successful cache time. A cached tool is not a guarantee that the service is currently callable. Expand connection diagnostics to check the connection or rediscover tools. Healthy discovery becomes due after five minutes; while the page remains connected, background scheduling checks due tasks. Failures back off, and authentication failures pause automatic retries.
+
+Tool browsing does not execute target tools. Parameter summaries may omit complex rules; the original-schema view contains the sanitized, size-limited cached schema, not an untouched server response. See the [Chinese tool-workspace guide](docs/USER-GUIDE.md#51-工具工作台统一查找工具).
 
 [Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [First contribution](docs/FIRST-CONTRIBUTION.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
@@ -38,19 +40,18 @@ Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrad
 
 If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers), [submitting a connector](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md), or [contributing a fix](CONTRIBUTING.md).
 
-## Why use MCP Connector
+## What MCP Connector provides
 
-| Capability | Basic MCP configuration panel | MCP Connector |
-|---|:---:|:---:|
-| Manual MCP server configuration | ✅ | ✅ |
-| Independently updated curated connector catalog | Usually not included | ✅ |
-| OAuth 2.0 PKCE and API keys | Partial | ✅ |
-| HTTP, stdio, and `mcpServers` JSON import | Partial | ✅ |
-| Tool and prompt discovery | Implementation-specific | ✅ |
-| Authorization recovery and connection lifecycle management | Usually not included | ✅ |
-| Connection health checks and Registry refresh | Usually not included | ✅ |
-| Explainable diagnostics and honest unknown state | Usually not included | ✅ |
-| Plugin version discovery and safe updates | Usually not included | ✅ |
+| Capability | What it gives you |
+|---|---|
+| Continuously updated catalog | Browse featured connectors and nine business categories; refresh after a Registry update to fetch new cards |
+| Multiple connection paths | Connect with OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, or `mcpServers` JSON |
+| Cross-connection tool search | Search the last-success cache of enabled connections in the current scope, then filter by connection, service, or state |
+| Readable parameters and sources | Inspect types, required fields, enums, nested summaries, sources, cache time, and a sanitized schema |
+| Connection troubleshooting | Use observed stages and stable error codes to check a connection or rediscover tools while retaining an available last-success cache |
+| Scope and governance | Manage project/global visibility plus Connection, Server, and Tool rules |
+| Safer lifecycle management | Keep credentials local, refresh grants, export redacted backups, restore snapshots, and preserve the previous connection on failure |
+| Plugin updates | Detect newer versions and, when the host exposes a compatible Update Provider, show progress, failures, and rollback results |
 
 ## Features
 
@@ -111,6 +112,7 @@ Run the same command again to upgrade. Fully quit and restart DeepSeek Harness D
 2. Choose a connector, confirm **Current project** or **All projects (global)**, and complete authorization or configuration.
 3. Open its details to inspect tools or send an example prompt to a new conversation draft.
 4. Use Installed or the conversation tools to enable, disable, inspect, or disconnect a connection.
+5. After connecting, open **Tools** to search by tool name or description and filter by connection or service. Provider authorization, fees, and actual execution remain under the provider and DSH Host.
 
 Connected tools are exposed to the model with the `mcp__<serverName>__*` prefix.
 
