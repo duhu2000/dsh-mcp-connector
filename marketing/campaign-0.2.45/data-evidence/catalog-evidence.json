@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-12T13:52:08Z",
+  "productVersion": "0.2.45",
+  "productReleaseCommit": "82d240601df73b8e704124100ec5771a0cd5514a",
+  "registry": {
+    "repository": "https://github.com/duhu2000/dsh-mcp-connector-registry",
+    "branch": "main",
+    "commit": "f1cbed41c3277a2274bc8633953b9096b6b7b56b",
+    "commitTime": "2026-09-11T04:46:48Z",
+    "catalogBlobSha": "ba7690760adcaff3e0db884053af3974c2746c2b",
+    "catalogSha256": "bd101122a52fa7f8e20de1040203fedd2c70aff3a6a639e2c02a484ff7e0e41d",
+    "statsSha256": "91a178835b4b7cce51b61cf0d7be33467e8818a304d2c7f82b63453d0eb5fb78",
+    "publishedConnectorCount": 106,
+    "uniqueIdCount": 106,
+    "featuredConnectorCount": 2,
+    "categoryCount": 8
+  },
+  "bundled": {
+    "publishedConnectorCount": 6,
+    "connectorIds": [
+      "qcc-company",
+      "qcc-legal",
+      "qcc-tender",
+      "qcc-document",
+      "pkulaw-legal",
+      "wind-stock-data"
+    ],
+    "overlapWithRegistryIds": [
+      "pkulaw-legal",
+      "wind-stock-data"
+    ],
+    "uniqueConnectorIds": [
+      "qcc-company",
+      "qcc-legal",
+      "qcc-tender",
+      "qcc-document"
+    ]
+  },
+  "marketplace": {
+    "defaultVisibleConnectorCount": 110,
+    "categoryCount": 9,
+    "featuredConnectorCount": 6,
+    "calculation": "106 registry + 6 bundled - 2 overlapping = 110",
+    "countAsOf": "2026-09-11"
+  },
+  "wording": {
+    "durableZh": "MCP Server 与 MCP连接器市场，收录超百个 MCP连接器并持续更新；统一发现、授权和连接管理。",
+    "datedZh": "截至 2026-09-11，公共 Registry 已发布 106 个连接器；与随包卡片合并去重后，默认市场可浏览 110 张连接器卡片，覆盖 9 个业务分类。"
+  }
+}

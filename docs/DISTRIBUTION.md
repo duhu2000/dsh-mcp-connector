@@ -1,6 +1,6 @@
 # DSH MCP Connector Distribution Ledger
 
-Last updated: 2026-09-11 (Asia/Shanghai)
+Last updated: 2026-09-13 (Asia/Shanghai)
 
 This document is the source of truth for external distribution of
 [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector).
@@ -15,7 +15,7 @@ the same upstream data source.
 | Product | MCP Connector / MCP连接器 |
 | Repository | [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector) |
 | npm package | [`dsh-mcp-connector`](https://www.npmjs.com/package/dsh-mcp-connector) |
-| Current release | `0.2.42` |
+| Current release | `0.2.45` |
 | License | MIT |
 | GitHub discovery topic | `dsh-plugin` |
 | Plugin type | DSH client plugin, MCP connection manager, and connector marketplace |
@@ -112,15 +112,15 @@ the destination schema without changing the product identity.
 
 - Repository: `https://github.com/duhu2000/dsh-mcp-connector`
 - npm: `https://www.npmjs.com/package/dsh-mcp-connector`
-- Release: `0.2.42`
+- Release: `0.2.45`
 - License: MIT
 - Category preference: `Integrations & Connectors`; otherwise
   `Plugins & Runtime`, `Integration`, or `Plugin Markets & Managers`
 - Install: `dsh plugin --profile web add dsh-mcp-connector`
 - Remove: `dsh plugin --profile web remove dsh-mcp-connector`
 - Supported target: DeepSeek Harness Desktop/web profile; Node.js 20+
-- English description: `DeepSeek Harness MCP Connector and MCP Server marketplace with over one hundred MCP connectors, continuously updated. Discover, authorize, and manage connections in one place; supports OAuth 2.0 PKCE, API keys, stdio/HTTP, mcpServers JSON import, and tool and prompt discovery. Maintained by Qichacha/QCC.`
-- Chinese description: `DeepSeek Harness 的 MCP连接器与 MCP Server 市场，收录超百个 MCP连接器并持续更新；统一发现、授权和连接管理，支持 OAuth 2.0 PKCE、API Key、stdio/HTTP、mcpServers JSON 导入，以及工具与 Prompt 发现；由企查查/QCC 团队维护。`
+- English description: `MCP Connector for DeepSeek Harness with a directory of over one hundred connectors. Connect to MCP servers, search tools across connections, manage and troubleshoot connections, filter by connection/server/status, inspect readable parameters and the last successful cache time, and use per-connection diagnostics and tool rediscovery; supports OAuth 2.0 PKCE, API keys, stdio/HTTP, and mcpServers JSON import. Maintained by Qichacha/QCC.`
+- Chinese description: `MCP连接器：在 DeepSeek Harness 中通过持续更新的超百个 MCP连接器目录接入 MCP Server、跨连接查找工具，并完成连接管理与连接排障；可按连接/服务/发现状态筛选，查看易读参数、最后成功缓存时间和诊断，并逐连接重新发现工具；支持 OAuth 2.0 PKCE、API Key、stdio/HTTP 和 mcpServers JSON 导入；由企查查/QCC 团队维护。`
 - Screenshots and evidence: [`docs/screenshots/README.md`](screenshots/README.md)
 - Release history: [`CHANGELOG.md`](../CHANGELOG.md)
 

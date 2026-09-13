@@ -56,6 +56,7 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   expect(metadata.schemaVersion === 1, 'marketing/metadata.json must use schemaVersion 1');
   expect(packageJson.name === metadata.packageName, 'package name differs from marketing metadata');
   expect(packageJson.description === metadata.npm.description, 'package description differs from marketing metadata');
+  expect(metadata.npm.description.length <= 250, 'npm description exceeds the 250-character storefront limit');
 
   const packageKeywords = packageJson.keywords || [];
   for (const keyword of metadata.npm.requiredKeywords) {
@@ -84,10 +85,10 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   ];
   for (const [label, copy] of externalEnglish) {
     contains(copy, 'DeepSeek Harness', `${label} must retain the external platform identity`);
-    contains(copy.toLowerCase(), 'over one hundred mcp connectors', `${label} must use the durable over-one-hundred connector claim`);
-    contains(copy.toLowerCase(), 'discover', `${label} must describe connector discovery`);
-    contains(copy.toLowerCase(), 'authorize', `${label} must describe authorization`);
-    contains(copy.toLowerCase(), 'manage', `${label} must describe connection management`);
+    contains(copy.toLowerCase(), 'mcp connector', `${label} must identify the MCP Connector`);
+    contains(copy.toLowerCase(), 'connect', `${label} must describe MCP server connection`);
+    contains(copy.toLowerCase(), 'search tools', `${label} must describe cross-connection tool search`);
+    contains(copy.toLowerCase(), 'troubleshoot', `${label} must describe connection troubleshooting`);
   }
   for (const [label, copy] of [
     ['Chinese README hero', metadata.readme.heroZh],
@@ -95,7 +96,9 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   ]) {
     contains(copy, 'DeepSeek Harness', `${label} must retain the external platform identity`);
     contains(copy, '超百个 MCP连接器', `${label} must use the durable over-one-hundred connector claim`);
-    contains(copy, '统一发现、授权和连接管理', `${label} must describe discovery, authorization, and management`);
+    contains(copy, 'MCP Server', `${label} must describe MCP server connection`);
+    contains(copy, '工具', `${label} must describe tool discovery`);
+    contains(copy, '排障', `${label} must describe connection troubleshooting`);
   }
 
   contains(contributing, metadata.links.firstIssues, 'contributor guide is missing the good first issue path');
