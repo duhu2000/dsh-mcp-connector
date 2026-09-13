@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
+  DEFAULT_TARGETS,
   assessTarget,
   parseAwesome,
   parseDshbasePage,
@@ -10,6 +12,18 @@ import {
 } from '../scripts/check-distribution-sync.mjs';
 
 const target = { id: 'directory', label: 'Directory', url: 'https://example.test/plugin' };
+
+test('runs the external directory check after a successful Release workflow', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/distribution-sync.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /workflow_run:\s*\n\s+workflows: \['Release'\]\s*\n\s+types: \[completed\]/);
+  assert.match(workflow, /if: github\.event_name != 'workflow_run' \|\| github\.event\.workflow_run\.conclusion == 'success'/);
+});
+
+test('does not expose a closed PR as the awesome directory follow-up', () => {
+  const awesome = DEFAULT_TARGETS.find((candidate) => candidate.id === 'awesome-dsh-plugin');
+  assert.ok(awesome);
+  assert.equal(awesome.trackingUrl, undefined);
+});
 
 test('parses the connector from awesome-dsh-plugin registry JSON', () => {
   assert.deepEqual(parseAwesome({

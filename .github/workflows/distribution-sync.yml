@@ -2,6 +2,9 @@ name: External directory sync
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Release']
+    types: [completed]
   schedule:
     - cron: '17 3 * * *'
   push:
@@ -21,6 +24,7 @@ concurrency:
 
 jobs:
   check:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
