@@ -1,8 +1,10 @@
 # MCP连接器 v0.2.45：自然搜索与转化文案包
 
-状态：文案与指标基线已完成；新截图/视频为 `TODO`，公共文件尚未修改，未执行任何外部发布。
+状态：文案与 D0 指标基线已完成；公共文案已随 `0.2.46` 发布，三张新截图和 43 秒演示已于 2026-09-14 完成；D+7/D+14 复盘待到期执行。
 
-更新时间：2026-09-13（Asia/Shanghai）
+更新时间：2026-09-14（Asia/Shanghai）
+
+上线记录：Connector [PR #74](https://github.com/duhu2000/dsh-mcp-connector/pull/74) 集成 README/元数据，发布 [PR #75](https://github.com/duhu2000/dsh-mcp-connector/pull/75) 形成 `v0.2.46`，awesome-dsh-plugin [PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982) 同步公开市场描述。本文件保留 `0.2.45` 活动基线，后续版本只更新落地与复盘状态。
 
 ## 1. 冻结事实与表达边界
 
@@ -24,7 +26,7 @@
 - [`../search-closure/README-PATCH.md`](../search-closure/README-PATCH.md)
 - [`../search-closure/SCREENSHOT-ACCEPTANCE.md`](../search-closure/SCREENSHOT-ACCEPTANCE.md)
 
-其中 `README-PATCH.md` 只负责工具教程段；首屏 hero 与统一营销口径以本文为准。三张新素材仍为 `TODO`。
+其中 `README-PATCH.md` 只负责工具教程段；首屏 hero 与统一营销口径以本文为准。三张新素材和最终演示已落在 `docs/screenshots/05`–`07` 与 `docs/demo.gif`。
 
 统一中文术语：`MCP连接器`、`MCP Server`、`工具查找`、`连接排障`、`重新发现工具`、`最后成功缓存时间`。市场独立关键词字段可补空格变体 `MCP 连接器`。
 
@@ -191,7 +193,7 @@ Search reads a sanitized last-success cache and never executes target tools. Cac
 - “统一找工具”图需同时出现至少两条连接/服务、来源与缓存时间，不能把单服务列表冒充跨连接搜索。
 - “看懂参数”图需出现类型/必填/枚举/嵌套摘要和原始安全 Schema 入口。
 - “状态与排障”图需保留故障标签、最后成功缓存、诊断建议和两个操作入口；不得通过后期美化篡改真实状态。
-- `TODO`：制作并验收上述三张新图及最终 43 秒视频；当前只有规范，没有成品素材。
+- 已完成：上述三张新图与 43 秒视频均来自 `v0.2.46` 无凭据 UI harness，并通过哈希、尺寸、时长和敏感信息门禁；来源见 [`../../../docs/screenshots/README.md`](../../../docs/screenshots/README.md)。
 
 ## 6. 推广前指标快照
 
@@ -272,12 +274,12 @@ Search reads a sanitized last-success cache and never executes target tools. Cac
 6. GitHub About
    - 与 2.2 英文短简介一致；保留现有 20 个高意图 Topics。本轮不承诺排序变化。
 7. 截图与视频
-   - `TODO`：三张新图/43 秒视频通过第 5 节验收后，再由归口更新 `screenshots.json`、哈希和 README 引用。
+   - 已完成：三张新图/43 秒视频通过第 5 节验收，归口已更新 `screenshots.json`、`assets.json` 和双语 README 引用。
 8. 集成验证
-   - 运行 `npm run check`、`npm run marketing:check:live`（外部字段实际更新后）及 storefront 门禁；本子任务未运行，因为公共文件未变更。
+   - 归口分支已通过 `npm run check`（250 项测试、75 个发布文件）、`npm run marketing:check:live` 和 7 张图片的 storefront 门禁。`distribution:check:live` 准确报告外部目录未收敛，并由 Issue #69 继续跟踪。
 
 ## 9. 交付与阻塞
 
-- 已完成：事实冻结、中英文长短/耐久文案、README 首屏与安装引导、社区短帖、文章提纲、43 秒演示脚本、D0 指标快照、D+7/D+14 复盘方法、公共文件补丁清单。
-- `TODO`：搜索闭环会话制作并验收三张新截图/视频；归口会话统一修改公共文件、运行检查、提交 PR，并在获得用户明确授权后处理 GitHub About、外部市场或新版本发布。
-- 本目录没有修改产品代码、公共 README/元数据或任何外部状态。
+- 已完成：事实冻结、中英文长短/耐久文案、README 首屏与安装引导、社区短帖、文章提纲、43 秒演示、三张工具工作台截图、D0 指标快照、复盘方法和公共文件集成。
+- 待执行：D+7（2026-09-19）和 D+14（2026-09-26）固定窗口复盘；媒体文章规范 URL 登记后逐篇复核。
+- 本目录保留历史交付说明；实际公共文件与外部上线状态以 [`../LEDGER.md`](../LEDGER.md) 和 [`../PUBLICATION-REGISTER.md`](../PUBLICATION-REGISTER.md) 为准。

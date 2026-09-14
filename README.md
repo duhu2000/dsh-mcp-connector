@@ -36,7 +36,7 @@ dsh plugin --profile web add dsh-mcp-connector
 
 安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「🧩 MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
 
-![MCP 连接器 16 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+![MCP 连接器 43 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
 如果它帮你更快地接入 MCP Server，欢迎 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)、[提交新的连接器](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)或[参与贡献](CONTRIBUTING.md)。
 
@@ -88,8 +88,12 @@ dsh plugin --profile web add dsh-mcp-connector
 | ![市场总览](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/01-market-overview.jpg) | ![连接器详情](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/02-connector-detail.jpg) |
 | 工具发现、描述与独立滚动 | JSON 导入 |
 | ![工具发现](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON 导入](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
+| 统一工具搜索与来源 | 参数详情与安全 Schema |
+| ![统一工具搜索](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/05-unified-tool-search.png) | ![工具参数详情](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/06-tool-parameters.png) |
+| 连接诊断与最后成功缓存 |  |
+| ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-素材从复刻真实 800px 产品面板的无凭据 UI 验收环境采集，桌面端一行 2 张卡片；只展示公开市场元数据、示例 Prompt 和明确标识的 Mock 工具说明，不包含凭据、本机路径或查询结果。详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
+`01`–`04` 保留 `v0.2.37` 的历史市场快照，`05`–`07` 与 43 秒演示来自 `v0.2.46` 当前无凭据 UI harness。桌面端一行 2 张卡片；只展示公开市场元数据、示例 Prompt 和明确标识的 Mock 工具说明，不包含凭据、本机路径或查询结果。详见 [`docs/screenshots/README.md`](docs/screenshots/README.md)。
 
 ## 安装
 
