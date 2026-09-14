@@ -1,14 +1,17 @@
 {
   "schemaVersion": 1,
   "capture": {
-    "capturedOn": "2026-09-06",
+    "capturedOn": "2026-09-14",
+    "sourceVersion": "0.2.46",
     "browserViewport": {
       "width": 1280,
       "height": 720
     },
     "productPanelWidth": 800,
     "desktopCardColumns": 2,
-    "state": "credential-free-mock"
+    "state": "credential-free-mock",
+    "preservedLegacyScreenshots": 4,
+    "notes": "01-04 preserve the 2026-09-06 v0.2.37 storefront snapshot; 05-07 and demo.gif were captured from the current v0.2.46 UI harness on 2026-09-14."
   },
   "screenshots": [
     {
@@ -34,13 +37,39 @@
       "sha256": "de0a87cc7f247fad40ac37188f5a1d026f4087571e98d64595e80f8bcd9410be",
       "width": 1280,
       "height": 720
+    },
+    {
+      "path": "docs/screenshots/05-unified-tool-search.png",
+      "sha256": "a75119afeccdb666e1496917ab1cac50e368882412fe5ce16cfdb268c2a6595b",
+      "width": 1280,
+      "height": 720,
+      "capturedOn": "2026-09-14",
+      "sourceVersion": "0.2.46"
+    },
+    {
+      "path": "docs/screenshots/06-tool-parameters.png",
+      "sha256": "199a960e6c07c84ff2e3b99acf64536b6875f2ebf08b5a86a1df971cc120da70",
+      "width": 1280,
+      "height": 720,
+      "capturedOn": "2026-09-14",
+      "sourceVersion": "0.2.46"
+    },
+    {
+      "path": "docs/screenshots/07-connection-diagnostics.png",
+      "sha256": "5ca0e53cf560c68a06239c29651f9d9e49ee184c43d43432ccdc4139299e811b",
+      "width": 1280,
+      "height": 720,
+      "capturedOn": "2026-09-14",
+      "sourceVersion": "0.2.46"
     }
   ],
   "demo": {
     "path": "docs/demo.gif",
-    "sha256": "c9a84ce9c164c1b9f846f8b5a65afd8dd5c49741c9dfc530f1ad766e47b3d2b6",
+    "sha256": "69250ef0d6730d2c708c1fea6a3c8041d495008a40f53a02a894238601f165ec",
     "width": 960,
     "height": 540,
-    "durationSeconds": 16
+    "durationSeconds": 43,
+    "capturedOn": "2026-09-14",
+    "sourceVersion": "0.2.46"
   }
 }

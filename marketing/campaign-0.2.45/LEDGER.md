@@ -1,66 +1,81 @@
 # MCP Connector 0.2.45 宣传与使用引导总账
 
-更新时间：2026-09-12（Asia/Shanghai）
+更新时间：2026-09-14（Asia/Shanghai）
 
 ## 目标与边界
 
-本轮只更新已经发布功能的宣传证据、使用引导、市场文案、截图素材规范和增长复盘口径，不增加产品功能。
+本轮更新已经发布功能的宣传证据、使用引导、市场文案、截图素材规范和增长复盘口径，不增加产品功能。`0.2.45` 是活动事实基线，当前线上部署版本已推进到 `0.2.46`。
 
-固定事实基线：
+固定表达边界：
 
-- 发布版本：`dsh-mcp-connector@0.2.45`
-- 合并提交：`82d240601df73b8e704124100ec5771a0cd5514a`
-- 产品 PR：<https://github.com/duhu2000/dsh-mcp-connector/pull/73>
-- Release：<https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.45>
-- 本轮不得承诺默认排名提升，不得把缓存描述为断网仍可调用，不得把 Registry 条数或 npm 下载量解释为用户数，不得宣称全部连接器免费。
-- 子任务不得修改公共 README、`package.json`、`marketing/metadata.json`，不得发布 npm/tag，不得直接提交外部市场 PR。
+- 不承诺默认排名提升，不把缓存描述为断网仍可调用，不把 Registry 条数、npm 下载量或 clone 数解释为用户数，不宣称全部第三方连接器免费。
+- 工具搜索读取最后成功的安全缓存，不执行目标 MCP 工具；缓存可见不等于服务当前可调用。
+- 历史截图必须标注来源版本；无凭据 harness 的目录、连接和工具数量不得当作生产统计。
 
 ## 四任务状态
 
-| 子任务 | 会话 | 独占产物目录 | 当前状态 | 退出条件 |
-|---|---|---|---|---|
-| 搜索闭环 | `01a051f7-eeba-7742-a353-7d8aa086ea31` | `marketing/campaign-0.2.45/search-closure/` | 已完成五项交付：功能证据、手册差距、搜索验收、截图验收和公共文件补丁建议齐备 | 功能证据、手册差距、搜索验收、三张截图验收和公共文件补丁建议齐备 |
-| 自然搜索转化 | `01a051f8-b966-77a2-94ea-ab0e538724e0` | `marketing/campaign-0.2.45/natural-search/` | 已完成交付：中英文文案、README 草稿、社区内容、43 秒脚本、D0 指标与 D+7/D+14 复盘方法齐备 | 中英文长短文案、README 草稿、社区内容、演示脚本、增长基线与复盘方法齐备 |
-| 插件市场上架优化排名 | `01a051ec-d92f-7e00-a0d6-ffb185584bb4` | `marketing/campaign-0.2.45/market-listing/` | 已完成草稿交付；线上证据、文案、截图顺序、验收表和单 YAML 外部补丁齐备，等待统一集成与用户批准 | 线上条目证据、市场文案、外部 PR 草稿、五组搜索及默认排序验收齐备 |
-| 数据源 MCP 自动发现 | `01a051f9-1a95-7980-820e-95943e80872b` | `marketing/campaign-0.2.45/data-evidence/` | 已完成本轮证据交付：README、机器快照、三场景 runbook；Notion 实测与截图保留为集成 TODO | Registry/随包去重数量证据、场景与授权边界、贡献入口齐备 |
+| 子任务 | 会话 | 独占产物目录 | 当前状态 |
+|---|---|---|---|
+| 搜索闭环 | `01a051f7-eeba-7742-a353-7d8aa086ea31` | `marketing/campaign-0.2.45/search-closure/` | 已完成：功能证据、教程补丁、验收步骤和三张宣传素材验收条件齐备；三张素材已于 2026-09-14 落库 |
+| 自然搜索转化 | `01a051f8-b966-77a2-94ea-ab0e538724e0` | `marketing/campaign-0.2.45/natural-search/` | 已完成开发与素材：双语首屏、元数据、43 秒演示、三张新图已集成；D+7/D+14 复盘按日期待执行 |
+| 插件市场上架优化排名 | `01a051ec-d92f-7e00-a0d6-ffb185584bb4` | `marketing/campaign-0.2.45/market-listing/` | 已完成描述更新和上线复验；核心四词当前第 1，`mcp server` 为第 15，列为后续相关性优化 |
+| 数据源 MCP 自动发现 | `01a051f9-1a95-7980-820e-95943e80872b` | `marketing/campaign-0.2.45/data-evidence/` | 已完成本轮 README、机器快照和三场景 runbook；Notion 专用空白工作区实测仍无证据，不写成已验收 |
 
-## 集成顺序
+## 已上线集成
 
-1. 冻结事实：先接收数据源数量、授权边界及 0.2.45 功能证据。
-2. 统一文案：自然搜索任务根据冻结事实给出中英文唯一口径。
-3. 适配渠道：市场任务按目标市场长度、字段和排序机制改写，不反向污染事实口径。
-4. 素材验收：搜索闭环任务验收统一搜索、参数详情、诊断与重新发现三张素材。
-5. 单一集成：由本总账会话在独立分支串行修改 README、用户手册、元数据和截图声明，运行完整检查。
-6. 发布闸门：形成 PR 后先向用户报告差异和证据；只有获得明确授权，才合并、对外提交市场 PR 或发布新 npm/tag。
-7. 线上复核：记录各渠道实际页面、搜索位置、发布日期以及 7/14 天增长变化，不用累计下载量代替用户数。
+- 产品文档与元数据：Connector [PR #74](https://github.com/duhu2000/dsh-mcp-connector/pull/74)，2026-09-13 合并，提交 `2abf622d422a458b50b6d5111cb57b65c6cc120a`。
+- 正式发布：Connector [PR #75](https://github.com/duhu2000/dsh-mcp-connector/pull/75)，2026-09-13 合并并发布 [`v0.2.46`](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.46)，提交 `862ec2f4a7c3e179160d05618651178a9ba48aff`。
+- awesome-dsh-plugin 描述：[PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982)，2026-09-13 合并，提交 `44483edfb835af0d217398deb7c42bc619fd2974`；公开条目已同步到 `0.2.46`。
+- npm 与 GitHub About 的短简介、版本、关键词和 Topics 已通过 `npm run marketing:check:live` 一致性检查。
+- 公开 Registry 截至 2026-09-11：106 条；与 4 张随包唯一卡片合并后市场 110 张、9 类、精选 6 张。动态数量以刷新后的客户端徽标和 `catalog-stats.json` 为准。
 
-## 当前依赖与阻塞
+## 2026-09-14 搜索复验
 
-- 四个独占目录产物均已完成；公共文件已由本总账会话在 `docs/campaign-0.2.45` 分支统一集成。
-- 市场任务已按 `0.2.45` 重核：awesome-dsh-plugin 已收录，默认下载量排序第 62；`mcp` 2/171、`连接器` 1/5、`mcp server` 1/17、`连接管理` 1/1，`MCP连接器` 0/0。默认排序不受文案直接控制，不承诺名次提升。
-- awesome-dsh-plugin 线上展示版本仍为 `0.2.44`，npm latest 为 `0.2.45`；版本由市场自动探测，外部 YAML 不应手填版本，需等待同步并复验。
-- 新三张宣传截图尚未交付，不得标记为已完成；模拟截图必须显著标注“演示数据”。
-- 数据证据已冻结为：Registry 106、随包发布 6、重复 2、随包唯一 4、默认市场去重后 110、9 类、精选 6；发布前必须再次读取线上 `catalog-stats.json`，发生变化时更新精确口径。
-- Notion 场景仍缺专用空白工作区 OAuth、工具发现和只读搜索实测，不得写成已由当前客户端验收。
-- npm/GitHub About 推荐使用已交付的 241 字符收益前置英文简介；集成时同步修改元数据、`package.json`、双语 README、外部分发 YAML 和营销校验脚本，并新增 `description <= 250` 门禁。
-- D0（2026-09-12）指标快照：npm 近 30 天下载 10,991（非用户数），GitHub 20 Stars/3 Forks/1 Watcher，14 天 views 2,361/1,161 unique、clones 1,294/240 unique；计划于 2026-09-19、2026-09-26 用同口径复盘，但尚未创建自动任务。
-- 对外发布与新 npm 版本尚未获得本轮授权。
+环境：实际本机 DSH Web，`dshmarket@1.46.1`，发现页“全部”分类，约 3.6k 条目。
 
-## 待集成清单
+| 查询 | 当前位置 | 结论 |
+|---|---:|---|
+| `mcp` | 1 | 核心词通过 |
+| `mcp连接器` | 1 | 产品名通过 |
+| `连接器` | 1 | 中文类目词通过 |
+| `连接管理` | 1 | 高意图功能词通过 |
+| `mcp server` | 15 | 从 `dshmarket@1.38.1` 基线第 5 回落；索引正常，需单独优化英文相关性，不阻塞当前素材上线 |
 
-- [x] 冻结连接器数量、目录/授权/费用/缓存边界及 0.2.45 功能能力证据。
-- [x] 选择中英文首屏、安装引导和社区文案。
-- [x] 合并完整工具工作台教程与搜索验收步骤。
-- [ ] 验收并登记三张新截图，更新 `screenshots.json` 时保持脱敏与哈希校验。
-- [x] 形成公共文件单一补丁；`npm run check` 已在允许回环测试服务的环境通过，248 项测试全绿，发布包 72 文件通过白名单与敏感内容检查。
-- [ ] 用户确认后创建一个 Connector PR；是否发版单独判断，不因文档草稿自动发 npm。
-- [ ] 获得授权后按渠道提交外部更新，并做默认排序与五组搜索复核。
+默认排序由下载量等市场信号决定，不承诺靠文案直接提升。
 
-## 单一集成结果
+## 素材完成情况
 
-- 分支：`docs/campaign-0.2.45`，基线 `origin/main@82d240601df73b8e704124100ec5771a0cd5514a`。
-- 已修改：`README.md`、`README.en.md`、`docs/USER-GUIDE.md`、`docs/DISTRIBUTION.md`、`marketing/metadata.json`、`package.json`、`duhu2000__dsh-mcp-connector.yml`、`scripts/check-marketing-metadata.mjs`。
-- npm/GitHub 描述为 243 字符，营销门禁新增 `<=250` 限制；双语首屏改为 MCP Server 接入、跨连接工具搜索和连接排障收益优先。
-- 原竞品泛化比较表已改为产品自身能力与用户收益清单。
-- 旧四张截图保持原样并保留 0.2.37 来源说明；新三图与视频未生成，不添加失效引用。
-- 离线营销、README 版本、Storefront、全部测试和 pack 验证通过；GitHub About、npm 页面及外部市场尚未更新，因此未运行/通过线上一致性门禁。
+- 已新增 `docs/screenshots/05-unified-tool-search.png`：跨连接搜索、来源、发现失败与最后成功缓存。
+- 已新增 `docs/screenshots/06-tool-parameters.png`：必填、类型、枚举、嵌套结构与安全 Schema。
+- 已新增 `docs/screenshots/07-connection-diagnostics.png`：连接状态、失败原因、建议与两个恢复动作。
+- 已重制 `docs/demo.gif`：43 秒、960×540，顺序展示市场、详情、工具、统一搜索、参数和诊断。
+- `01`–`04` 继续作为 `v0.2.37` 历史市场快照保留；`05`–`07` 和 GIF 来自 `v0.2.46` 当前 harness。来源与哈希均登记在 `docs/screenshots/assets.json`。
+
+## 指标与复盘
+
+D0（2026-09-12）基线：npm 近 30 天下载 10,991（非用户数）；GitHub 20 Stars、3 Forks、1 Watcher；14 天 views 2,361 / 1,161 unique，clones 1,294 / 240 unique。
+
+2026-09-14 滚动观察：GitHub 22 Stars、3 Forks、1 Watcher；截至 2026-09-12 的滚动 traffic 为 views 2,415 / 1,202 unique、clones 1,394 / 259 unique。该观察不替代固定窗口复盘。
+
+| 复盘 | 到期日 | 当前状态 | 执行要求 |
+|---|---|---|---|
+| D+7 | 2026-09-19 | 未到期 | 使用与 D0 相同口径抓取 npm/GitHub/traffic，计算净变化，并登记渠道变更 |
+| D+14 | 2026-09-26 | 未到期 | 重复同口径复盘，并区分累计下载、窗口下载、页面浏览和首次贡献 |
+
+## 外部分发与媒体登记
+
+- 外部目录仍有版本/来源漂移，统一由 [Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69) 去重跟踪；未完全收敛前不关闭。
+- 公开报道已由用户确认存在，但仓库此前没有保存 CSDN、搜狐、腾讯新闻等文章的规范 URL。新增 [`PUBLICATION-REGISTER.md`](PUBLICATION-REGISTER.md) 作为版本、图片和文案同步入口；URL 未登记前不能声称所有媒体正文均已更新。
+- Notion 场景缺少专用空白工作区实测证据，仍是非阻断运营 TODO。
+
+## 当前退出状态
+
+- [x] 四个子任务的可开发产物已完成并集成。
+- [x] 双语 README、npm/GitHub 元数据与 awesome-dsh-plugin 描述已发布到 `0.2.46`。
+- [x] 三张新宣传截图与 43 秒演示已生成、脱敏并登记。
+- [x] 当前 DSH Market 四个核心高意图词复验为第 1。
+- [x] `npm run check` 全部通过：250 项测试、75 个发布文件；npm/GitHub 线上营销元数据一致。
+- [ ] `mcp server` 从第 5 回落到第 15，需作为下一轮搜索相关性优化，而不是伪报通过。
+- [ ] 外部目录 [Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69) 尚未收敛。
+- [ ] D+7（2026-09-19）与 D+14（2026-09-26）尚未到期执行。
+- [ ] 媒体文章 URL 尚待登记；登记后才能逐篇核对版本、截图和安装文案。

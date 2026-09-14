@@ -1,6 +1,6 @@
 # MCP Connector 0.2.45 市场上架优化交付
 
-状态：草稿已就绪，等待总账会话集成与用户批准后再对外提交。
+状态：草稿已集成并上线；三张新截图和 43 秒演示已完成，当前搜索复验见下文。
 
 固定基线：
 
@@ -9,6 +9,22 @@
 - 核对时间：`2026-09-12T21:56:47+08:00`
 - 目标市场：[awesome-dsh-plugin](https://awesome-dsh-plugin.com/zh/)
 - 本轮只生成证据和草稿；未修改公共 README、`package.json`、`marketing/metadata.json` 或 `screenshots.json`，未提交外部 PR。
+
+以上为任务启动时的固定基线。后续由总账会话统一完成公共文件和外部状态修改：Connector [PR #74](https://github.com/duhu2000/dsh-mcp-connector/pull/74) 与发布 [PR #75](https://github.com/duhu2000/dsh-mcp-connector/pull/75) 已合并并发布 `0.2.46`；awesome-dsh-plugin [PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982) 已合并，公开条目已同步到 `0.2.46`。
+
+## 2026-09-14 上线复验
+
+实际本机 DSH Web 使用 `dshmarket@1.46.1`，发现页“全部”分类约 3.6k 条目：
+
+| 查询 | 排名 | 状态 |
+|---|---:|---|
+| `mcp` | 1 | 通过 |
+| `mcp连接器` | 1 | 通过 |
+| `连接器` | 1 | 通过 |
+| `连接管理` | 1 | 通过 |
+| `mcp server` | 15 | 相比 `1.38.1` 基线第 5 回落，需作为下一轮英文相关性优化项 |
+
+新素材已加入产品仓库 `screenshots.json`：`05-unified-tool-search.png`、`06-tool-parameters.png`、`07-connection-diagnostics.png`；43 秒 `docs/demo.gif` 同步更新。外部市场按自身抓取周期消费这些文件，不为同一坐标重复创建截图 PR。
 
 ## 结论
 
@@ -28,11 +44,10 @@
 - [awesome-dsh-plugin-description.patch](awesome-dsh-plugin-description.patch)：只改目标 YAML 的外部 PR 补丁草案。
 - [PR-BODY.md](PR-BODY.md)：外部 PR 标题与说明草案。
 
-## 建议执行顺序
+## 原建议执行顺序与结果
 
-1. 等待搜索闭环任务交付并验收 0.2.45 三张新截图。
-2. 由总账会话统一决定是否更新产品仓库 `screenshots.json`；本任务不直接修改。
-3. 用户批准后，由归口会话应用描述补丁并向 awesome-dsh-plugin 提交一个更新 PR。
-4. PR 合并且市场重建后，按验收清单记录五组查询；默认名次只记录，不设提升目标。
-5. 等待市场 npm 探测把展示版本同步到 0.2.45；这与描述 PR 是否成功分开判断。
-
+1. 已完成：搜索闭环任务交付并验收三张新截图。
+2. 已完成：总账会话更新产品仓库 `screenshots.json`、素材哈希和双语 README。
+3. 已完成：归口会话提交并合并 awesome-dsh-plugin 描述 PR #4982。
+4. 已完成：市场重建后复验五组查询；默认名次只记录，不承诺靠文案提升。
+5. 已完成：公开条目版本同步到 `0.2.46`；后续版本漂移由分发同步检查和 Issue #69 去重跟踪。
