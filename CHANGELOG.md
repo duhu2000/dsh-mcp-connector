@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.2.47] - 2026-09-14
+
+### Changed
+
+- 新增三张当前工具工作台宣传截图，覆盖统一工具搜索、参数详情与连接诊断；更新 Storefront 清单、来源版本与完整性哈希。
+- 将演示 GIF 更新为 43 秒六场景流程，并在中英文 README 中补齐当前能力截图。
+- 更新宣传总账、媒体发布登记和外部分发状态；记录 `dshmarket@1.46.1` 的五组搜索复验结果及 D+7/D+14 复盘日期。
+
+### Verification
+
+- 250 项自动测试通过；7 张 Storefront 截图及 43 秒演示通过哈希、尺寸、采集约束和无凭据检查；75 个发布文件通过白名单与敏感信息扫描。
+- npm/GitHub 营销元数据线上检查通过；外部目录非收敛项继续由 Issue #69 跟踪。
+
 ## [0.2.46] - 2026-09-13
 
 ### Changed
@@ -704,7 +717,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.46...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.47...HEAD
+[0.2.47]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.46...v0.2.47
 [0.2.46]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.45...v0.2.46
 [0.2.45]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.44...v0.2.45
 [0.2.44]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.43...v0.2.44
