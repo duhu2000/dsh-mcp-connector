@@ -190,7 +190,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.47`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.47](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.47).
+The current public version is [`dsh-mcp-connector@0.2.48`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.48](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.48).
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
@@ -202,6 +202,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - External URLs use HTTPS by default, and HTTP is allowed for loopback development. A user-created connection may explicitly opt in to plaintext HTTP for literal RFC1918 IPv4 or RFC4193 IPv6 ULA addresses; hostnames, public HTTP, link-local addresses, and cloud metadata addresses remain blocked.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
 - Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. The connector passes stdio `command/args/env/cwd` to `@deepseek-ai/dsh-mcp-client` instead of reimplementing process transport.
+- Official CLIs that are not MCP servers can be exposed through a separate [controlled CLI Provider](docs/CLI-PROVIDERS.md). Only code-reviewed commands and arguments are available; the initial DingTalk `dws` provider is read-only.
 - stdio starts a local process. Import or connect only trusted commands and packages. Catalog descriptors may declare `credentialFields` and `credentialBindings`, but may never contain actual token/secret values; user input is injected only into the local Host process environment.
 - OAuth DCR client secrets share the same local-only boundary as access and refresh tokens and are omitted from catalog/status responses and logs.
 - OAuth failures identify resource discovery, server discovery, client registration, browser callback, or token exchange. A DCR HTTP 403 is reported as provider-side client admission rejection rather than a missing user authorization.

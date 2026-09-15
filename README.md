@@ -185,7 +185,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.47`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.47](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.47)。
+当前公开版本为 [`dsh-mcp-connector@0.2.48`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.48](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.48)。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
@@ -201,6 +201,7 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - 外部 URL 默认仅允许 HTTPS，HTTP 默认仅允许回环地址。用户自建连接可在明确风险确认后放行 RFC1918 IPv4 / RFC4193 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍拒绝。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
 - 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
+- 对本身不是 MCP Server 的官方 CLI，使用独立的[受控 CLI Provider](docs/CLI-PROVIDERS.md)桥接为 stdio MCP；只允许代码登记的命令与参数，首个钉钉 `dws` Provider 仅开放只读能力。
 - stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录只能用 `credentialFields` + `credentialBindings` 声明输入与 env 映射，不得携带真实 token/secret；用户填写值只写入本机连接记录并交给 Host。
 - OAuth DCR 的 `client_secret` 与 Access/Refresh Token 采用相同的本机存储边界，不会进入市场 API、状态输出或日志。
 - OAuth 连接失败会标明资源发现、服务发现、客户端注册、授权回调或 Token 换取阶段；DCR HTTP 403 表示服务商拒绝未准入客户端，不是用户未点击授权。

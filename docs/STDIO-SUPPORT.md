@@ -12,9 +12,9 @@
 
 ## 一、背景与目标
 
-### 1.1 现状缺口
+### 1.1 实施前的现状缺口（历史记录）
 
-当前 `dsh-mcp-connector` 的传输方式（`transport`）仅支持：
+以下内容记录实施前的缺口；当前版本已经支持 stdio。实施前 `dsh-mcp-connector` 的传输方式（`transport`）仅支持：
 
 - `streamable-http`
 - `sse`
@@ -23,11 +23,11 @@
 
 | 传输方式 | WorkBuddy | TraeWork | Qwen Code | 我们 |
 |---------|:--------:|:--------:|:--------:|:----:|
-| stdio（本地进程） | ✅ | ✅ | ✅ | ❌ |
+| stdio（本地进程） | ✅ | ✅ | ✅ | ✅（当前已完成） |
 | HTTP / streamable-http | ❓ | ✅ | ✅ | ✅ |
 | SSE | ❓ | ❓ | ✅ | ✅ |
 
-**缺失 stdio 导致**：无法接入大量社区 stdio 型 MCP server（GitHub、filesystem、playwright、memory 等 npm/pip 包）。
+**历史影响**：缺失 stdio 时无法接入大量社区 stdio 型 MCP server（GitHub、filesystem、playwright、memory 等 npm/pip 包）；该缺口现已关闭。
 
 ### 1.2 补齐目标
 
