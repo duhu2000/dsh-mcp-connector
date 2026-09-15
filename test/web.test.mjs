@@ -55,6 +55,29 @@ function makeWctx() {
   };
 }
 
+test('CLI 授权接口要求显式同源 Origin，拒绝自定义命令参数', async () => {
+  const ctx = makeWctx();
+  let starts = 0;
+  mountWebRoutes(ctx, {}, { cliAuthService: {
+    start: async () => { starts++; return { ok: true }; },
+  } });
+  const handler = ctx.routes.get('/mcp-connector/api').handler;
+  for (const origin of [undefined, 'http://evil.invalid']) {
+    const res = new FakeRes();
+    await handler(fakeReq({ method: 'POST', headers: { host: '127.0.0.1:3080', ...(origin ? { origin } : {}) }, body: JSON.stringify({ method: 'cliAuthStart', params: { confirmed: true } }) }), res);
+    assert.equal(res.status, 403);
+  }
+  const invoke = async (params) => {
+    const res = new FakeRes();
+    await handler(fakeReq({ method: 'POST', headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }, body: JSON.stringify({ method: 'cliAuthStart', params }) }), res);
+    return res;
+  };
+  assert.equal((await invoke({ command: 'evil', confirmed: true })).status, 400);
+  assert.equal(starts, 0);
+  assert.equal((await invoke({ confirmed: true })).status, 200);
+  assert.equal(starts, 1);
+});
+
 const api = {
   versionStatus: async (force) => ({ ok: true, message: 'v0.2.23', detail: { installedVersion: '0.2.23', force } }),
   governance: async () => ({ ok: true, message: 'revision=2', detail: { revision: 2 } }),
