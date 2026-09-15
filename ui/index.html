@@ -1331,11 +1331,12 @@
   function guidanceFor(message) {
     const text = String(message || '未知错误');
     const withAdvice = (advice) => `${text.replace(/[。！？.!?\s]+$/, '')}。${advice}`;
+    if (/CLI|OAuth|待授权|管理员|本地 MCP/i.test(text)) return text;
     if (/private-network HTTP requires explicit confirmation/i.test(text)) return withAdvice('如目标是可信的局域网私有 IP，请勾选明文 HTTP 风险确认；请勿对公网或不可信服务开启。');
     if (/protocol not allowed|only https/i.test(text)) return withAdvice('公网地址必须使用 HTTPS；HTTP 只允许回环地址，或经显式确认的私有 IP 字面量。');
     if (/JSON/i.test(text)) return withAdvice('请检查引号、逗号，并确认顶层是 mcpServers 或 connections。');
     if (/401|403|token|凭据|api.?key/i.test(text)) return withAdvice('请核对鉴权方式、Token/API Key 是否有效以及 Header 名。');
-    if (/timeout|timed out|fetch|连接|network/i.test(text)) return withAdvice('请检查网络、端点是否可达以及 MCP URL 是否完整。');
+    if (/timeout|timed out|fetch|network|ECONN|ENOTFOUND/i.test(text)) return withAdvice('请检查网络、端点是否可达以及 MCP URL 是否完整。');
     return text;
   }
 
@@ -1418,7 +1419,7 @@
     if (!connector) return;
     openModal(`连接 ${connector.name}`, `
       <input id="scope-connector-id" type="hidden" value="${esc(connectorId)}" />
-      <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? '<p>尚未登录？请在运行 DSH 的同一系统用户终端执行 <code>npx -y dingtalk-workspace-cli@1.0.61 auth login</code>，完成后点击确认连接。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。</p>' : ''}</div>
+      <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? '<p>企业尚未开放 CLI 或您无法取得授权？可以取消，等待管理员处理，无需反复登录或重启。一键授权也不能绕过企业政策。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。</p>' : ''}</div>
       <div class="form-note"><strong>选择连接影响范围</strong>连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。</div>
       ${scopeFieldHtml()}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
