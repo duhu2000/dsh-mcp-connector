@@ -5,6 +5,12 @@ import { assertCurrentReferences, referencedVersions } from '../scripts/check-re
 
 const current = '[`dsh-mcp-connector@0.2.27`](https://www.npmjs.com/package/dsh-mcp-connector) and [Release v0.2.27](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.27)';
 
+test('README version guard preserves prerelease suffixes', () => {
+  const rc = current.replaceAll('0.2.27', '0.2.50-rc.1');
+  assert.doesNotThrow(() => assertCurrentReferences('README.md', rc, '0.2.50-rc.1'));
+  assert.throws(() => assertCurrentReferences('README.md', rc, '0.2.50'), /expected 0.2.50/);
+});
+
 test('README version guard accepts matching npm and release references', () => {
   assert.doesNotThrow(() => assertCurrentReferences('README.md', current, '0.2.27'));
 });

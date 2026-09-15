@@ -24,8 +24,15 @@ jobs:
         run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version)throw new Error('tag '+process.env.GITHUB_REF_NAME+' != v'+p.version)"
       - run: npm run check
       - name: Publish to npm with Trusted Publishing
-        run: npm publish --access public
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public --tag latest
+          fi
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ contains(github.ref_name, '-') && 'false' || 'true' }}

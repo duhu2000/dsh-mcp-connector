@@ -11,8 +11,8 @@ export function referencedVersions(text, pattern) {
 }
 
 export function assertCurrentReferences(path, text, version) {
-  const npmVersions = referencedVersions(text, /dsh-mcp-connector@(\d+\.\d+\.\d+)/g);
-  const releaseVersions = referencedVersions(text, /releases\/tag\/v(\d+\.\d+\.\d+)/g);
+  const npmVersions = referencedVersions(text, /dsh-mcp-connector@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/g);
+  const releaseVersions = referencedVersions(text, /releases\/tag\/v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/g);
   const errors = [];
 
   if (npmVersions.length === 0) errors.push(`missing ${PACKAGE_NAME}@<version> reference`);

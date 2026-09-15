@@ -969,6 +969,7 @@
   }
 
   function openModal(title, bodyHtml) {
+    resetCliAuthView();
     lastModalFocus = document.activeElement;
     $('#modal').innerHTML = `<h3 id="modal-title">${esc(title)}</h3>${bodyHtml}`;
     $('#modalMask').classList.add('show');
@@ -1024,7 +1025,31 @@
       <details><summary>原始 Schema（安全缓存）</summary><pre class="tool-schema">${esc(schema)}</pre></details>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
   }
+  let cliAuthTimer;
+  let cliAuthEpoch = 0;
+  let cliAuthAttempt;
+  const CLI_AUTH_LABELS = { idle: '尚未发起页面授权', authorizing: '等待官方浏览器授权', checking: '正在复核授权状态', authorized: '已授权，请点击确认连接验证工具', unauthorized: '待授权：官方 CLI 未登录', unknown: '授权状态未知，请检查 CLI 诊断', cancelled: '已取消授权', 'timed-out': '授权超时', failed: '授权未完成，原因未确定；请核对官方 CLI 诊断', unavailable: '页面授权不可用' };
+  async function refreshCliAuth() {
+    clearTimeout(cliAuthTimer);
+    const epoch = cliAuthEpoch;
+    const r = await call('cliAuthStatus', {});
+    if (epoch !== cliAuthEpoch || !$('#cli-auth-state')) return;
+    const d = r.detail || {};
+    cliAuthAttempt = d.attemptId;
+    $('#cli-auth-state').textContent = r.ok ? `${CLI_AUTH_LABELS[d.phase] || '授权状态未知'}。${d.message || ''}` : r.message;
+    const active = ['authorizing', 'checking'].includes(d.phase);
+    $('#cli-auth-start').disabled = !d.available || active;
+    $('#cli-auth-cancel').disabled = !active;
+    if (active) cliAuthTimer = setTimeout(refreshCliAuth, 1500);
+  }
+  function resetCliAuthView() {
+    cliAuthEpoch++;
+    clearTimeout(cliAuthTimer);
+    if (cliAuthAttempt) void call('cliAuthCancel', { attemptId: cliAuthAttempt });
+    cliAuthAttempt = undefined;
+  }
   function closeModal() {
+    resetCliAuthView();
     explorerDetailSequence++;
     $('#modalMask').classList.remove('show');
     $('#modalMask').setAttribute('aria-hidden', 'true');
@@ -1424,6 +1449,11 @@
       ${scopeFieldHtml()}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.confirmConnect()">确认连接</button></div>`);
+    if (connectorId === 'dingtalk') {
+      $('#modal-error').insertAdjacentHTML('beforebegin', '<div class="form-note"><div id="cli-auth-state" role="status">正在检查页面授权能力…</div><button id="cli-auth-start" class="btn" type="button" disabled onclick="window.__mcp.startCliAuth()">打开官方浏览器授权</button> <button id="cli-auth-cancel" class="btn ghost" type="button" disabled onclick="window.__mcp.cancelCliAuth()">取消授权</button></div>');
+      cliAuthEpoch++;
+      void refreshCliAuth();
+    }
   }
 
   function openScopeManager(key) {
@@ -1570,6 +1600,22 @@
   }
 
   window.__mcp = {
+    async startCliAuth() {
+      if (!confirm('将打开钉钉官方授权页面。企业未开放 CLI 时无法完成授权，是否继续？')) return;
+      const epoch = cliAuthEpoch;
+      $('#cli-auth-start').disabled = true;
+      const r = await call('cliAuthStart', { confirmed: true });
+      if (epoch !== cliAuthEpoch) {
+        if (r.detail?.attemptId) void call('cliAuthCancel', { attemptId: r.detail.attemptId });
+        return;
+      }
+      if (!r.ok) showModalError(r.message);
+      await refreshCliAuth();
+    },
+    async cancelCliAuth() {
+      if (cliAuthAttempt) await call('cliAuthCancel', { attemptId: cliAuthAttempt });
+      await refreshCliAuth();
+    },
     async connect(connectorId) {
       if ($('#scope-connector-id')?.value !== connectorId) {
         openConnectScope(connectorId);

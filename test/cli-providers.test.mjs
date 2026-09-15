@@ -3,6 +3,8 @@ import test from 'node:test';
 import {
   CLI_PROVIDERS,
   cliBridgeArgs,
+  transitionCliAuthorization,
+  createCliAuthorizationManager,
   buildCliInvocation,
   buildCliPreflightInvocation,
   executeCliProviderTool,
@@ -11,6 +13,84 @@ import {
   redactCliError,
   runCliProcess,
 } from '../lib/cli-providers.js';
+
+test('P1 任务管理串行执行并在登录后重新核验，不保存原始输出', async () => {
+  const calls = [];
+  const manager = createCliAuthorizationManager({
+    launch: async () => { calls.push('login'); return { exitCode: 0, token: 'secret' }; },
+    verify: async () => { calls.push('verify'); return { success: true, authenticated: true, identity: 'private' }; },
+  });
+  manager.start();
+  assert.throws(() => manager.start(), /in progress/);
+  const result = await manager.settled();
+  assert.equal(result.phase, 'authorized');
+  assert.deepEqual(calls, ['login', 'verify']);
+  assert.deepEqual(Object.keys(result).sort(), ['attemptId', 'phase']);
+  await manager.dispose();
+  assert.throws(() => manager.start(), /disposed/);
+});
+
+test('P1 取消等待进程清理，禁止旧任务回调改变结果', async () => {
+  let complete;
+  let signal;
+  let verified = false;
+  const manager = createCliAuthorizationManager({
+    launch: async (options) => { signal = options.signal; return new Promise((resolve) => { complete = resolve; }); },
+    verify: async () => { verified = true; return { success: true, authenticated: true }; },
+  });
+  const started = manager.start();
+  await Promise.resolve();
+  assert.equal(manager.cancel('wrong-attempt').phase, 'authorizing');
+  assert.equal(manager.cancel(started.attemptId).phase, 'cancelled');
+  assert.equal(signal.aborted, true);
+  assert.throws(() => manager.start(), /stopping/);
+  complete({ exitCode: 0 });
+  assert.equal((await manager.settled()).phase, 'cancelled');
+  assert.equal(verified, false);
+  await manager.dispose();
+});
+
+test('P1 超时和异常安全收口，不透传带敏感信息的错误', async () => {
+  const manager = createCliAuthorizationManager({ timeoutMs: 5,
+    launch: ({ signal }) => new Promise((resolve) => {
+      const keepAlive = setTimeout(() => resolve({ exitCode: 0 }), 1000);
+      signal.addEventListener('abort', () => { clearTimeout(keepAlive); resolve({ exitCode: 0 }); }, { once: true });
+    }), verify: async () => { throw new Error('must not verify'); },
+  });
+  manager.start();
+  assert.equal((await manager.settled()).phase, 'timed-out');
+  const failed = createCliAuthorizationManager({
+    launch: async () => { throw new Error('Bearer secret'); }, verify: async () => ({}),
+  });
+  failed.start();
+  assert.equal((await failed.settled()).phase, 'failed');
+  assert.doesNotMatch(JSON.stringify(failed.status()), /secret/);
+  await manager.dispose();
+  await failed.dispose();
+});
+
+test('P1 授权退出成功仍须复核，且不保留身份和 Token', () => {
+  const start = transitionCliAuthorization({ phase: 'idle' }, { type: 'start', attemptId: 'a1' });
+  assert.throws(() => transitionCliAuthorization(start, { type: 'start', attemptId: 'a2' }), /in progress/);
+  const checking = transitionCliAuthorization(start, { type: 'process-exit', attemptId: 'a1', exitCode: 0 });
+  assert.equal(checking.phase, 'checking');
+  assert.equal(transitionCliAuthorization(checking, { type: 'status', attemptId: 'a1', success: true, authenticated: false }).phase, 'unauthorized');
+  assert.equal(transitionCliAuthorization(checking, { type: 'status', attemptId: 'a1', success: true, authenticated: 'true' }).phase, 'unknown');
+  assert.deepEqual(transitionCliAuthorization(checking, {
+    type: 'status', attemptId: 'a1', success: true, authenticated: true, accessToken: 'never-retain', identity: 'private',
+  }), { phase: 'authorized', attemptId: 'a1' });
+});
+
+test('P1 取消、超时与旧回调不能恢复为授权成功', () => {
+  const start = transitionCliAuthorization({ phase: 'idle' }, { type: 'start', attemptId: 'a1' });
+  for (const type of ['cancel', 'timeout']) {
+    const stopped = transitionCliAuthorization(start, { type, attemptId: 'a1' });
+    assert.deepEqual(transitionCliAuthorization(stopped, { type: 'status', attemptId: 'a1', success: true, authenticated: true }), stopped);
+    const restarted = transitionCliAuthorization(stopped, { type: 'start', attemptId: 'a2' });
+    assert.deepEqual(transitionCliAuthorization(restarted, { type: 'process-exit', attemptId: 'a1', exitCode: 0 }), restarted);
+  }
+  assert.equal(transitionCliAuthorization(start, { type: 'process-exit', attemptId: 'a1', exitCode: 1 }).phase, 'failed');
+});
 
 test('仅升级精确匹配的旧市场桥接，不覆盖用户自定义命令', () => {
   const record = { connectorId: 'dingtalk', command: 'npx', args: [
