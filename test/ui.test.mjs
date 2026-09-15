@@ -7,6 +7,17 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('授权和本地启动错误不追加 API Key、JSON 或 URL 建议', () => {
+  const start = uiSource.indexOf('  function guidanceFor(');
+  const end = uiSource.indexOf('  function showModalError(', start);
+  const guide = new Function(`${uiSource.slice(start, end)}; return guidanceFor;`)();
+  for (const text of ['钉钉待授权，请等待管理员处理', 'CLI OAuth 返回无效 JSON', '本地 MCP 初始化失败', '连接失败：首次工具同步失败']) {
+    assert.equal(guide(text), text);
+  }
+  assert.match(guide('fetch failed'), /检查网络/);
+  assert.match(guide('JSON 格式错误'), /检查引号/);
+});
+
 test('卡片明确区分 CLI 授权、运行位置与权限，不把 none 宣传为免授权', () => {
   const start = uiSource.indexOf('  function connectionLabels(');
   const end = uiSource.indexOf('  function cardHtml(', start);

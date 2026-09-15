@@ -3,6 +3,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyConnectionError, validateConnectionRecord } from '../lib/mcp-validation.js';
 
+test('CLI 授权诊断优先于 Host 通用初始化错误，未知原因不猜测', () => {
+  const wrapped = new Error('initial tool synchronization failed', {
+    cause: new Error('[CLI_AUTH_REQUIRED] authenticated=false'),
+  });
+  assert.equal(classifyConnectionError(wrapped, { transport: 'stdio' }).kind, 'authorization-required');
+  const unknown = classifyConnectionError(new Error('[CLI_AUTH_STATUS_INVALID] invalid'), { transport: 'stdio' });
+  assert.equal(unknown.kind, 'authorization-unknown');
+  const generic = classifyConnectionError(new Error('initial tool synchronization failed'), { transport: 'stdio' });
+  assert.equal(generic.kind, 'startup');
+  assert.match(generic.message, /未提供可识别的具体原因/);
+  assert.doesNotMatch(generic.message, /MCP URL/);
+});
+
 async function listen(handler) {
   const server = createServer(handler);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
