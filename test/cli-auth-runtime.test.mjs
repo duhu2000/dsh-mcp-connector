@@ -53,7 +53,8 @@ test('预取消、未知平台、操作和相对路径均安全拒绝', async ()
   await assert.rejects(runDwsAuthProcess('/fixture/dws', 'login', { ...f.options, platform: 'win32' }), /PLATFORM/);
   await assert.rejects(runDwsAuthProcess('/fixture/dws', 'logout', f.options), /OPERATION/);
   await assert.rejects(runDwsAuthProcess('dws', 'login', f.options), /EXECUTABLE/);
-  await assert.rejects(resolveDwsAuthRuntime('relative'), /PACKAGE_REQUIRED/);
+  await assert.rejects(resolveDwsAuthRuntime('relative', 'darwin'), /PACKAGE_REQUIRED/);
+  await assert.rejects(resolveDwsAuthRuntime('/fixture', 'win32'), /PLATFORM_UNVERIFIED/);
   assert.equal(f.calls.length, 0);
 });
 
