@@ -9,7 +9,9 @@ MCP 连接器原生支持 Streamable HTTP 和 stdio MCP。对于钉钉 `dws` 这
 - 首个 `dingtalk-dws` Provider 仅登记只读命令；创建、发送、审批、拒绝、删除、更新和上传均不暴露。
 - 每个工具只接受 JSON Schema 声明过的字段，参数作为独立 argv 传递。
 - stdout/stderr 均受大小限制，执行有超时；错误中的 Token 和 Secret 在返回 Host 前脱敏。
-- MCP 客户端枚举工具前执行官方 `dws auth status` 预检；未登录、权限不足或 Token 无法刷新时连接直接失败，不会误显示“已连接”。
+- MCP 客户端枚举工具前执行官方 `dws auth status` 预检；只有 JSON 明确返回 `success: true` 且 `authenticated: true` 才列出工具。退出码为 0 不代表已登录；未授权或响应异常时拒绝连接并提供登录提示。预检不代表全部业务权限已获批，具体工具仍由官方 CLI 校验权限。
+- 首次登录请在运行 DSH 的同一电脑、同一系统用户下执行 `npx -y dingtalk-workspace-cli@1.0.61 auth login`（无浏览器环境加 `--device`），完成后重新连接。不会自动替用户登录或读取聊天记录。
+- Authentication readiness requires both `success === true` and `authenticated === true`; a successful status query alone is insufficient. Invalid responses fail closed without exposing identity or tokens. Run the login command above as the same OS user running DSH, then reconnect. Per-tool permissions are still enforced by the official CLI.
 - 登录、Token 刷新、企业管理员授权、租户隔离和 API 审计由官方 CLI 与开放平台负责。
 
 ## 钉钉前置条件

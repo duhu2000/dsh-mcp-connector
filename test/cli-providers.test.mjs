@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   CLI_PROVIDERS,
+  cliBridgeArgs,
   buildCliInvocation,
   buildCliPreflightInvocation,
   executeCliProviderTool,
@@ -10,6 +11,19 @@ import {
   redactCliError,
   runCliProcess,
 } from '../lib/cli-providers.js';
+
+test('仅升级精确匹配的旧市场桥接，不覆盖用户自定义命令', () => {
+  const record = { connectorId: 'dingtalk', command: 'npx', args: [
+    '--yes', '--legacy-peer-deps', '--package', 'dsh-mcp-connector@0.2.48',
+    '--package', 'dingtalk-workspace-cli@1.0.61', 'dsh-mcp-cli-bridge', '--provider', 'dingtalk-dws',
+  ] };
+  assert.ok(cliBridgeArgs(record).includes('dsh-mcp-connector@0.2.49'));
+  assert.ok(record.args.includes('dsh-mcp-connector@0.2.48'));
+  for (const changed of [{ connectorId: 'custom' }, { command: '/custom/npx' }, { args: [...record.args, '--custom'] }]) {
+    const custom = { ...record, ...changed };
+    assert.deepEqual(cliBridgeArgs(custom), custom.args);
+  }
+});
 
 test('钉钉 CLI Provider 只暴露只读命令', () => {
   const forbidden = new Set(['create', 'update', 'delete', 'send', 'approve', 'reject', 'revoke', 'upload']);
@@ -124,6 +138,38 @@ test('MCP JSON-RPC 支持 initialize、tools/list 和 tools/call', async () => {
     execute: async () => ({ content: [{ type: 'text', text: 'ok' }], isError: false }),
   });
   assert.equal(called.result.content[0].text, 'ok');
+});
+
+test('OAuth 状态查询成功不等于已授权：未明确授权时不暴露工具', async () => {
+  const cases = [
+    { success: true, authenticated: false },
+    { success: true },
+    { success: true, authenticated: 'true' },
+    { success: false, authenticated: true },
+    { authenticated: true },
+    null, [], 'invalid-json',
+  ];
+  for (const status of cases) {
+    const result = await handleCliBridgeRequest({ id: 1, method: 'tools/list' }, {
+      runner: async () => typeof status === 'string' ? status : JSON.stringify(status),
+    });
+    assert.equal(result.error.code, -32001, JSON.stringify(status));
+    assert.equal(result.result, undefined);
+  }
+});
+
+test('明确授权才列出工具，退出登录后重新枚举立即失败且不泄露状态', async () => {
+  let authenticated = true;
+  const options = { runner: async () => JSON.stringify({
+    success: true, authenticated, message: 'private-identity', access_token: 'private-token',
+  }) };
+  const ready = await handleCliBridgeRequest({ id: 1, method: 'tools/list' }, options);
+  assert.equal(ready.result.tools.length, 11);
+  authenticated = false;
+  const unavailable = await handleCliBridgeRequest({ id: 2, method: 'tools/list' }, options);
+  assert.equal(unavailable.error.code, -32001);
+  assert.match(unavailable.error.message, /auth login/);
+  assert.doesNotMatch(JSON.stringify([ready, unavailable]), /private-identity|private-token/);
 });
 
 test('CLI 错误输出脱敏', () => {

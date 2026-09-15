@@ -1155,6 +1155,15 @@
     }
   }
 
+  function connectionLabels(d) {
+    const local = (d.servers || []).some((s) => s.transport === 'stdio');
+    const auth = d.id === 'dingtalk' ? '官方 CLI OAuth'
+      : ({ 'oauth2-pkce': 'OAuth 授权', bearer: 'Bearer 凭据', 'api-key': 'API Key' }[d.authMode] || '按服务要求授权');
+    return [d.vendor ? `提供方：${d.vendor}` : '提供方：待核实', auth,
+      local ? '运行于 DSH 主机' : '远程服务',
+      d.id === 'dingtalk' ? '当前桥接仅提供只读工具' : '权限以授权页和工具策略为准'];
+  }
+
   function cardHtml(d) {
     const icon = isImageIcon(d.icon)
       ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
@@ -1166,6 +1175,7 @@
       <div class="content">
         <div class="name">${esc(d.name)} ${probe}</div>
         <div class="summary">${esc(d.summary || '')}</div>
+        <div class="hint">${connectionLabels(d).map(esc).join(' · ')}</div>
       </div>
       <div class="actions">${actions}</div>
     </div>`;
@@ -1408,6 +1418,7 @@
     if (!connector) return;
     openModal(`连接 ${connector.name}`, `
       <input id="scope-connector-id" type="hidden" value="${esc(connectorId)}" />
+      <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? '<p>尚未登录？请在运行 DSH 的同一系统用户终端执行 <code>npx -y dingtalk-workspace-cli@1.0.61 auth login</code>，完成后点击确认连接。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。</p>' : ''}</div>
       <div class="form-note"><strong>选择连接影响范围</strong>连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。</div>
       ${scopeFieldHtml()}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
@@ -1571,6 +1582,7 @@
       const r = await call('connect', { connectorId, ...scopeParams }, { timeoutMs });
       setModalBusy(false);
       showToast(r.message, r.ok);
+      if (!r.ok) showModalError(r.message);
       if (r.ok) {
         markCommunityCtaEligible();
         closeModal();
@@ -1881,6 +1893,7 @@
         : (d.connectionLabel || (d.connected?.length ? '已配置' : '未连接'));
       $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${initialStateLabel} ${d.connected?.length || 0} 个服务` : `${initialStateLabel} ${d.connected?.length || 0} 个服务`;
       $('#detail-desc').textContent = d.description || d.summary || '';
+      $('#detail-desc').textContent += '\n' + connectionLabels(d).join(' · ');
       detailPrompts = (d.prompts || []).filter((prompt) => prompt?.text || prompt?.title);
       promptPage = 0;
       renderPromptPage();

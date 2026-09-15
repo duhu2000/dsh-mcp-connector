@@ -7,6 +7,18 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('卡片明确区分 CLI 授权、运行位置与权限，不把 none 宣传为免授权', () => {
+  const start = uiSource.indexOf('  function connectionLabels(');
+  const end = uiSource.indexOf('  function cardHtml(', start);
+  const labels = new Function(`${uiSource.slice(start, end)}; return connectionLabels;`)();
+  assert.deepEqual(labels({ id: 'dingtalk', vendor: '钉钉', authMode: 'none', servers: [{ transport: 'stdio' }] }),
+    ['提供方：钉钉', '官方 CLI OAuth', '运行于 DSH 主机', '当前桥接仅提供只读工具']);
+  assert.ok(labels({ authMode: 'none' }).includes('按服务要求授权'));
+  assert.ok(labels({ authMode: 'bearer' }).includes('Bearer 凭据'));
+  assert.ok(labels({ authMode: 'oauth2-pkce' }).includes('OAuth 授权'));
+  assert.match(uiSource, /if \(!r.ok\) showModalError\(r.message\)/);
+});
+
 test('参数摘要保留必填、嵌套与约束，转义所有远端文本并对复杂结构降级', () => {
   const start = uiSource.indexOf('  function schemaSummary(');
   const end = uiSource.indexOf('  function showToolParameters(', start);
