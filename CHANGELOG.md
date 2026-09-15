@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新增受控 CLI→MCP Provider 框架，首批把钉钉官方 `dws` 的通讯录、日程、待办、文档、OA 待审批和日志查询映射为 11 个只读 MCP 工具。
+- 连接时通过官方 `dws auth status` 验证 OAuth 就绪状态，未登录、无权限或 Token 无法刷新时不误报“已连接”。
+
+### Security
+
+- CLI 只能执行代码审核的命令与参数，不经 Shell；写入动词、未声明参数和控制字符均拒绝。子进程超时、输出大小受限，成功及失败输出中的 Token/Secret 都在返回 Host 前脱敏。
+
 ## [0.2.47] - 2026-09-14
 
 ### Changed
