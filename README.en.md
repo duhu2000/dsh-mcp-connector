@@ -190,7 +190,9 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.49`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.49](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.49).
+This branch is the test-only prerelease [`dsh-mcp-connector@0.2.50-rc.1`](https://www.npmjs.com/package/dsh-mcp-connector/v/0.2.50-rc.1), with a [GitHub Prerelease](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.50-rc.1). It uses npm `next`; `latest` remains stable 0.2.49.
+
+Experimental DingTalk browser authorization is disabled by default. Host configuration `dingtalkCliPackageDir` must point to a controlled installation of the official `dingtalk-workspace-cli` 1.0.61 package root. Windows automatic authorization is unsupported. Real authorization callbacks, process cleanup, Web/Desktop interactions, business queries and restart recovery have not passed acceptance testing. OAuth cannot bypass enterprise administrator policy.
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

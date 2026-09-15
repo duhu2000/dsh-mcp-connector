@@ -185,7 +185,9 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-当前公开版本为 [`dsh-mcp-connector@0.2.49`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.49](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.49)。
+当前分支为预发布 [`dsh-mcp-connector@0.2.50-rc.1`](https://www.npmjs.com/package/dsh-mcp-connector/v/0.2.50-rc.1)，对应 [GitHub Prerelease](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.50-rc.1)。仅供测试，npm `next` 提供此版本，`latest` 保持稳定版 0.2.49。
+
+钉钉浏览器授权为实验功能，默认不启用；需要 Host 配置 `dingtalkCliPackageDir` 指向受控安装的官方 `dingtalk-workspace-cli` 1.0.61 包根目录。Windows 自动授权暂不支持；真实授权回调、取消后的进程清理、Web/Desktop 交互、业务查询与重启恢复尚未完成验收。OAuth 不能绕过企业管理员政策。
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
