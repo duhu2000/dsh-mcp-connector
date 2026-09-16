@@ -157,6 +157,7 @@
   .card .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .card .name { font-weight: 600; font-size: 14px; line-height: 1.4; }
   .card .summary { color: var(--text-2); font-size: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .runtime-tag { display: inline-block; white-space: nowrap; font-size: 10px; line-height: 1.4; font-weight: 400; color: var(--text-2); background: var(--bg); border-radius: 4px; padding: 1px 4px; vertical-align: middle; }
   .card .actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; align-self: center; }
   .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 7px; background: var(--bg); color: var(--muted); font-size: 10px; font-weight: 600; }
@@ -1170,12 +1171,13 @@
       : `<span>${esc(d.icon || '🔌')}</span>`;
     const actions = actionHtml(d);
     const probe = d.probeStatus && d.probeStatus !== 'unverified' ? `<span class="badge ${esc(d.probeStatus)}">${d.probeStatus}</span>` : '';
+    const runtimeLabel = d.id === 'dingtalk' ? '本地 CLI' : (d.servers || []).some((s) => s.transport === 'stdio') ? '本地运行' : '';
+    const runtimeTag = runtimeLabel ? `<span class="runtime-tag" title="包含运行于 DSH 主机的服务；授权和权限要求请查看详情">${runtimeLabel}</span>` : '';
     return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" role="button" tabindex="0" aria-label="查看 ${esc(d.name)} 详情" onclick="window.__mcp.showDetail('${esc(d.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.__mcp.showDetail('${esc(d.id)}')}">
       <div class="icon">${icon}</div>
       <div class="content">
-        <div class="name">${esc(d.name)} ${probe}</div>
+        <div class="name">${esc(d.name)} ${probe} ${runtimeTag}</div>
         <div class="summary">${esc(d.summary || '')}</div>
-        <div class="hint">${connectionLabels(d).map(esc).join(' · ')}</div>
       </div>
       <div class="actions">${actions}</div>
     </div>`;

@@ -18,7 +18,7 @@ test('授权和本地启动错误不追加 API Key、JSON 或 URL 建议', () =>
   assert.match(guide('JSON 格式错误'), /检查引号/);
 });
 
-test('卡片明确区分 CLI 授权、运行位置与权限，不把 none 宣传为免授权', () => {
+test('连接说明明确区分 CLI 授权、运行位置与权限，不把 none 宣传为免授权', () => {
   const start = uiSource.indexOf('  function connectionLabels(');
   const end = uiSource.indexOf('  function cardHtml(', start);
   const labels = new Function(`${uiSource.slice(start, end)}; return connectionLabels;`)();
@@ -28,6 +28,26 @@ test('卡片明确区分 CLI 授权、运行位置与权限，不把 none 宣传
   assert.ok(labels({ authMode: 'bearer' }).includes('Bearer 凭据'));
   assert.ok(labels({ authMode: 'oauth2-pkce' }).includes('OAuth 授权'));
   assert.match(uiSource, /if \(!r.ok\) showModalError\(r.message\)/);
+});
+
+test('市场卡片恢复紧凑信息量，运行提示为短标签，完整说明保留在详情与确认框', () => {
+  const start = uiSource.indexOf('  function cardHtml(');
+  const end = uiSource.indexOf('  function actionHtml(', start);
+  const source = uiSource.slice(start, end);
+  const escape = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  const render = new Function('esc', 'isImageIcon', 'actionHtml', source + '; return cardHtml;')(escape, () => false, () => '<button>详情</button>');
+  const remote = { id: 'qcc', name: '企查查', summary: '企业工商信息', vendor: '长提供方说明', servers: [{ transport: 'streamable-http' }] };
+  const html = render(remote);
+  assert.match(html, /class="name"/);
+  assert.match(html, /class="summary"/);
+  assert.match(html, /class="actions"/);
+  assert.doesNotMatch(html, /class="hint"|class="runtime-tag"|长提供方说明|权限以授权页/);
+  assert.match(render({ ...remote, servers: [{ transport: 'stdio' }] }), />本地运行<\/span>/);
+  assert.match(render({ ...remote, id: 'dingtalk', servers: [{ transport: 'stdio' }] }), />本地 CLI<\/span>/);
+  assert.match(render({ ...remote, summary: '<script>bad</script>' }), /&lt;script&gt;/);
+  assert.match(uiSource, /\.card \.summary \{[^}]*-webkit-line-clamp: 2/);
+  assert.match(uiSource, /connectionLabels\(connector\)\.map\(esc\)\.join/);
+  assert.match(uiSource, /connectionLabels\(d\)\.join/);
 });
 
 test('参数摘要保留必填、嵌套与约束，转义所有远端文本并对复杂结构降级', () => {
