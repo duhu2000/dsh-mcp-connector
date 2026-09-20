@@ -6,7 +6,8 @@ Thank you for contributing. Never put tokens, API keys, cookies, OAuth credentia
 
 ## 参与方式
 
-- 报告缺陷或提交功能建议：[GitHub Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
+- 报告安全漏洞：请遵循 [安全报告政策](https://github.com/duhu2000/dsh-mcp-connector/blob/main/SECURITY.md)，使用 [私密报告入口](https://github.com/duhu2000/dsh-mcp-connector/security/advisories/new)，勿公开提交利用细节。
+- 报告普通缺陷或提交功能建议：[GitHub Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 - 为公共市场增加连接器：阅读 [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)，连接器描述与插件代码分仓管理。
 - 修复插件或改进文档：Fork 本仓库，从最新 `main` 创建单一目的的分支并提交 PR。
 - 第一次参与：从带有 [`good first issue`](https://github.com/duhu2000/dsh-mcp-connector/labels/good%20first%20issue) 标签的任务开始，并按[首次贡献路径](docs/FIRST-CONTRIBUTION.md)完成本地校验。
