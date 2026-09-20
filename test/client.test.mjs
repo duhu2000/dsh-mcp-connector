@@ -386,15 +386,37 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
   };
   const fallback = entry.component(props);
   assert.equal(fallback.props['aria-label'], 'MCP连接器', '首次定位前应保留 footer 降级入口');
+  assert.equal(fallback.props.children[0].props.className, 'mcpConnectorLauncherIcon');
+  assert.equal(fallback.props.children[0].props['aria-hidden'], true);
+  assert.equal(fallback.props.children[1].props.className, 'mcpConnectorLauncherLabel');
+  assert.equal(fallback.props.children[1].props.children, 'MCP连接器');
   assert.equal(topMount.dataset.mcpConnectorTopMount, 'true');
   assert.equal(topMount.nextSibling, workspaceSlot, '挂载点应紧邻工作区 slot 之前');
 
   entry.component(props);
   assert.equal(portal.target, topMount, '定位成功后应 Portal 到顶部挂载点');
   assert.equal(portal.node.props.className, 'mcpConnectorTopEntry');
+  entry.component({ ...props, wide: false });
+  const collapsed = portal.node.props.children;
+  assert.equal(collapsed.props['aria-label'], 'MCP连接器');
+  assert.equal(collapsed.props.children[1], null, '折叠侧栏仅显示图标但保留可访问名称');
 
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /hHd-Xa_/, '不得依赖 DSH 构建生成的 CSS 类名');
+});
+
+test('侧栏入口悬停不描边，键盘焦点仍可见，布局不使用负边距或文本空格对齐（#86）', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const css = source.split('const sidebarCss = `')[1].split('`;')[0];
+  const rule = (selector) => css.slice(css.indexOf(selector + ' {')).split('}')[0];
+  assert.match(rule('.mcpConnectorLauncher:hover'), /outline: none/);
+  assert.doesNotMatch(rule('.mcpConnectorLauncher:hover'), /outline: 2px/);
+  assert.match(rule('.mcpConnectorLauncher:focus-visible'), /outline: 2px solid currentColor/);
+  assert.match(rule('.mcpConnectorLauncher:focus-visible'), /outline-offset: -2px/);
+  assert.match(rule('.mcpConnectorLauncher'), /padding: 0 var\(--dsh-sidebar-inline-padding, 12px\)/);
+  assert.match(rule('.mcpConnectorLauncher'), /gap: 8px/);
+  assert.doesNotMatch(css, /calc\(100% \+|margin: 4px -2px/);
+  assert.match(rule('.mcpConnectorLauncherIcon'), /flex: 0 0 20px/);
 });
 
 test('示例 Prompt 写入新会话草稿后再导航', async () => {
