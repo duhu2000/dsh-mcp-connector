@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.53] - 2026-09-20
+
+### Fixed
+
+- 移除 `mcp_connector_configure` 入参顶层 `anyOf`，避免拒绝该 Schema 的 Claude/Anthropic 兼容接口整轮请求失败；三种配置模式由工具描述提示并继续在执行时校验，新增全工具 Schema 与无效配置无副作用回归测试（#89）。此修复不转换外部 MCP Server 的工具 Schema。
+
 ## [0.2.52] - 2026-09-20
 
 ### Fixed

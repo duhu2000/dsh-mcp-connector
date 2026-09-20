@@ -2,6 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerTools, toLossless } from '../lib/tools.js';
 
+test('所有自有工具入参为 object 且不含 provider 拒绝的顶层组合约束（#89）', () => {
+  const defs = [];
+  registerTools({ tools: { register(def) { defs.push(def); return () => {}; } } }, {});
+  assert.ok(defs.length > 0);
+  for (const def of defs) {
+    assert.equal(def.parameters.type, 'object', def.name);
+    for (const keyword of ['anyOf', 'oneOf', 'allOf']) {
+      assert.equal(Object.hasOwn(def.parameters, keyword), false, `${def.name}: ${keyword}`);
+    }
+  }
+  const configure = defs.find((def) => def.name === 'mcp_connector_configure');
+  assert.equal(configure.parameters.additionalProperties, false);
+  assert.deepEqual(configure.parameters.properties.transport.enum, ['streamable-http', 'stdio', 'sse']);
+  assert.match(configure.description, /参数三选一/);
+});
+
 test('toLossless 把工具结果规范化为 DSH 可接受的无损 JSON', () => {
   const circular = { label: 'cycle' };
   circular.self = circular;

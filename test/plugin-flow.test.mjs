@@ -143,6 +143,27 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
   }
 }
 
+test('configure 无顶层 anyOf 时仍拒绝缺失参数且不创建连接、快照或 Host 服务（#89）', async () => {
+  const { ctx, tools, tables, loader, disposers } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const before = JSON.stringify([...tables].map(([name, table]) => [name, [...table.entries()]]));
+    for (const [args, message] of [
+      [{}, /name 必填/],
+      [{ name: 'Missing URL' }, /invalid url/],
+      [{ name: 'Missing command', transport: 'stdio' }, /command 必填/],
+      [{ connectorId: 'nonexistent-issue-89' }, /不存在/],
+    ]) {
+      const result = await tools.defs.get('mcp_connector_configure').execute(args);
+      assert.equal(result.ok, false);
+      assert.match(result.message, message);
+      assert.equal(loader.entries.size, 0);
+      assert.equal(JSON.stringify([...tables].map(([name, table]) => [name, [...table.entries()]])), before);
+    }
+  } finally { disposers.forEach((dispose) => dispose()); }
+});
+
 test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢复无需打开详情', { timeout: 15000 }, async () => {
   let offline = false;
   let generation = 1;
