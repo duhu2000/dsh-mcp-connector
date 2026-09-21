@@ -5,6 +5,7 @@ import {
   loadBundledCatalog,
   listCatalog,
   mergeCatalog,
+  visibleDynamicDescriptors,
   fetchRemoteCatalog,
   fetchRemoteCatalogWithFallback,
   readLimitedJson,
@@ -79,6 +80,23 @@ test('mergeCatalog 优先级 + 本地覆盖', () => {
   const byId = Object.fromEntries(merged.map((d) => [d.id, d]));
   assert.equal(byId.shared.published, true, '高层覆盖低层');
   assert.equal(byId.b.published, false, '本地覆盖覆盖一切');
+});
+
+test('未发布的本机草案不会遮蔽同 id 的正式 Registry 卡片', () => {
+  const remote = { ...desc('jinshuju-forms'), prompts: [{ title: '查看我的表单', text: '只读列出表单' }] };
+  const localDraft = { ...desc('jinshuju-forms', { published: false }), prompts: [] };
+  const privateOnly = desc('private-only', { published: false });
+  const dynamic = visibleDynamicDescriptors([remote], [localDraft, privateOnly]);
+  assert.deepEqual(dynamic, [privateOnly], '仅跳过与正式远程卡片冲突的未发布草案');
+  const merged = mergeCatalog([[], [remote], [], dynamic]);
+  assert.equal(listCatalog(merged).length, 1);
+  assert.equal(merged[0], remote, '正式卡片及其 Prompt 应保留');
+
+  const overrides = new Map([['jinshuju-forms', { published: false }]]);
+  assert.equal(listCatalog(mergeCatalog([[], [remote], [], dynamic], overrides)).length, 0,
+    '显式本机下架覆盖仍应生效');
+  assert.deepEqual(visibleDynamicDescriptors([], [localDraft]), [localDraft],
+    '远程卡片不存在时仍保留本机草案');
 });
 
 test('listCatalog 分类/关键词/精选排序', () => {
