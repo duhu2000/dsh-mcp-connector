@@ -56,8 +56,6 @@ test('Windows 解析全局及 npx 官方包，保留带空格绝对路径，不�
         const marker = '中文 space & | %PATH% ^ " quote';
         const result = await runCliProcess('dws', ['-e', 'console.log(JSON.stringify(process.argv.slice(1)))', marker], { env });
         assert.deepEqual(JSON.parse(result), [marker]);
-        console.error(`CLI fixture ${layout}: starting timeout check`);
-        await assert.rejects(runCliProcess('dws', ['-e', 'setInterval(()=>{},100)'], { env, timeoutMs: 1000 }), /timed out/);
         console.error(`CLI fixture ${layout}: process checks complete`);
       }
       rmSync(native, { recursive: true, maxRetries: 10, retryDelay: 100 });
@@ -68,6 +66,10 @@ test('Windows 解析全局及 npx 官方包，保留带空格绝对路径，不�
     assert.equal(resolveCliExecutable('dws', { platform: 'darwin' }), 'dws');
     assert.equal(resolveCliExecutable('dws', { platform: 'linux' }), 'dws');
   } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('原生 CLI 超时会拒绝请求（不在进程退出期间删除其可执行文件）', async () => {
+  await assert.rejects(runCliProcess(process.execPath, ['-e', 'setInterval(()=>{},100)'], { timeoutMs: 1000 }), /timed out/);
 });
 
 test('钉钉 CLI Provider 只暴露只读命令', () => {
