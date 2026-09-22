@@ -1,8 +1,10 @@
 # Connect, Find, and Troubleshoot MCP Servers in DeepSeek Harness
 
-> 100+ MCP connectors for DeepSeek Harness, one place to connect MCP servers, search tools across connections, and troubleshoot connections.
+> MCP Connector for DeepSeek Harness: one panel to connect MCP servers, manage authorization, search tools across connections, and troubleshoot failures; browse 100+ connectors in a continuously updated catalog.
 
 Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
+
+OAuth availability depends on each provider's client-registration policy and account permissions. Verify a saved connection, discovered/registered tools, and a successful business call as separate outcomes.
 
 > Here, “skill extension” means extending an agent through MCP tools and prompts; this package does not present itself as a standalone DSH Skill.
 
@@ -35,6 +37,10 @@ dsh plugin --profile web add dsh-mcp-connector
 ```
 
 Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
+
+For a first successful use, confirm the connection and scope in Installed, find the expected tool and source in Tools, then complete one provider-permitted read-only call through the normal DSH Host approval flow. Cached visibility alone does not prove that a service is currently callable.
+
+Task guides (Chinese): [migrate `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [diagnose OAuth](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [find and recover tools](docs/tutorials/TOOL-SEARCH-RECOVERY.md).
 
 ![43-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
@@ -125,6 +131,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 ## Guides and ecosystem
 
 - [User guide: installation, authorization, diagnostics, compatibility, and troubleshooting](docs/USER-GUIDE.md)
+- [Task guides: JSON migration, OAuth diagnostics, and cross-connection tool recovery](docs/USER-GUIDE.md#按任务开始)
 - [Connection scopes: project/global inheritance, copy, move, and rollback](docs/CONNECTION-SCOPES.md)
 - [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)
 - [Tool trial: official API evidence and safety design](docs/TOOL-TRIAL-DESIGN.md)

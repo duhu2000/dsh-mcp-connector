@@ -53,8 +53,8 @@
     ]
   },
   "readme": {
-    "heroZh": "> DeepSeek Harness 的超百个 MCP连接器，一个入口完成 MCP Server 接入、跨连接工具查找与连接排障。",
-    "heroEn": "> 100+ MCP connectors for DeepSeek Harness, one place to connect MCP servers, search tools across connections, and troubleshoot connections.",
+    "heroZh": "> DeepSeek Harness 的 MCP 接入与管理面板：超百个 MCP连接器，一个入口完成 MCP Server 授权配置、跨连接工具搜索与连接排障。",
+    "heroEn": "> MCP Connector for DeepSeek Harness: one panel to connect MCP servers, manage authorization, search tools across connections, and troubleshoot failures; browse 100+ connectors in a continuously updated catalog.",
     "ctaZh": "如果它帮你更快地接入 MCP Server，欢迎 [GitHub 点个 Star](https://github.com/duhu2000/dsh-mcp-connector/stargazers)、[提交新的连接器](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)或[参与贡献](CONTRIBUTING.md)。",
     "ctaEn": "If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers), [submitting a connector](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md), or [contributing a fix](CONTRIBUTING.md)."
   },
