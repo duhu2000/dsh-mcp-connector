@@ -545,6 +545,57 @@ test('从设置快捷打开时弹框 Portal 到 body 并高于 DSH 设置层', a
   assert.ok(portal.node.props.style.zIndex > 1000, '必须高于 DSH Settings 的 z-index:1000');
 });
 
+test('版本检查支持强制刷新且不会被旧缓存隐藏 Provider 更新', async () => {
+  for (const failed of [false, true]) {
+    const state = [
+      { installedVersion: '0.2.54', latestVersion: '0.2.54', updateAvailable: false, checkedAt: '2026-09-22T00:00:00Z' },
+      'ready', { provider: { label: '市场' } },
+      { installedVersion: '0.2.54', latestVersion: '0.2.56', updateAvailable: true },
+      null, null, null, false, false, false, false, 0, false, failed,
+    ];
+    let cursor = 0;
+    let refresh = 0;
+    const plugin = await loadClient({
+      windowExtras: { location: { origin: 'http://127.0.0.1:3080' } },
+      jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+      reactApi: {
+        useState(initial) {
+          const index = cursor++;
+          return [index in state ? state[index] : initial, (value) => {
+            if (index === 11) refresh = value(refresh);
+          }];
+        },
+        useRef: (current) => ({ current }), useEffect() {},
+      },
+    });
+    const { ctx, registrations } = clientContext();
+    plugin.apply(ctx);
+    const tree = registrations.get('shell.overlay').component({
+      wide: true, useStore: (select) => select({ open: true, detailOpen: false }),
+      actions: { close() {}, detailOpened() {}, detailClosed() {} }, startPromptSession() {},
+    });
+    const nodes = [];
+    function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      nodes.push(node);
+      const children = node.props?.children;
+      for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    }
+    visit(tree);
+    assert.ok(nodes.some((node) => node.props?.children === '一键更新到 v0.2.56'));
+    const button = nodes.find((node) => node.props?.children === '检查更新');
+    assert.equal(button.props.disabled, false);
+    assert.match(button.props.title, /上次检查/);
+    button.props.onClick();
+    assert.equal(refresh, 1);
+    assert.equal(nodes.some((node) => node.props?.children === '暂时无法确认 npm 最新版本，请重试'), failed);
+  }
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.match(source, /params: \{ force \}/);
+  assert.match(source, /check\(true\)/);
+  assert.equal(source.match(/\[open, versionCheckRequest\]/g).length, 2, '手动刷新同步重查版本和 Provider');
+});
+
 test('市场标题展示安装版本，并通过 Provider 适配层一键更新', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.match(source, /method: "versionStatus"/);
