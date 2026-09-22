@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- 补充 macOS/Linux 与 Windows PowerShell 的 stdio 启动排查示例，说明 PATH、command/args、cwd、退出码及无 shell 启动的安全边界（#29）。
+
 ## [0.2.55] - 2026-09-22
 
 ### Fixed

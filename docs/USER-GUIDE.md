@@ -297,6 +297,71 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 页面会在有限时间内结束等待，并区分命令不存在、进程退出、初始化失败或启动超时。先在终端确认命令本身可执行、软件包可信、Node/运行时版本满足要求，并检查 `cwd`、参数和环境变量；随后查看 Host 日志并点击“重新检查”。不要把本机凭据写入公开 Registry descriptor。
 
+#### 1. 确认命令与运行环境
+
+stdio 会以当前用户权限在 DSH 所在机器上启动进程，只运行你信任的软件包和命令。先从连接配置记录 `command`、每个 `args` 元素、`cwd` 和所需环境变量名称；不要复制或公开凭据值。以下使用 Node 演示，其他运行时请替换为实际命令。
+
+macOS / Linux（终端）：
+
+```sh
+command -v node
+node --version
+pwd
+```
+
+Windows（PowerShell）：
+
+```powershell
+Get-Command node -All | Select-Object CommandType, Source
+node --version
+Get-Location
+```
+
+若找不到命令，先按可信软件的官方安装说明配置运行时，再重新打开终端和 DSH。核对服务要求的运行时版本。终端能找到命令，不代表桌面启动的 DSH 具有相同的 `PATH`；版本管理器、别名或 shell 函数也不一定对 DSH 可见。此时可将 `command` 改为本机实际可执行文件的绝对路径，不要填终端别名。
+
+#### 2. 在相同目录复现同一 command + args
+
+以下路径是占位符，必须替换为本机已安装、可信服务的实际路径；示例不下载软件、不需要账号或凭据。假设配置的 `command` 是 Node 的绝对路径，`args` 仅包含服务入口文件的绝对路径：
+
+macOS / Linux：
+
+```sh
+(
+  cd '/absolute/path/to/trusted-server' || exit 1
+  '/absolute/path/to/node' '/absolute/path/to/trusted-server/server.js'
+  result=$?
+  printf 'exit code: %s\n' "$result"
+)
+```
+
+Windows PowerShell：
+
+```powershell
+Push-Location -LiteralPath 'C:\path\to\trusted-server' -ErrorAction Stop
+try {
+    & 'C:\path\to\node.exe' 'C:\path\to\trusted-server\server.js'
+    Write-Output "exit code: $LASTEXITCODE"
+} finally {
+    Pop-Location
+}
+```
+
+按自己的配置逐项替换参数，不要把整条终端命令塞进 `command`，也不要把所有参数合并成一个字符串。带空格的路径在终端中需要引用；在配置的 `command` 或 `args` 字符串值中保留路径本身，不额外添加 shell 引号。只有服务依赖相对路径时，才需特别核对配置中的 `cwd` 是否存在、可访问且符合服务要求。所需环境变量应在本机安全配置，不要在反馈中粘贴完整 `env` 或包含密钥的命令行。
+
+Windows 下 `.cmd` / `.bat` 是脚本包装器，不等同于可直接启动的 `.exe`；PowerShell 中能运行包装器，不代表无 shell 的进程启动也能运行它。若诊断指向包装器，按该服务文档选择原生可执行文件，或用 Node 运行其可信 JavaScript 入口。不要通过设置 `shell: true`、关闭安全检查或执行策略绕过来解决。
+
+#### 3. 根据结果定位，再回到页面复查
+
+| 观察结果 | 排查方法 |
+|---|---|
+| 命令不存在 / 路径不存在 | 核对运行时安装、绝对路径及 DSH 进程的 `PATH`；同时确认 `cwd` 存在 |
+| 进程立即非零退出 | 查看本地标准错误输出和退出码，核对参数、依赖、运行时版本、文件权限及所需环境变量 |
+| 进程退出码为 0，但没有工具 | 确认启动的是 MCP stdio 服务，不是版本查询、安装器或一次性命令；退出成功不代表 MCP 初始化成功 |
+| 进程一直等待、没有输出 | stdio 服务可能正在等待客户端输入，这是正常可能性；终端启动只能验证进程，不证明 MCP 握手成功。可按 Ctrl+C 结束，再由 DSH 发起检查 |
+| 终端能启动，页面初始化失败 / 超时 | 对比 DSH 的 command/args/env/cwd，查看 Host 日志；确认服务支持 MCP stdio，且普通日志未污染用于协议通信的 stdout（日志应写 stderr） |
+
+修正后重新启动 DSH（如变更了进程环境），在连接详情点击“重新检查”，确认工具发现结果。反馈时只提交版本、脱敏后的诊断代码、退出码和必要日志；不要上传 Token、API Key、完整环境变量或个人路径。
+
 ### 为什么显示“状态未知”
 
 这表示插件没有足够证据确认健康或失败，常见于 DSH 刚重启、尚未执行健康检查，或当前 Host 无法读取 stdio 工具注册状态。点击“刷新连接器目录”或进入详情重新检查；若仍为未知，根据诊断的 `code` 和建议查看 Host 日志或升级 Host。不要把“状态未知”理解为“已连接”。
