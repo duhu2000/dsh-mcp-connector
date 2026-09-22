@@ -43,17 +43,22 @@ test('Windows 解析全局及 npx 官方包，保留带空格绝对路径，不�
       writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'dingtalk-workspace-cli', bin: { dws: 'bin/dws.js' } }));
       const native = path.join(root, 'vendor', 'dws.exe');
       copyFileSync(process.execPath, native);
-      const env = { Path: `;relative;"${bin}"` };
+      // Preserve the Windows runtime environment; do not inherit Node test IPC mode.
+      const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+        !['path', 'node_test_context', 'node_options'].includes(key.toLowerCase()))), Path: `;relative;"${bin}"` };
       assert.equal(resolveCliExecutable('dws', { platform: 'win32', env }), realpathSync(native));
       assert.equal(buildCliPreflightInvocation('dingtalk-dws', { executable: native }).command, native);
       writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'not-the-approved-provider', bin: { dws: 'bin/dws.js' } }));
       assert.throws(() => resolveCliExecutable('dws', { platform: 'win32', env }), /CLI_NATIVE_MISSING/);
       writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'dingtalk-workspace-cli', bin: { dws: 'bin/dws.js' } }));
       if (process.platform === 'win32') {
+        console.error(`CLI fixture ${layout}: starting native argv check`);
         const marker = '中文 space & | %PATH% ^ " quote';
         const result = await runCliProcess('dws', ['-e', 'console.log(JSON.stringify(process.argv.slice(1)))', marker], { env });
         assert.deepEqual(JSON.parse(result), [marker]);
+        console.error(`CLI fixture ${layout}: starting timeout check`);
         await assert.rejects(runCliProcess('dws', ['-e', 'setInterval(()=>{},100)'], { env, timeoutMs: 1000 }), /timed out/);
+        console.error(`CLI fixture ${layout}: process checks complete`);
       }
       rmSync(native, { recursive: true, maxRetries: 10, retryDelay: 100 });
       assert.throws(() => resolveCliExecutable('dws', { platform: 'win32', env }), /CLI_NATIVE_MISSING/);
