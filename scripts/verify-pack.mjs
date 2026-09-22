@@ -23,6 +23,7 @@ const WHITELIST = [
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
   /^docs\/(?:CLI-PROVIDERS|CONFIG-BACKUP|CONNECTION-SCOPES|DESKTOP-E2E|FIRST-CONTRIBUTION|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|TOOL-GOVERNANCE|USER-GUIDE)\.md$/,
+  /^docs\/tutorials\/(?:JSON-MIGRATION|OAUTH-DIAGNOSTICS|TOOL-SEARCH-RECOVERY)\.md$/,
   /^docs\/screenshots\/(?:README\.md|assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
@@ -53,6 +54,17 @@ if (!pack || !Array.isArray(pack.files)) {
 }
 
 const files = pack.files.map((file) => file.path).sort();
+const requiredTutorials = [
+  'docs/tutorials/JSON-MIGRATION.md',
+  'docs/tutorials/OAUTH-DIAGNOSTICS.md',
+  'docs/tutorials/TOOL-SEARCH-RECOVERY.md',
+];
+const missingTutorials = requiredTutorials.filter((file) => !files.includes(file));
+if (missingTutorials.length > 0) {
+  console.error('verify-pack 失败：README 引用的任务教程未进入 npm 包：');
+  for (const file of missingTutorials) console.error(`  - ${file}`);
+  process.exit(1);
+}
 const stray = files.filter((file) => !WHITELIST.some((rule) => rule.test(file)));
 if (stray.length > 0) {
   console.error('verify-pack 失败：以下文件不应进入 npm 发布包：');

@@ -2,6 +2,14 @@
 
 本手册面向安装和使用 `dsh-mcp-connector` 的 DeepSeek Harness（DSH）用户。服务商或 MCP 原作者如需提交市场卡片，请改看独立 Registry 的[第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)。
 
+## 按任务开始
+
+- 已有其他客户端配置：从[迁移 `mcpServers` JSON](tutorials/JSON-MIGRATION.md)开始，逐项验证配置保存、工具发现/注册和只读调用。
+- OAuth 卡在注册、授权或刷新：看[OAuth 连接诊断](tutorials/OAUTH-DIAGNOSTICS.md)，先按阶段与稳定代码排查，不反复提交未获授权的账号。
+- 已连接多个服务却找不到工具：看[跨连接找工具与发现失败恢复](tutorials/TOOL-SEARCH-RECOVERY.md)。缓存可查不等于当前可调用。
+
+这三篇是操作教程，不代表对所有服务商完成了真实业务调用验收；正式调用仍受服务商权限、费用与 DSH Host 审批约束。
+
 ## 1. 安装、升级与重启
 
 要求：DSH Desktop 或 `web` profile，Node.js 20 或更高版本。
