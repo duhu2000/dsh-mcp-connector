@@ -34,7 +34,7 @@ MCP 连接器原生支持 Streamable HTTP 和 stdio MCP。对于钉钉 `dws` 这
         "-y",
         "--legacy-peer-deps",
         "--package",
-        "dsh-mcp-connector@0.2.48",
+        "dsh-mcp-connector@0.2.55",
         "--package",
         "dingtalk-workspace-cli@1.0.61",
         "dsh-mcp-cli-bridge",
@@ -47,6 +47,10 @@ MCP 连接器原生支持 Streamable HTTP 和 stdio MCP。对于钉钉 `dws` 这
 ```
 
 ## 首批只读能力
+
+Windows 从 DSH 进程 PATH 中的全局 npm 或 npx `.bin` 位置查找官方包，直接运行包内 `vendor/dws.exe`；不执行 `.cmd`/`.bat`/`.ps1`，不启用 shell。也可在启动 DSH 的环境中设置 `DSH_MCP_DINGTALK_DWS_BIN` 为原生 exe 的绝对路径（允许空格），随后重启 DSH。无需复制 exe 到 npm 前缀；复制品可能在 CLI 升级后过期。缺失程序不等于 OAuth 未登录。
+
+升级主插件并重启后，标准受管钉钉 0.2.48/0.2.49 桥接参数会在加载时迁移到 0.2.55；自定义命令和参数不自动修改，需自行更新固定桥接版本。授权信息和环境配置保持不变。
 
 - 当前用户、通讯录搜索与用户详情
 - 日程列表与日程详情

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import {
   CLI_PROVIDERS,
   cliBridgeArgs,
@@ -10,6 +13,7 @@ import {
   listCliProviderTools,
   redactCliError,
   runCliProcess,
+  resolveCliExecutable,
 } from '../lib/cli-providers.js';
 
 test('仅升级精确匹配的旧市场桥接，不覆盖用户自定义命令', () => {
@@ -17,12 +21,48 @@ test('仅升级精确匹配的旧市场桥接，不覆盖用户自定义命令',
     '--yes', '--legacy-peer-deps', '--package', 'dsh-mcp-connector@0.2.48',
     '--package', 'dingtalk-workspace-cli@1.0.61', 'dsh-mcp-cli-bridge', '--provider', 'dingtalk-dws',
   ] };
-  assert.ok(cliBridgeArgs(record).includes('dsh-mcp-connector@0.2.49'));
+  assert.ok(cliBridgeArgs(record).includes('dsh-mcp-connector@0.2.55'));
+  assert.ok(cliBridgeArgs({ ...record, args: record.args.map((arg) => arg.replace('@0.2.48', '@0.2.49')) }).includes('dsh-mcp-connector@0.2.55'));
   assert.ok(record.args.includes('dsh-mcp-connector@0.2.48'));
   for (const changed of [{ connectorId: 'custom' }, { command: '/custom/npx' }, { args: [...record.args, '--custom'] }]) {
     const custom = { ...record, ...changed };
     assert.deepEqual(cliBridgeArgs(custom), custom.args);
   }
+});
+
+test('Windows 解析全局及 npx 官方包，保留带空格绝对路径，不执行 cmd shim', async () => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'cli provider 中文 '));
+  try {
+    for (const layout of ['global', 'npx']) {
+      const prefix = path.join(temp, layout);
+      const root = path.join(prefix, 'node_modules', 'dingtalk-workspace-cli');
+      const bin = layout === 'global' ? prefix : path.join(prefix, 'node_modules', '.bin');
+      mkdirSync(path.join(root, 'vendor'), { recursive: true });
+      mkdirSync(bin, { recursive: true });
+      writeFileSync(path.join(bin, 'dws.cmd'), '@echo SHOULD_NOT_EXECUTE');
+      writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'dingtalk-workspace-cli', bin: { dws: 'bin/dws.js' } }));
+      const native = path.join(root, 'vendor', 'dws.exe');
+      copyFileSync(process.execPath, native);
+      const env = { Path: `;relative;"${bin}"` };
+      assert.equal(resolveCliExecutable('dws', { platform: 'win32', env }), realpathSync(native));
+      assert.equal(buildCliPreflightInvocation('dingtalk-dws', { executable: native }).command, native);
+      writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'not-the-approved-provider', bin: { dws: 'bin/dws.js' } }));
+      assert.throws(() => resolveCliExecutable('dws', { platform: 'win32', env }), /CLI_NATIVE_MISSING/);
+      writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'dingtalk-workspace-cli', bin: { dws: 'bin/dws.js' } }));
+      if (process.platform === 'win32') {
+        const marker = '中文 space & | %PATH% ^ " quote';
+        const result = await runCliProcess('dws', ['-e', 'console.log(JSON.stringify(process.argv.slice(1)))', marker], { env });
+        assert.deepEqual(JSON.parse(result), [marker]);
+        await assert.rejects(runCliProcess('dws', ['-e', 'setInterval(()=>{},100)'], { env, timeoutMs: 1000 }), /timed out/);
+      }
+      rmSync(native, { recursive: true, maxRetries: 10, retryDelay: 100 });
+      assert.throws(() => resolveCliExecutable('dws', { platform: 'win32', env }), /CLI_NATIVE_MISSING/);
+    }
+    assert.throws(() => resolveCliExecutable('dws', { platform: 'win32', env: { PATH: '' } }), /CLI_NOT_FOUND/);
+    assert.throws(() => resolveCliExecutable('dws.cmd', { platform: 'win32' }), /CLI_SHIM_UNSUPPORTED/);
+    assert.equal(resolveCliExecutable('dws', { platform: 'darwin' }), 'dws');
+    assert.equal(resolveCliExecutable('dws', { platform: 'linux' }), 'dws');
+  } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
 test('钉钉 CLI Provider 只暴露只读命令', () => {
