@@ -30,6 +30,8 @@ jobs:
           node-version: 24
       # 目标问题来自 Windows Desktop；使用与 Linux 相同的完整门禁防止平台回归。
       - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Windows CLI native process regression
+        run: node --test --test-reporter=tap test/cli-providers.test.mjs
       - run: npm run check
 
   pr-package:
