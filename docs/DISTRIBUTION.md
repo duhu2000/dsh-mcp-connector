@@ -1,6 +1,6 @@
 # DSH MCP Connector Distribution Ledger
 
-Last updated: 2026-09-14 (Asia/Shanghai)
+Last updated: 2026-09-22 (Asia/Shanghai)
 
 This document is the source of truth for external distribution of
 [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector).
@@ -15,7 +15,7 @@ the same upstream data source.
 | Product | MCP Connector / MCP连接器 |
 | Repository | [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector) |
 | npm package | [`dsh-mcp-connector`](https://www.npmjs.com/package/dsh-mcp-connector) |
-| Current release | `0.2.48` |
+| Current release | `0.2.57` (npm `latest`, checked 2026-09-22) |
 | License | MIT |
 | GitHub discovery topic | `dsh-plugin` |
 | Plugin type | DSH client plugin, MCP connection manager, and connector marketplace |
@@ -42,7 +42,42 @@ The four acceptance dimensions are independent:
 
 `Listed` therefore does not automatically mean `Reviewed` or `Runtime tested`.
 
-## Distribution coverage matrix
+## Priority recheck: 2026-09-22
+
+This is a point-in-time public-source check, not a fresh runtime test of every
+market. npm published `0.2.57` at 09:36 UTC on 2026-09-22, less than an hour
+before this check. A recently cached `0.2.54` entry may simply be awaiting its
+normal sync; an incorrect npm-availability claim is a separate metadata defect.
+The four columns below are independent. `Historical` means the earlier
+acceptance was not rerun on 2026-09-22.
+
+| Market | Discoverable | Metadata current for npm `0.2.57` | Installable | Reviewed / verified | 2026-09-22 evidence and next action |
+|---|---|---|---|---|---|
+| [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/duhu2000/dsh-mcp-connector/) | Yes; [live feed](https://awesome-dsh-plugin.com/plugins.json) has one exact entry | No; feed shows `0.2.54` shortly after release | Correct canonical npm command; no new install test | Curated listing, not a runtime/security audit | [Statistics PR #5309](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/5309) merged. Live feed reports `14,428` downloads for the explicit `2026-08-23`–`2026-09-21` window, checked `2026-09-22`; the [npm API](https://api.npmjs.org/downloads/point/2026-08-23:2026-09-21/dsh-mcp-connector) matches. Treat as downloads, not unique users. Wait for routine version sync; no duplicate PR. |
+| [dshmarket.com](https://dshmarket.com/browse/) / `dsh-market` | Historical actual-UI search acceptance | Source consumes the awesome feed, but current production UI metadata was not rechecked | Historical canonical install acceptance | No new review | The [registry loader](https://github.com/dsh-market/dsh-market/blob/main/src/registry.ts) and [client model](https://github.com/dsh-market/dsh-market/blob/main/src/client/market-data.ts) currently retain only `downloads`, not the feed's download-window fields. Coordinate a source/UI tooltip change with the separate Market owner; do not claim the UI already labels the window. |
+| [dshfind](https://dshfind.com/plugins/duhu2000/dsh-mcp-connector) | Yes | No; live check reports `0.2.51`, last synced 2026-09-22 07:57 UTC | npm package recognized; no new install test | Not confirmed | Track the existing [connector Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69); no new listing. |
+| [DSH Plugin Directory](https://dsh.directory/plugins/duhu2000/dsh-mcp-connector) | Yes; accepted [submission #226](https://github.com/alexchenzl/dsh-plugin-directory/issues/226) | No; live check reports `0.2.54` | npm package recognized; no new install test | Submission accepted; no new runtime check | Wait for its normal refresh and track Issue #69. |
+| [dsh.pub](https://dsh.pub/en/plugins/dsh-mcp-connector/) | Yes; duplicate PR #74 was closed as already listed | No; page shows `0.2.54` and still omits the npm link / reports npm unpublished | Commit-pinned command is shown; npm-package route is not represented correctly | Auto-analysis only | Added a factual update to the original [Issue #88](https://github.com/dsh-pub/dsh-pub/issues/88#issuecomment-5774911110). Correct the existing record; do not resubmit the package. |
+| [dshbase](https://www.dshbase.com/plugins/dsh-mcp-connector/) | Yes | No; page remains at `0.2.37` and falsely says npm unpublished | Historical DSH install-test evidence; no fresh run | Verified badge retained | Added a factual update to the original [Issue #100](https://github.com/ylwl1997/dshbase/issues/100#issuecomment-5774912337); preserve accepted [runtime evidence #96](https://github.com/ylwl1997/dshbase/issues/96). |
+| [dshmarketplace.dev](https://dshmarketplace.dev/api/v1/plugins?q=dsh-mcp-connector&limit=20) | Yes; one exact API result | Partial; no version field, description retained, star count lags the repository | `inRegistry=true`, `installable=true`, canonical npm command, historical `installCheck=passed` (2026-08-23) | Registry entry and install check, not a fresh runtime test | Already promoted to the independent Registry; no duplicate PR. Recheck mutable metadata after scheduled reconciliation. |
+| [dsh-plugin.org](https://dsh-plugin.org/zh/plugins/duhu2000/dsh-mcp-connector) | Yes; dedicated page is public | No; structured data shows `v0.2.49` | npm link present; no new install test | Target page displays a verified badge; scope of review is not established | Existing listing needs a metadata refresh, not a new submission. Do not confuse the site's aggregate `unconfirmed` count with this plugin's badge. |
+| [dsh-suite](https://github.com/dsh-suite/dsh-suite/issues/45) | Yes; formal `plugins` entry accepted | Package and canonical install mapping present; current release version is not exposed in the checked entry | Canonical npm command; no new install test | `compat.status=ok`, last verified 2026-09-18 on DSH `0.1.5-rc.2` | [Issue #45](https://github.com/dsh-suite/dsh-suite/issues/45) closed after [catalog commit `3145eea`](https://github.com/dsh-suite/dsh-suite/commit/3145eea6b6fb47dc6f6057cbea00ab9ffc0db388). A legacy watchlist record remains, but the formal listing supersedes it; do not submit again. |
+| [dshmk](https://github.com/ZASENJC/dsh-plugins-store/issues/7) | Historical topic/index presence; direct detail URL returned 404 during this check | Current page metadata not verified | Historical independent DSH install passed at `0.2.30`; validator-only dependency failure remains unresolved | Issue #7 open; no maintainer disposition | Ask for sanitized validator command/stderr or a manual-review outcome. Do not equate the stale indexed topic page with a current successful validation. |
+| [DSH Extension Hub](https://github.com/Relistencode/dsh-extension-hub/issues/12) | Historical actual-UI `Discover More` acceptance; not rerun today | Current search card not rechecked | Historical isolated install passed | Curated-view review still open | npm `dsh-extension-hub@0.2.19` and source still have a 15-second catalog timeout with HTTP-200 fallback; [Issue #12](https://github.com/Relistencode/dsh-extension-hub/issues/12) awaits maintainer action. Do not claim a newly reproduced UI failure. |
+
+The automated `distribution:check:live` result on this date was
+`ok=false, converged=false`, with the listed dshfind, Directory, dsh.pub, and
+dshbase drift. The check does not imply the freshly published `0.2.57` should
+already have reached every scheduled cache. [Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69)
+remains the deduplicated coordination point; its last automated update at
+09:34 UTC preceded the `0.2.57` npm publication.
+
+## Historical distribution coverage matrix
+
+The following rows retain their own last-verified dates. They are historical
+coverage evidence, not blanket claims that all listed markets were re-audited
+on 2026-09-22. Use the priority recheck above for the latest status of its
+named markets.
 
 | Market / owner | Data source and sync | Listing evidence | Observed version / verification | Install information | Required action | Owner / state | Last verified |
 |---|---|---|---|---|---|---|---|
@@ -78,16 +113,18 @@ The four acceptance dimensions are independent:
 |---|---|---|---|
 | DSH Market search relevance ranking | [`dsh-market/dsh-market#409`](https://github.com/dsh-market/dsh-market/pull/409) | Complete upstream. Current `dshmarket@1.46.1` acceptance keeps `mcp`, `mcp连接器`, `连接器`, and `连接管理` first; `mcp server` has regressed from fifth to fifteenth | Preserve core positions and open a scoped relevance change only after identifying the current scorer/index cause for `mcp server` |
 | dshplugin.dev submission | Reference `sub_279a8624-3dc7-4218-8579-8e7694880dd2` from [submission page](https://dshplugin.dev/submit) | Received; pending editorial review | Editorial decision and, if approved, canonical public listing URL recorded |
-| awesome-dsh-plugin current description/feed | [Description PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982) | Complete: merged on 2026-09-13; public entry reports `0.2.46` with the current description | Complete; monitor through the normal post-release sync workflow |
-| external directory post-release convergence | [Connector Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69) | Open and deduplicated: dshfind is `0.2.41`; DSH Directory is `0.2.45`; dsh.pub is `0.2.46` but still says npm unpublished; dshbase is `0.2.37` with the same false npm claim | All required directory records report npm `0.2.46` and correct npm availability, then automation closes the Issue |
-| dsh.pub metadata refresh | [Sync Issue #88](https://github.com/dsh-pub/dsh-pub/issues/88) | Version has advanced to `0.2.46`, but the live source still reports `npmPublished=false` and omits the npm link | npm availability becomes true and the canonical npm URL is visible without a duplicate submission |
-| DSH Plugin Directory | [Submission #226](https://github.com/alexchenzl/dsh-plugin-directory/issues/226) | Accepted; public page currently reports `0.2.45`, one patch behind npm | Public version advances to npm latest through the existing automatic refresh |
-| dshbase source metadata | [Metadata correction #100](https://github.com/ylwl1997/dshbase/issues/100) | Verification is accepted in #96; public metadata remains at `0.2.37` and still falsely says the package is not on npm | Public page reports npm availability and npm latest while retaining the verified/install-tested status |
+| awesome-dsh-plugin current description/feed | [Description PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982), [statistics PR #5309](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/5309) | Both merged; live feed provides the explicit rolling 30-day download window, but its version `0.2.54` trails the npm `0.2.57` release from less than an hour before the check | Let the normal release sync run; keep download counts labeled by window and do not call them users |
+| external directory post-release convergence | [Connector Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69) | Open and deduplicated; 2026-09-22 live check reports dshfind `0.2.51`, DSH Directory `0.2.54`, dsh.pub `0.2.54` with no npm link, and dshbase `0.2.37` with a false npm-unpublished claim | Required directory records eventually match npm latest and correctly represent npm availability; the automation closes Issue #69 |
+| dsh.pub metadata refresh | [Sync Issue #88](https://github.com/dsh-pub/dsh-pub/issues/88#issuecomment-5774911110) | Maintainer Issue remains open; the existing page shows `0.2.54` and omits the npm link despite published npm `0.2.57` | npm availability becomes true and the canonical npm URL is visible without a duplicate submission |
+| DSH Plugin Directory | [Submission #226](https://github.com/alexchenzl/dsh-plugin-directory/issues/226) | Accepted; public page reports `0.2.54` shortly after npm `0.2.57` publication | Public version advances to npm latest through the existing automatic refresh |
+| dshbase source metadata | [Metadata correction #100](https://github.com/ylwl1997/dshbase/issues/100#issuecomment-5774912337) | Verification is accepted in #96; public metadata remains at `0.2.37` and falsely says the package is not on npm | Public page reports npm availability and npm latest while retaining the verified/install-tested status |
 | HackSing DSH Plugins | [Submission #167](https://github.com/HackSing/dsh-plugins/issues/167) | Accepted by automation and closed; directory commit [`5054ed8`](https://github.com/HackSing/dsh-plugins/commit/5054ed8dbb7a2ec78da898b44e4abd31d72b3ccf) recorded | Complete; future changes use the information-update form |
 | dshmarketplace.dev Registry resync | [Issue #1](https://github.com/DshMarketPlace/dshmarketplace/issues/1) | Complete: maintainer refreshed the API, closed the Issue, and added nightly upstream reconciliation; live API reports `inRegistry=true` and `installCheck=passed` | Complete; retain periodic metadata acceptance only |
 | dshbase revalidation | [Evidence Issue #96](https://github.com/ylwl1997/dshbase/issues/96) | Complete: the live page now displays `Verified · install-tested on dsh`, after the maintainer accepted the actual-DSH evidence | Complete; retain periodic verification acceptance only |
-| dshmk revalidation | [Revalidation Issue #7](https://github.com/ZASENJC/dsh-plugins-store/issues/7) | Live validation updated on 2026-09-02 still reports `DEPENDENCY_INSTALL_FAILED`; the public result exposes no actionable install stderr, while product CI and independent DSH installation pass | Maintainer supplies sanitized install command/stderr or records a manual-review disposition |
-| Extension Hub Curated UI | [Issue #12](https://github.com/Relistencode/dsh-extension-hub/issues/12) | `Discover More` exact-name UI search passed; fresh-profile Curated view fails after the 2.3 MB catalog body exceeds its 15-second timeout | Curated catalog loads and the Registry-backed entry is searchable in the actual DSH UI |
+| dshmk revalidation | [Revalidation Issue #7](https://github.com/ZASENJC/dsh-plugins-store/issues/7) | Still open without maintainer disposition. The previous validator-only `DEPENDENCY_INSTALL_FAILED` had no actionable stderr; the direct detail URL returned 404 during the 2026-09-22 check, so current validation was not re-accepted | Maintainer supplies sanitized install command/stderr or records a manual-review disposition; then retest the public page |
+| Extension Hub Curated UI | [Issue #12](https://github.com/Relistencode/dsh-extension-hub/issues/12) | Still open without maintainer response. Historical `Discover More` exact-name UI search passed; the published `0.2.19` code still uses the 15-second catalog timeout, but actual UI was not rerun on 2026-09-22 | Curated catalog loads and the Registry-backed entry is searchable in the actual DSH UI |
+| dsh-suite formal listing | [Accepted Issue #45](https://github.com/dsh-suite/dsh-suite/issues/45) | Complete: closed after the formal `plugins` entry was committed; a legacy watchlist record remains but is superseded | Complete; no duplicate submission |
+| dsh-plugin.org version refresh | [Existing detail page](https://dsh-plugin.org/zh/plugins/duhu2000/dsh-mcp-connector) | Discoverable and displays a verified badge and npm link; structured-data version remains `v0.2.49` | Allow normal refresh first; find a correction channel only if staleness persists |
 
 External maintainers control review and merge times. `Submitted` is not the same
 as `Accepted`, and neither is the same as `Visible in production`.
@@ -114,7 +151,7 @@ the destination schema without changing the product identity.
 
 - Repository: `https://github.com/duhu2000/dsh-mcp-connector`
 - npm: `https://www.npmjs.com/package/dsh-mcp-connector`
-- Release: `0.2.48`
+- Release: `0.2.57`
 - License: MIT
 - Category preference: `Integrations & Connectors`; otherwise
   `Plugins & Runtime`, `Integration`, or `Plugin Markets & Managers`
