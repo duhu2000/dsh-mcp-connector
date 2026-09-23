@@ -101,6 +101,17 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
     contains(copy, '排障', `${label} must describe connection troubleshooting`);
   }
 
+  // DSH Market searches each localized description as one field. Pure Chinese
+  // queries are not segmented, so keep the established core phrase contiguous.
+  // The adjacent-intent phrases below protect the real-UI query matrix without
+  // changing ranking weights or adding package-specific search aliases.
+  for (const phrase of ['MCP连接器', '连接管理', 'MCP Server', 'MCP 管理面板', '授权配置', 'OAuth']) {
+    contains(metadata.externalListing.zh, phrase, `external Chinese listing is missing search phrase ${phrase}`);
+  }
+  for (const phrase of ['MCP manager', 'panel']) {
+    contains(metadata.externalListing.en, phrase, `external English listing is missing search phrase ${phrase}`);
+  }
+
   contains(contributing, metadata.links.firstIssues, 'contributor guide is missing the good first issue path');
   for (const key of ['stars', 'contributing', 'connectorOnboarding']) {
     contains(ui, metadata.links[key], `installed-state CTA is missing ${key} link`);
