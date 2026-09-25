@@ -6,7 +6,7 @@
 
 ## 迁移前：先确认什么
 
-1. 安装 `dsh-mcp-connector`，完全退出并重启 DSH Desktop 或 `dsh web`；确认当前使用的 profile 与安装插件的 profile 一致（例如 Web 使用 `web`，Desktop 使用其对应 profile）。
+1. 按统一入口安装 `dsh-mcp-connector`：默认布局下 DSH Desktop 与 `dsh web` 都从本机 `web` profile 加载插件。安装后只需重启正在使用的宿主；自定义 profile 布局以宿主配置为准。
 2. 核对原配置的每个 Server：远端 URL 是否为 MCP Streamable HTTP 端点；本地 `command`、`args` 和运行时是否可信且可在 **DSH 所在机器** 启动。
 3. 对每个连接决定“当前项目”或“所有项目（全局）”。全局仅指当前 DSH profile，并非跨 profile 共享。
 4. 在本机保存原配置的安全备份。不要把含 Token、API Key、Cookie 或本机路径的原文发到 Issue、聊天或公开仓库。

@@ -31,6 +31,8 @@ export async function checkFirstUseDocs() {
   }
   for (const expected of [
     'dsh plugin --profile web add dsh-mcp-connector',
+    'DSH Desktop 和 `dsh web` 都从本机 `web` profile 加载插件',
+    '不要因为使用 Desktop 就把命令改成 `--profile desktop`',
     '设置 → 插件 → 插件配置 → MCP连接器',
     'mcp__<serverName>__<toolName>',
     '只读调用',
