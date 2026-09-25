@@ -23,7 +23,7 @@ const WHITELIST = [
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
   /^docs\/(?:CLI-PROVIDERS|CONFIG-BACKUP|CONNECTION-SCOPES|DESKTOP-E2E|FIRST-CONTRIBUTION|MARKET-REGISTRATION|PLUGIN-UPDATE|STDIO-SUPPORT|TOOL-GOVERNANCE|USER-GUIDE)\.md$/,
-  /^docs\/tutorials\/(?:JSON-MIGRATION|OAUTH-DIAGNOSTICS|TOOL-SEARCH-RECOVERY)\.md$/,
+  /^docs\/tutorials\/(?:README|JSON-MIGRATION|OAUTH-DIAGNOSTICS|TOOL-SEARCH-RECOVERY)\.md$/,
   /^docs\/screenshots\/(?:README\.md|assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
   /^ui\/assets\/[^/]+\.(?:svg|png|webp)$/,
@@ -55,6 +55,7 @@ if (!pack || !Array.isArray(pack.files)) {
 
 const files = pack.files.map((file) => file.path).sort();
 const requiredTutorials = [
+  'docs/tutorials/README.md',
   'docs/tutorials/JSON-MIGRATION.md',
   'docs/tutorials/OAUTH-DIAGNOSTICS.md',
   'docs/tutorials/TOOL-SEARCH-RECOVERY.md',

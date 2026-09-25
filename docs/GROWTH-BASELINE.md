@@ -96,3 +96,21 @@ Use a signed-out or fresh browser profile, record engine and locale, and inspect
 | `model context protocol connector DeepSeek Harness` |  |  |  |  |
 
 Record the month's changes to metadata, README CTAs, screenshots, Issues, or external listings. Note likely causes, data caveats, next experiment, owner, and review date. Never purchase or automate fake downloads, Stars, or Forks.
+
+## 7/14-day first-use review template
+
+Use one fixed baseline timestamp (`T0`), then review at `T+7` and `T+14`. Preserve every API's returned date window; do not compare values as if they were cohort data when the windows differ. GitHub Traffic is a rolling 14-day window, npm downloads include automation and reinstalls, and cumulative Stars/Forks need timestamped snapshots.
+
+| Metric | T0 | T+7 | T+14 | Exact source window / evidence |
+|---|---:|---:|---:|---|
+| DSH Market/search impressions | No data | No data | No data | Host/market does not expose an impression metric |
+| GitHub Overview views / unique visitors |  |  |  | GitHub Traffic popular paths; rolling window |
+| npm downloads |  |  |  | npm downloads API; save returned `start` and `end` |
+| GitHub Stars / Forks |  |  |  | Repository API snapshot timestamp |
+| Search query positions |  |  |  | Same Market/Host, locale, category, sort, time and host filters |
+| Saved connections | No data | No data | No data | No first-party aggregate telemetry |
+| Tools discovered/registered | No data | No data | No data | No first-party aggregate telemetry |
+| First successful read-only calls | No data | No data | No data | Only explicit, consented manual acceptance evidence may be counted |
+| First-time Issues / PRs |  |  |  | GitHub events reviewed for the exact interval |
+
+Do not calculate an exposure-to-install, download-to-connection, or download-to-first-call conversion rate from these proxies. If no explicit evidence exists, retain **No data** rather than replacing it with zero or an estimate. Record documentation changes and user-reported friction separately so a change in downloads is not automatically attributed to the latest copy or release.

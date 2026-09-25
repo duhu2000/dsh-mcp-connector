@@ -40,7 +40,7 @@ Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrad
 
 For a first successful use, confirm the connection and scope in Installed, find the expected tool and source in Tools, then complete one provider-permitted read-only call through the normal DSH Host approval flow. Cached visibility alone does not prove that a service is currently callable.
 
-Task guides (Chinese): [migrate `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [diagnose OAuth](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [find and recover tools](docs/tutorials/TOOL-SEARCH-RECOVERY.md).
+First-success guide (Chinese): [install → connect → find a tool → make the first read-only call](docs/tutorials/README.md). Task details: [migrate `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [diagnose OAuth](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [find and recover tools](docs/tutorials/TOOL-SEARCH-RECOVERY.md).
 
 ![43-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
@@ -131,6 +131,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 ## Guides and ecosystem
 
 - [User guide: installation, authorization, diagnostics, compatibility, and troubleshooting](docs/USER-GUIDE.md)
+- [First-success guide: install, connect, find a tool, and make a read-only call (Chinese)](docs/tutorials/README.md)
 - [Task guides: JSON migration, OAuth diagnostics, and cross-connection tool recovery](docs/USER-GUIDE.md#按任务开始)
 - [Connection scopes: project/global inheritance, copy, move, and rollback](docs/CONNECTION-SCOPES.md)
 - [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)

@@ -40,7 +40,7 @@ dsh plugin --profile web add dsh-mcp-connector
 
 首次使用建议依次确认：连接已保存且范围正确 → “工具”页能找到预期工具与来源 → 在正常 DSH 会话中通过 Host 审批链完成一次服务商许可的只读调用。缓存可见不等于当前服务可调用。
 
-按任务阅读：[迁移现有 `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [OAuth 授权诊断](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [跨连接找工具与恢复](docs/tutorials/TOOL-SEARCH-RECOVERY.md)。
+[首次成功入口：安装 → 连接 → 找到工具 → 首次只读调用](docs/tutorials/README.md)。按任务深入：[迁移现有 `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [OAuth 授权诊断](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [跨连接找工具与恢复](docs/tutorials/TOOL-SEARCH-RECOVERY.md)。
 
 ![MCP 连接器 43 秒演示](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
 
@@ -132,6 +132,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 ## 中文教程与生态入口
 
 - [用户手册：安装、授权、诊断、兼容性与故障排查](docs/USER-GUIDE.md)
+- [首次成功入口：安装、连接、找工具和首次只读调用](docs/tutorials/README.md)
 - [任务教程：JSON 迁移、OAuth 诊断、跨连接找工具与恢复](docs/USER-GUIDE.md#按任务开始)
 - [配置备份：脱敏导出、快照与恢复边界](docs/CONFIG-BACKUP.md)
 - [连接作用域：project/global 继承、复制、移动与回滚](docs/CONNECTION-SCOPES.md)
