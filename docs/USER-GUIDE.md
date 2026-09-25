@@ -4,6 +4,8 @@
 
 ## 按任务开始
 
+第一次使用请从[统一首次成功入口](tutorials/README.md)开始：安装并重启正确 profile，只选一种连接方式，确认工具来源，再回到正常 DSH 会话完成服务商许可的首次只读调用。
+
 - 已有其他客户端配置：从[迁移 `mcpServers` JSON](tutorials/JSON-MIGRATION.md)开始，逐项验证配置保存、工具发现/注册和只读调用。
 - OAuth 卡在注册、授权或刷新：看[OAuth 连接诊断](tutorials/OAUTH-DIAGNOSTICS.md)，先按阶段与稳定代码排查，不反复提交未获授权的账号。
 - 已连接多个服务却找不到工具：看[跨连接找工具与发现失败恢复](tutorials/TOOL-SEARCH-RECOVERY.md)。缓存可查不等于当前可调用。

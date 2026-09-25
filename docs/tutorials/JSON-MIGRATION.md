@@ -1,5 +1,7 @@
 # 把已有 `mcpServers` JSON 迁移到 MCP连接器
 
+返回[首次成功统一入口](README.md)。
+
 适用场景：你已经有其他客户端的 `mcpServers` 配置，希望在 DeepSeek Harness 中统一管理，而不是逐个重新录入。本文只演示受信任的 HTTP/stdio MCP Server；不会把普通 API 或 CLI 自动变成 MCP Server。
 
 ## 迁移前：先确认什么
