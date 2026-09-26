@@ -36,7 +36,7 @@ Tool browsing does not execute target tools. Parameter summaries may omit comple
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
+Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, if the sidebar shortcut is hidden, open the **dsh-mcp-connector** details from **Plugins** and click **Open MCP Connector** in its settings section.
 
 For a first successful use, confirm the connection and scope in Installed, find the expected tool and source in Tools, then complete one provider-permitted read-only call through the normal DSH Host approval flow. Cached visibility alone does not prove that a service is currently callable.
 
@@ -62,7 +62,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 ## Features
 
 - A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
-- A profile-wide sidebar visibility preference; even when the shortcut is hidden, the existing connector dialog remains available from **Settings → Plugins → Plugin Configuration → MCP Connector**.
+- A profile-wide sidebar visibility preference; even when the shortcut is hidden, the existing connector dialog remains available from the **MCP Connector** section in **dsh-mcp-connector** details.
 - Searchable Marketplace and Installed views; the default Marketplace groups cards into Featured plus nine business-category sections, previews four cards per section, keeps the category bar visible while scrolling, and shows every card when a single category is selected.
 - OAuth 2.0 Authorization Code with PKCE, including DCR public clients and `client_secret_post` / `client_secret_basic`; API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.
 - Installation from a credential-free connector descriptor URL.
@@ -118,7 +118,7 @@ Run the same command again to upgrade. Fully quit and restart DeepSeek Harness D
 
 ## Usage
 
-1. Select **MCP Connector** in the primary sidebar, or choose **Open MCP Connector** from **Settings → Plugins → Plugin Configuration → MCP Connector**.
+1. Select **MCP Connector** in the primary sidebar, or choose **Open MCP Connector** in the **MCP Connector** section of **dsh-mcp-connector** details.
 2. Choose a connector, confirm **Current project** or **All projects (global)**, and complete authorization or configuration.
 3. Open its details to inspect tools or send an example prompt to a new conversation draft.
 4. Use Installed or the conversation tools to enable, disable, inspect, or disconnect a connection.

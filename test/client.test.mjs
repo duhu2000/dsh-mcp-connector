@@ -204,9 +204,13 @@ test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口'
   assert.deepEqual(bindSpec.decode({ showSidebarEntry: false }), { showSidebarEntry: false });
   assert.equal(bindSpec.decode({}), undefined);
   const overlay = registrations.get('shell.overlay');
+  const bundleCard = registrations.get('plugins.bundle.config');
   const settingsCard = registrations.get('settings.plugin.item');
-  assert.ok(settingsCard, '应在原生插件配置页注册 MCP连接器卡片');
-  assert.equal(settingsCard.options.key, 'mcp-connector');
+  assert.ok(bundleCard, '新版应在插件详情页注册 MCP连接器设置卡片');
+  assert.equal(bundleCard.options.key, 'dsh-mcp-connector', '详情插槽按插件包名匹配');
+  assert.ok(settingsCard, '旧版宿主仍需旧设置插槽，保持向后兼容');
+  assert.equal(settingsCard.options.key, 'mcp-connector', '旧插槽按 settings 命名空间匹配');
+  assert.equal(bundleCard.options.store, overlay.options.store, '快捷按钮必须复用现有弹框 Store');
   assert.equal(settingsCard.options.store, overlay.options.store, '快捷按钮必须复用现有弹框 Store');
 
   const store = overlay.options.store.create();
@@ -256,12 +260,12 @@ test('设置卡片可隐藏入口、恢复默认并直接打开现有弹框', as
   });
   const { ctx, registrations } = clientContext({ settingsScope: { bind: () => settings.scope } });
   plugin.apply(ctx);
-  const registration = registrations.get('settings.plugin.item');
+  const registration = registrations.get('plugins.bundle.config');
   let opens = 0;
-  const tree = registration.component({
-    ...registration.options.inject(),
-    actions: { open() { opens += 1; } },
-  });
+  const actions = { open() { opens += 1; } };
+  const inject = registration.options.inject();
+  const tree = registration.component({ ...inject, actions, view: 'page' });
+  assert.equal(tree.type, 'div');
   const descendants = [];
   const visit = (node) => {
     if (node == null || typeof node !== 'object') return;
@@ -288,6 +292,12 @@ test('设置卡片可隐藏入口、恢复默认并直接打开现有弹框', as
 
   open.props.onClick();
   assert.equal(opens, 1);
+
+  assert.equal(
+    registration.component({ ...inject, actions, view: 'summary' }),
+    null,
+    '详情摘要只取一行文本，不渲染整张卡片',
+  );
 });
 
 test('隐藏状态不创建侧边栏 Portal 或观察器', async () => {

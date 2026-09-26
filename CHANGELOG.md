@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 适配 DSH 0.1.7+ 已移除的“设置 → 插件”页面：侧栏可见性开关改为注册在插件详情页的 `plugins.bundle.config` 插槽（按插件包名匹配），并保留旧 `settings.plugin.item` 注册以兼容旧宿主；profile 级设置与隐藏后打开连接器的行为不变。
+
 ## [0.2.59] - 2026-09-25
 
 ### Fixed
