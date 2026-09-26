@@ -4,6 +4,7 @@
 > Issue：https://github.com/duhu2000/dsh-mcp-connector/issues/63
 > 基线：`main@aa918f2257eb1cdf5d9a9bdd90e847a5c6f9dbd8`（v0.2.37）
 > 目标版本：v0.2.38
+> 当前 UI 适配：新版 DSH 已移除“设置 → 插件”页面；侧栏显示开关现注册在插件详情卡片的 `plugins.bundle.config` 插槽（按插件包名 `dsh-mcp-connector` 匹配），并保留旧 `settings.plugin.item` 注册以兼容旧宿主。下文保留 v0.2.38 的原始设计背景。
 
 ## 1. 背景与问题
 
