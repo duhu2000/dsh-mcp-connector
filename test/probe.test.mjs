@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { probeConnector, validateRegistryDescriptors } from '../lib/probe.js';
+import { classifyProbeError, probeConnector, validateRegistryDescriptors } from '../lib/probe.js';
 import { discoverServerMetadata } from '../lib/oauth.js';
 
 async function listen(handler) {
@@ -29,6 +29,23 @@ test('stdio registry 校验通过但探针绝不执行本地命令', async () =>
   assert.equal(report.status, 'pass');
   assert.equal(report.servers[0].transport, 'stdio');
   assert.match(report.servers[0].skipped, /不会执行|不会.*命令/);
+});
+
+test('探针展开 fetch cause 并输出安全的 DNS 分类', () => {
+  const cause = Object.assign(new Error('getaddrinfo ENOTFOUND secret.example'), { code: 'ENOTFOUND' });
+  const result = classifyProbeError(new TypeError('fetch failed', { cause }));
+  assert.deepEqual(result, {
+    kind: 'dns',
+    code: 'ENOTFOUND',
+    message: 'DNS lookup failed (ENOTFOUND)',
+  });
+  assert.doesNotMatch(JSON.stringify(result), /secret\.example/);
+});
+
+test('探针为未知错误返回稳定分类且不回显原始消息', () => {
+  const result = classifyProbeError(new Error('request contained Bearer must-not-leak'));
+  assert.deepEqual(result, { kind: 'network', message: 'Network request failed' });
+  assert.doesNotMatch(JSON.stringify(result), /Bearer|must-not-leak/);
 });
 
 test('OAuth 连接器公开元数据探针可判定 pass', async () => {
