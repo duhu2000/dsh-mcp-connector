@@ -183,6 +183,21 @@ test('内置弹框 Store 实现标准快照、订阅与动作 contract', async (
   assert.doesNotThrow(() => instance.clearPersisted());
 });
 
+test('partial optional settings services do not block the connector UI', async () => {
+  const plugin = await loadClient();
+  for (const settingsScope of [null, {}, { bind: false },
+    { bind: () => undefined }, { bind: () => ({}) },
+    { bind: () => ({ getSnapshot() {} }) },
+    { bind: () => ({ subscribe() {} }) }]) {
+    const { ctx, registrations } = clientContext({ settingsScope });
+    assert.doesNotThrow(() => plugin.apply(ctx));
+    const overlay = registrations.get('shell.overlay');
+    assert.ok(overlay, 'connector overlay must remain available');
+    assert.equal(overlay.options.store.create().getSnapshot().sidebarVisible, true);
+    assert.equal(registrations.has('settings.plugin.item'), false);
+  }
+});
+
 test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口', async () => {
   const plugin = await loadClient();
   const settings = mutableSettingsScope({

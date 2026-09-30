@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 检查可选 Settings 服务的实际 API 能力，避免宿主缺少 `register()` 时阻断启动；客户端遇到缺失或不完整的 settings scope 时保留连接器入口并跳过设置卡片。不吞掉已提供 API 的内部异常，也不宣称降级宿主支持设置持久化。
+
 ## [0.2.62] - 2026-09-29
 
 ### Documentation
