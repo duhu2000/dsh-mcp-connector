@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.2.64] - 2026-10-02
+
+### Fixed
+
+- 将连接器描述和本机连接记录中的 `env`、`headers`、`credentialBindings` 改为 Zod 显式键/值 record，修复 Host 解析到 Zod 4.1.x 时非空对象触发 `_zod` TypeError、阻断 storage domain 和 DSH 启动的问题（#112）。
+- Zod peer 下限与已验证兼容版本对齐到 `4.1.8`，并增加固定旧版依赖的完整测试门禁，避免常规 CI 只安装最新版而掩盖兼容回归。
+
+### Verification
+
+- 新增非空 `env`、`headers`、`credentialBindings` 解析回归；CI 在 Zod 4.1.8 下执行完整测试套件。
+
 ## [0.2.63] - 2026-09-30
 
 ### Fixed

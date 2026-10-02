@@ -1,12 +1,47 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConnectorDescriptor, normalizeConnectionRecord } from '../lib/schema.js';
+import {
+  connectionRecordSchema,
+  normalizeConnectorDescriptor,
+  normalizeConnectionRecord,
+  serverRefSchema,
+} from '../lib/schema.js';
 import { auditDescriptor, auditRawDescriptor } from '../lib/catalog.js';
 import { normalizeJsonImport } from '../lib/connectors/json-connector.js';
 import { buildManualRecord } from '../lib/connectors/manual-connector.js';
 import { resourceMetadataUrlFallback } from '../lib/oauth.js';
 import { normalizeConnectionDisplayName } from '../lib/util.js';
 import { buildEntryConfig } from '../lib/mcp-provision.js';
+
+test('Zod 4.1 兼容：非空 env、headers 与 credentialBindings 可在 domain open 前解析', () => {
+  const server = serverRefSchema.parse({
+    serverKey: 'stdio',
+    command: 'vendor-mcp',
+    serverName: 'vendor',
+    env: { LOG_LEVEL: 'info' },
+    credentialBindings: { VENDOR_TOKEN: 'apiToken' },
+    headers: { 'X-Region': 'cn' },
+  });
+  assert.deepEqual(server.env, { LOG_LEVEL: 'info' });
+  assert.deepEqual(server.credentialBindings, { VENDOR_TOKEN: 'apiToken' });
+  assert.deepEqual(server.headers, { 'X-Region': 'cn' });
+
+  const record = connectionRecordSchema.parse({
+    key: 'vendor-main',
+    connectorId: 'vendor',
+    kind: 'json',
+    name: 'Vendor',
+    transport: 'stdio',
+    command: 'vendor-mcp',
+    serverName: 'vendor',
+    env: { VENDOR_TOKEN: 'redacted-test-value' },
+    headers: { 'X-Region': 'cn' },
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  assert.deepEqual(record.env, { VENDOR_TOKEN: 'redacted-test-value' });
+  assert.deepEqual(record.headers, { 'X-Region': 'cn' });
+});
 
 test('normalizeConnectorDescriptor 补齐默认值', () => {
   const d = normalizeConnectorDescriptor({
