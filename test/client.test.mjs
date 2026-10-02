@@ -426,6 +426,21 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
   assert.doesNotMatch(source, /hHd-Xa_/, '不得依赖 DSH 构建生成的 CSS 类名');
 });
 
+test('侧栏入口图标与宿主同为单色线性 SVG，不再使用彩色 emoji', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /🧩/, '入口不得再使用彩色 emoji 图标');
+  const marker = source.indexOf('className: "mcpConnectorLauncherIcon"');
+  assert.ok(marker > -1, '应保留 launcher 图标容器');
+  const icon = source.slice(marker, marker + 900);
+  assert.match(icon, /viewBox: "0 0 16 16"/, '应与宿主图标一致使用 16×16 viewBox');
+  assert.match(icon, /fill: "none"/, '线性图标应为描边绘制');
+  assert.match(icon, /stroke: "currentColor"/, '应继承文字颜色，随明暗主题自动适配');
+  assert.match(icon, /strokeLinejoin: "round"|strokeLinecap: "round"/, '应与宿主图标一致使用圆角端点');
+  const css = source.split('const sidebarCss = `')[1].split('`;')[0];
+  assert.match(css, /\.mcpConnectorLauncherIcon > svg \{[\s\S]*?width: 18px;[\s\S]*?height: 18px;/, '图标尺寸应由入口样式定义');
+  assert.doesNotMatch(css, /font-size: 18px/, 'emoji 字号样式应移除');
+});
+
 test('侧栏入口悬停不描边，键盘焦点仍可见，布局不使用负边距或文本空格对齐（#86）', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   const css = source.split('const sidebarCss = `')[1].split('`;')[0];

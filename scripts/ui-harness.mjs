@@ -151,7 +151,7 @@ function captureShell() {
 </head>
 <body>
   <section class="capture-panel" aria-label="MCP连接器产品面板">
-    <header class="capture-header"><span aria-hidden="true">🧩</span><span class="capture-title">MCP连接器</span><span class="capture-version">v${packageJson.version}</span><span class="capture-state">无凭据 Mock</span></header>
+    <header class="capture-header"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M6 2V4.5" stroke="currentColor" stroke-linecap="round"/><path d="M10 2V4.5" stroke="currentColor" stroke-linecap="round"/><path d="M3.5 4.5H12.5V8.25C12.5 10.7353 10.4853 12.75 8 12.75C5.51472 12.75 3.5 10.7353 3.5 8.25V4.5Z" stroke="currentColor" stroke-linejoin="round"/><path d="M8 12.75V14.5" stroke="currentColor" stroke-linecap="round"/></svg><span class="capture-title">MCP连接器</span><span class="capture-version">v${packageJson.version}</span><span class="capture-state">无凭据 Mock</span></header>
     <iframe src="/mcp-connector/ui/" title="MCP连接器"></iframe>
   </section>
   <script>

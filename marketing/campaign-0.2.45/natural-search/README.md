@@ -95,7 +95,7 @@ Tool search reads the last successful sanitized cache and never executes a targe
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-安装或升级后完全退出并重启 DeepSeek Harness Desktop；使用 `dsh web` 时先停止原进程再启动。然后点击左侧“🧩 MCP连接器”，或进入“设置 → 插件 → 插件配置 → MCP连接器”，点击“打开 MCP连接器”。
+安装或升级后完全退出并重启 DeepSeek Harness Desktop；使用 `dsh web` 时先停止原进程再启动。然后点击左侧“MCP连接器”，或进入“设置 → 插件 → 插件配置 → MCP连接器”，点击“打开 MCP连接器”。
 
 1. 在“市场”选择连接器并完成授权或配置。
 2. 在“工具”跨连接搜索，并按连接、服务或最近发现状态筛选。

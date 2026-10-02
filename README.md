@@ -36,7 +36,7 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「🧩 MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
+安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
 
 首次使用建议依次确认：连接已保存且范围正确 → “工具”页能找到预期工具与来源 → 在正常 DSH 会话中通过 Host 审批链完成一次服务商许可的只读调用。缓存可见不等于当前服务可调用。
 
@@ -119,7 +119,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 ## 使用
 
-1. 点击左侧“🧩 MCP连接器”，或从“设置 → 插件 → 插件配置 → MCP连接器”点击“打开 MCP连接器”。
+1. 点击左侧“MCP连接器”，或从“设置 → 插件 → 插件配置 → MCP连接器”点击“打开 MCP连接器”。
 2. 在市场中选择连接器，确认“当前项目”或“所有项目（全局）”，再完成授权或配置。
 3. 打开卡片详情，可点击示例 Prompt 的发送按钮，在当前工作区创建/复用空白会话并写入草稿。
 4. 在“已安装”或对话工具中查看、停用、恢复或断开连接。
