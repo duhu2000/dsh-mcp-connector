@@ -18,6 +18,7 @@ export const DEFAULT_TARGETS = [
     label: 'dshfind',
     url: 'https://api.dshfind.com/v1/plugins/duhu2000/dsh-mcp-connector',
     parser: 'dshfind',
+    trackingUrl: 'https://github.com/hikariming/dshfind/issues/49',
   },
   {
     id: 'dsh-directory',
@@ -30,7 +31,7 @@ export const DEFAULT_TARGETS = [
     label: 'dsh.pub',
     url: 'https://dsh.pub/en/plugins/dsh-mcp-connector/',
     parser: 'json-ld',
-    trackingUrl: 'https://github.com/dsh-pub/dsh-pub/issues/88',
+    trackingUrl: 'https://github.com/dsh-pub/dsh-pub/issues/117',
   },
   {
     id: 'dshbase',

@@ -25,6 +25,13 @@ test('does not expose a closed PR as the awesome directory follow-up', () => {
   assert.equal(awesome.trackingUrl, undefined);
 });
 
+test('links each active external metadata defect to its current follow-up', () => {
+  const tracking = Object.fromEntries(DEFAULT_TARGETS.map((candidate) => [candidate.id, candidate.trackingUrl]));
+  assert.equal(tracking.dshfind, 'https://github.com/hikariming/dshfind/issues/49');
+  assert.equal(tracking['dsh-pub'], 'https://github.com/dsh-pub/dsh-pub/issues/117');
+  assert.equal(tracking.dshbase, 'https://github.com/ylwl1997/dshbase/issues/100');
+});
+
 test('parses the connector from awesome-dsh-plugin registry JSON', () => {
   assert.deepEqual(parseAwesome({
     updated: '2026-09-11',
