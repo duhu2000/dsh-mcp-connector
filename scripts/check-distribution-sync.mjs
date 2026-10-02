@@ -18,7 +18,6 @@ export const DEFAULT_TARGETS = [
     label: 'dshfind',
     url: 'https://api.dshfind.com/v1/plugins/duhu2000/dsh-mcp-connector',
     parser: 'dshfind',
-    trackingUrl: 'https://github.com/hikariming/dshfind/issues/49',
   },
   {
     id: 'dsh-directory',
