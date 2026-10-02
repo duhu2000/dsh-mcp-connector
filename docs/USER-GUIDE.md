@@ -195,6 +195,7 @@ stdio 进程由 `@deepseek-ai/dsh-mcp-client` 管理，插件透传 `command`、
 - 查看连接状态和 Server 数量；
 - 编辑自定义或 JSON 导入连接的标准化 JSON，并保存后重新连接；
 - 修改自定义或 JSON 导入连接的显示名，无需先停用连接；
+- 选择“始终注入”或“按会话启用（实验）”；
 - 启用或停用连接；
 - 重新授权 OAuth，或重新录入 Token/API Key；
 - 执行健康检查；
@@ -225,7 +226,15 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 工具尚未被 Host 观察时显示“未观察”，不会报告为“已禁用”或“健康”。工具删除或重命名后，旧规则标记为失效但不会误伤新工具；新注册工具自动继承 Server/Connection 规则。完整语义见[治理说明](TOOL-GOVERNANCE.md)。
 
-### 7.3 project/global 连接范围
+### 7.3 按会话启用工具
+
+“始终注入”是旧连接的兼容默认值。当某条连接工具较多、但只在少数会话使用时，可在“已安装”将它改为“按会话启用（实验）”。连接和 OAuth/API Key 生命周期保持不变，Host 只是在每个 Agent 中默认隐藏该连接的业务工具。
+
+在对话中，`mcp_connector_session_tools` 先使用 `search` 定位精确 `publicName`，再使用 `preview-activate` 获取 revision；只有用户明确指定后才可 `activate`。默认 TTL 为 30 分钟，可设为 1–30 分钟；激活从下一次模型推理边界生效。会话结束、过期、插件重启或 DSH 重启后均回到休眠状态。
+
+会话激活不能覆盖 project/global 范围、Connection/Server/Tool `deny`、连接停用或 Host 审批。插件不会保存会话正文、触发词或工具参数，当前版本也不根据关键词自动激活。完整流程与排障见[按会话启用说明](SESSION-TOOL-INJECTION.md)。
+
+### 7.4 project/global 连接范围
 
 “已安装”会在每条连接上显示范围。点击“范围”可选择：
 
@@ -234,7 +243,7 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 提交前页面会列出受影响的 Server 和已知工具。确认后才按 revision 写入，可使用“回滚上次范围变更”恢复。范围变更不复制 Token、API Key 或 OAuth Grant；不同连接管理同一 `serverName` 时会拒绝静默覆盖。完整执行和失败边界见 [project/global 作用域](CONNECTION-SCOPES.md)。
 
-### 7.4 如何理解连接诊断
+### 7.5 如何理解连接诊断
 
 诊断结果只陈述插件实际观察到的事实，不把“配置已保存”当作“连接健康”：
 

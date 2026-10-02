@@ -56,6 +56,7 @@ dsh plugin --profile web add dsh-mcp-connector
 | 易读参数与来源 | 查看类型、必填、枚举、嵌套摘要、来源、缓存时间及安全裁剪后的 Schema |
 | 连接排障 | 根据明确的阶段和错误码检查连接或重新发现工具，同时保留可用的最后成功缓存 |
 | 作用域与治理 | 管理 project/global 可见范围以及 Connection、Server、Tool 三层规则 |
+| 按会话工具注入 | 连接保持在线，对选定连接默认隐藏 schema，只在当前 Agent 临时激活精确工具 |
 | 安全生命周期 | 支持凭据本机存储、授权刷新、脱敏备份、快照回滚及失败时保留原连接 |
 | 插件更新 | 检测新版本，并在宿主提供兼容 Update Provider 时显示进度、失败原因和回滚结果 |
 
@@ -75,13 +76,14 @@ dsh plugin --profile web add dsh-mcp-connector
 - 配置备份：一键复制/下载可再次导入的脱敏 JSON；连接变更前自动保存最多 20 个本机快照，支持预览与原子恢复。凭据、本地路径和 OAuth Grant 不进入导出结果。
 - 连接作用域：新连接可选当前 Workspace 项目或 profile 全局；支持先预览 Server/工具影响，再复制、移动或按 revision 回滚。凭据只存一份，project-only 工具由 DSH Host 强制隔离。
 - 三层治理：Connection、Server、Tool 规则按 Tool > Server > Connection > 默认允许解析；变更先预览、按 revision 提交并可回滚，由 DSH Host 的 schema/lookup/dispatch restriction 与最终执行 Guard 真实生效。
+- 按会话工具注入：“已安装”连接可选“始终注入”或“按会话启用”。后者不断开 Server，只由 Host 在当前 Agent 隐藏业务工具；明确预览和确认后临时激活精确工具，最长 30 分钟，会话或进程结束后清空。
 - 可解释诊断：只报告实际观察结果；未检查或 Host 状态不可见时显示“状态未知”，并提供失败阶段、稳定错误码、建议动作、检查时间和进程内最近成功时间。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
 - 插件版本与一键更新：版本发现独立于安装来源；页面通过 Update Provider 适配层探测安全更新能力。DSH Market API v1 是首个适配器，支持进度、稳定失败码、回滚及按宿主能力提供的重启/刷新操作；无可用 Provider 时回退到当前插件市场或 npm。
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
 - 平滑迁移：显式扫描并复制两个旧企查查 OAuth 插件授权；检测到旧插件仍启用并管理同名 Server 时阻断重复连接，避免凭据相互覆盖。
-- 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
+- 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
 截至 2026-09-30，公共 Registry 已发布 107 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 111 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。推荐位严格保留 4 张企查查卡片、北大法宝和 Wind，共 6 张；其他连接器按业务分类展示。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
@@ -137,6 +139,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 - [配置备份：脱敏导出、快照与恢复边界](docs/CONFIG-BACKUP.md)
 - [连接作用域：project/global 继承、复制、移动与回滚](docs/CONNECTION-SCOPES.md)
 - [连接、Server 与 Tool 治理](docs/TOOL-GOVERNANCE.md)
+- [按会话启用工具：显式激活、TTL 与 Host 安全边界](docs/SESSION-TOOL-INJECTION.md)
 - [工具试运行：官方 API 证据与安全设计](docs/TOOL-TRIAL-DESIGN.md)
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
@@ -175,8 +178,9 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 | 配置作用域 | Workspace project / profile global；全局由项目继承，Host 强制隔离，支持预览、复制/移动和 revision 回滚 |
 | 配置交换 | JSON 导入、脱敏导出、最多 20 个本机快照、预览与原子恢复 |
 | 治理与执行 | Connection / Server / Tool allow/deny，预览、revision 提交与回滚；暂无工具试运行 |
+| 会话注入 | 默认 always；可对单条连接显式选择 session，由 Host restriction + guard 按 Agent 隔离，内存 TTL 最长 30 分钟 |
 
-插件负责目录、授权、连接记录、官方客户端条目、治理规则、只读健康检查、工具发现和诊断；DSH Host 与官方 MCP 客户端负责 transport、stdio 子进程、工具注册、正式工具执行及权限/审批链。治理通过 Host 官方 restriction/guard 生效，插件不会从浏览器旁路调用 MCP 工具。详细状态语义、限制与排障见[用户手册第 7–10 节](docs/USER-GUIDE.md#74-如何理解连接诊断)。
+插件负责目录、授权、连接记录、官方客户端条目、治理规则、只读健康检查、工具发现和诊断；DSH Host 与官方 MCP 客户端负责 transport、stdio 子进程、工具注册、正式工具执行及权限/审批链。治理通过 Host 官方 restriction/guard 生效，插件不会从浏览器旁路调用 MCP 工具。详细状态语义、限制与排障见[用户手册第 7–10 节](docs/USER-GUIDE.md#75-如何理解连接诊断)。
 
 ## 开发与发布门禁
 

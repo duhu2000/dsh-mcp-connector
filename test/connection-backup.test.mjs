@@ -94,6 +94,13 @@ test('脱敏导出保留局域网 HTTP 的显式授权标记', () => {
   assert.equal(records[0].url, 'http://192.168.31.138:8188/mcp');
 });
 
+test('脱敏导出保留不含凭据的工具注入模式', () => {
+  const exported = exportRedactedConnections([record({ injectionMode: 'session' })]);
+  assert.equal(exported.connections[0].injectionMode, 'session');
+  const { records } = normalizeJsonImport(exported);
+  assert.equal(records[0].injectionMode, 'session');
+});
+
 test('快照公开摘要只暴露恢复范围与 OAuth 可恢复性', () => {
   const snapshot = {
     key: 'snapshot-1',

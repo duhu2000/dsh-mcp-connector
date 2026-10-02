@@ -1,6 +1,18 @@
 # 会话级 MCP 工具动态注入设计
 
-> 对应 Issue [#111](https://github.com/duhu2000/dsh-mcp-connector/issues/111)。本文只定义运行时方案与验收边界，不代表功能已经交付。
+> 对应 Issue [#111](https://github.com/duhu2000/dsh-mcp-connector/issues/111)。Phase 0+1 已进入 `Unreleased`：支持连接级 `always/session` 模式、当前 Agent 精确工具激活、最长 30 分钟 TTL 及 Host restriction + guard 强制。本文同时保留后续阶段的设计边界。
+
+## 0. 实现状态
+
+| 范围 | 状态 |
+| --- | --- |
+| 旧连接默认 `always`；页面可改为 `session` | Phase 0+1 已实现 |
+| `status/search/preview-activate/activate/deactivate` 元工具 | Phase 0+1 已实现 |
+| 按 Agent 内存隔离、revision、TTL、销毁/重启清理 | Phase 0+1 已实现 |
+| 精确 public tool name、Workspace/治理交集、Host 最终 Guard | Phase 0+1 已实现 |
+| Server/整连接批量激活、`renew`、轮次预算、风险自动分级 | 后续阶段 |
+| 页面内直接管理当前会话激活 | 等待可靠 Agent 上下文桥接 |
+| 关键词自动路由 | 明确延后，等待正式模型组装前 Hook |
 
 ## 1. 背景与目标
 
@@ -154,7 +166,7 @@ deny(agent)
 - Agent 消失时释放 restriction 和内存状态；
 - Guard 动态读取最新快照，避免 restriction 切换竞态绕过执行检查。
 
-如果 DSH 明确保证多份 restriction 的交集语义稳定，也可以先独立实现；但测试必须覆盖安装顺序、释放顺序和三层同时变化。未确认契约前，统一协调器更安全。
+当前 Phase 0+1 已根据安装的 DSH Host 契约确认多份 restriction 取交集，因此先采用独立会话控制器；回归测试覆盖了多 restriction 交集、替换/释放、工具漂移和 Guard fail-closed。如 Host 契约后续变更，再抽取统一 deny 协调器。
 
 ### 6.3 工具身份解析
 
@@ -177,7 +189,7 @@ deny(agent)
 - `preview-activate`：解析精确名称，返回将新增的 schema、风险等级与 revision；
 - `activate`：携带 `expectedRevision` 提交；
 - `deactivate`：停用指定项或清空当前会话；
-- `renew`：在策略允许范围内延长 TTL。
+- `renew`：在策略允许范围内延长 TTL（后续阶段，Phase 0+1 需重新预览并激活）。
 
 `activate` 完成后只保证**下一次模型推理边界**使用新 schema，不声称能修改已经组装完成的当前 Prompt。
 
@@ -187,9 +199,9 @@ deny(agent)
 
 - 工具注入：`始终注入` / `按会话启用（实验）`；
 - 简短说明：按会话模式不会断开连接，只减少默认工具 schema；
-- 当前页面能确定 Agent 上下文时显示“本会话已启用 N 个工具”；
-- “查看”“清除本会话工具”和过期时间；
-- 页面提交同样走 preview + `expectedRevision`，不直接修改前端本地状态后冒充成功。
+- 当前页面能确定 Agent 上下文时显示“本会话已启用 N 个工具”（后续阶段）；
+- “查看”“清除本会话工具”和过期时间（后续阶段）；
+- 页面获得可信 Agent 桥接后，提交同样走 preview + `expectedRevision`，不直接修改前端本地状态后冒充成功。
 
 ### 7.3 风险分级
 

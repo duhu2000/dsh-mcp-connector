@@ -50,6 +50,15 @@ test('市场卡片恢复紧凑信息量，运行提示为短标签，完整说�
   assert.match(uiSource, /connectionLabels\(d\)\.join/);
 });
 
+test('已安装连接可选始终注入或按会话启用，并明确不会断开连接', () => {
+  assert.match(uiSource, /class="injection-select"/);
+  assert.match(uiSource, />始终注入<\/option>/);
+  assert.match(uiSource, />按会话启用（实验）<\/option>/);
+  assert.match(uiSource, /按会话模式不会断开连接/);
+  assert.match(uiSource, /call\('setInjectionMode', \{ key, mode \}\)/);
+  assert.match(uiSource, /最长 30 分钟/);
+});
+
 test('参数摘要保留必填、嵌套与约束，转义所有远端文本并对复杂结构降级', () => {
   const start = uiSource.indexOf('  function schemaSummary(');
   const end = uiSource.indexOf('  function showToolParameters(', start);

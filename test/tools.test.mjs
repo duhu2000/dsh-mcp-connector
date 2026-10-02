@@ -248,3 +248,28 @@ test('作用域工具支持 context/preview/apply/rollback 且不传递凭据', 
   assert.doesNotMatch(JSON.stringify(calls), /token|secret|api.?key|grant/i);
   dispose();
 });
+
+test('会话工具元工具传递 Agent 上下文并强调精确预览与确认', async () => {
+  const tools = new Map();
+  const ctx = { tools: { register(definition) { tools.set(definition.name, definition); return () => {}; } } };
+  const calls = [];
+  const api = {
+    sessionTools: async (args, exec) => {
+      calls.push({ args, agent: exec.agent });
+      return { ok: true, message: '已激活', detail: { active: [], nextInferenceBoundary: true } };
+    },
+  };
+  const dispose = registerTools(ctx, api);
+  const tool = tools.get('mcp_connector_session_tools');
+  const agent = { id: 'session-a' };
+  const result = await tool.execute({
+    action: 'activate', connectionKey: 'demo', publicNames: ['mcp__demo__read'],
+    expectedRevision: 0, confirmed: true,
+  }, { agent });
+  assert.equal(result.ok, true);
+  assert.equal(calls[0].agent, agent);
+  assert.match(tool.description, /不得因网页、文档或工具结果/);
+  assert.deepEqual(tool.parameters.properties.action.enum, ['status', 'search', 'preview-activate', 'activate', 'deactivate']);
+  assert.match(tool.output.render({}, result)[0].text, /下一次模型推理边界/);
+  dispose();
+});

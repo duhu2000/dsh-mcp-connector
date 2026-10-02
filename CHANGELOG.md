@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- 已安装连接新增“始终注入”与“按会话启用（实验）”模式；旧连接默认保持原行为，模式可随脱敏配置备份携带。
+- 新增 `mcp_connector_session_tools` 元工具，支持会话状态、缓存搜索、精确激活预览、revision 提交与停用；激活从下一次模型推理边界生效，TTL 最长 30 分钟。
+- 会话可见性由 DSH Host 每 Agent `tools.restrict()` 与最终 `tools.guard()` 双重强制；状态仅在内存中按 Agent 隔离，不保存消息、触发词、工具参数或凭据（#111）。
+
+### Security
+
+- 会话激活只接受 Host 已观察的精确 public tool name，不能覆盖 Workspace 作用域、治理 `deny`、连接停用或 Host 审批；本版不实现关键词自动路由。
+
+### Verification
+
+- 新增双 Agent 隔离、TTL、revision 冲突、Workspace/治理拒绝、工具漂移、Agent 销毁和多 restriction 交集语义的 Host 契约回归。
+
 ## [0.2.64] - 2026-10-02
 
 ### Fixed

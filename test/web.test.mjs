@@ -72,6 +72,7 @@ const api = {
   renameConnection: async (key, name) => ({ ok: true, message: 'renamed', detail: { key, name } }),
   editableConnectionConfig: async (key) => ({ ok: true, message: 'editable', detail: { key, json: '{"connections":[]}' } }),
   reconfigureConnection: async (key, json) => ({ ok: true, message: 'reconfigured', detail: { key, jsonLength: json.length } }),
+  setInjectionMode: async (key, mode) => ({ ok: true, message: 'mode updated', detail: { key, mode } }),
   exportConfig: async () => ({ ok: true, message: 'redacted', detail: { json: '{"redacted":true}' } }),
   toolSearch: async (input) => ({ ok: true, message: 'found', detail: { items: [{ name: input.query }] } }),
   toolDetail: async (input) => ({ ok: true, message: 'detail', detail: { tool: { name: input.toolName } } }),
@@ -167,6 +168,15 @@ test('api 路由：method 白名单调度 + 非 POST/未知方法', async () => 
     body: JSON.stringify({ method: 'toolSearch', params: { query: 'lookup' } }),
   }), searchRes);
   assert.equal(JSON.parse(searchRes.body).detail.items[0].name, 'lookup');
+
+  const injectionRes = new FakeRes();
+  await route.handler(fakeReq({
+    method: 'POST',
+    url: '/mcp-connector/api',
+    headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+    body: JSON.stringify({ method: 'setInjectionMode', params: { key: 'a', mode: 'session' } }),
+  }), injectionRes);
+  assert.deepEqual(JSON.parse(injectionRes.body).detail, { key: 'a', mode: 'session' });
 
   const detailRes = new FakeRes();
   await route.handler(fakeReq({

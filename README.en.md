@@ -56,6 +56,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 | Readable parameters and sources | Inspect types, required fields, enums, nested summaries, sources, cache time, and a sanitized schema |
 | Connection troubleshooting | Use observed stages and stable error codes to check a connection or rediscover tools while retaining an available last-success cache |
 | Scope and governance | Manage project/global visibility plus Connection, Server, and Tool rules |
+| Per-session tool injection | Keep a connection online while hiding its schemas by default, then activate exact tools only for the current Agent |
 | Safer lifecycle management | Keep credentials local, refresh grants, export redacted backups, restore snapshots, and preserve the previous connection on failure |
 | Plugin updates | Detect newer versions and, when the host exposes a compatible Update Provider, show progress, failures, and rollback results |
 
@@ -76,6 +77,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Portable redacted configuration export plus up to 20 local pre-change snapshots, with preview and atomic restore. Credentials, local paths, and OAuth grants never enter the export.
 - Project/global connection scopes: choose the current DSH Workspace or profile-global visibility when connecting, preview affected servers/tools, then copy, move, or roll back by revision. Credentials remain single-copy and project-only tools are enforced by the DSH Host.
 - Three-layer Connection, Server, and Tool governance with Tool > Server > Connection > default-allow precedence, preview, revision-checked commits, and rollback. DSH Host restrictions narrow schemas/lookups/dispatch while a final execution guard prevents UI-only enforcement.
+- Per-session tool injection: choose **Always inject** or **Enable per session** for an installed connection. Session mode keeps the server online but hides its business-tool schemas until exact public tool names are previewed and explicitly confirmed for the current Agent, for at most 30 minutes. Session state is memory-only and cannot override scope, governance, or Host approval.
 - Explainable diagnostics report only observed evidence. Unchecked or Host-unobservable connections remain `unknown`, with a failure stage, stable code, suggested action, check time, and process-local last-success time.
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
@@ -135,6 +137,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 - [Task guides: JSON migration, OAuth diagnostics, and cross-connection tool recovery](docs/USER-GUIDE.md#按任务开始)
 - [Connection scopes: project/global inheritance, copy, move, and rollback](docs/CONNECTION-SCOPES.md)
 - [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)
+- [Per-session tool activation, TTL, and Host safety boundary](docs/SESSION-TOOL-INJECTION.md)
 - [Tool trial: official API evidence and safety design](docs/TOOL-TRIAL-DESIGN.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
@@ -180,8 +183,9 @@ Set `catalogUrl` to an empty string for an explicitly offline/private setup. A c
 | Configuration scope | Workspace project / profile global, with Host enforcement, impact preview, copy/move, and revision rollback |
 | Configuration exchange | JSON import, redacted export, up to 20 local snapshots, preview, and atomic restore |
 | Governance and execution | Connection / Server / Tool allow/deny with preview, revision commits, and rollback; no tool trial yet |
+| Session injection | Existing connections default to always; an explicit session mode uses per-Agent Host restriction + guard with a memory-only TTL of at most 30 minutes |
 
-The plugin owns the catalog, authorization, connection records, governance rules, official-client provisioning, read-only health checks, tool discovery, and diagnostics. DSH Host and the official MCP client own transport, stdio subprocesses, tool registration, real tool execution, and permission/approval flows. Governance uses the Host's official restriction/guard boundary; the plugin never invokes MCP tools from the browser. See the [user guide](docs/USER-GUIDE.md#74-如何理解连接诊断) for status semantics, limitations, and troubleshooting.
+The plugin owns the catalog, authorization, connection records, governance rules, official-client provisioning, read-only health checks, tool discovery, and diagnostics. DSH Host and the official MCP client own transport, stdio subprocesses, tool registration, real tool execution, and permission/approval flows. Governance uses the Host's official restriction/guard boundary; the plugin never invokes MCP tools from the browser. See the [user guide](docs/USER-GUIDE.md#75-如何理解连接诊断) for status semantics, limitations, and troubleshooting.
 
 ## Development and release checks
 

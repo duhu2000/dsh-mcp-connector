@@ -157,6 +157,23 @@ test('normalizeJsonImport: connections 格式 api-key', () => {
   assert.equal(records[0].auth.apiKeyValue, 'v1');
 });
 
+test('连接记录和导入支持 always/session 注入模式', () => {
+  const legacy = normalizeConnectionRecord({
+    key: 'legacy', connectorId: 'legacy', kind: 'manual', name: 'Legacy',
+    transport: 'streamable-http', url: 'https://example.com/mcp', serverName: 'legacy',
+    createdAt: 1, updatedAt: 1,
+  });
+  assert.equal(legacy.injectionMode, undefined, '旧记录保持可读，运行时按 always 解释');
+  assert.equal(connectionRecordSchema.parse({ ...legacy, injectionMode: 'session' }).injectionMode, 'session');
+  assert.throws(() => connectionRecordSchema.parse({ ...legacy, injectionMode: 'keyword' }), /injectionMode/);
+
+  const { records } = normalizeJsonImport({
+    connections: [{ name: 'Session', url: 'https://example.com/mcp', injectionMode: 'session' }],
+  });
+  assert.equal(records[0].injectionMode, 'session');
+  assert.equal(buildManualRecord({ name: 'Always', url: 'https://example.com/mcp' }).injectionMode, 'always');
+});
+
 test('normalizeJsonImport: 局域网 HTTP 必须按条目显式授权', () => {
   assert.throws(
     () => normalizeJsonImport({ mcpServers: { lan: { url: 'http://192.168.31.138:8188/mcp' } } }),

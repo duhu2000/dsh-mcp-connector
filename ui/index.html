@@ -193,6 +193,12 @@
   .row .rname { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
   .row .rmeta { font-size: 12px; color: var(--muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row .rdiag { font-size: 12px; color: var(--text-2); margin-top: 5px; line-height: 1.45; }
+  .injection-select {
+    height: 34px; max-width: 150px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text); padding: 0 8px; font: inherit; font-size: 12px;
+  }
+  .injection-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .injection-select:disabled { opacity: .6; cursor: wait; }
   .switch { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .switch .slider { position: absolute; inset: 0; background: #d1d5db; border-radius: 999px; transition: .2s; }
@@ -422,6 +428,9 @@
     .grid { grid-template-columns: 1fr; }
     .card { flex-wrap: wrap; }
     .card .actions { width: 100%; justify-content: flex-end; }
+    .row { flex-wrap: wrap; }
+    .row .info { flex-basis: calc(100% - 52px); }
+    .injection-select { margin-left: 52px; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .market-filters { align-items: stretch; }
     .category-chips { flex-wrap: wrap; }
@@ -516,6 +525,7 @@
     reconfigureConnection: 145_000,
     installFromUrl: 145_000,
     setEnabled: 130_000,
+    setInjectionMode: 30_000,
     restoreSnapshot: 145_000,
     toolsList: 20_000,
     healthCheck: 10_000,
@@ -1342,6 +1352,7 @@
     const scopeBadge = `<span class="badge">${esc(r.scope?.label || '全局')}</span>`;
     const insecureNetworkBadge = r.insecurePrivateNetwork === true ? '<span class="badge partial">局域网 HTTP 风险已确认</span>' : '';
     const enabled = r.enabled !== false;
+    const injectionMode = r.injectionMode === 'session' ? 'session' : 'always';
     const diagnostic = r.diagnostic
       ? `<div class="rdiag">${esc(r.diagnostic.stageLabel || r.diagnostic.stage)} · ${esc(r.diagnostic.code)}：${esc(r.diagnostic.message)}；建议：${esc(r.diagnostic.action)}${r.lastSuccessfulAt ? `；最近成功：${esc(new Date(r.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}</div>`
       : '';
@@ -1351,6 +1362,10 @@
         <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.endpoint || r.url || '')}</div>
         ${diagnostic}
       </div>
+      <select class="injection-select" aria-label="${esc(r.name)} 工具注入模式" title="按会话模式不会断开连接，只会默认隐藏业务工具 schema" onchange="window.__mcp.changeInjectionMode('${key}', this.value, this)">
+        <option value="always" ${injectionMode === 'always' ? 'selected' : ''}>始终注入</option>
+        <option value="session" ${injectionMode === 'session' ? 'selected' : ''}>按会话启用（实验）</option>
+      </select>
       <label class="switch" title="${enabled ? '停用' : '启用'}" aria-label="${enabled ? '停用' : '启用'} ${esc(r.name)}">
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle('${key}', this.checked)">
         <span class="slider"></span>
@@ -1728,6 +1743,19 @@
     dismissCommunityCta() { dismissCommunityCta(); },
     toggle(key, enabled) {
       call('setEnabled', { key, enabled }).then((r) => showToast(r.message, r.ok));
+    },
+    async changeInjectionMode(key, mode, select) {
+      const previous = mode === 'session' ? 'always' : 'session';
+      if (mode === 'session' && !confirm('按会话启用不会断开 MCP 连接，但会在所有会话中默认隐藏该连接的业务工具。\n\n之后需要在对话中明确选择工具才会临时激活，最长 30 分钟。确认继续？')) {
+        select.value = previous;
+        return;
+      }
+      select.disabled = true;
+      const result = await call('setInjectionMode', { key, mode });
+      showToast(result.message, result.ok);
+      if (!result.ok) select.value = previous;
+      select.disabled = false;
+      if (result.ok) await refresh();
     },
     async disconnect(key) {
       if (!confirm('确认断开该连接？OAuth 授权会被撤销。')) return;

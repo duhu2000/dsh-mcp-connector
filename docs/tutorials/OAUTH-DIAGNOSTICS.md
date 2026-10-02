@@ -35,4 +35,4 @@
 
 在 [GitHub Issue](https://github.com/duhu2000/dsh-mcp-connector/issues) 提供：DSH 版本、插件版本、连接器名称、操作系统、脱敏的阶段/code、时间、复现步骤，以及“浏览器是否进入授权”“工具是否注册”“只读调用是否成功”三个独立结论。不要上传 Token、API Key、Cookie、授权码、完整 Header、用户信息或本机路径。
 
-完整状态语义见[用户手册：连接诊断](../USER-GUIDE.md#74-如何理解连接诊断)。
+完整状态语义见[用户手册：连接诊断](../USER-GUIDE.md#75-如何理解连接诊断)。
