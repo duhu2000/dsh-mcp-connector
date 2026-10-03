@@ -1057,9 +1057,17 @@
   function showToolParameters(tool, toolName, serverName) {
     const observed = tool.observedAt ? new Date(tool.observedAt).toLocaleString('zh-CN', { hour12: false }) : '未知';
     const schema = tool.inputSchema ? JSON.stringify(tool.inputSchema, null, 2) : '未缓存输入参数 schema';
+    const comparison = tool.schemaComparison;
+    const comparisonText = comparison?.status === 'changed'
+      ? '缓存参数结构已变化，可能影响既有调用；使用前请核对参数，并按 Host 要求重新确认。'
+      : comparison?.status === 'unchanged'
+        ? '与上次完整发现缓存相比，未检测到 Schema 变化；不代表当前 Host 执行参数或权限未变化。'
+        : 'Schema 不完整或缺少历史记录，无法判断兼容性。';
     openModal(`工具参数 · ${tool.name || toolName}`, `
       <p class="hint">${esc(tool.serverName || serverName)} · 最后成功 ${esc(observed)}${tool.stale ? ' · 缓存已超过 24 小时' : ''}${tool.schemaTruncated ? ' · schema 已安全裁剪' : ''}</p>
       <p>${esc(tool.description || '暂无描述')}</p>
+      <p class="hint">仅为发现缓存；调用：无证据/待验收。</p>
+      <p class="hint">${esc(comparisonText)}${comparison?.changedAt ? ` 检测时间：${esc(new Date(comparison.changedAt).toISOString())}` : ''}${comparison?.previousObservedAt ? ` 比较基线：${esc(new Date(comparison.previousObservedAt).toISOString())}` : ''}</p>
       ${schemaSummary(tool.inputSchema)}
       <details><summary>原始 Schema（安全缓存）</summary><pre class="tool-schema">${esc(schema)}</pre></details>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);

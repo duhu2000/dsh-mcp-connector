@@ -224,6 +224,67 @@ test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢�
   }
 });
 
+test('Schema discovery lifecycle: first, unchanged, add/remove/type change, offline cache and recovery', { timeout: 15000 }, async () => {
+  let offline = false;
+  let schema = { type: 'object', properties: { query: { type: 'string' } } };
+  const methods = [];
+  const server = createServer(async (req, res) => {
+    if (req.method === 'DELETE') { res.writeHead(204); res.end(); return; }
+    let body = ''; for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body || '{}');
+    methods.push(request.method);
+    if (offline) { res.writeHead(503); res.end(); return; }
+    if (!request.id) { res.writeHead(202); res.end(); return; }
+    const result = request.method === 'tools/list'
+      ? { tools: [{ name: 'lookup', inputSchema: schema }] }
+      : { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'schema-test', version: '1' } };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const plugin = makePluginContext();
+  const execute = (name, input) => plugin.tools.defs.get(`mcp_connector_${name}`).execute(input, { signal: new AbortController().signal });
+  try {
+    const { apply } = await import('../lib/index.js');
+    await apply(plugin.ctx, baseConfig());
+    await execute('configure', { name: 'Schema fixture', serverName: 'schema-fixture', url: `http://127.0.0.1:${server.address().port}/mcp` });
+    const connectionKey = 'custom-schema-fixture';
+    await waitFor(() => [...plugin.tables.get('tool_catalog').entries()].length === 1);
+    const detail = async () => (await execute('tool_detail', { connectionKey, toolName: 'lookup' })).detail.tool;
+    const first = await detail();
+    assert.equal(first.schemaComparison.status, 'unknown');
+    const input = { connectorId: first.connectorId, connectionKey };
+    await execute('tools_list', input);
+    assert.equal((await detail()).schemaComparison.status, 'unchanged');
+    for (const next of [
+      { type: 'object', properties: { query: { type: 'string' }, page: { type: 'number' } } },
+      { type: 'object', properties: { query: { type: 'string' } } },
+      { type: 'object', properties: { query: { type: 'number' } } },
+    ]) {
+      schema = next;
+      assert.equal((await execute('tools_list', input)).ok, true);
+      assert.equal((await detail()).schemaComparison.status, 'changed');
+      assert.deepEqual((await detail()).inputSchema, next);
+    }
+    const beforeFailure = await detail();
+    offline = true;
+    assert.equal((await execute('tools_list', input)).detail.servers[0].cached, true);
+    assert.deepEqual((await detail()).schemaComparison, beforeFailure.schemaComparison);
+    assert.equal((await detail()).observedAt, beforeFailure.observedAt);
+    offline = false;
+    assert.equal((await execute('tools_list', input)).ok, true);
+    assert.deepEqual((await detail()).schemaComparison, beforeFailure.schemaComparison);
+    schema = { type: 'object', properties: { query: { type: 'string', default: 'schema-secret-marker' } } };
+    await execute('tools_list', input);
+    assert.equal((await detail()).schemaComparison.status, 'unknown');
+    assert.doesNotMatch(JSON.stringify([...plugin.tables.get('tool_catalog').entries()]), /schema-secret-marker/);
+    assert.ok(!methods.includes('tools/call'));
+  } finally {
+    plugin.disposers.forEach((dispose) => dispose());
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('工具浏览 API：分页与筛选、无 Workspace 仅全局、只读搜索零请求、单连接动作与限流等待', { timeout: 15000 }, async () => {
   const requests = [];
   let limited = false;
