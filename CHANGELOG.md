@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.2.66] - 2026-10-03
+
+### Changed
+
+- 侧栏“MCP连接器”入口由平台相关的彩色 emoji 改为继承 `currentColor` 的单色线性 SVG，与 DSH 宿主导航的尺寸、线性风格和深浅主题保持一致（#117）。
+- 同步无凭据 UI harness 和入口文档，图标保持 `aria-hidden`，不改变“MCP连接器”的无障碍名称。
+
+### Verification
+
+- 新增侧栏图标回归测试；在当前 `main` 合并态通过 309 项测试、Node 20/22/24、Windows、Zod 4.1.8 与 PR 安装包校验。
+
 ## [0.2.65] - 2026-10-03
 
 ### Added
