@@ -426,19 +426,32 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
   assert.doesNotMatch(source, /hHd-Xa_/, '不得依赖 DSH 构建生成的 CSS 类名');
 });
 
-test('侧栏入口图标与宿主同为单色线性 SVG，不再使用彩色 emoji', async () => {
+test('侧栏入口与面板标题图标同为单色线性 SVG，源码中不存在任何 emoji', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(source, /🧩/, '入口不得再使用彩色 emoji 图标');
-  const marker = source.indexOf('className: "mcpConnectorLauncherIcon"');
-  assert.ok(marker > -1, '应保留 launcher 图标容器');
-  const icon = source.slice(marker, marker + 900);
-  assert.match(icon, /viewBox: "0 0 16 16"/, '应与宿主图标一致使用 16×16 viewBox');
-  assert.match(icon, /fill: "none"/, '线性图标应为描边绘制');
-  assert.match(icon, /stroke: "currentColor"/, '应继承文字颜色，随明暗主题自动适配');
-  assert.match(icon, /strokeLinejoin: "round"|strokeLinecap: "round"/, '应与宿主图标一致使用圆角端点');
-  const css = source.split('const sidebarCss = `')[1].split('`;')[0];
-  assert.match(css, /\.mcpConnectorLauncherIcon > svg \{[\s\S]*?width: 18px;[\s\S]*?height: 18px;/, '图标尺寸应由入口样式定义');
-  assert.doesNotMatch(css, /font-size: 18px/, 'emoji 字号样式应移除');
+  // 字面量 emoji 与转义写法都要拦截：\u{1F9E9} 这类转义不会被字面量 grep 命中。
+  assert.doesNotMatch(source, /🧩/, '不得再使用彩色 emoji 作图标');
+  assert.doesNotMatch(source, /\\u\{1F[0-9A-Fa-f]{3}\}/, '不得用 \\u{...} 转义 emoji 作图标');
+  assert.doesNotMatch(source, /[\u{1F000}-\u{1FAFF}]/u, '客户端源码不得直接出现 emoji 字符');
+
+  const icon = (className, span = 900) => {
+    const marker = source.indexOf(`className: "${className}"`);
+    assert.ok(marker > -1, `应保留 ${className} 图标容器`);
+    const block = source.slice(marker, marker + span);
+    assert.match(block, /viewBox: "0 0 16 16"/, `${className} 应与宿主图标一致使用 16×16 viewBox`);
+    assert.match(block, /fill: "none"/, `${className} 应为描边绘制`);
+    assert.match(block, /stroke: "currentColor"/, `${className} 应继承文字颜色，随明暗主题适配`);
+    assert.match(block, /strokeLinejoin: "round"|strokeLinecap: "round"/, `${className} 应使用圆角端点`);
+    return block;
+  };
+  icon('mcpConnectorLauncherIcon');
+  icon('mcpConnectorMarketIcon');
+
+  const sidebarCss = source.split('const sidebarCss = `')[1].split('`;')[0];
+  const overlayCss = source.split('const overlayCss = `')[1].split('`;')[0];
+  assert.match(sidebarCss, /\.mcpConnectorLauncherIcon > svg \{[\s\S]*?width: 18px;[\s\S]*?height: 18px;/, '入口图标尺寸应由样式定义');
+  assert.match(overlayCss, /\.mcpConnectorMarketIcon > svg \{[\s\S]*?width: 18px;[\s\S]*?height: 18px;/, '面板标题图标尺寸应由样式定义');
+  assert.doesNotMatch(sidebarCss, /font-size: 18px/, 'emoji 字号样式应移除');
+  assert.doesNotMatch(source, /style: \{ fontSize: 22 \}/, '面板标题的 emoji 字号内联样式应移除');
 });
 
 test('侧栏入口悬停不描边，键盘焦点仍可见，布局不使用负边距或文本空格对齐（#86）', async () => {
