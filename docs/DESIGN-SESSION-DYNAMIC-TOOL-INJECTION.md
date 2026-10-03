@@ -1,6 +1,6 @@
 # 会话级 MCP 工具动态注入设计
 
-> 对应 Issue [#111](https://github.com/duhu2000/dsh-mcp-connector/issues/111)。Phase 0+1 已进入 `Unreleased`：支持连接级 `always/session` 模式、当前 Agent 精确工具激活、最长 30 分钟 TTL 及 Host restriction + guard 强制。本文同时保留后续阶段的设计边界。
+> 对应 Issue [#111](https://github.com/duhu2000/dsh-mcp-connector/issues/111)。Phase 0+1 纳入 `0.2.65`：支持连接级 `always/session` 模式、当前 Agent 精确工具激活、最长 30 分钟 TTL 及 Host restriction + guard 强制。本文同时保留后续阶段的设计边界。
 
 ## 0. 实现状态
 
