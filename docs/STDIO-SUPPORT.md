@@ -8,6 +8,9 @@
 > **就绪语义加固（2026-08-26）**：用户主动连接时显式启用 `failOnStartupError`，必须等待 Host 完成首次 `initialize + tools/list` 后才持久化；健康检查与详情页改读 Host 实际注册的 `mcp__<serverName>__*` 工具。启动失败、进程退出或超时不再提前显示“已连接”。依赖默认值仍为 `false`，下文对应代码仅作为依赖能力说明。
 > 状态：已完成（v0.2.12）
 
+> **启动恢复保护（2026-10-04）**：`failOnStartupError: false` 只控制连接失败是否抛错，并不让官方客户端跳过首次连接等待；动态客户端 fiber 仍参加 Host 的启动屏障。恢复已保存的 stdio 连接时，provisioning 包装原命令并为 `server/discover`、`initialize` 与首次 `tools/list`（含全部分页）设置 `requestTimeoutMs`、最多 15 秒的逐请求截止时间。超时关闭 transport 并清理所属子进程树，不改变记录的启用状态、凭据、命令、环境或工作目录。不能仅对 `loader.create()` 使用 `Promise.race`，否则未完成的 fiber 仍会阻塞 loader。首次发现结束后的列表/工具执行，以及用户主动连接时的 `startupTimeoutMs` 语义保持原样。
+>
+> 默认保护进程透明转发协议，**不**强制把现代服务器降级为旧协议。独立运行保护脚本时，可为已确认只支持 `initialize` 的服务器显式传入 `--legacy`，在一次性 discovery probe 中本地返回 `-32601` 而不启动真正的服务器。此选项不是默认恢复策略。
 ---
 
 ## 一、背景与目标

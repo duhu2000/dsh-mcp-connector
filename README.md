@@ -212,7 +212,8 @@ stdio 传输的架构、透传边界与安全约束见 [docs/STDIO-SUPPORT.md](d
 - 未检查或 Host 状态不可见时显示“状态未知”，不会冒充健康；健康摘要与最近成功时间当前只保留在插件进程内。
 - 外部 URL 默认仅允许 HTTPS，HTTP 默认仅允许回环地址。用户自建连接可在明确风险确认后放行 RFC1918 IPv4 / RFC4193 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍拒绝。
 - 远程目录/描述响应限制 2 MiB，Web API 请求限制 1 MiB；原始 JSON 在归一化前扫描凭据字段。
-- 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。stdio 的 `command/args/env/cwd` 原样交给 `@deepseek-ai/dsh-mcp-client`，插件本身不重复实现进程传输。
+- 完整覆盖 Streamable HTTP 与 stdio；旧 `sse` 配置在导入/恢复时归一为 Streamable HTTP。重启恢复 stdio 连接时使用透明的启动保护进程包装原命令，`env/cwd` 与持久化记录保持不变；工具注册和正式执行仍由 `@deepseek-ai/dsh-mcp-client` 负责。
+- 恢复连接的 `server/discover`、`initialize` 与首次 `tools/list`（含分页）按 `requestTimeoutMs` 限时，最长每次 15 秒；超时结束该连接的子进程，而不是让可选 MCP 卡住 Host 启动。连接保持启用，首次发现完成后的请求仍使用 Host 原有超时。
 - 对本身不是 MCP Server 的官方 CLI，使用独立的[受控 CLI Provider](docs/CLI-PROVIDERS.md)桥接为 stdio MCP；只允许代码登记的命令与参数，首个钉钉 `dws` Provider 仅开放只读能力。
 - stdio 会启动本机进程：仅导入或连接可信命令/软件包。市场目录只能用 `credentialFields` + `credentialBindings` 声明输入与 env 映射，不得携带真实 token/secret；用户填写值只写入本机连接记录并交给 Host。
 - OAuth DCR 的 `client_secret` 与 Access/Refresh Token 采用相同的本机存储边界，不会进入市场 API、状态输出或日志。
