@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.2.68] - 2026-10-06
+
+### Fixed
+
+- 不再用全局 CSS 改写宿主 `sidebar.footer.action` 的 `display: contents` 槽位，仅对 MCP 连接器自己的 footer 降级入口设置布局，避免与同槽位第三方插件组合时把相邻条目折入不可见的第二列（#124、#127）。
+- 为顶部 Portal 与 footer 降级入口增加明确的 placement 标记，并保护窄侧栏折叠按钮不被 flex 拉伸。
+
+### Verification
+
+- 在最新 `main` 合并态通过 327 项测试（324 通过、3 项环境性跳过、0 失败）、Node 20/22/24、Windows、Zod 4.1.8、PR 安装包与发布文件白名单校验。
+
 ## [0.2.67] - 2026-10-06
 
 ### Fixed
