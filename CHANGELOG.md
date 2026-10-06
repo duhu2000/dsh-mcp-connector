@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.2.67] - 2026-10-06
+
+### Fixed
+
+- 面板标题图标与侧栏入口统一为继承 `currentColor` 的单色 SVG，并补充对字面 emoji、Unicode 转义和直接码点的回归检查，修复 #118 后遗漏的面板标题彩色图标（#122、#123）。
+- 为重启恢复的 stdio MCP 连接增加有界的 `server/discover`、`initialize` 与首次 `tools/list` 分页请求；超时后关闭自有 transport 并回收进程树，避免单个异常 Server 阻塞 DSH Host，同时不禁用已保存连接，也不改变用户主动连接或 HTTP 连接流程（#125）。
+
+### Verification
+
+- 在最新 `main` 合并态通过 326 项测试（323 通过、3 项环境性跳过、0 失败）、Node 20/22/24、Windows、Zod 4.1.8、PR 安装包与发布文件白名单校验。
+
 ## [0.2.66] - 2026-10-03
 
 ### Changed
