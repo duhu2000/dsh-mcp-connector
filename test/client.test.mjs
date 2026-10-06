@@ -407,6 +407,7 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
   };
   const fallback = entry.component(props);
   assert.equal(fallback.props['aria-label'], 'MCP连接器', '首次定位前应保留 footer 降级入口');
+  assert.equal(fallback.props['data-placement'], 'footer', '降级入口只应样式化自身，不能接管宿主槽位');
   assert.equal(fallback.props.children[0].props.className, 'mcpConnectorLauncherIcon');
   assert.equal(fallback.props.children[0].props['aria-hidden'], true);
   assert.equal(fallback.props.children[1].props.className, 'mcpConnectorLauncherLabel');
@@ -417,6 +418,7 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
   entry.component(props);
   assert.equal(portal.target, topMount, '定位成功后应 Portal 到顶部挂载点');
   assert.equal(portal.node.props.className, 'mcpConnectorTopEntry');
+  assert.equal(portal.node.props.children.props['data-placement'], 'top');
   entry.component({ ...props, wide: false });
   const collapsed = portal.node.props.children;
   assert.equal(collapsed.props['aria-label'], 'MCP连接器');
@@ -466,6 +468,18 @@ test('侧栏入口悬停不描边，键盘焦点仍可见，布局不使用负�
   assert.match(rule('.mcpConnectorLauncher'), /gap: 8px/);
   assert.doesNotMatch(css, /calc\(100% \+|margin: 4px -2px/);
   assert.match(rule('.mcpConnectorLauncherIcon'), /flex: 0 0 20px/);
+});
+
+test('侧栏样式不改写宿主 footer 槽位或其它插件的 flex 布局（#124）', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const css = source.split('const sidebarCss = `')[1].split('`;')[0];
+  const rule = (selector) => css.slice(css.indexOf(selector + ' {')).split('}')[0];
+  assert.doesNotMatch(css, /\[data-slot=["']sidebar\.footer\.action["']\]/, '不得覆盖宿主 display: contents 锚点');
+  assert.doesNotMatch(css, /sidebar\.footer\.action[\s\S]*?>\s*\*/, '不得重置同槽位第三方插件子项');
+  const fallbackRule = rule('.mcpConnectorLauncher[data-placement="footer"]');
+  assert.match(fallbackRule, /flex: 1 1 0/);
+  assert.match(fallbackRule, /max-width: 100%/);
+  assert.doesNotMatch(fallbackRule, /!important/);
 });
 
 test('示例 Prompt 写入新会话草稿后再导航', async () => {
