@@ -7,6 +7,22 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('参数详情限定缓存证据，区分变化、未变化与无法判断，不声明调用成功', () => {
+  const start = uiSource.indexOf('  function showToolParameters(');
+  const end = uiSource.indexOf('  function closeModal(', start);
+  let html;
+  const show = new Function('esc', 'schemaSummary', 'openModal', `${uiSource.slice(start, end)}; return showToolParameters;`)(
+    (value) => String(value).replaceAll('<', '&lt;'), () => '', (_title, content) => { html = content; },
+  );
+  for (const status of ['unknown', 'unchanged', 'changed']) {
+    show({ name: 'lookup', description: '<script>', schemaComparison: { status, changedAt: 3000, previousObservedAt: 1000 } });
+    assert.match(html, /仅为发现缓存；调用：无证据\/待验收/);
+    assert.match(html, /&lt;script>/);
+    assert.match(html, /1970-01-01T00:00:03.000Z/);
+    assert.match(html, status === 'changed' ? /缓存参数结构已变化/ : status === 'unchanged' ? /未检测到 Schema 变化/ : /无法判断兼容性/);
+  }
+});
+
 test('授权和本地启动错误不追加 API Key、JSON 或 URL 建议', () => {
   const start = uiSource.indexOf('  function guidanceFor(');
   const end = uiSource.indexOf('  function showModalError(', start);

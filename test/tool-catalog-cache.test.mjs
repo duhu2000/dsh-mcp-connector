@@ -24,6 +24,39 @@ function connection(overrides = {}) {
   };
 }
 
+test('Schema comparison is bounded to matching connection identity and persists through storage', () => {
+  const tool = { name: 'lookup', inputSchema: { type: 'object', properties: { query: { type: 'string' } } } };
+  const first = createToolCatalogRecord(connection(), [tool], 1000);
+  assert.equal(first.tools[0].schemaComparison.status, 'unknown');
+  const same = createToolCatalogRecord(connection(), [{ ...tool, inputSchema: {
+    properties: { query: { type: 'string' } }, type: 'object',
+  } }], 2000, first);
+  assert.equal(same.tools[0].schemaComparison.status, 'unchanged');
+  const changedTool = { ...tool, inputSchema: { ...tool.inputSchema, required: ['query'] } };
+  const changed = createToolCatalogRecord(connection(), [changedTool], 3000, same);
+  assert.deepEqual(changed.tools[0].schemaComparison, { status: 'changed', previousObservedAt: 2000, changedAt: 3000 });
+  const restored = toolCatalogRecordSchema.parse(changed);
+  const refreshed = createToolCatalogRecord(connection(), [changedTool], 4000, restored);
+  assert.deepEqual(refreshed.tools[0].schemaComparison, changed.tools[0].schemaComparison);
+  assert.equal(findToolDetails([refreshed], { toolName: 'lookup' })[0].schemaComparison.status, 'changed');
+  const other = createToolCatalogRecord(connection({ url: 'https://other.example/mcp' }), [changedTool], 5000, first);
+  assert.equal(other.tools[0].schemaComparison.status, 'unknown');
+});
+
+test('Incomplete or missing Schema never implies compatibility; old records remain supported', () => {
+  const initial = createToolCatalogRecord(connection(), [{ name: 'lookup', inputSchema: { type: 'object' } }], 1000);
+  const clipped = createToolCatalogRecord(connection(), [{ name: 'lookup', inputSchema: {
+    type: 'object', default: 'private-value',
+  } }], 2000, initial);
+  assert.equal(clipped.tools[0].schemaComparison.status, 'unknown');
+  assert.doesNotMatch(JSON.stringify(clipped), /private-value/);
+  const missing = createToolCatalogRecord(connection(), [{ name: 'lookup' }], 3000, initial);
+  assert.equal(missing.tools[0].schemaComparison.status, 'unknown');
+  delete initial.tools[0].schemaComparison;
+  assert.equal(toolCatalogRecordSchema.safeParse(initial).success, true);
+  assert.equal(findToolDetails([initial], { toolName: 'lookup' })[0].schemaComparison.status, 'unknown');
+});
+
 test('Schema 属性名与 Schema 关键字分层处理，保留合法同名参数但删除敏感默认值', () => {
   const tool = sanitizeToolMetadata({ name: 'lookup', inputSchema: {
     type: 'object', required: ['default', 'const', 'examples'],
