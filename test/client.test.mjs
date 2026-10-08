@@ -40,8 +40,18 @@ function clientContext({
   recentWorkspaceId = workspaceId ?? undefined,
   settingsScope,
   workspaceNavigation = 'legacy',
+  nativeSidebar = false,
+  layout,
 } = {}) {
   const registrations = new Map();
+  const registrationOrder = [];
+  const injectors = new Map();
+  const declaredSlots = new Set([
+    'shell.overlay',
+    'sidebar.footer.action',
+    'settings.plugin.item',
+    ...(nativeSidebar ? ['main', 'sidebar.panellist'] : []),
+  ]);
   const calls = [];
   const shell = {
     setDraft(prompt) {
@@ -87,12 +97,24 @@ function clientContext({
       start();
     },
     slots: {
-      inject(_name, register) {
-        register();
+      inject(name, register) {
+        const record = { register, cleanup: undefined };
+        let records = injectors.get(name);
+        if (records === undefined) injectors.set(name, records = new Set());
+        records.add(record);
+        if (declaredSlots.has(name)) record.cleanup = register();
+        return () => {
+          if (typeof record.cleanup === 'function') record.cleanup();
+          records.delete(record);
+        };
       },
       register(options, component) {
-        registrations.set(options.name, { options, component });
-        return () => {};
+        const registration = { options, component };
+        registrations.set(options.name, registration);
+        registrationOrder.push(options.name);
+        return () => {
+          if (registrations.get(options.name) === registration) registrations.delete(options.name);
+        };
       },
     },
     workspaces,
@@ -100,15 +122,31 @@ function clientContext({
     get(service) {
       if (service === 'uiWorkspace') return uiWorkspace;
       if (service === 'conversation') return { input: { shell: () => shell } };
+      if (service === 'layout') return layout;
       return undefined;
     },
   };
+  if (layout !== undefined) ctx.layout = layout;
   ctx.inject = (services, callback) => {
     if (services.includes('settingsScope') && settingsScope !== undefined) {
       callback({ ...ctx, settingsScope });
     }
   };
-  return { ctx, registrations, calls };
+  const slotControls = {
+    declare(name) {
+      if (declaredSlots.has(name)) return;
+      declaredSlots.add(name);
+      for (const record of injectors.get(name) ?? []) record.cleanup = record.register();
+    },
+    remove(name) {
+      if (!declaredSlots.delete(name)) return;
+      for (const record of injectors.get(name) ?? []) {
+        if (typeof record.cleanup === 'function') record.cleanup();
+        record.cleanup = undefined;
+      }
+    },
+  };
+  return { ctx, registrations, registrationOrder, calls, slotControls };
 }
 
 function mutableSettingsScope(initial) {
@@ -426,6 +464,156 @@ test('侧栏入口使用公开插槽托管，并具备工作区上方 Portal 与
 
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /hHd-Xa_/, '不得依赖 DSH 构建生成的 CSS 类名');
+});
+
+test('DSH 0.2 优先注册 main 与原生 panellist，不创建 footer 降级入口', async () => {
+  const plugin = await loadClient({
+    jsxRuntime: {
+      jsx(type, props) { return { type, props }; },
+      jsxs(type, props) { return { type, props }; },
+    },
+  });
+  const layout = {
+    panelInfo: { getSnapshot: () => ({ activePanelId: null }) },
+    selectPanel() {},
+  };
+  const { ctx, registrations, registrationOrder } = clientContext({ nativeSidebar: true, layout });
+  plugin.apply(ctx);
+
+  const main = registrations.get('main');
+  const entry = registrations.get('sidebar.panellist');
+  const overlay = registrations.get('shell.overlay');
+  assert.ok(main, '应注册原生 main 面板');
+  assert.ok(entry, '应注册原生 panellist 行');
+  assert.equal(registrations.has('sidebar.footer.action'), false, '新宿主不应注册 footer 降级入口');
+  assert.ok(registrationOrder.indexOf('main') < registrationOrder.indexOf('sidebar.panellist'), 'main 必须先于可点击的行注册');
+  assert.equal(entry.options.id, 'mcp-connector');
+  assert.equal(entry.options.order, 40);
+  assert.equal(entry.options.label, 'MCP连接器');
+  assert.equal(main.options.key, 'mcp-connector');
+  assert.equal(main.options.store, overlay.options.store, '原生面板与设置弹框应共用市场 Store');
+  assert.equal(main.options.inject().presentation, 'panel');
+
+  const icon = entry.component({ size: 18, active: true });
+  assert.equal(icon.type, 'svg');
+  assert.equal(icon.props.width, 18);
+  assert.equal(icon.props.height, 18);
+  assert.equal(icon.props.stroke, 'currentColor');
+  assert.equal(icon.props['aria-hidden'], 'true');
+});
+
+test('原生 main 直接渲染共享市场主体，不创建模态 Portal', async () => {
+  let portals = 0;
+  const selections = [];
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    reactApi: {
+      useState(initial) { return [initial, () => {}]; },
+      useRef(initial) { return { current: initial }; },
+      useEffect() {},
+    },
+    reactDomApi: {
+      createPortal() { portals += 1; },
+    },
+    windowExtras: { location: { origin: 'http://127.0.0.1:3080' } },
+  });
+  const layout = {
+    panelInfo: { getSnapshot: () => ({ activePanelId: 'mcp-connector' }) },
+    selectPanel(id) { selections.push(id); },
+  };
+  const { ctx, registrations } = clientContext({ nativeSidebar: true, layout });
+  plugin.apply(ctx);
+  const main = registrations.get('main');
+  const tree = main.component({
+    ...main.options.inject(),
+    useStore: (select) => select({ open: false, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} },
+  });
+
+  assert.equal(portals, 0);
+  assert.equal(tree.props.role, 'region');
+  assert.equal(tree.props['aria-modal'], undefined);
+  assert.equal(tree.props['aria-labelledby'], 'mcp-connector-native-title');
+  assert.equal(tree.props.style.width, '100%');
+  assert.equal(tree.props.style.height, '100%');
+  const header = tree.props.children[0];
+  const close = header.props.children[1];
+  assert.equal(close.props['aria-label'], '返回会话');
+  close.props.onClick();
+  assert.deepEqual(selections, [null]);
+});
+
+test('原生入口隐藏时先退回会话并注销行，重新开启后恢复', async () => {
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: true },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: true },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  let activePanelId = 'mcp-connector';
+  const selections = [];
+  const layout = {
+    panelInfo: { getSnapshot: () => ({ activePanelId }) },
+    selectPanel(id) {
+      selections.push(id);
+      activePanelId = id;
+    },
+  };
+  const plugin = await loadClient();
+  const { ctx, registrations } = clientContext({
+    nativeSidebar: true,
+    layout,
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+  assert.ok(registrations.has('sidebar.panellist'));
+
+  settings.scope.publish({
+    ...settings.scope.getSnapshot(),
+    value: { showSidebarEntry: false },
+    user: { showSidebarEntry: false },
+    revision: 2,
+  });
+  assert.deepEqual(selections, [null], '隐藏当前面板前应退回会话');
+  assert.equal(registrations.has('sidebar.panellist'), false);
+  assert.ok(registrations.has('main'), 'main 页面保留，避免席位生命周期抖动');
+
+  settings.scope.publish({
+    ...settings.scope.getSnapshot(),
+    value: { showSidebarEntry: true },
+    user: { showSidebarEntry: true },
+    revision: 3,
+  });
+  assert.ok(registrations.has('sidebar.panellist'), '重新开启后应恢复原生行');
+  assert.equal(registrations.has('sidebar.footer.action'), false);
+});
+
+test('原生席位延迟到达时原子替换 footer 降级入口', async () => {
+  const plugin = await loadClient();
+  const layout = {
+    panelInfo: { getSnapshot: () => ({ activePanelId: null }) },
+    selectPanel() {},
+  };
+  const { ctx, registrations, slotControls } = clientContext({ layout });
+  plugin.apply(ctx);
+  assert.ok(registrations.has('sidebar.footer.action'), '旧宿主起始使用降级入口');
+
+  slotControls.declare('main');
+  assert.ok(registrations.has('sidebar.footer.action'), '仅 main 到达时不能提前移除可用入口');
+  slotControls.declare('sidebar.panellist');
+  assert.equal(registrations.has('sidebar.footer.action'), false);
+  assert.ok(registrations.has('sidebar.panellist'));
+
+  slotControls.remove('sidebar.panellist');
+  assert.equal(registrations.has('sidebar.panellist'), false);
+  assert.ok(registrations.has('sidebar.footer.action'), '原生席位移除后应恢复降级入口');
 });
 
 test('侧栏入口与面板标题图标同为单色线性 SVG，源码中不存在任何 emoji', async () => {

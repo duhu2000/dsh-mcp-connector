@@ -21,7 +21,7 @@
 - P1 UI：统一“添加连接”支持手动、格式化 JSON、市场卡片 URL；Bearer/API Key 市场卡片可一次配置多 Server，并在持久化前执行 initialize 连通/鉴权校验；内置 Prompt 默认值一键发送，缺必填值时才置顶打开参数表单；固定中文界面、深浅主题和键盘操作。
 - Registry：已拆分独立公开仓库 `duhu2000/dsh-mcp-connector-registry`，当前包含北大法宝、Wind、盈米、QVeris 和八爪鱼 5 张第三方卡片、13 个 Server 与 21 个 Prompt；Schema、确定性构建、密钥审计、CI 与定时健康巡检均已配置。插件默认从 Raw `catalog.json` 拉取，失败时回退缓存/内置目录。
 - 迁移：可预览/复制两个旧企查查插件授权，幂等且保留源数据；未获确认不自动执行。
-- 入口：插件仍在公开 `sidebar.footer.action` 注册；组件运行后用 React Portal 插入 `[data-slot="sidebar.workspaces"]` 前。若目标缺失或 `react-dom` 不可用，保留 footer 入口作为降级。
+- 入口：DSH `>=0.2.0-rc.2` 优先注册 keyed `main` 与 `sidebar.panellist` 原生行；DSH `0.1.x` 才启用 `sidebar.footer.action` + Portal 兼容适配器。原生席位延迟到达时会原子替换，不产生双入口。
 
 ## 3. P0 状态
 

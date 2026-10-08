@@ -24,7 +24,7 @@ MCP连接器
 - 通用 Host 能力：目录合并、OAuth PKCE、自定义配置、JSON/URL 导入、持久化恢复、启停/断开、远程 registry。
 - Desktop 市场 UI：市场/已安装、全文搜索、服务商/接入方式筛选、4 个企查查卡片与北大法宝、Wind、盈米、QVeris、八爪鱼第三方卡片、详情二级弹框、工具描述/搜索/滚动、精选 Prompt。
 - Prompt 发送链路：创建或复用当前工作区空白会话、写入草稿、打开新会话，含同源校验、超时和重复点击保护。
-- 入口兼容：公开 `sidebar.footer.action` 负责生命周期，React Portal 挂载到 `sidebar.workspaces` 前；目标不存在时自动回退到底部。
+- 入口兼容：DSH `>=0.2.0-rc.2` 使用 `main` + `sidebar.panellist` 官方面板契约；DSH `0.1.x` 按需回退到 `sidebar.footer.action` + Portal 适配器。
 - 自动化：语法检查、75 项测试、npm 包白名单与敏感内容扫描；CI 覆盖 Node 20/22/24，Tag 发布覆盖 npm 与 GitHub Release，每小时自动验收外部市场注册。
 - 市场运营资产：独立远程 Registry 已上线，当前 5 张第三方卡片与随包目录合并为 9 张已发布卡片；4 张无凭据 UI 截图和约 30 秒演示 GIF 已纳入中英文 README。
 

@@ -62,7 +62,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 
 ## Features
 
-- A primary sidebar entry below New Conversation and above workspaces/conversations, with a public footer-slot fallback for incompatible DSH DOM versions.
+- A native `sidebar.panellist` row and keyed main panel on DSH `>=0.2.0-rc.2`, inheriting host selection, collapsed tooltip, and accessibility behavior; DSH `0.1.x` automatically uses the compatibility entry.
 - A profile-wide sidebar visibility preference; even when the shortcut is hidden, the existing connector dialog remains available from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 - Searchable Marketplace and Installed views; the default Marketplace groups cards into Featured plus nine business-category sections, previews four cards per section, keeps the category bar visible while scrolling, and shows every card when a single category is selected.
 - OAuth 2.0 Authorization Code with PKCE, including DCR public clients and `client_secret_post` / `client_secret_basic`; API key/Bearer/unauthenticated HTTP configuration, stdio local-process configuration, and `mcpServers` JSON import.

@@ -113,8 +113,10 @@ test('实时详情采用只读缓存、重连补同步与请求合并，已安�
   assert.match(uiSource, /showConnectionTools\('/);
 });
 
-test('截图 harness 复刻产品 800px 面板并从无授权状态启动', () => {
-  assert.match(clientSource, /width: "min\(800px, 90%\)"/);
+test('宿主原生面板填满 main 区域，兼容弹窗和截图 harness 保持 800px 尺寸', () => {
+  assert.match(clientSource, /width: presentation === "panel" \? "100%" : "min\(800px, 90%\)"/);
+  assert.match(clientSource, /height: presentation === "panel" \? "100%" : "min\(800px, 85%\)"/);
+  assert.match(clientSource, /if \(presentation === "panel"\) return marketPanel/);
   assert.match(harnessSource, /width: min\(800px, 90vw\)/);
   assert.match(harnessSource, /无凭据 Mock/);
   assert.match(harnessSource, /const connected = new Set\(\);/);
