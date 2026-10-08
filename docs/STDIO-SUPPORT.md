@@ -1,5 +1,7 @@
 # stdio 传输支持 —— 设计文档 & 开发实现
 
+> **Windows 命令兼容（0.2.70）**：启动恢复保护使用 cross-spawn 解析 PATH/PATHEXT 中的命令，支持 npx 等 .cmd shim；通常无需将已有配置改成 cmd /c。uvx 需要先安装并位于 DSH 进程的 PATH 中。命令不存在时显示 ENOENT 与 PATH 检查提示，不输出参数或凭据。
+
 > 目标：补齐 stdio（本地进程）传输方式，达到与 WorkBuddy / TraeWork / Qwen Code 三家大厂传输方式全覆盖。
 > 结论：**低成本补齐**——`@deepseek-ai/dsh-mcp-client` 已原生支持 stdio，我们只需在 schema + provisioning 两层「开闸透传」。
 

@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.2.70] - 2026-10-08
+
+### Fixed
+
+- Windows 启动恢复保护采用 cross-spawn 解析 PATH/PATHEXT 与 npm .cmd shim，修复 npx 连接手动成功但重启失败的问题（#130）。
+- 命令缺失时返回不含命令、参数或凭据的 ENOENT 与 PATH 检查提示。
+- 新增 Windows 真实 .cmd 子进程回归，覆盖带空格路径与特殊字符参数。
+
 ## [0.2.69] - 2026-10-08
 
 ### Changed

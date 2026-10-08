@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -38,8 +38,8 @@ require('node:readline').createInterface({ input: process.stdin }).on('line', li
 });
 `;
 
-function launch(mode = 'normal', { legacy = false, timeout = 250, marker = '', command = process.execPath } = {}) {
-  const child = spawn(process.execPath, [guard, '--timeout-ms', String(timeout), ...(legacy ? ['--legacy'] : []), '--', command, '-e', fixture, mode, marker], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+function launch(mode = 'normal', { legacy = false, timeout = 250, marker = '', command = process.execPath, commandArgs = ['-e', fixture, mode, marker], env = process.env } = {}) {
+  const child = spawn(process.execPath, [guard, '--timeout-ms', String(timeout), ...(legacy ? ['--legacy'] : []), '--', command, ...commandArgs], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env });
   let stderr = '';
   child.stderr.on('data', data => { stderr += data; });
   const replies = [];
@@ -64,6 +64,27 @@ async function within(promise, ms = 5000) {
   try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('test wait budget exceeded')), ms); })]); }
   finally { clearTimeout(timer); }
 }
+
+test('Windows restored connections resolve PATH cmd shims and preserve literal arguments', { skip: process.platform !== 'win32', timeout: 15000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcp shim '));
+  const script = join(dir, 'server.cjs');
+  const shim = join(dir, 'mcp-fixture.cmd');
+  writeFileSync(script, "const expected = process.argv.slice(2); require('node:readline').createInterface({input:process.stdin}).on('line', line => { const m=JSON.parse(line); console.log(JSON.stringify({jsonrpc:'2.0',id:m.id,result:{args:expected}})); });");
+  writeFileSync(shim, '@echo off\r\n"' + process.execPath + '" "' + script + '" %*\r\n');
+  const args = ['with spaces', 'a&b', 'a|b', 'a^b', 'a"b', '(literal)'];
+  const env = { ...process.env };
+  const pathKey = Object.keys(env).find(key => key.toLowerCase() === 'path') ?? 'PATH';
+  env[pathKey] = dir + ';' + (env[pathKey] ?? '');
+  const c = launch('normal', { command: 'mcp-fixture', commandArgs: args, env, timeout: 3000 });
+  try {
+    c.send('initialize');
+    assert.deepEqual((await within(c.reply())).result.args, args);
+    assert.equal(c.stderr(), '');
+  } finally {
+    await c.cleanup();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 for (const [mode, method] of [['hang-discover', 'server/discover'], ['hang-init', 'initialize'], ['hang-list', 'tools/list']]) {
   test(`bounds ${method} and closes the owned transport`, { timeout: 7000 }, async () => {
