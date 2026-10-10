@@ -1320,11 +1320,16 @@
     }
   });
 
-  async function loadInstalled() {
+  async function loadInstalled({ preserveScroll = false } = {}) {
+    const previousScrollTop = preserveScroll ? main.scrollTop : 0;
     syncMarketNav();
     main.innerHTML = '<div class="empty">加载中…</div>';
     const [r, migration] = await Promise.all([call('status', workspaceParams()), call('migrationPreview', { scanStored: false })]);
-    if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
+    if (!r.ok) {
+      main.innerHTML = `<div class="empty">${esc(r.message)}</div>`;
+      if (preserveScroll) main.scrollTop = previousScrollTop;
+      return;
+    }
     updateAvailableWorkspaces(r.detail?.scope?.workspaces);
     const items = r.detail?.items ?? [];
     installedItems = items;
@@ -1333,11 +1338,16 @@
     setTabCount('installed', items.length);
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
-    if (!items.length) { main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`; return; }
+    if (!items.length) {
+      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`;
+      if (preserveScroll) main.scrollTop = previousScrollTop;
+      return;
+    }
     markCommunityCtaEligible();
     const filtered = items.filter(matchesSearch);
     const rollbackDisabled = scopeRollbackRevision === null ? 'disabled' : '';
     main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 作用域 revision=${scopeRevision}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">回滚上次范围变更</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" onclick="window.__mcp.scanLegacy()">检测旧插件</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
+    if (preserveScroll) main.scrollTop = previousScrollTop;
   }
 
   function rowHtml(r) {
@@ -2226,7 +2236,7 @@
       try {
         if (view === 'tools') await loadToolExplorer();
         else if (view === 'market') await loadMarket({ checkHealth: false, preserveScroll: true });
-        else await loadInstalled();
+        else await loadInstalled({ preserveScroll: true });
         await refreshOpenToolDetail();
       } finally {
         statusRefreshRunning = false;

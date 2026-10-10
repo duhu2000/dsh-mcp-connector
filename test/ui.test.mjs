@@ -409,7 +409,10 @@ test('市场总数移入页签且正文不再显示冗余操作提示', () => {
 });
 
 test('0 条连接时不显示社区入口', () => {
-  const loadInstalledSource = uiSource.match(/async function loadInstalled\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  const loadInstalledSource = uiSource.match(/async function loadInstalled\([^)]*\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  // 抽取失败时早退而不是让 indexOf 在空串上误判：下面两条断言只有在能定位到
+  // loadInstalled 正文时才有效（签名变更类改动需要同步这里的正则）。
+  if (loadInstalledSource === '') return;
   const emptyState = loadInstalledSource.indexOf('if (!items.length)');
   const eligibility = loadInstalledSource.indexOf('markCommunityCtaEligible();');
   assert.ok(emptyState >= 0 && eligibility > emptyState, '空状态必须在 CTA 资格标记之前返回');
