@@ -11,3 +11,7 @@
         refreshSkewMs: 300000
         openBrowser: true
         showSidebarEntry: true
+        # 面板 CSP frame-ancestors 白名单：默认仅同源可嵌入。
+        # 桌面壳（Tauri/Electron）内嵌面板时需显式追加外壳源，
+        # 例如 ['self', 'http://tauri.localhost', 'tauri://localhost']。
+        frameAncestors: ['self']

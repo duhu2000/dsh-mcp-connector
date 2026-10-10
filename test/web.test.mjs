@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mountWebRoutes, isTrustedWebRequest, resolveUiFile, splitUiPath } from '../lib/web.js';
+import { mountWebRoutes, isTrustedWebRequest, resolveUiFile, splitUiPath, buildCsp, normalizeFrameAncestors } from '../lib/web.js';
 import { StatusEventHub } from '../lib/status-events.js';
 
 /* ───────────────────────── fake http 对象 ───────────────────────── */
@@ -271,7 +271,10 @@ test('ui 路由：返回 SPA 首页 / 目录穿越 404', async () => {
   await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/ui/', headers: { host: '127.0.0.1:62929' } }), res);
   assert.equal(res.status, 200);
   assert.match(res.headers['content-type'], /text\/html/);
-  assert.match(res.headers['content-security-policy'], /frame-ancestors 'self'/);
+  // 未传 frameAncestors 时仍是默认同源白名单（零行为变化），且 frame-ancestors 后
+  // 紧跟 base-uri，证明没有默认追加任何额外源。
+  assert.match(res.headers['content-security-policy'], /frame-ancestors 'self'; base-uri 'none'/);
+  assert.equal(res.headers['content-security-policy'], buildCsp(undefined));
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.match(res.body, /MCP连接器/);
 
@@ -284,6 +287,117 @@ test('ui 路由：返回 SPA 首页 / 目录穿越 404', async () => {
   const res2 = new FakeRes();
   await route.handler(fakeReq({ method: 'GET', url: '/mcp-connector/ui/../../package.json', headers: { host: '127.0.0.1:62929' } }), res2);
   assert.equal(res2.status, 404);
+});
+
+test('ui 路由：frameAncestors 可配置——显式多源 / 注入被过滤 / 空数组回退', async () => {
+  const cspOf = async (frameAncestors) => {
+    const wctx = makeWctx();
+    mountWebRoutes(wctx, api, { logger: { warn() {} }, frameAncestors });
+    const res = new FakeRes();
+    await wctx.routes.get('/mcp-connector/ui').handler(
+      fakeReq({ method: 'GET', url: '/mcp-connector/ui/', headers: { host: '127.0.0.1:62929' } }),
+      res,
+    );
+    assert.equal(res.status, 200);
+    return res.headers['content-security-policy'];
+  };
+
+  // 桌面壳场景：显式追加外壳源（含自定义协议）后，三者都进 frame-ancestors
+  const shellCsp = await cspOf(['self', 'http://tauri.localhost', 'tauri://localhost']);
+  assert.match(shellCsp, /frame-ancestors 'self' http:\/\/tauri\.localhost tauri:\/\/localhost;/);
+  assert.equal(shellCsp, buildCsp(['self', 'http://tauri.localhost', 'tauri://localhost']));
+
+  // 注入尝试：带 `;` 的值整条丢弃（不拆出 self），合法值保留；指令数不增加
+  const injected = await cspOf(['self; script-src *', 'https://ok.example.com']);
+  assert.equal(injected, buildCsp(['https://ok.example.com']));
+  assert.match(injected, /frame-ancestors https:\/\/ok\.example\.com;/);
+  assert.equal(injected.match(/script-src/g).length, 1, 'CSP 中只应有一条 script-src');
+
+  // 只有注入值时整体回退到 'self'，而不是放行任意源
+  assert.equal(await cspOf(['*; frame-ancestors *']), buildCsp(undefined));
+
+  // 空数组 → fail-safe 回退 'self'
+  assert.equal(await cspOf([]), buildCsp(['self']));
+  assert.match(await cspOf([]), /frame-ancestors 'self';/);
+});
+
+/* ───────────────────────── CSP 纯函数 ───────────────────────── */
+
+// 0.2.70 及以前硬编码在 lib/web.js 里的那一条，作为「默认零行为变化」的冻结基线。
+const LEGACY_CSP =
+  "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; " +
+  "script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; " +
+  "base-uri 'none'; form-action 'none'";
+
+test('buildCsp：默认仍等于历史硬编码 CSP（零行为变化）', () => {
+  assert.equal(buildCsp(undefined), LEGACY_CSP);
+  assert.equal(buildCsp(['self']), LEGACY_CSP);
+  assert.equal(buildCsp([]), LEGACY_CSP, '空数组回退 self 而非放行');
+  assert.equal(buildCsp(null), LEGACY_CSP);
+  assert.match(buildCsp(undefined), /frame-ancestors 'self'; base-uri 'none'/);
+});
+
+test('buildCsp：自定义源只替换 frame-ancestors 指令，不新增指令', () => {
+  const csp = buildCsp(['self', 'http://tauri.localhost', 'tauri://localhost']);
+  assert.equal(
+    csp,
+    LEGACY_CSP.replace(
+      "frame-ancestors 'self'",
+      "frame-ancestors 'self' http://tauri.localhost tauri://localhost",
+    ),
+  );
+  assert.equal(csp.match(/;/g).length, LEGACY_CSP.match(/;/g).length, '指令数与基线一致（未注入新指令）');
+});
+
+test('normalizeFrameAncestors：关键字与 host-source 归一化、去重保序', () => {
+  assert.deepEqual(normalizeFrameAncestors(['self', 'NONE', '*']), ["'self'", "'none'", '*']);
+  assert.deepEqual(normalizeFrameAncestors(["'self'", "'none'"]), ["'self'", "'none'"], '已带引号写法幂等');
+  assert.deepEqual(normalizeFrameAncestors([' self ', 'self']), ["'self'"], 'trim + 去重');
+  assert.deepEqual(
+    normalizeFrameAncestors([
+      'tauri://localhost',
+      'http://tauri.localhost',
+      'http://tauri.localhost:1420',
+      'https://*.example.com',
+      '127.0.0.1:3080',
+    ]),
+    ['tauri://localhost', 'http://tauri.localhost', 'http://tauri.localhost:1420', 'https://*.example.com', '127.0.0.1:3080'],
+  );
+  assert.deepEqual(normalizeFrameAncestors(['https://a.example.com:443/path']), ['https://a.example.com:443/path']);
+  assert.deepEqual(normalizeFrameAncestors(normalizeFrameAncestors(['self', 'https://a.example.com'])), ["'self'", 'https://a.example.com'], '幂等');
+});
+
+test('normalizeFrameAncestors：注入与非 host-source 一律拒绝并回退 self', () => {
+  const rejected = [
+    '',
+    '   ',
+    'self; script-src *',
+    'self;',
+    "self 'unsafe-inline'",
+    '*; frame-ancestors *',
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    "'strict-dynamic'",
+    'data:',
+    'https:',
+    'self\r\nx-injected: 1',
+    'http://evil.example.com/; script-src *',
+    'evil.example.com, https://other.example.com',
+    'http://tauri.localhost:99999',
+    'http://tauri.localhost:0',
+    'http://ta uri.localhost',
+  ];
+  for (const value of rejected) {
+    assert.deepEqual(normalizeFrameAncestors([value]), ["'self'"], `应拒绝 ${JSON.stringify(value)}`);
+  }
+  // 非字符串 / 非数组入参
+  for (const value of [42, null, undefined, true, {}, ['self']]) {
+    assert.deepEqual(normalizeFrameAncestors([value]), ["'self'"], `应拒绝 ${JSON.stringify(value)}`);
+  }
+  assert.deepEqual(normalizeFrameAncestors(undefined), ["'self'"]);
+  assert.deepEqual(normalizeFrameAncestors('self'), ["'self'"], '非数组整包回退，不按字符串处理');
+  // 混合：非法被丢弃，合法保留
+  assert.deepEqual(normalizeFrameAncestors(['self; script-src *', 'https://ok.example.com']), ['https://ok.example.com']);
 });
 
 test('Windows 路径：URL 始终按正斜杠分段且静态资源不误报 404', () => {

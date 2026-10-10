@@ -162,11 +162,20 @@ Bundle 默认配置位于 `cordis.patch.yml`：
     refreshSkewMs: 300000
     openBrowser: true
     showSidebarEntry: true
+    frameAncestors: ['self']
 ```
 
 `catalogUrl` 默认通过 jsDelivr CDN 读取公共 [dsh-mcp-connector-registry](https://github.com/duhu2000/dsh-mcp-connector-registry)，支持 ETag/TTL 缓存；主源失败时自动尝试 GitHub raw 备用源，再回退到上次缓存或随包内置目录。jsDelivr 的分支 URL 可能存在缓存延迟，因此 Registry 合并后的新卡片不保证秒级出现。需要离线/私有模式时可将 `catalogUrl` 显式设为空字符串；显式配置其他目录 URL 时不会自动切换到公共备用源。
 
 `showSidebarEntry` 默认为 `true`。用户可在 DSH 插件配置页覆盖该值；关闭后只隐藏侧边栏快捷入口，不停用连接器、已连接 MCP Server 或工具。
+
+`frameAncestors` 默认为 `['self']`，即面板页面（`/mcp-connector/ui/`）的 CSP 只允许同源页面内嵌，是既有行为，不做任何放宽。在桌面壳（Tauri/Electron）里把面板嵌进壳窗口时，祖先源与面板自身不同源，浏览器会以 `Framing '...' violates the following Content Security Policy directive: "frame-ancestors 'self'"` 拦截并导致面板白屏；此时需要由部署方/用户显式追加外壳源：
+
+```yaml
+frameAncestors: ['self', 'http://tauri.localhost', 'tauri://localhost']
+```
+
+这是有意的安全取舍，不是遗漏：`frame-ancestors` 无法验证嵌入方到底是谁，所以插件不会默认把 Tauri 之类的外壳源硬编码进去——写进白名单就等于允许任何跑在该源上的页面内嵌本机面板。取值只接受 CSP 关键字（`self` / `none` / `*`）与 host-source（`https://*.example.com`、`127.0.0.1:3080`、`tauri://localhost`、`http://tauri.localhost:1420` 等，可带 scheme、端口与路径）；含 `;`、逗号、空格或 `'unsafe-inline'` 一类非 host-source 关键字的值会被整条丢弃（避免 CSP 头注入），过滤后为空则回退 `['self']`，而不是放行任意源。请只填自己信任的源。
 
 ## 兼容性与责任边界
 

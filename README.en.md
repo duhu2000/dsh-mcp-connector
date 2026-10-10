@@ -167,11 +167,20 @@ The default bundle configuration is in `cordis.patch.yml`:
     refreshSkewMs: 300000
     openBrowser: true
     showSidebarEntry: true
+    frameAncestors: ['self']
 ```
 
 Set `catalogUrl` to an empty string for an explicitly offline/private setup. A custom non-default URL is used as-is and does not fall back to the public registry.
 
 `showSidebarEntry` defaults to `true`. Users can override it from the DSH plugin configuration page; turning it off hides only the shortcut and does not disable the connector, connected MCP servers, or tools.
+
+`frameAncestors` defaults to `['self']`: the CSP of the panel page (`/mcp-connector/ui/`) only allows same-origin embedding, which is the existing behaviour and is not relaxed by default. When a desktop shell (Tauri/Electron) embeds the panel, the ancestor origin differs from the panel origin, so the browser blocks it with `Framing '...' violates the following Content Security Policy directive: "frame-ancestors 'self'"` and the panel renders blank. Deployers must opt in explicitly:
+
+```yaml
+frameAncestors: ['self', 'http://tauri.localhost', 'tauri://localhost']
+```
+
+This is a deliberate security trade-off, not an oversight: `frame-ancestors` cannot verify who owns the embedding origin, so the plugin never hardcodes a shell origin such as Tauri — listing one lets any page served from that origin frame the local panel. Accepted values are CSP keywords (`self` / `none` / `*`) and host-sources (`https://*.example.com`, `127.0.0.1:3080`, `tauri://localhost`, `http://tauri.localhost:1420`, optionally with scheme, port, and path). Values containing `;`, commas, spaces, or non-host-source keywords such as `'unsafe-inline'` are dropped entirely to prevent CSP header injection; if nothing valid remains the list falls back to `['self']` rather than allowing every origin. Only add origins you trust.
 
 ## Compatibility and responsibility boundary
 
