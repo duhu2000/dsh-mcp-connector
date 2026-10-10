@@ -418,6 +418,78 @@ test('OAuth 一键连接：授权 → 挂载 mcp-client 条目 → 状态', { ti
   await oauth.close();
 });
 
+test('HTTP OAuth 用 oauthResource 解耦查询参数：authorizedResources 保持规范值（刷新不得带 ?tools=）', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['document'] });
+  const canonical = `${oauth.base}/mcp/document/stream`;
+  const queryUrl = `${canonical}?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa,agent_run`;
+  const connector = {
+    id: 'exa-like',
+    name: 'Exa 同构卡片',
+    category: '调研分析',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'exa-client', grantSharing: 'connector' },
+    servers: [{
+      serverKey: 'search',
+      url: queryUrl,
+      oauthResource: canonical,
+      serverName: 'exa-like-search',
+      transport: 'streamable-http',
+      headers: { Accept: 'application/json, text/event-stream' },
+    }],
+  };
+  const { ctx, loader, tools, tables, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const pending = tools.defs.get('mcp_connector_connect').execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApprove(logs);
+    const connected = await pending;
+    assert.equal(connected.ok, true, connected.message);
+    assert.deepEqual(connected.detail.keys, ['exa-like-search']);
+
+    const entry = loader.entries.get('mcp-exa-like-search').options.config;
+    assert.equal(entry.url, queryUrl, '真实请求 URL 必须保留 ?tools=，否则高级检索与 Agent 不会暴露');
+    assert.equal(entry.headers.Accept, 'application/json, text/event-stream');
+    assert.match(entry.headers.Authorization, /^Bearer /);
+
+    const grants = [...tables.get('grants').entries()];
+    assert.equal(grants.length, 1);
+    assert.deepEqual(grants[0][1].authorizedResources, [canonical],
+      'OAuth 资源标识与刷新参数必须使用规范值：带查询串会让 AS 按 invalid_target 拒绝续期');
+
+    const persisted = await tables.get('connections').get('exa-like-search');
+    assert.equal(persisted.url, queryUrl);
+  } finally {
+    await oauth.close();
+  }
+});
+
+test('未声明 oauthResource 时带查询串的 OAuth Server 会把查询串写进 authorizedResources（E1 前的旧行为）', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ tokenResources: ['document'] });
+  const canonical = `${oauth.base}/mcp/document/stream`;
+  const queryUrl = `${canonical}?tools=web_search_exa,agent_run`;
+  const connector = {
+    id: 'exa-legacy',
+    name: 'Exa 旧行为',
+    category: '调研分析',
+    auth: { mode: 'oauth2-pkce', issuer: oauth.base, scope: 'mcp:tools', clientName: 'exa-legacy-client' },
+    servers: [{ serverKey: 'search', url: queryUrl, serverName: 'exa-legacy-search', transport: 'streamable-http' }],
+  };
+  const { ctx, tools, tables, logs } = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig({ connectors: [connector] }));
+    const pending = tools.defs.get('mcp_connector_connect').execute({ connectorId: connector.id }, { signal: undefined });
+    await autoApprove(logs);
+    const connected = await pending;
+    assert.equal(connected.ok, true, connected.message);
+    const grants = [...tables.get('grants').entries()];
+    assert.deepEqual(grants[0][1].authorizedResources, [queryUrl],
+      '这是 E1 要消除的行为：刷新时会把 ?tools= 当作 resource 发送');
+  } finally {
+    await oauth.close();
+  }
+});
+
 test('OAuth 一键授权同时挂载远程 HTTP 与本地 stdio，Token 仅在运行时注入', { timeout: 30000 }, async () => {
   const oauth = await createMockQccServer({ tokenResources: ['document'] });
   const connector = {

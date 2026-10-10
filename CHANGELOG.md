@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 目录新增 HTTP Server 的 `servers[].oauthResource`：MCP URL 需要携带查询参数（如 `?tools=`）时，OAuth 的 `resource` 授权参数、`grant.authorizedResources` 与刷新参数改用规范资源标识，实际请求仍使用带查询参数的 `url`，避免刷新被授权服务器按 `invalid_target` 拒绝。仅 `oauth2-pkce` 卡片可声明，且必须与 `url` 同源。
+- Registry 种子新增“Exa·网络搜索”第三方卡片（`registry/connectors/exa-search.json`）：OAuth 一键授权接入 Exa 官方远程 MCP，覆盖语义搜索、全文抓取、高级检索与多步研究 Agent。
+
+### Fixed
+
+- `normalizeConnectorDescriptor` 不再静默丢弃 HTTP Server 上的 `oauthResource` / `oauthTokenEnv`：前者现在生效，后者由目录审计显式拒绝，描述文件作者不会在无任何报错的情况下被忽略。
+
 ## [0.2.70] - 2026-10-08
 
 ### Fixed

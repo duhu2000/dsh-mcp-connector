@@ -3,6 +3,109 @@
   "connectors": [
     {
       "schemaVersion": 1,
+      "id": "exa-search",
+      "name": "Exa·网络搜索",
+      "vendor": "Exa",
+      "icon": "🔎",
+      "category": "调研分析",
+      "summary": "语义网页搜索 / 全文抓取 / 多步研究 Agent",
+      "description": "接入 Exa 官方远程 MCP Server（https://mcp.exa.ai/mcp），提供语义网页搜索、网页全文抓取、带筛选条件的高级检索，以及可续跑的多步研究 Agent。通过 OAuth 一键授权使用，无需手工复制 API Key。搜索按请求计费；研究 Agent（agent_run）按次或按量计费，默认金额上限 $5（auto）/ $20（ultra），未获用户确认不应执行。实际可用能力与配额以 Exa 账户套餐为准。",
+      "tags": [
+        "Exa",
+        "网页搜索",
+        "语义搜索",
+        "深度研究",
+        "网页抓取",
+        "OAuth",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://exa.ai/docs/get-started/exa-mcp",
+      "promptVariables": [
+        {
+          "name": "topic",
+          "label": "调研主题",
+          "placeholder": "例如：Exa MCP server",
+          "required": true,
+          "default": "Exa MCP server"
+        },
+        {
+          "name": "url",
+          "label": "网页地址",
+          "placeholder": "例如：https://exa.ai",
+          "required": true,
+          "default": "https://exa.ai"
+        },
+        {
+          "name": "site",
+          "label": "限定站点",
+          "placeholder": "例如：exa.ai",
+          "required": true,
+          "default": "exa.ai"
+        },
+        {
+          "name": "question",
+          "label": "研究问题",
+          "placeholder": "例如：对比主流网页搜索 MCP 的差异",
+          "required": true,
+          "default": "对比主流网页搜索 MCP 的差异"
+        }
+      ],
+      "prompts": [
+        {
+          "title": "调研最新动态",
+          "text": "用 Exa MCP 搜索「{{topic}}」的最新动态，优先采用官方网站和一手资料，并列出来源链接",
+          "server": "exa-search"
+        },
+        {
+          "title": "提取网页要点",
+          "text": "用 Exa MCP 读取这个网页的正文与关键事实，区分原文信息与推断：{{url}}",
+          "server": "exa-search"
+        },
+        {
+          "title": "限定站点与时间检索",
+          "text": "用 Exa MCP 的高级检索查询「{{topic}}」，限定在 {{site}} 且仅取近期内容，输出带日期的来源清单",
+          "server": "exa-search"
+        },
+        {
+          "title": "多步研究（先确认预算）",
+          "text": "用 Exa MCP 的研究 Agent 完成「{{question}}」：开始前先向我确认研究范围、effort 档位与金额上限（budget.maxCostDollars），确认后再执行；返回结构化结论与来源",
+          "server": "exa-search"
+        }
+      ],
+      "probeStatus": "unverified",
+      "probeReportUrl": "",
+      "toolsSnapshot": [],
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://auth.exa.ai",
+        "scope": "mcp:tools",
+        "clientName": "DeepSeek Harness - MCP 连接器",
+        "tokenEndpointAuthMethod": "none",
+        "apiKeyHeader": "X-Api-Key",
+        "grantSharing": "connector",
+        "credentialName": "",
+        "credentialPlaceholder": "",
+        "credentialDescription": "",
+        "credentialHelpLabel": "",
+        "credentialFields": []
+      },
+      "servers": [
+        {
+          "serverKey": "exa-search",
+          "url": "https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa,agent_run",
+          "oauthResource": "https://mcp.exa.ai/mcp",
+          "serverName": "exa-search",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
       "id": "pkulaw-legal",
       "name": "北大法宝·法律检索",
       "vendor": "北大法宝 PKULaw",

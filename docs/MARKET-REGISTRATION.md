@@ -54,6 +54,37 @@ DCR 返回的 `client_secret` 由插件与 Access/Refresh Token 一同保存在 
 
 插件优先读取 RFC 8414 Authorization Server Metadata；若动态注册或撤销端点缺失，会再读取 OIDC Discovery 并仅补齐缺失字段。OAuth 元数据中的授权、Token 等标准端点始终优先。
 
+### 5.1 MCP URL 带查询参数时的 OAuth 资源标识
+
+MCP URL 需要携带查询参数（`?tools=`、`?tenant=` 等）时，OAuth 的 `resource` 参数**不能**跟着带上查询串：RFC 8707 允许授权服务器以 `invalid_target` 拒绝与原始授权不一致的 `resource`，一旦查询串被写进 `authorizedResources`，刷新就会失败，用户会被反复要求重新授权。
+
+因此 OAuth 卡片用 `servers[].oauthResource` 显式声明规范资源标识，`url` 保留查询参数：
+
+```json
+{
+  "servers": [{
+    "serverKey": "search",
+    "url": "https://mcp.example.com/mcp?tools=web_search_exa,agent_run",
+    "oauthResource": "https://mcp.example.com/mcp",
+    "serverName": "vendor-search",
+    "transport": "streamable-http"
+  }]
+}
+```
+
+约束：
+
+- 只有 `auth.mode: "oauth2-pkce"` 的卡片可以声明，其他鉴权模式声明会被目录审计拒绝；
+- `oauthResource` 必须与 `url` **同源**，且通过 HTTPS / 回环 HTTP 检查，防止描述文件把 Token 引到其他域；
+- 实际请求仍使用 `url`（含查询参数），`resource` 授权参数、Token 校验、`grant.authorizedResources` 与刷新参数使用 `oauthResource`；
+- 不声明时行为与旧版完全一致（直接用 `url` 匹配）。
+
+为什么这个字段是必需的（2026-10-10 实测）：部分授权服务器签发的 access token **不带 `resource` claim**（Exa 只有 `aud: ["https://mcp.exa.ai", "https://api.exa.ai", "https://mcp.exa.ai/mcp"]`，无 `resource`），此时插件不按 token claim 过滤，而是直接采用 `servers[].oauthResource ?? url`。因此对这类厂商，**是否声明 `oauthResource` 就决定了 `authorizedResources` 是规范值还是带查询串的 URL**；带查询串的值会在每次刷新时作为 `resource` 发给授权服务器。
+
+> 复现提示：卡片一旦被旧版插件安装过，本机 `catalog.dynamic` 里存的就是**已削掉 `oauthResource` 的副本**，仅升级插件不会修复它（连接仍可用，只是 `authorizedResources` 继续走 `url`）。升级后需要**重新安装该卡片**（重新走一次描述 URL 安装）才会带上新字段。
+
+已知边界：`grantSharing: "issuer"` 的卡片在启动时归并历史共享授权（`consolidatePersistedSharedGrants`）按连接记录的 `url` 比较资源。查询参数场景下 `url` 与规范 `authorizedResources` 不再相等，该归并优化会被跳过——不影响连接、刷新与撤销，只是历史多 Grant 不会被自动合并。
+
 符合上述条件的最小描述：
 
 ```json
@@ -83,7 +114,7 @@ DCR 返回的 `client_secret` 由插件与 Access/Refresh Token 一同保存在 
 }
 ```
 
-### 5.1 需要本机环境变量的 stdio 卡片
+### 5.2 需要本机环境变量的 stdio 卡片
 
 目录只声明字段和映射，示例见 `registry/connectors/stdio-credential.sample.json`：
 
@@ -210,3 +241,35 @@ QVeris Hosted MCP 提供单一 Streamable HTTP 端点 `https://mcp.qveris.ai/mcp
 - https://mcp.bazhuayu.com/.well-known/oauth-protected-resource
 - https://identity.bazhuayu.com/.well-known/oauth-authorization-server
 - https://identity.bazhuayu.com/.well-known/openid-configuration
+
+## 10. Exa 网络搜索适配结论
+
+Exa 官方远程 MCP 为 `https://mcp.exa.ai/mcp`（Streamable HTTP；`initialize` 返回 serverInfo `exa-search-server`，版本 3.4.2），同时支持无凭据（默认工具）、API Key（`x-api-key` 或 `Authorization: Bearer`）与 OAuth 2.0。
+
+2026-10-09 无凭据实测：
+
+- Protected Resource Metadata：`resource=https://mcp.exa.ai/mcp`，授权服务器 `https://auth.exa.ai`，scope `mcp:tools`，`bearer_methods_supported: ["header"]`；
+- Authorization Server Metadata（RFC 8414）：issuer 与声明值精确相等，`code_challenge_methods_supported: ["S256"]`，`token_endpoint_auth_methods_supported: ["none"]`，并发布**动态客户端注册**与**撤销**端点；
+- 用本机 loopback 回调按插件同款报文发起 DCR，返回 `201` 与 `client_id`，满足第 5 节"OAuth 一键授权"的全部门槛；
+- `tools/list` 在未鉴权时可用；`tools/call` 无凭据走 IP 级免费额度（官方公布 3 QPS / 150 次每日），额度用尽返回 429。
+
+工具面与本卡片的 `?tools=` 参数（2026-10-10 用真实密钥只读 `tools/list` 复测）：
+
+- 无凭据：默认 2 个工具（`web_search_exa`、`web_fetch_exa`）；
+- **有凭据**：纯 URL 自动变成 3 个工具——`agent_run` 是"鉴权即白送"，并不需要写进 `tools=`；写成 `?tools=` 精确列表后，**凭据不会向列表追加工具**（只列 2 个就恰好 2 个）；
+- 卡片 URL `?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa,agent_run` 鉴权后列出 4 个工具，相对纯 URL 的**净增益只有 `web_search_advanced_exa`**（带筛选/域名/日期/摘要/子页抓取）；
+- `tools=` 是**精确替换**语义（不是追加），未知名称会被丢弃；若整份列表都不可识别会静默回落到默认 2 个，因此该列表是硬编码白名单——Exa 新增默认工具不会自动出现在卡片里，工具改名需要按第 3 节更新 Registry（不需要重新发布 npm）；
+- 列表含 `agent_run` 时，`initialize` 阶段就要求凭据，因此该 URL 的匿名 `initialize` 返回 401——这是预期行为，公开探针仍判可达且 `oauth: pass`；若只想暴露高级检索而完全不暴露计费工具，可改用 `?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa`（3 个工具，且匿名 `initialize` 可 200）；
+- 因为 MCP URL 带查询参数，卡片必须用 `servers[].oauthResource` 声明规范资源标识（见第 5.1 节），否则带查询串的 URL 会被写进 `authorizedResources`，刷新时 `resource` 参数不一致，可能被授权服务器按 `invalid_target` 拒绝。
+
+计费与配额：搜索按请求计费（instant $4/1k、fast/auto $7/1k），`agent_run` 每次 $0.012–$1.00 或按量计费（默认上限 $5 auto / $20 ultra），余额耗尽返回 402。卡片保持 `featured: false`：保留 `agent_run`（多步研究是该分类的差异化能力），并以示例 Prompt 强制"先确认研究范围、effort 档位与金额上限"而不是把它从工具面移除。工具 schema 不随插件版本固定，`web_search_exa` 当前要求同时提供 `query` 与 `objective`。
+
+参考：
+
+- https://exa.ai/docs/get-started/exa-mcp
+- https://github.com/exa-labs/exa-mcp-server
+- https://mcp.exa.ai/.well-known/oauth-protected-resource
+- https://auth.exa.ai/.well-known/oauth-authorization-server
+- https://exa.ai/docs/admin/pricing
+- https://dashboard.exa.ai/api-keys
+

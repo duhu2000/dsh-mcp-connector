@@ -299,6 +299,40 @@ test('OAuth stdio 只允许把同连接器 HTTP resource 的 Token 注入声明�
   assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(conflictingBinding)), /不能同时声明 credentialBindings/);
 });
 
+test('HTTP Server 可声明 oauthResource：请求 URL 与 OAuth 资源标识解耦', () => {
+  const raw = {
+    id: 'exa-search', name: 'Exa 网络搜索',
+    auth: { mode: 'oauth2-pkce', issuer: 'https://auth.exa.ai', scope: 'mcp:tools' },
+    servers: [{
+      serverKey: 'exa-search',
+      url: 'https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa,agent_run',
+      oauthResource: 'https://mcp.exa.ai/mcp',
+      serverName: 'exa-search',
+      transport: 'streamable-http',
+    }],
+  };
+  const descriptor = auditDescriptor(normalizeConnectorDescriptor(raw));
+  assert.equal(descriptor.servers[0].url, raw.servers[0].url, '实际请求 URL 必须保留查询参数');
+  assert.equal(descriptor.servers[0].oauthResource, 'https://mcp.exa.ai/mcp', 'HTTP oauthResource 不得被静默丢弃');
+
+  const crossOrigin = structuredClone(raw);
+  crossOrigin.servers[0].oauthResource = 'https://evil.example.com/mcp';
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(crossOrigin)), /同源/);
+
+  const notOauth = structuredClone(raw);
+  notOauth.auth = { mode: 'none' };
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(notOauth)), /只有 oauth2-pkce/);
+
+  const tokenEnv = structuredClone(raw);
+  tokenEnv.servers[0].oauthTokenEnv = 'EXA_AUTHORIZATION';
+  assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(tokenEnv)), /oauthTokenEnv/);
+
+  const plain = structuredClone(raw);
+  delete plain.servers[0].oauthResource;
+  assert.equal(auditDescriptor(normalizeConnectorDescriptor(plain)).servers[0].oauthResource, undefined,
+    '未声明 oauthResource 时行为与旧版一致');
+});
+
 test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
   const base = { key: 'x', connectorId: 'x', kind: 'json', name: 'X', serverName: 'x', createdAt: 1, updatedAt: 1 };
   assert.equal(normalizeConnectionRecord({ ...base, transport: 'sse', url: 'https://mcp.example.com/sse' }).transport, 'streamable-http');

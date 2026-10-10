@@ -131,6 +131,36 @@ test('fetchRemoteCatalog 拉取并解析 { connectors } 结构', async () => {
   }
 });
 
+test('远程目录中 HTTP Server 的 oauthResource 经审计后保留（Exa 同构卡片）', async () => {
+  const payload = {
+    connectors: [{
+      id: 'exa-like', name: 'Exa 同构卡片', published: true, category: '调研分析',
+      auth: { mode: 'oauth2-pkce', issuer: 'https://auth.example.com' },
+      servers: [{
+        serverKey: 'search',
+        url: 'https://mcp.example.com/mcp?tools=web_search_exa,agent_run',
+        oauthResource: 'https://mcp.example.com/mcp',
+        serverName: 'exa-like-search',
+        transport: 'streamable-http',
+      }],
+    }],
+  };
+  const server = createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(payload));
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const port = server.address().port;
+  try {
+    const result = await fetchRemoteCatalog(`http://127.0.0.1:${port}/catalog.json`, { requestTimeoutMs: 5000 });
+    assert.equal(result.connectors[0].servers[0].url, 'https://mcp.example.com/mcp?tools=web_search_exa,agent_run');
+    assert.equal(result.connectors[0].servers[0].oauthResource, 'https://mcp.example.com/mcp',
+      '远程卡片声明的 OAuth 资源标识必须存活到合并目录');
+  } finally {
+    server.close();
+  }
+});
+
 test('fetchRemoteCatalogWithFallback 主源失败后改用备用源且不混用 ETag', async () => {
   const requests = [];
   const server = createServer((req, res) => {
