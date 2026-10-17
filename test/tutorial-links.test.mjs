@@ -14,10 +14,12 @@ function makeFs(files) {
   const isDir = (path) => paths.some((p) => p.startsWith(`${path}/`));
   return {
     readFile: async (path) => {
+      path = path.replaceAll('\\', '/');
       if (!(path in files)) throw Object.assign(new Error(`ENOENT: ${path}`), { code: 'ENOENT' });
       return files[path];
     },
     readdir: async (path) => {
+      path = path.replaceAll('\\', '/');
       const entries = new Set();
       for (const p of paths) {
         if (p.startsWith(`${path}/`)) entries.add(p.slice(path.length + 1).split('/')[0]);
@@ -25,6 +27,7 @@ function makeFs(files) {
       return [...entries];
     },
     stat: async (path) => {
+      path = path.replaceAll('\\', '/');
       if (path in files || isDir(path)) return {};
       throw Object.assign(new Error(`ENOENT: ${path}`), { code: 'ENOENT' });
     },
@@ -121,7 +124,40 @@ test('links resolve relative to the source file, including a subdirectory', asyn
     [`${DIR}/OAUTH-DIAGNOSTICS.md`]: '# oauth\n',
   });
 
-  assert.deepEqual(await checkTutorialLinks({ dir: DIR, ...fs }), []);
+  let reads = 0;
+  assert.deepEqual(await checkTutorialLinks({ dir: `${DIR}/sub`, ...fs, readFile: async (...args) => {
+    reads++;
+    return fs.readFile(...args);
+  } }), []);
+  assert.equal(reads, 1, 'must actually read the subdirectory source');
+});
+
+test('code examples are ignored; angle targets, parentheses and titles work', () => {
+  const markdown = [
+    '```md', '[code](missing.md)', '```',
+    '~~~', '[code](missing.md)', '~~~',
+    '    [indented](missing.md)', '`[inline](missing.md)`',
+    '[space](<my file.md>)', '[parens](guide(v2).md "a title")',
+    '[escaped](guide\\(v2\\).md)', '[external](<https://example.com>)',
+    '[absolute](/outside.md)', '[reference][id]',
+  ].join('\n');
+  assert.deepEqual(extractLocalLinks(markdown), ['my file.md', 'guide(v2).md', 'guide(v2).md']);
+});
+
+test('repository escapes and invalid encodings fail before stat', async () => {
+  const fs = makeFs({ [`${DIR}/README.md`]: '[escape](../../../outside.md)\n[bad](bad%ZZ.md)\n[encoded](%2Fetc/passwd)' });
+  let calls = 0;
+  const failures = await checkTutorialLinks({ ...fs, stat: async () => { calls++; } });
+  assert.equal(failures.length, 3);
+  assert.equal(calls, 0);
+});
+
+test('valid angle and balanced-parentheses filenames are checked, not skipped', async () => {
+  const fs = makeFs({ [`${DIR}/README.md`]: '[space](<my file.md>)\n[paren](guide(v2).md)' });
+  assert.deepEqual(await checkTutorialLinks(fs), [
+    'docs/tutorials/README.md -> guide(v2).md',
+    'docs/tutorials/README.md -> my file.md',
+  ]);
 });
 
 test('links that leave the tutorials directory are still validated', async () => {
