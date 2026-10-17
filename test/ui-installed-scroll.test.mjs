@@ -91,7 +91,7 @@ test('scheduleStatusRefresh 保留滚动，其余调用点保持默认归零', (
   const preservedCalls = uiSource.match(/loadInstalled\(\{ preserveScroll: true \}\)/g) ?? [];
   assert.equal(preservedCalls.length, 1, '只有 SSE 状态刷新走 preserveScroll');
   const bareAwaitCalls = uiSource.match(/await loadInstalled\(\);/g) ?? [];
-  assert.equal(bareAwaitCalls.length, 4, '编辑配置 / 重命名 / 迁移两处仍不保留滚动');
+  assert.equal(bareAwaitCalls.length, 5, '编辑配置 / 本地参数 / 重命名 / 迁移两处仍不保留滚动');
   assert.match(uiSource, /function refresh\(\) \{ return view === 'tools' \? loadToolExplorer\(\) : view === 'market' \? loadMarket\(\) : loadInstalled\(\); \}/);
 });
 

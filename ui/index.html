@@ -543,6 +543,7 @@
     configure: 145_000,
     importJson: 145_000,
     reconfigureConnection: 145_000,
+    applyLocalOverrides: 145_000,
     installFromUrl: 145_000,
     setEnabled: 130_000,
     setInjectionMode: 30_000,
@@ -1572,6 +1573,7 @@
         <span class="slider"></span>
       </label>
       ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor('${key}')">编辑配置</button>` : ''}
+      ${r.canEditLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.openLocalEditor('${key}')">本地参数</button>` : r.hasLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides('${key}', true)">清除本地参数</button>` : ''}
       ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename('${key}')">重命名</button>` : ''}
       ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools('${key}')">工具</button>` : ''}
       ${enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式" onclick="window.__mcp.reconnect('${key}')">重新连接</button>` : ''}
@@ -1669,11 +1671,15 @@
   function openConnectScope(connectorId) {
     const connector = marketItems[connectorId];
     if (!connector) return;
+    const server = connector.servers?.[0];
+    const allowLocalParameters = connector.authMode === 'none' && connectorId !== 'dingtalk'
+      && server?.transport === 'stdio' && !server.oauthTokenEnv && !Object.keys(server.credentialBindings || {}).length;
     openModal(`连接 ${connector.name}`, `
       <input id="scope-connector-id" type="hidden" value="${esc(connectorId)}" />
       <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? '<p>企业尚未开放 CLI 或您无法取得授权？可以取消，等待管理员处理，无需反复登录或重启。一键授权也不能绕过企业政策。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。</p>' : ''}</div>
       <div class="form-note"><strong>选择连接影响范围</strong>连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。</div>
       ${scopeFieldHtml()}
+      ${allowLocalParameters ? '<details><summary>高级：首次连接前设置本地参数（可选）</summary><label for="initial-local-overrides">本地参数 JSON</label><textarea id="initial-local-overrides" rows="6" spellcheck="false" placeholder=\'{"argsAppend":[],"env":{},"cwd":""}\'></textarea><div class="field-help">留空使用市场参数（已有连接保留原覆盖）。argsAppend 追加命令参数，env 合并环境变量，cwd 设置工作目录；仅保存在本机。可用于指定浏览器路径或代理。参数可能扩大本地访问权限，请仅填写可信内容；启动失败时保留表单供修改重试。</div></details>' : ''}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.confirmConnect()">确认连接</button></div>`);
   }
@@ -1718,6 +1724,20 @@
       <div class="field-help">提交前会先验证新配置并创建快照。任何校验、启动或保存失败都会保留原连接；连接 key、作用范围与启停状态不变。</div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitReconfigure('${esc(key)}')">${action}</button></div>`);
+  }
+
+  async function openLocalEditor(key) {
+    const item = installedItems.find((candidate) => candidate.key === key);
+    if (!item) return;
+    const result = await call('editableLocalOverrides', { key });
+    if (!result.ok) { showToast(result.message, false); return; }
+    openModal(`本地参数 · ${item.name}`, `
+      <div class="form-note"><strong>仅覆盖本机，无需修改市场目录</strong><code>argsAppend</code> 追加到市场参数末尾；<code>env</code> 合并环境变量；<code>cwd</code> 设置工作目录。命令、连接身份与市场默认值保持不变。参数可能扩大本地访问权限，请仅填写可信内容。</div>
+      <label for="local-overrides-json">本地参数 JSON</label>
+      <textarea id="local-overrides-json" rows="12" spellcheck="false">${esc(result.detail?.json || '')}</textarea>
+      <div class="field-help"><code>&lt;KEEP_EXISTING&gt;</code> 保留本机已有值；删除字段清除该项覆盖。保存会创建快照并重新加载已启用连接，停用连接保持停用；不代表工具调用已验收。</div>
+      <div class="inline-error" id="modal-error" tabindex="-1"></div>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides('${esc(key)}', true)">恢复市场参数</button><button class="btn" type="button" onclick="window.__mcp.submitLocalOverrides('${esc(key)}')">保存本地参数</button></div>`);
   }
 
   function openAddConnection(mode = 'json', preset = {}) {
@@ -1831,8 +1851,9 @@
       try { scopeParams = selectedScopeParams(); }
       catch (error) { showModalError(error.message); return; }
       const timeoutMs = marketItems[connectorId]?.authMode === 'oauth2-pkce' ? 310_000 : undefined;
+      const localOverrides = $('#initial-local-overrides')?.value.trim();
       setModalBusy(true, '正在连接…');
-      const r = await call('connect', { connectorId, ...scopeParams }, { timeoutMs });
+      const r = await call('connect', { connectorId, ...scopeParams, ...(localOverrides ? { localOverrides } : {}) }, { timeoutMs });
       setModalBusy(false);
       showToast(r.message, r.ok);
       if (!r.ok) showModalError(r.message);
@@ -1850,6 +1871,18 @@
     openScope(key) { openScopeManager(key); },
     openRename(key) { openRenameConnection(key); },
     async openEditor(key) { await openConnectionEditor(key); },
+    async openLocalEditor(key) { await openLocalEditor(key); },
+    async submitLocalOverrides(key, reset = false) {
+      if (reset && !await confirmDialog({ title: '恢复市场参数', message: '清除本机追加参数、环境变量和工作目录覆盖；已启用连接将重新加载。', confirmLabel: '恢复' })) return;
+      const json = $('#local-overrides-json')?.value || '{}';
+      setModalBusy(true, '正在更新本地参数…');
+      const result = await call('applyLocalOverrides', { key, json, reset });
+      setModalBusy(false);
+      if (!result.ok) { showToast(result.message, false); showModalError(result.message); return; }
+      closeModal();
+      showToast(result.message, true);
+      await loadInstalled();
+    },
     formatEditJson() {
       const input = $('#edit-connection-json');
       if (!input) return;

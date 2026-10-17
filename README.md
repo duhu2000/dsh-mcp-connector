@@ -73,6 +73,7 @@ dsh plugin --profile web add dsh-mcp-connector
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片共享一次授权，跨进程锁与独立原子 Grant journal 防止 Desktop/Web 并行时重复消耗 Refresh Token。
 - 配置原地编辑：自定义和 JSON 导入连接可在“已安装”中编辑标准化 JSON 并重新连接；敏感值以本机保留标记处理，校验、启动或保存失败时原连接继续可用。
+- 开发中（#146，尚未发布）：无凭据市场 stdio 连接支持在首次连接确认框填写“高级本地参数”，以及在已安装列表编辑 `argsAppend`、`env`、`cwd`，不修改目录或连接身份；已有值不回传浏览器，支持快照恢复和清除覆盖。首次连接留空沿用市场参数，已有连接留空保留原覆盖；启动失败保留表单可修改重试。不支持 OAuth、凭据绑定、CLI 桥接或完整参数替换；真实 Desktop/Windows 验收尚未完成。
 - 配置备份：一键复制/下载可再次导入的脱敏 JSON；连接变更前自动保存最多 20 个本机快照，支持预览与原子恢复。凭据、本地路径和 OAuth Grant 不进入导出结果。
 - 连接作用域：新连接可选当前 Workspace 项目或 profile 全局；支持先预览 Server/工具影响，再复制、移动或按 revision 回滚。凭据只存一份，project-only 工具由 DSH Host 强制隔离。
 - 三层治理：Connection、Server、Tool 规则按 Tool > Server > Connection > 默认允许解析；变更先预览、按 revision 提交并可回滚，由 DSH Host 的 schema/lookup/dispatch restriction 与最终执行 Guard 真实生效。
