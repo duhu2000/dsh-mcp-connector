@@ -143,6 +143,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 - [按会话启用工具：显式激活、TTL 与 Host 安全边界](docs/SESSION-TOOL-INJECTION.md)
 - [工具试运行：官方 API 证据与安全设计](docs/TOOL-TRIAL-DESIGN.md)
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
+- [国际化：`locale` 配置、词典约定与翻译完备性门禁](docs/I18N.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
 - [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
 - [首次贡献：从 good first issue 到第一个 PR](docs/FIRST-CONTRIBUTION.md)
@@ -164,6 +165,7 @@ Bundle 默认配置位于 `cordis.patch.yml`：
     openBrowser: true
     showSidebarEntry: true
     compactManagementTools: false
+    locale: 'auto'
     frameAncestors: ['self']
 ```
 
@@ -182,6 +184,10 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 - 此开关不减少已连接服务的业务工具数量，不停用连接、不迁移凭据、不修改作用域/治理规则。业务工具需要按需可见时，仍使用原有“按会话启用”。会话确认、TTL 与 Host 审批保持不变。
 - 例如发现入口可用 `{"action":"search","query":"天气","limit":5}`；查询连接状态可用 `{"action":"status"}`。详情使用 `action=detail` 和必填 `toolName`，市场搜索使用 `action=catalog` 与可选 `keyword`。
 - 设回 `false` 并重载插件可恢复旧管理工具名；不要同时运行两份插件。工具数量和 schema 大小的减少不等于实测 token 或费用节省。
+
+`locale` 选择面板与对话工具返回文案的语言，默认为 `'auto'`：跟随用户在 DSH「设置 → Language」里的选择（即 `@deepseek-ai/dsh-client-locale` 的 `preference`），读不到时再按 `LC_ALL` / `LC_MESSAGES` / `LANG`，仍无法识别时回退中文。界面语言属于用户偏好，插件不覆盖它：中文用户不做任何设置仍是中文（中文是 DSH 默认语言），在 DSH 里选了 English 的用户会直接得到英文。也可写成 `'zh-CN'` / `'en'` 强制指定。修改后需重载插件。
+
+连接器名称、厂商、分类、URL 与错误码不参与翻译，两种语言使用同一份目录。详见 [docs/I18N.md](docs/I18N.md)。
 
 `frameAncestors` 默认为 `['self']`，即面板页面（`/mcp-connector/ui/`）的 CSP 只允许同源页面内嵌，是既有行为，不做任何放宽。在桌面壳（Tauri/Electron）里把面板嵌进壳窗口时，祖先源与面板自身不同源，浏览器会以 `Framing '...' violates the following Content Security Policy directive: "frame-ancestors 'self'"` 拦截并导致面板白屏；此时需要由部署方/用户显式追加外壳源：
 

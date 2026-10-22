@@ -17,12 +17,16 @@ const WHITELIST = [
   /^catalog\/[^/]+\.json$/,
   /^lib\/[^/]+\.js$/,
   /^lib\/connectors\/[^/]+\.js$/,
+  // i18n 运行时与语言词典：随插件一起发布，英文界面依赖它们。
+  /^lib\/i18n\/[^/]+\.js$/,
+  /^lib\/i18n\/locales\/[^/]+\.js$/,
+  /^lib\/i18n\/locales\/en\/[^/]+\.js$/,
   /^scripts\/(?:probe-connector|build-registry|cli-bridge|ui-harness)\.mjs$/,
   /^registry\/README\.md$/,
   /^registry\/catalog\.json$/,
   /^registry\/connectors\/[^/]+\.json$/,
   /^registry\/schema\/[^/]+\.json$/,
-  /^docs\/(?:CLI-PROVIDERS|CONFIG-BACKUP|CONNECTION-SCOPES|DESKTOP-E2E|FIRST-CONTRIBUTION|MARKET-REGISTRATION|PLUGIN-UPDATE|SESSION-TOOL-INJECTION|STDIO-SUPPORT|TOOL-GOVERNANCE|USER-GUIDE)\.md$/,
+  /^docs\/(?:CLI-PROVIDERS|CONFIG-BACKUP|CONNECTION-SCOPES|DESKTOP-E2E|FIRST-CONTRIBUTION|I18N|MARKET-REGISTRATION|PLUGIN-UPDATE|SESSION-TOOL-INJECTION|STDIO-SUPPORT|TOOL-GOVERNANCE|USER-GUIDE)\.md$/,
   /^docs\/tutorials\/(?:README|FIRST-SUCCESS-SCENARIOS|JSON-MIGRATION|OAUTH-DIAGNOSTICS|TOOL-SEARCH-RECOVERY|TRUSTED-STATUS-COPY)\.md$/,
   /^docs\/screenshots\/(?:README\.md|assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
@@ -47,7 +51,15 @@ try {
   process.exit(1);
 }
 
-const [pack] = JSON.parse(raw);
+// npm 11 及更早返回数组 `[{ files }]`；npm 12 改为按包名索引的对象
+// `{ "pkg": { files } }`。两种形状都接受，避免发布门禁因 npm 大版本升级而失效。
+function firstPackEntry(parsed) {
+  if (Array.isArray(parsed)) return parsed[0];
+  if (parsed && typeof parsed === 'object') return Object.values(parsed)[0];
+  return undefined;
+}
+
+const pack = firstPackEntry(JSON.parse(raw));
 if (!pack || !Array.isArray(pack.files)) {
   console.error('verify-pack 失败：无法解析 npm pack 输出');
   process.exit(1);

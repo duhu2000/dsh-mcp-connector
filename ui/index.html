@@ -456,9 +456,9 @@
 <div class="app">
   <header>
     <div class="tabs" id="tabs">
-      <button data-view="market" class="active">市场 <span class="tab-count" id="market-tab-count"></span></button>
-      <button data-view="installed">已安装 <span class="tab-count" id="installed-tab-count"></span></button>
-      <button data-view="tools">工具</button>
+      <button data-view="market" class="active"><span id="tab-market">市场</span> <span class="tab-count" id="market-tab-count"></span></button>
+      <button data-view="installed"><span id="tab-installed">已安装</span> <span class="tab-count" id="installed-tab-count"></span></button>
+      <button data-view="tools"><span id="tab-tools">工具</span></button>
     </div>
     <div class="header-spacer"></div>
     <div class="search-box">
@@ -486,17 +486,17 @@
         <div class="detail-desc" id="detail-desc"></div>
         <div class="detail-section">
           <div class="detail-section-head">
-            <div class="detail-section-title"><span class="emoji">💡</span> <span>试试这样用</span> <span class="detail-section-meta" id="prompt-meta"></span></div>
+            <div class="detail-section-title"><span class="emoji">💡</span> <span id="prompt-title">试试这样用</span> <span class="detail-section-meta" id="prompt-meta"></span></div>
             <div class="detail-section-spacer"></div>
             <button class="text-btn" id="prompt-next" type="button" hidden>换一批</button>
           </div>
           <div class="prompt-list" id="detail-prompts"></div>
         </div>
         <details class="tools-disclosure" id="tools-disclosure">
-          <summary><span>🧰 <span>工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
+          <summary><span>🧰 <span id="tools-title">工具详情</span></span><span class="tools-summary" id="tools-summary">加载中…</span></summary>
           <div class="tools-panel">
             <div class="governance-bar" id="governance-bar" hidden>
-              <span class="governance-title">连接策略</span>
+              <span class="governance-title" id="governance-title">连接策略</span>
               <select class="policy-select" id="connection-policy" aria-label="连接策略"></select>
               <span class="governance-hint" id="governance-hint">Tool &gt; Server &gt; Connection</span>
               <button class="text-btn" id="policy-rollback" type="button" hidden>撤销最近变更</button>
@@ -505,7 +505,7 @@
               <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
             </div>
             <div class="tools-list" id="detail-tools">
-              <div class="tools-loading">加载中...</div>
+              <div class="tools-loading" id="tools-loading">加载中...</div>
             </div>
           </div>
         </details>
@@ -569,8 +569,505 @@
     send: '发送', fillSend: '填写并发送', connectToUse: '连接后使用', try: '💬 去试试',
     connectTry: '🔗 连接后试用', configureConnect: '🔑 录入凭据并连接',
     reconfigureCredential: '🔑 重新配置凭据', completeSetup: '补充本地解析', upgradeOauth: '升级一键授权', loading: '加载中…',
+    // 与按钮同形的名词需要独立词条：中文不变，英文按上下文区分。
+    explorerConnection: '连接', explorerServer: '服务',
   };
-  const t = (key) => LABELS[key] || key;
+  // 语言词典：`{ 'zh-CN': {}, en: { '中文原文或 LABELS key': 'English' } }`。
+  // 中文是默认语言且 msgid 即原文，所以中文词典为空表（零查表、零回归）；
+  // 英文缺项回退中文原文，绝不出现空白。
+  const MESSAGES = { 'zh-CN': {}, en: {} };
+  // `zh-CN` 是默认语言，msgid 即中文原文，所以不需要词典；英文是「中文原文 → 英文」
+  // 的扁平映射（与 lib/i18n/locales/en/*.js 同一约定）。缺项回退中文原文，绝不空白。
+  // 少量同名中文在不同上下文需要不同英文时，用 LABELS 的 key 单独提供词条。
+  MESSAGES.en = {
+      "详情": "Details",
+      "连接": "Connection",
+      "已连接": "Connected",
+      "状态未知": "Status unknown",
+      "已配置": "Configured",
+      "配置": "Configure",
+      "需重新授权": "Reauthorize",
+      "自动重试中": "Retrying",
+      "连接异常": "Connection error",
+      "部分异常": "Partially degraded",
+      "已停用": "Disabled",
+      "发送": "Send",
+      "填写并发送": "Fill in and send",
+      "连接后使用": "Connect to use",
+      "💬 去试试": "💬 Try it",
+      "🔗 连接后试用": "🔗 Connect and try",
+      "🔑 录入凭据并连接": "🔑 Enter credentials and connect",
+      "🔑 重新配置凭据": "🔑 Reconfigure credentials",
+      "补充本地解析": "Finish local parsing",
+      "升级一键授权": "Upgrade to one-click authorization",
+      "加载中…": "Loading…",
+      "加载中...": "Loading...",
+      "请求失败（HTTP {status}）": "Request failed (HTTP {status})",
+      "请求超时（{seconds} 秒），请检查服务状态和 Host 日志后重试": "Request timed out after {seconds}s. Check the service status and Host logs, then try again.",
+      "无法连接 MCP 连接器服务：{error}": "Cannot reach the MCP connector service: {error}",
+      "正在发送…": "Sending…",
+      "已带入新会话": "Added to the new session",
+      "打开新会话失败，请重试": "Could not open the new session. Try again.",
+      "暂无可用 Workspace": "No Workspace available",
+      "连接范围": "Connection scope",
+      "所有项目（全局）": "All projects (global)",
+      "可选择任一 Workspace；项目范围只在该 Workspace 的 Agent 中可见。全局范围由所有 Workspace 继承，范围绑定不保存或复制凭据。": "You can pick any Workspace. A project scope is visible only to Agents in that Workspace. The global scope is inherited by every Workspace. Scope bindings never store or copy credentials.",
+      "请选择一个 Workspace，再使用项目范围": "Select a Workspace before using a project scope",
+      "当前项目": "Current project",
+      "项目": "Project",
+      "尚未发现": "Not discovered yet",
+      "Host 状态未知": "Host status unknown",
+      "最近发现成功": "Last discovery succeeded",
+      "最近发现失败": "Last discovery failed",
+      "🔄 重新连接": "🔄 Reconnect",
+      "🔄 重新检查": "🔄 Check again",
+      "🔐 重新授权": "🔐 Reauthorize",
+      "请输入{name}": "Enter {name}",
+      "· 精选 {visible} / 共 {total} 条": "· {visible} of {total} curated",
+      "暂无预设 Prompt": "No preset prompts",
+      "{servers} 个服务 · {tools} 个工具": "{servers} servers · {tools} tools",
+      "搜索 {count} 个工具的名称或描述…": "Search {count} tools by name or description…",
+      "搜索工具名称或描述…": "Search tool names or descriptions…",
+      "搜索连接器…": "Search connectors…",
+      "刷新工具视图": "Refresh tools view",
+      "刷新连接器目录": "Refresh connector catalog",
+      "继承上级": "Inherit",
+      "允许": "Allow",
+      "拒绝": "Deny",
+      "{scope} 策略": "{scope} policy",
+      "当前 Host 未观察到该工具，不能报告为已禁用或健康": "The Host has not observed this tool, so it cannot be reported as disabled or healthy",
+      "未观察 · {desired}": "Not observed · {desired}",
+      "{state} · {source}": "{state} · {source}",
+      "策略": "Policy",
+      "已禁用": "Disabled",
+      "已允许": "Allowed",
+      "规则拟拒绝": "Rule would deny",
+      "规则拟允许": "Rule would allow",
+      " · Host 强制执行": " · enforced by the Host",
+      " · Host 能力不足": " · Host capability missing",
+      "应用治理策略": "Apply governance policy",
+      "{message}。确认应用？": "{message}. Apply it?",
+      "应用": "Apply",
+      "恢复策略历史": "Restore from policy history",
+      "确认恢复 revision={revision} 的策略内容？": "Restore the policy content at revision={revision}?",
+      "恢复": "Restore",
+      "回滚": "Roll back",
+      "暂无可用工具": "No tools available",
+      "{label} Server 策略": "{label} Server policy",
+      "{name} Tool 策略": "{name} Tool policy",
+      "未知错误": "Unknown error",
+      "参数详情": "Parameter details",
+      "未命名工具": "Unnamed tool",
+      "已弃用": "Deprecated",
+      "暂无描述": "No description",
+      "Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。": "The Host finished stdio initialization, but this Server currently exposes no tools.",
+      "暂无工具": "No tools",
+      "正在发现": "Discovering",
+      "加载失败": "Failed to load",
+      " · 最后成功缓存 {at}{stale}": " · last successful cache {at}{stale}",
+      " · 已超过 24 小时": " · older than 24 hours",
+      " · 缓存已超过 24 小时": " · cache is older than 24 hours",
+      " · 缓存超过 24 小时": " · cache older than 24 hours",
+      " · 缓存清单已截断": " · cache list truncated",
+      "实时读取失败：{error}；以下为最后成功缓存。": "Live read failed: {error}. Showing the last successful cache.",
+      "· 显示 {shown} / {matched} 个": "· showing {shown} of {matched}",
+      "再显示 {step} 个（剩余 {remaining}）": "Show {step} more ({remaining} remaining)",
+      "没有匹配“{query}”的工具": "No tools match “{query}”",
+      "匹配 {matched} 个工具 · 已渲染 {shown}": "{matched} tools matched · {shown} rendered",
+      "最后成功缓存 {at}": "last successful cache {at}",
+      "结构较大，请查看原始 Schema。": "The structure is large; see the raw Schema.",
+      "允许任意输入": "Any input allowed",
+      "不允许任何输入": "No input allowed",
+      "暂无参数定义。": "No parameter definition.",
+      "任意类型": "any type",
+      "禁止输入": "no input",
+      "未声明": "undeclared",
+      "必填": "Required",
+      "可选": "Optional",
+      "暂无说明": "No description",
+      "展开结构": "Expand structure",
+      "摘要已截断，请查看原始 Schema 中的其余字段。": "The summary was truncated; see the remaining fields in the raw Schema.",
+      "数组元素": "Array items",
+      "包含引用或组合约束，摘要不代表完整规则，请同时查看原始 Schema。": "Contains references or composition constraints, so the summary does not reflect the full rules. Also check the raw Schema.",
+      "参数": "Parameter",
+      "类型": "Type",
+      "要求": "Requirement",
+      "说明与约束": "Description and constraints",
+      "类型：{type}；无可展开的具名参数，请查看原始 Schema。": "Type: {type}; no named parameters to expand. See the raw Schema.",
+      "；": "; ",
+      "已知": "Known",
+      "未知": "Unknown",
+      "未缓存输入参数 schema": "Input parameter schema not cached",
+      "工具参数 · {name}": "Tool parameters · {name}",
+      "{server} · 最后成功 {observed}{stale}{truncated}": "{server} · last success {observed}{stale}{truncated}",
+      " · schema 已安全裁剪": " · schema safely trimmed",
+      "原始 Schema（安全缓存）": "Raw Schema (safely cached)",
+      "关闭": "Close",
+      "请确认": "Please confirm",
+      "确认": "Confirm",
+      "取消": "Cancel",
+      "、": ", ",
+      "。": ".",
+      "处理中…": "Working…",
+      "市场分类": "Marketplace categories",
+      "按分类筛选": "Filter by category",
+      "{count} 个": "{count}",
+      "MCP连接器社区入口": "MCP connector community links",
+      "连接顺利？如果 MCP连接器对你有帮助，欢迎支持或一起改进。": "Everything connected? If the MCP connector helps you, consider supporting it or helping us improve it.",
+      "提交连接器": "Submit a connector",
+      "参与贡献": "Contribute",
+      "关闭社区入口": "Hide community links",
+      "本次不再显示": "Don't show this again on this page",
+      "收起": "Collapse",
+      "查看全部 {count} 个": "View all {count}",
+      "没有匹配当前搜索条件的连接器": "No connectors match your search",
+      "暂无已上架的连接器": "No connectors published yet",
+      "没有匹配当前筛选条件的连接器": "No connectors match the current filters",
+      "全部": "All",
+      "推荐": "Recommended",
+      "企业数据": "Company data",
+      "金融投资": "Finance & investment",
+      "法律合规": "Legal & compliance",
+      "开发工具": "Developer tools",
+      "办公协作": "Office & collaboration",
+      "调研分析": "Research & analysis",
+      "设计创意": "Design & creative",
+      "效率工具": "Productivity",
+      "其他": "Other",
+      "官方 CLI OAuth": "Official CLI OAuth",
+      "OAuth 授权": "OAuth authorization",
+      "Bearer 凭据": "Bearer credential",
+      "按服务要求授权": "Authorize as the service requires",
+      "提供方：{vendor}": "Provider: {vendor}",
+      "提供方：待核实": "Provider: unverified",
+      "运行于 DSH 主机": "Runs on the DSH host",
+      "远程服务": "Remote service",
+      "当前桥接仅提供只读工具": "This bridge currently exposes read-only tools only",
+      "权限以授权页和工具策略为准": "Permissions follow the authorization page and tool policy",
+      "本地 CLI": "Local CLI",
+      "本地运行": "Runs locally",
+      "包含运行于 DSH 主机的服务；授权和权限要求请查看详情": "Includes services that run on the DSH host; see details for authorization and permission requirements",
+      "查看 {name} 详情": "View {name} details",
+      "未连接": "Not connected",
+      "尚无记录": "No records yet",
+      "搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。": "Searches the cached tools of enabled connections in the current scope. Tools are not executed. A recent successful discovery does not guarantee every call will succeed.",
+      "按连接筛选": "Filter by connection",
+      "服务": "Server",
+      "按服务筛选": "Filter by server",
+      "发现状态": "Discovery status",
+      "按发现状态筛选": "Filter by discovery status",
+      "全部状态": "All statuses",
+      "清除筛选": "Clear filters",
+      "正在读取缓存…": "Reading cache…",
+      "全部连接": "All connections",
+      "全部服务": "All servers",
+      "{scope} · {connections} 条连接 · 匹配 {tools} 个工具 · 显示 {shown} 个": "{scope} · {connections} connections · {tools} tools matched · showing {shown}",
+      "连接状态与故障处理（{count}）": "Connection status and troubleshooting ({count})",
+      "缓存 {count} 个工具": "{count} tools cached",
+      "最近发现：{observed}；最后成功：{success}{stale}{truncated}": "Last discovery: {observed}; last success: {success}{stale}{truncated}",
+      "{stage}：{message}": "{stage}: {message}",
+      "建议：{action}": "Suggested action: {action}",
+      "鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。": "Background retries are paused after an authorization failure. Update credentials or reauthorize on the Installed page.",
+      "下次后台发现不早于：{at}（页面保持连接时）": "Next background discovery no earlier than {at} (while this page stays connected)",
+      "重新发现工具": "Rediscover tools",
+      "检查连接": "Check connection",
+      "当前筛选下没有连接。": "No connections under the current filters.",
+      "来源：{connector} / {connection} / {server}": "Source: {connector} / {connection} / {server}",
+      "上一页": "Previous",
+      "下一页": "Next",
+      "没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。": "No matching tools. Adjust the keywords or filters, or expand the connection status to check whether discovery has not run or the read failed.",
+      "当前范围没有已启用连接。请先添加连接，或选择对应工作区。": "No enabled connections in the current scope. Add a connection first, or select the matching workspace.",
+      "发现旧企查查 MCP 授权": "Found a legacy Qichacha MCP authorization",
+      "可安全复制 {count} 组授权到 MCP连接器；不会删除旧插件或原凭据。": "You can safely copy {count} authorizations to the MCP connector; neither the old plugin nor the original credentials are deleted.",
+      "迁移": "Migrate",
+      "可从旧企查查 OAuth 插件复制已有授权": "Existing authorizations can be copied from the legacy Qichacha OAuth plugin",
+      "配置备份": "Configuration backup",
+      "扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据": "Scans the legacy Qichacha OAuth plugin; neither the old plugin nor the original credentials are deleted",
+      "检测企查查旧授权": "Check legacy Qichacha authorization",
+      "还没有连接任何 MCP · 到「市场」里连接一个吧": "No MCP connections yet. Connect one from Market.",
+      "共": "Total",
+      "条连接": "connections",
+      "搜索「{query}」": "Search “{query}”",
+      "作用域 revision={revision}": "scope revision={revision}",
+      "回滚上次范围变更": "Roll back the last scope change",
+      "局域网 HTTP 风险已确认": "LAN HTTP risk accepted",
+      "{stage} · {code}：{message}；建议：{action}": "{stage} · {code}: {message}; suggested action: {action}",
+      "；最近成功：{at}": "; last success: {at}",
+      "{name} 工具注入模式": "{name} tool injection mode",
+      "按会话模式不会断开连接，只会默认隐藏业务工具 schema": "Session mode does not drop the connection; it only hides the business tool schema by default",
+      "始终注入": "Always inject",
+      "按会话启用（实验）": "Enable per session (experimental)",
+      "编辑配置": "Edit configuration",
+      "本地参数": "Local parameters",
+      "清除本地参数": "Clear local parameters",
+      "重命名": "Rename",
+      "工具": "Tools",
+      "重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式": "Recreate the Host-side entry and recheck. Configuration, credentials, scope, and injection mode stay unchanged.",
+      "重新连接": "Reconnect",
+      "范围": "Scope",
+      "断开": "Disconnect",
+      "停用": "Disable",
+      "启用": "Enable",
+      "添加连接方式": "Add connection method",
+      "导入 JSON": "Import JSON",
+      "手动配置": "Manual setup",
+      "市场卡片": "Marketplace card",
+      "仅保存在 DSH 本机": "Stored only on this DSH host",
+      "仅保存在本机": "Stored only on this host",
+      "凭据仅保存在 DSH 本机，不会写入市场目录或对话。": "Credentials are stored only on this DSH host and are never written to the market catalog or the conversation.",
+      "前往 {vendor} 官网获取": "Get one from the {vendor} website",
+      "（必填）": " (required)",
+      "（可选）": " (optional)",
+      "本地 Agent · 本机文件": "Local Agent · local file",
+      "远程 Agent · 在线链接文档": "Remote Agent · linked online document",
+      "配置 {name}": "Configure {name}",
+      "一次配置 {count} 个 MCP Server": "Configure {count} MCP servers at once",
+      "以下 Server 共用同一份 {credential}；凭据仅保存在本机，不会写入市场目录。": "The servers below share one {credential}. Credentials are stored only on this host and are never written to the market catalog.",
+      "在线链接 + 本机文件同时启用": "Online link and local file enabled together",
+      "远程入口解析公网可访问的 URL；本地入口读取对话中上传、粘贴或指定路径的文件并自动提交解析，需 Node.js 20+。": "The remote entry point parses a publicly reachable URL; the local entry point reads a file uploaded, pasted, or path-referenced in the conversation and submits it for parsing automatically. Requires Node.js 20+.",
+      "连接 {count} 个 Server": "Connect {count} servers",
+      "连接 {name}": "Connect {name}",
+      "企业尚未开放 CLI 或您无法取得授权？可以取消，等待管理员处理，无需反复登录或重启。一键授权也不能绕过企业政策。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。": "Has your organization not enabled the CLI, or can you not obtain authorization? You can cancel and wait for an administrator; there is no need to log in repeatedly or restart. One-click authorization cannot bypass organizational policy. This version does not start a login automatically, and tool registration does not mean all business permissions are granted.",
+      "选择连接影响范围": "Choose the connection's reach",
+      "连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。": "Configuration and credentials are still stored once. For project scope, the Host enforces isolation in both tool visibility and execution.",
+      "高级：首次连接前设置本地参数（可选）": "Advanced: set local parameters before the first connection (optional)",
+      "本地参数 JSON": "Local parameters JSON",
+      "留空使用市场参数（已有连接保留原覆盖）。argsAppend 追加命令参数，env 合并环境变量，cwd 设置工作目录；仅保存在本机。可用于指定浏览器路径或代理。参数可能扩大本地访问权限，请仅填写可信内容；启动失败时保留表单供修改重试。": "Leave empty to use the market parameters (existing connections keep their current overrides). argsAppend appends command arguments, env merges environment variables, and cwd sets the working directory. Stored only on this host. Useful for specifying a browser path or a proxy. Parameters can widen local access, so only enter trusted content. If startup fails, the form stays open for you to fix and retry.",
+      "确认连接": "Confirm connection",
+      "连接不存在，请刷新后重试": "The connection no longer exists. Refresh and try again.",
+      "连接范围 · {name}": "Connection scope · {name}",
+      "当前：{scope}": "Current: {scope}",
+      "全局": "Global",
+      "变更前会预览受影响的 Server 和已知工具；连接配置、OAuth Grant 和凭据不会被复制。": "Before applying, you will preview the affected servers and known tools. Connection configuration, OAuth grants, and credentials are not copied.",
+      "变更方式": "Change method",
+      "移动（替换现有范围）": "Move (replace the current scope)",
+      "复制（保留现有范围）": "Copy (keep the current scope)",
+      "预览并应用": "Preview and apply",
+      "市场连接器名称由目录维护": "Marketplace connector names are maintained by the catalog",
+      "修改连接显示名": "Change connection display name",
+      "只修改页面显示名": "Changes the display name only.",
+      "当前连接不会中断；": "The current connection is not interrupted; ",
+      "、工具前缀、作用范围和凭据均保持不变。": ", tool prefixes, scope, and credentials all stay unchanged.",
+      "连接显示名（必填）": "Connection display name (required)",
+      "（工具前缀，不可修改）": " (tool prefix, read-only)",
+      "保存显示名": "Save display name",
+      "连接显示名": "Connection display name",
+      "编辑配置 · {name}": "Edit configuration · {name}",
+      "安全编辑标准化 JSON": "Edit normalized JSON safely.",
+      "是连接身份，不可修改；原始排版、注释和字段别名不会被还原。": " is the connection identity and cannot be changed; original formatting, comments, and field aliases are not restored.",
+      "表示敏感值继续留在本机，可直接保留，或替换为新值；删除字段表示清除该项。": " keeps the sensitive value on this host; keep it as is or replace it with a new value. Deleting a field clears that entry.",
+      "单连接 JSON": "Single connection JSON",
+      "格式化 JSON": "Format JSON",
+      "提交前会先验证新配置并创建快照。任何校验、启动或保存失败都会保留原连接；连接 key、作用范围与启停状态不变。": "The new configuration is validated and a snapshot is created before saving. If validation, startup, or saving fails, the original connection is kept; the connection key, scope, and enabled state stay unchanged.",
+      "本地参数 · {name}": "Local parameters · {name}",
+      "仅覆盖本机，无需修改市场目录": "Local overrides only; the market catalog is untouched.",
+      "追加到市场参数末尾；": " appends to the end of the market arguments; ",
+      "合并环境变量；": " merges environment variables; ",
+      "设置工作目录。命令、连接身份与市场默认值保持不变。参数可能扩大本地访问权限，请仅填写可信内容。": " sets the working directory. The command, connection identity, and market defaults stay unchanged. Parameters can widen local access, so only enter trusted content.",
+      "保留本机已有值；删除字段清除该项覆盖。保存会创建快照并重新加载已启用连接，停用连接保持停用；不代表工具调用已验收。": " keeps the existing value on this host; deleting a field clears that override. Saving creates a snapshot and reloads enabled connections; disabled connections stay disabled. This does not mean tool calls have been accepted.",
+      "恢复市场参数": "Restore market parameters",
+      "保存本地参数": "Save local parameters",
+      "保存配置": "Save configuration",
+      "保存并重连": "Save and reconnect",
+      "添加 MCP 连接": "Add MCP connection",
+      "粘贴 MCP JSON": "Paste MCP JSON",
+      "支持 {code} 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。私有 IP 明文 HTTP 必须在对应条目显式设置 {flag}。": "Supports {code} Streamable HTTP, SSE, and stdio (command/args/env/cwd). Configuration and credentials are stored only on this DSH host. Plain HTTP to a private IP must be opted into explicitly on that entry with {flag}.",
+      "校验并导入": "Validate and import",
+      "粘贴厂商提供的 ConnectorDescriptor JSON 地址。安装成功后会作为卡片显示在本机「市场」。": "Paste the ConnectorDescriptor JSON URL provided by the vendor. After a successful install it appears as a card in this host's Market.",
+      "公共市场如何上架": "How public market listing works.",
+      "向 {code} registry 提交无 Token/API Key 的描述 JSON；Schema、URL、MCP 和 OAuth 探针通过后才会分发给所有用户。真正一键 OAuth 需厂商支持 Authorization Code + PKCE、标准元数据和动态客户端注册。": "Submit a descriptor JSON without tokens or API keys to the {code} registry. It is distributed to all users only after the Schema, URL, MCP, and OAuth probes pass. True one-click OAuth requires the vendor to support Authorization Code + PKCE, standard metadata, and dynamic client registration.",
+      "连接器描述 URL（必填）": "Connector descriptor URL (required)",
+      "验证并安装": "Verify and install",
+      "适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。": "For private, intranet, or not-yet-listed MCP servers. Credentials are written only to this DSH host's storage domain.",
+      "名称（必填）": "Name (required)",
+      "（工具前缀）": " (tool prefix)",
+      "传输方式": "Transport",
+      "Streamable HTTP（兼容 SSE）": "Streamable HTTP (SSE compatible)",
+      "stdio（本地进程）": "stdio (local process)",
+      "MCP URL（必填）": "MCP URL (required)",
+      "我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。": "I confirm this is a trusted private LAN IP and accept that HTTP traffic can be intercepted or tampered with by hosts on the same network.",
+      "仅放行 10/8、172.16/12、192.168/16 和 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍会被拒绝。": "Only literal addresses in 10/8, 172.16/12, 192.168/16, and the IPv6 ULA range are allowed; domain names, public HTTP, link-local, and cloud metadata addresses are still rejected.",
+      "鉴权方式": "Authentication",
+      "无鉴权": "No authentication",
+      "额外 Headers（可选 JSON）": "Extra headers (optional JSON)",
+      "启动命令（必填）": "Start command (required)",
+      "参数（JSON 数组）": "Arguments (JSON array)",
+      "环境变量（JSON 对象）": "Environment variables (JSON object)",
+      "工作目录（可选）": "Working directory (optional)",
+      "默认使用 DSH 当前目录": "Defaults to the current DSH directory",
+      "stdio 会在本机启动进程；请只使用可信命令和软件包。环境变量不会写入市场目录。": "stdio starts a process on this host; use only trusted commands and packages. Environment variables are never written to the market catalog.",
+      "正在生成脱敏配置并读取本机快照…": "Generating the redacted configuration and reading local snapshots…",
+      "{count} 条连接{removable}{oauth}": "{count} connections{removable}{oauth}",
+      " · 可移除 {count} 条变更后新增连接": " · can remove {count} connections added after that change",
+      " · OAuth 需重新授权": " · OAuth requires reauthorization",
+      "还没有本机配置快照。连接、配置、导入、启停和断开前会自动创建，也可立即手动创建。": "No local configuration snapshots yet. They are created automatically before connecting, configuring, importing, enabling or disabling, and disconnecting; you can also create one manually now.",
+      "可携带脱敏导出": "Portable redacted export.",
+      "Token、API Key、Header/env 值、stdio 参数、本地路径与 OAuth Grant 均不会导出；占位符需在目标本机重填，OAuth 需重新授权。": "Tokens, API keys, header/env values, stdio arguments, local paths, and OAuth grants are never exported. Placeholders must be refilled on the target host, and OAuth must be reauthorized.",
+      "脱敏 JSON": "Redacted JSON",
+      "复制": "Copy",
+      "下载": "Download",
+      "本机配置快照（最多 20 个）": "Local configuration snapshots (up to 20)",
+      "立即创建": "Create now",
+      "请填写：{fields}": "Fill in: {fields}",
+      "填写查询参数": "Fill in the query parameters",
+      "发送前补全参数，内容只用于本次新会话，不会写回连接器目录。": "Complete the parameters before sending. The content is used only for this new session and is never written back to the connector catalog.",
+      "带入新会话": "Add to new session",
+      "正在连接…": "Connecting…",
+      "清除本机追加参数、环境变量和工作目录覆盖；已启用连接将重新加载。": "Clears the local appended arguments, environment variables, and working-directory overrides; enabled connections will reload.",
+      "正在更新本地参数…": "Updating local parameters…",
+      "JSON 格式化失败: {error}": "JSON formatting failed: {error}",
+      "连接配置不能为空": "Connection configuration cannot be empty",
+      "连接配置不是合法 JSON: {error}": "Connection configuration is not valid JSON: {error}",
+      "正在校验并更新…": "Validating and updating…",
+      "连接显示名不能为空": "Connection display name cannot be empty",
+      "正在预览影响…": "Previewing impact…",
+      "工具清单尚未观察": "tool list not observed yet",
+      "变更连接范围": "Change connection scope",
+      "{message}\n{affected}\n\n确认{action}所选范围？": "{message}\n{affected}\n\n{action} the selected scope?",
+      "复制到": "Copy to",
+      "移动到": "Move to",
+      "正在应用范围…": "Applying scope…",
+      "回滚连接范围": "Roll back connection scope",
+      "{message}\n{affected}\n\n确认将全部连接范围恢复到 revision={revision}？": "{message}\n{affected}\n\nRestore all connection scopes to revision={revision}?",
+      "按会话启用": "Enable per session",
+      "按会话启用不会断开 MCP 连接，但会在所有会话中默认隐藏该连接的业务工具。\n\n之后需要在对话中明确选择工具才会临时激活，最长 30 分钟。确认继续？": "Session mode does not drop the MCP connection, but it hides this connection's business tools by default in all sessions.\n\nYou must then explicitly select the tools in a conversation to activate them temporarily, for up to 30 minutes. Continue?",
+      "断开连接": "Disconnect",
+      "确认断开该连接？OAuth 授权会被撤销。": "Disconnect this connection? The OAuth authorization will be revoked.",
+      "确认断开「{name}」的连接？OAuth 授权会被撤销。": "Disconnect “{name}”? The OAuth authorization will be revoked.",
+      "已复制脱敏配置": "Copied the redacted configuration",
+      "请按 Ctrl/Cmd+C 复制脱敏配置": "Press Ctrl/Cmd+C to copy the redacted configuration",
+      "恢复配置快照": "Restore configuration snapshot",
+      "{message}。确认恢复？恢复过程中任一 Server 失败会整体回滚。": "{message}. Restore it? If any server fails during the restore, everything rolls back.",
+      "正在原子恢复…": "Restoring atomically…",
+      "正在验证凭据与连接…": "Verifying credentials and connection…",
+      "名称与启动命令必填": "Name and start command are required",
+      "名称与 URL 必填": "Name and URL are required",
+      "参数必须是 JSON 数组": "Arguments must be a JSON array",
+      "环境变量必须是 JSON 对象": "Environment variables must be a JSON object",
+      "stdio 配置错误: {error}": "stdio configuration error: {error}",
+      "额外 Headers 不是合法 JSON": "Extra headers are not valid JSON",
+      "请粘贴 MCP JSON": "Paste MCP JSON first",
+      "MCP JSON 不合法: {error}": "MCP JSON is invalid: {error}",
+      "连接器描述 URL 必填": "Connector descriptor URL is required",
+      "迁移旧授权": "Migrate legacy authorization",
+      "确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。": "Copy the legacy Qichacha OAuth authorization to the MCP connector? The original plugin and credentials are kept; disable the old plugin manually after verifying the new connection.",
+      "检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。": "Found {count} migratable authorizations. Copy them to the MCP connector? The original plugin and credentials are kept.",
+      "本机连接的工具发现与参数详情；不会执行工具。": "Tool discovery and parameter details for this local connection; tools are not executed.",
+      "待补充 {count} 个服务": "{count} servers pending setup",
+      "{count} 个服务": "{count} servers",
+      "正在读取可用工具及描述…": "Reading available tools and descriptions…",
+      "连接后查看工具": "Connect to view tools",
+      "连接后可读取服务端工具清单": "Connect to read the server's tool list",
+      "工具状态未知": "Tool status unknown",
+      "工具加载失败": "Failed to load tools",
+      "{stage} · {code}：{message}": "{stage} · {code}: {message}",
+      "最近成功：{at}": "last success: {at}",
+      "授权已失效": "Authorization expired",
+      "凭据已失效": "Credentials expired",
+      "状态尚未确认": "Status not confirmed",
+      "当前连接异常": "Current connection has an error",
+      "部分服务可用": "Some servers available",
+      "正在后台发现工具": "Discovering tools in the background",
+      "工具状态尚未确认": "Tool status not confirmed yet",
+      "Prompt 不能为空": "Prompt cannot be empty",
+      "请在 DSH Desktop 中使用「发送到新会话」": "Use “Send to new session” in DSH Desktop",
+      "正在创建新会话…": "Creating a new session…",
+      "打开新会话超时，请重试": "Timed out opening the new session. Try again.",
+      "连接当前不可用": "Connection currently unavailable",
+      "MCP连接器": "MCP Connector",
+      "市场": "Marketplace",
+      "已安装": "Installed",
+      "＋ 添加连接": "＋ Add connection",
+      "试试这样用": "Try it like this",
+      "工具详情": "Tool details",
+      "连接策略": "Connection policy",
+      "市场分类导航": "Marketplace category navigation",
+      "关闭详情": "Close details",
+      "换一批": "Show another batch",
+      "撤销最近变更": "Undo the last change",
+      "explorerConnection": "Connection",
+      "explorerServer": "Server",
+  };
+  // ── 国际化（i18n） ───────────────────────────────────────────────────────
+  // 约定与 lib/i18n/index.js 完全一致：**msgid 就是中文原文**（gettext 风格）。
+  // 中文界面不查表：`t('任何中文')` 原样返回，因此中文界面零回归；英文词典缺项
+  // 时同样回退中文原文，绝不显示空白或 key。
+  // 面板是独立 HTML，不能 import ES 模块，所以这里内联等价实现（纯函数）。
+  const DEFAULT_LOCALE = 'zh-CN';
+  const ACTIVE_LOCALE = detectLocale();
+  document.documentElement.lang = ACTIVE_LOCALE;
+
+  /** 归一化语言标签：zh* → zh-CN，en* → en，其它返回 undefined。 */
+  function normalizeLocale(value) {
+    if (typeof value !== 'string') return undefined;
+    const tag = value.trim().toLowerCase();
+    if (tag === '') return undefined;
+    const [primary] = tag.split(/[-_]/);
+    if (primary === 'zh') return 'zh-CN';
+    if (primary === 'en') return 'en';
+    return undefined;
+  }
+
+  /**
+   * 解析界面语言，优先级：Host 注入的 `window.__MCP_CONNECTOR_LOCALE__`（lib/web.js
+   * 只在英文时注入，中文时完全不存在 → undefined 视为 zh-CN）→ iframe URL 上的
+   * `?locale=` 查询参数（client.js 也会带）→ `<html lang>` → 中文默认值。
+   * 无法识别或不受支持一律回退中文（中文仍是默认界面）。
+   */
+  function detectLocale() {
+    const fromHost = normalizeLocale(window.__MCP_CONNECTOR_LOCALE__);
+    if (fromHost !== undefined) return fromHost;
+    let requested = '';
+    try { requested = new URLSearchParams(window.location.search || '').get('locale') || ''; } catch { /* 无 location 时按未指定处理 */ }
+    const configured = requested.trim();
+    if (configured !== '' && configured.toLowerCase() !== 'auto') {
+      return normalizeLocale(configured) ?? DEFAULT_LOCALE;
+    }
+    const fromHtml = normalizeLocale(document.documentElement.getAttribute('lang'));
+    return fromHtml ?? DEFAULT_LOCALE;
+  }
+
+  /** `{name}` 占位符插值：只替换显式提供的字段，缺失的保留字面量。 */
+  function interpolate(template, params) {
+    if (typeof template !== 'string' || template === '') return '';
+    if (params === undefined || params === null || typeof params !== 'object') return template;
+    return template.replace(/\{([A-Za-z][A-Za-z0-9_]*)\}/g, (token, name) => {
+      const value = params[name];
+      return value === undefined || value === null ? token : String(value);
+    });
+  }
+
+  /**
+   * 翻译入口：`t('中文原文')` / `t('已启用 "{name}"', { name })`。
+   *
+   * 查找顺序（兼容既有 key 调用 `t('details')` → LABELS）：
+   *   1. 当前语言的词典（`MESSAGES[ACTIVE_LOCALE]`，中文为空表）；
+   *   2. 既有短标签 `LABELS` 的 key；
+   *   3. 原样返回 msgid（中文原文）。
+   */
+  function lookupMessage(msgid) {
+    const dictionary = MESSAGES[ACTIVE_LOCALE];
+    if (Object.hasOwn(dictionary, msgid)) return dictionary[msgid];
+    if (Object.hasOwn(LABELS, msgid)) {
+      // 既有 key 调用（t('details')）：LABELS 给出中文原文，再按原文查一次词典。
+      // 同一句中文在不同上下文需要不同英文时（按钮「连接」= Connect、筛选标签
+      // 「连接」= Connection），给那个上下文单独一个 key 词条即可，中文不受影响。
+      const chinese = LABELS[msgid];
+      return Object.hasOwn(dictionary, chinese) ? dictionary[chinese] : chinese;
+    }
+    return msgid;
+  }
+
+  function translate(msgid, params) {
+    const key = typeof msgid === 'string' ? msgid : String(msgid ?? '');
+    return interpolate(lookupMessage(key), params);
+  }
+  const t = translate;
+  t.locale = ACTIVE_LOCALE;
+  t.missing = (msgid) => ACTIVE_LOCALE !== DEFAULT_LOCALE
+    && !Object.hasOwn(MESSAGES[ACTIVE_LOCALE], msgid)
+    && !(Object.hasOwn(LABELS, msgid) && Object.hasOwn(MESSAGES[ACTIVE_LOCALE], LABELS[msgid]));
+
   const MCP_JSON_EXAMPLE = JSON.stringify({
     mcpServers: {
       'my-server': {
@@ -709,17 +1206,17 @@
         signal: controller.signal,
       });
       const data = await res.json();
-      if (!res.ok && data.ok !== false) return { ok: false, message: `请求失败（HTTP ${res.status}）` };
+      if (!res.ok && data.ok !== false) return { ok: false, message: t('请求失败（HTTP {status}）', { status: res.status }) };
       return data;
     } catch (error) {
       if (controller.signal.aborted) {
         return {
           ok: false,
-          message: `请求超时（${Math.ceil(timeoutMs / 1000)} 秒），请检查服务状态和 Host 日志后重试`,
+          message: t('请求超时（{seconds} 秒），请检查服务状态和 Host 日志后重试', { seconds: Math.ceil(timeoutMs / 1000) }),
           detail: { kind: 'timeout' },
         };
       }
-      return { ok: false, message: `无法连接 MCP 连接器服务：${error?.message || error}` };
+      return { ok: false, message: t('无法连接 MCP 连接器服务：{error}', { error: error?.message || error }) };
     } finally {
       clearTimeout(timer);
     }
@@ -754,7 +1251,7 @@
       button.disabled = pending;
       if (pending) {
         button.dataset.idleLabel = button.textContent;
-        button.textContent = '正在发送…';
+        button.textContent = t('正在发送…');
       } else if (button.dataset.idleLabel) {
         button.textContent = button.dataset.idleLabel;
         delete button.dataset.idleLabel;
@@ -768,7 +1265,7 @@
     promptRequestTimer = null;
     promptRequestId = null;
     setPromptLaunchPending(false);
-    showToast(message || (ok ? '已带入新会话' : '打开新会话失败，请重试'), ok);
+    showToast(message || t(ok ? '已带入新会话' : '打开新会话失败，请重试'), ok);
   }
 
   function normalizeWorkspaceOptions(input) {
@@ -829,18 +1326,18 @@
       : selected || defaultValue;
     const projectOptions = availableWorkspaces.map((workspace) => {
       const optionValue = `project:${workspace.workspaceId}`;
-      const prefix = workspace.workspaceId === currentWorkspace?.workspaceId ? '当前项目' : '项目';
-      return `<option value="${esc(optionValue)}" ${value === optionValue ? 'selected' : ''}>${prefix}：${esc(workspace.title)}</option>`;
+      const prefix = t(workspace.workspaceId === currentWorkspace?.workspaceId ? '当前项目' : '项目');
+      return `<option value="${esc(optionValue)}" ${value === optionValue ? 'selected' : ''}>${esc(prefix)}：${esc(workspace.title)}</option>`;
     }).join('');
-    const unavailable = projectOptions ? '' : '<option value="" disabled>暂无可用 Workspace</option>';
-    return `<label for="${esc(id)}">连接范围</label><select id="${esc(id)}">${projectOptions}${unavailable}<option value="global" ${value === 'global' ? 'selected' : ''}>所有项目（全局）</option></select><div class="field-help">可选择任一 Workspace；项目范围只在该 Workspace 的 Agent 中可见。全局范围由所有 Workspace 继承，范围绑定不保存或复制凭据。</div>`;
+    const unavailable = projectOptions ? '' : `<option value="" disabled>${t('暂无可用 Workspace')}</option>`;
+    return `<label for="${esc(id)}">${t('连接范围')}</label><select id="${esc(id)}">${projectOptions}${unavailable}<option value="global" ${value === 'global' ? 'selected' : ''}>${t('所有项目（全局）')}</option></select><div class="field-help">${t('可选择任一 Workspace；项目范围只在该 Workspace 的 Agent 中可见。全局范围由所有 Workspace 继承，范围绑定不保存或复制凭据。')}</div>`;
   }
 
   function selectedScopeParams(id = 'cfg-scope') {
     const value = $(`#${id}`)?.value || 'global';
     if (value.startsWith('project:')) {
       const workspaceId = value.slice('project:'.length);
-      if (!workspaceId) throw new Error('请选择一个 Workspace，再使用项目范围');
+      if (!workspaceId) throw new Error(t('请选择一个 Workspace，再使用项目范围'));
       return { scope: 'project', workspaceId };
     }
     return { scope: 'global' };
@@ -883,7 +1380,7 @@
 
   // 详情主按钮：状态未知且已有连接记录时优先提供「重新连接」（Host 侧可能已放弃重连）
   function detailTryLabel(fallback) {
-    return detailReconnectKey ? '🔄 重新连接' : fallback;
+    return detailReconnectKey ? t('🔄 重新连接') : fallback;
   }
 
   function promptVariableNames(text) {
@@ -903,7 +1400,7 @@
     return promptVariableNames(prompt.text || prompt.title || '').map((name) => byName[name] || {
       name,
       label: name,
-      placeholder: `请输入${name}`,
+      placeholder: t('请输入{name}', { name }),
       required: true,
     });
   }
@@ -927,20 +1424,20 @@
     promptPage = ((promptPage % pageCount) + pageCount) % pageCount;
     const start = promptPage * PROMPT_PAGE_SIZE;
     const visible = detailPrompts.slice(start, start + PROMPT_PAGE_SIZE);
-    $('#prompt-meta').textContent = total > 0 ? `· 精选 ${visible.length} / 共 ${total} 条` : '';
+    $('#prompt-meta').textContent = total > 0 ? t('· 精选 {visible} / 共 {total} 条', { visible: visible.length, total }) : '';
     $('#prompt-next').hidden = total <= PROMPT_PAGE_SIZE;
     const usable = detailConnector?.connected?.length > 0 && !detailNeedsReconfigure;
     $('#detail-prompts').innerHTML = visible.length > 0
       ? visible.map((prompt, index) => `<div class="prompt-item"><div class="text">${renderPromptText(prompt)}</div><button class="send-btn" type="button" data-prompt-index="${start + index}" ${usable ? '' : 'disabled'}>${usable ? t(promptNeedsInput(prompt) ? 'fillSend' : 'send') : t('connectToUse')}</button></div>`).join('')
-      : '<div style="color:var(--muted);font-size:13px;">暂无预设 Prompt</div>';
+      : `<div style="color:var(--muted);font-size:13px;">${t('暂无预设 Prompt')}</div>`;
   }
 
   function updateToolsSummary() {
     const totalTools = detailToolServers.reduce((sum, server) => sum + (server.tools?.length || 0), 0);
-    $('#tools-summary').textContent = `${detailToolServers.length} 个服务 · ${totalTools} 个工具`;
+    $('#tools-summary').textContent = t('{servers} 个服务 · {tools} 个工具', { servers: detailToolServers.length, tools: totalTools });
     $('#tools-search').placeholder = totalTools > 0
-      ? `搜索 ${totalTools} 个工具的名称或描述…`
-      : '搜索工具名称或描述…';
+      ? t('搜索 {count} 个工具的名称或描述…', { count: totalTools })
+      : t('搜索工具名称或描述…');
   }
 
   function isDeprecatedTool(tool) {
@@ -949,25 +1446,25 @@
 
   function policyOptions(current = 'inherit') {
     return [
-      ['inherit', '继承上级'],
-      ['allow', '允许'],
-      ['deny', '拒绝'],
+      ['inherit', t('继承上级')],
+      ['allow', t('允许')],
+      ['deny', t('拒绝')],
     ].map(([value, label]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`).join('');
   }
 
   function policySelect(scope, current, serverName = '', toolName = '', publicName = '', label = '') {
     if (!detailConnector?.connected?.length || detailConnector.connectionKey) return '';
-    return `<select class="policy-select" data-policy-scope="${esc(scope)}" data-current-effect="${esc(current || 'inherit')}" data-server-name="${esc(serverName)}" data-tool-name="${esc(toolName)}" data-public-name="${esc(publicName)}" aria-label="${esc(label || `${scope} 策略`)}">${policyOptions(current)}</select>`;
+    return `<select class="policy-select" data-policy-scope="${esc(scope)}" data-current-effect="${esc(current || 'inherit')}" data-server-name="${esc(serverName)}" data-tool-name="${esc(toolName)}" data-public-name="${esc(publicName)}" aria-label="${esc(label || t('{scope} 策略', { scope }))}">${policyOptions(current)}</select>`;
   }
 
   function policyBadge(policy) {
     if (!policy) return '';
     if (policy.finalState === 'unknown') {
-      const desired = policy.desiredEffect === 'deny' ? '规则拟拒绝' : '规则拟允许';
-      return `<span class="policy-badge unknown" title="当前 Host 未观察到该工具，不能报告为已禁用或健康">未观察 · ${esc(desired)}</span>`;
+      const desired = t(policy.desiredEffect === 'deny' ? '规则拟拒绝' : '规则拟允许');
+      return `<span class="policy-badge unknown" title="${esc(t('当前 Host 未观察到该工具，不能报告为已禁用或健康'))}">${t('未观察 · {desired}', { desired })}</span>`;
     }
     const denied = policy.finalState === 'denied';
-    const label = `${denied ? '已禁用' : '已允许'} · ${policy.sourceLabel || policy.source || '策略'}`;
+    const label = t('{state} · {source}', { state: t(denied ? '已禁用' : '已允许'), source: policy.sourceLabel || policy.source || t('策略') });
     return `<span class="policy-badge ${denied ? 'denied' : 'allowed'}" title="${esc(label)}">${esc(label)}</span>`;
   }
 
@@ -985,7 +1482,7 @@
     select.dataset.toolName = '';
     select.dataset.publicName = '';
     const caps = detailGovernance?.capabilities || {};
-    $('#governance-hint').textContent = `revision ${detailGovernance?.revision ?? 0} · Tool > Server > Connection${caps.executionGuard ? ' · Host 强制执行' : ' · Host 能力不足'}`;
+    $('#governance-hint').textContent = `revision ${detailGovernance?.revision ?? 0} · Tool > Server > Connection${t(caps.executionGuard ? ' · Host 强制执行' : ' · Host 能力不足')}`;
     const rollback = $('#policy-rollback');
     const previous = detailGovernance?.history?.at(-1);
     rollback.hidden = !previous;
@@ -1015,9 +1512,9 @@
       return;
     }
     if (!await confirmDialog({
-      title: '应用治理策略',
-      message: `${preview.message}。确认应用？`,
-      confirmLabel: '应用',
+      title: t('应用治理策略'),
+      message: t('{message}。确认应用？', { message: preview.message }),
+      confirmLabel: t('应用'),
     })) {
       select.value = select.dataset.currentEffect || 'inherit';
       select.disabled = false;
@@ -1034,9 +1531,9 @@
     const rollbackRevision = Number($('#policy-rollback').dataset.rollbackRevision);
     if (!Number.isInteger(rollbackRevision) || !detailGovernance) return;
     if (!await confirmDialog({
-      title: '恢复策略历史',
-      message: `确认恢复 revision=${rollbackRevision} 的策略内容？`,
-      confirmLabel: '恢复',
+      title: t('恢复策略历史'),
+      message: t('确认恢复 revision={revision} 的策略内容？', { revision: rollbackRevision }),
+      confirmLabel: t('恢复'),
     })) return;
     const result = await call('rollbackPolicy', { rollbackRevision, expectedRevision: detailGovernance.revision });
     showToast(result.message, result.ok);
@@ -1073,7 +1570,7 @@
     const query = normalizeToolSearchText($('#tools-search').value);
     if (detailToolServers.length === 0) {
       updateToolsSummary();
-      $('#detail-tools').innerHTML = '<div class="tools-empty">暂无可用工具</div>';
+      $('#detail-tools').innerHTML = `<div class="tools-empty">${t('暂无可用工具')}</div>`;
       return;
     }
     let matchedTools = 0;
@@ -1084,10 +1581,10 @@
       - Math.max(-1, ...(a.tools || []).map((tool) => toolSearchScore(tool, query)))) : detailToolServers;
     const groups = rankedServers.map((server) => {
       const label = server.serverName || server.serverKey || 'MCP Server';
-      const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', `${label} Server 策略`);
+      const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', t('{label} Server 策略', { label }));
       if (!server.ok && !server.cached) {
         if (query) return '';
-        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· ${server.pending ? '正在发现' : '加载失败'}</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || '未知错误')}</div></div>`;
+        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· ${esc(t(server.pending ? '正在发现' : '加载失败'))}</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || t('未知错误'))}</div></div>`;
       }
       const matched = (server.tools || []).filter((tool) => {
         if (!query) return true;
@@ -1105,23 +1602,23 @@
         ? tools.map((tool) => {
           const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
           const deprecated = isDeprecatedTool(tool);
-          const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, tool.name, tool.publicName, `${tool.name} Tool 策略`);
-          const detailButton = server.preview ? '' : `<button class="tool-detail-btn" type="button" data-tool-detail="true" data-server-name="${esc(server.serverName || '')}" data-tool-name="${esc(tool.name || '')}">参数详情</button>`;
-          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || '未命名工具')}</div>${deprecated ? '<span class="tool-deprecated">已弃用</span>' : ''}${policyBadge(tool.policy)}${detailButton}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || '暂无描述')}</div></div>`;
+          const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, tool.name, tool.publicName, t('{name} Tool 策略', { name: tool.name }));
+          const detailButton = server.preview ? '' : `<button class="tool-detail-btn" type="button" data-tool-detail="true" data-server-name="${esc(server.serverName || '')}" data-tool-name="${esc(tool.name || '')}">${t('参数详情')}</button>`;
+          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || t('未命名工具'))}</div>${deprecated ? `<span class="tool-deprecated">${t('已弃用')}</span>` : ''}${policyBadge(tool.policy)}${detailButton}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || t('暂无描述'))}</div></div>`;
         }).join('')
         : server.managed
-          ? '<div class="tools-loading">Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。</div>'
-          : '<div class="tools-loading">暂无工具</div>';
+          ? `<div class="tools-loading">${t('Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。')}</div>`
+          : `<div class="tools-loading">${t('暂无工具')}</div>`;
       const cacheLabel = server.cached
-        ? ` · 最后成功缓存 ${server.cacheObservedAt ? esc(new Date(server.cacheObservedAt).toLocaleString('zh-CN', { hour12: false })) : ''}${server.stale ? ' · 已超过 24 小时' : ''}`
+        ? t(' · 最后成功缓存 {at}{stale}', { at: server.cacheObservedAt ? esc(new Date(server.cacheObservedAt).toLocaleString(t.locale, { hour12: false })) : '', stale: server.stale ? t(' · 已超过 24 小时') : '' })
         : '';
-      const cacheError = server.cached && server.error ? `<div class="tools-error">实时读取失败：${esc(server.error)}；以下为最后成功缓存。</div>` : '';
-      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· 显示 ${tools.length} / ${matched.length} 个${cacheLabel}</span></span>${serverSelect}</div>${cacheError}${items}</div>`;
+      const cacheError = server.cached && server.error ? `<div class="tools-error">${t('实时读取失败：{error}；以下为最后成功缓存。', { error: esc(server.error) })}</div>` : '';
+      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">${t('· 显示 {shown} / {matched} 个', { shown: tools.length, matched: matched.length })}${cacheLabel}</span></span>${serverSelect}</div>${cacheError}${items}</div>`;
     }).filter(Boolean);
     $('#detail-tools').innerHTML = groups.length > 0
-      ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">再显示 ${Math.min(50, matchedTools - renderedTools)} 个（剩余 ${matchedTools - renderedTools}）</button>` : ''}`
-      : `<div class="tools-empty">没有匹配“${esc($('#tools-search').value.trim())}”的工具</div>`;
-    if (query) $('#tools-summary').textContent = `匹配 ${matchedTools} 个工具 · 已渲染 ${renderedTools}`;
+      ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">${t('再显示 {step} 个（剩余 {remaining}）', { step: Math.min(50, matchedTools - renderedTools), remaining: matchedTools - renderedTools })}</button>` : ''}`
+      : `<div class="tools-empty">${t('没有匹配“{query}”的工具', { query: esc($('#tools-search').value.trim()) })}</div>`;
+    if (query) $('#tools-summary').textContent = t('匹配 {matched} 个工具 · 已渲染 {shown}', { matched: matchedTools, shown: renderedTools });
     else updateToolsSummary();
   }
 
@@ -1151,9 +1648,9 @@
   }
 
   function schemaSummary(schema, depth = 0, budget = { remaining: 150 }) {
-    if (depth > 5 || --budget.remaining < 0) return '<p class="hint">结构较大，请查看原始 Schema。</p>';
-    if (typeof schema === 'boolean') return `<p>${schema ? '允许任意输入' : '不允许任何输入'}</p>`;
-    if (!schema || typeof schema !== 'object') return '<p class="hint">暂无参数定义。</p>';
+    if (depth > 5 || --budget.remaining < 0) return `<p class="hint">${t('结构较大，请查看原始 Schema。')}</p>`;
+    if (typeof schema === 'boolean') return `<p>${esc(t(schema ? '允许任意输入' : '不允许任何输入'))}</p>`;
+    if (!schema || typeof schema !== 'object') return `<p class="hint">${t('暂无参数定义。')}</p>`;
     const complex = ['$ref', 'oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not'].some((key) => key in schema);
     const required = new Set(Array.isArray(schema.required) ? schema.required : []);
     const allEntries = Object.entries(schema.properties || {});
@@ -1161,25 +1658,25 @@
     const rows = entries.map(([key, raw]) => {
       if (--budget.remaining < 0) return '';
       const field = raw && typeof raw === 'object' ? raw : {};
-      const type = typeof raw === 'boolean' ? (raw ? '任意类型' : '禁止输入') : Array.isArray(field.type) ? field.type.join(' / ') : field.type || (field.properties ? 'object' : '未声明');
+      const type = typeof raw === 'boolean' ? t(raw ? '任意类型' : '禁止输入') : Array.isArray(field.type) ? field.type.join(' / ') : field.type || (field.properties ? 'object' : t('未声明'));
       const constraints = ['enum', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern'].filter((name) => field[name] !== undefined)
-        .map((name) => `${name}: ${JSON.stringify(field[name])}`).join('；');
+        .map((name) => `${name}: ${JSON.stringify(field[name])}`).join(t('；'));
       const nested = field.properties || field.items || ['$ref', 'oneOf', 'anyOf', 'allOf'].some((name) => name in field);
-      return `<tr><td><code>${esc(key)}</code></td><td>${esc(type)}</td><td>${required.has(key) ? '必填' : '可选'}</td><td>${esc(field.description || '暂无说明')}${constraints ? `<div class="hint">${esc(constraints)}</div>` : ''}${nested ? `<details><summary>展开结构</summary>${schemaSummary(field, depth + 1, budget)}</details>` : ''}</td></tr>`;
+      return `<tr><td><code>${esc(key)}</code></td><td>${esc(type)}</td><td>${esc(t(required.has(key) ? '必填' : '可选'))}</td><td>${esc(field.description || t('暂无说明'))}${constraints ? `<div class="hint">${esc(constraints)}</div>` : ''}${nested ? `<details><summary>${t('展开结构')}</summary>${schemaSummary(field, depth + 1, budget)}</details>` : ''}</td></tr>`;
     }).join('');
-    const items = (allEntries.length > 100 || budget.remaining < 0 ? '<p class="hint">摘要已截断，请查看原始 Schema 中的其余字段。</p>' : '') + (schema.items !== undefined ? `<details><summary>数组元素</summary>${schemaSummary(schema.items, depth + 1, budget)}</details>` : '');
-    return `${complex ? '<p class="hint">包含引用或组合约束，摘要不代表完整规则，请同时查看原始 Schema。</p>' : ''}${rows ? `<div class="parameter-scroll"><table class="parameter-table"><thead><tr><th>参数</th><th>类型</th><th>要求</th><th>说明与约束</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="hint">类型：${esc(Array.isArray(schema.type) ? schema.type.join(' / ') : schema.type || '未声明')}；无可展开的具名参数，请查看原始 Schema。</p>`}${items}`;
+    const items = (allEntries.length > 100 || budget.remaining < 0 ? `<p class="hint">${t('摘要已截断，请查看原始 Schema 中的其余字段。')}</p>` : '') + (schema.items !== undefined ? `<details><summary>${t('数组元素')}</summary>${schemaSummary(schema.items, depth + 1, budget)}</details>` : '');
+    return `${complex ? `<p class="hint">${t('包含引用或组合约束，摘要不代表完整规则，请同时查看原始 Schema。')}</p>` : ''}${rows ? `<div class="parameter-scroll"><table class="parameter-table"><thead><tr><th>${t('参数')}</th><th>${t('类型')}</th><th>${t('要求')}</th><th>${t('说明与约束')}</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="hint">${t('类型：{type}；无可展开的具名参数，请查看原始 Schema。', { type: esc(Array.isArray(schema.type) ? schema.type.join(' / ') : schema.type || t('未声明')) })}</p>`}${items}`;
   }
 
   function showToolParameters(tool, toolName, serverName) {
-    const observed = tool.observedAt ? new Date(tool.observedAt).toLocaleString('zh-CN', { hour12: false }) : '未知';
-    const schema = tool.inputSchema ? JSON.stringify(tool.inputSchema, null, 2) : '未缓存输入参数 schema';
-    openModal(`工具参数 · ${tool.name || toolName}`, `
-      <p class="hint">${esc(tool.serverName || serverName)} · 最后成功 ${esc(observed)}${tool.stale ? ' · 缓存已超过 24 小时' : ''}${tool.schemaTruncated ? ' · schema 已安全裁剪' : ''}</p>
-      <p>${esc(tool.description || '暂无描述')}</p>
+    const observed = tool.observedAt ? new Date(tool.observedAt).toLocaleString(t.locale, { hour12: false }) : t('未知');
+    const schema = tool.inputSchema ? JSON.stringify(tool.inputSchema, null, 2) : t('未缓存输入参数 schema');
+    openModal(t('工具参数 · {name}', { name: tool.name || toolName }), `
+      <p class="hint">${esc(t('{server} · 最后成功 {observed}{stale}{truncated}', { server: tool.serverName || serverName, observed, stale: tool.stale ? t(' · 缓存已超过 24 小时') : '', truncated: tool.schemaTruncated ? t(' · schema 已安全裁剪') : '' }))}</p>
+      <p>${esc(tool.description || t('暂无描述'))}</p>
       ${schemaSummary(tool.inputSchema)}
-      <details><summary>原始 Schema（安全缓存）</summary><pre class="tool-schema">${esc(schema)}</pre></details>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
+      <details><summary>${t('原始 Schema（安全缓存）')}</summary><pre class="tool-schema">${esc(schema)}</pre></details>
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('关闭')}</button></div>`);
   }
   function closeModal() {
     explorerDetailSequence++;
@@ -1222,10 +1719,10 @@
     // 后到的确认先让前一个以"取消"收尾，避免它的 await 永远挂起。
     if (activeConfirm) closeConfirm(false);
     const {
-      title = '请确认',
+      title = t('请确认'),
       message = '',
-      confirmLabel = '确认',
-      cancelLabel = '取消',
+      confirmLabel = t('确认'),
+      cancelLabel = t('取消'),
     } = options;
     const returnFocus = document.activeElement;
     $('#confirm-title').textContent = title;
@@ -1302,8 +1799,8 @@
   }
 
   function marketFilterHtml() {
-    const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(cat.label)}</button>`).join('');
-    return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
+    const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(t(cat.label))}</button>`).join('');
+    return `<div class="market-filters" role="group" aria-label="${t('市场分类')}"><div class="filter-chips category-chips" role="group" aria-label="${t('按分类筛选')}">${categoryChips}</div></div>`;
   }
 
   function syncMarketNav() {
@@ -1315,12 +1812,12 @@
   function setTabCount(tab, count) {
     const node = $(`#${tab}-tab-count`);
     node.textContent = Number.isFinite(count) ? String(count) : '';
-    node.setAttribute('aria-label', Number.isFinite(count) ? `${count} 个` : '');
+    node.setAttribute('aria-label', Number.isFinite(count) ? t('{count} 个', { count }) : '');
   }
 
   function communityCtaHtml() {
     if (!communityCtaEligible || communityCtaDismissed) return '';
-    return `<aside class="community-cta" aria-label="MCP连接器社区入口"><span class="copy">连接顺利？如果 MCP连接器对你有帮助，欢迎支持或一起改进。</span><a href="https://github.com/duhu2000/dsh-mcp-connector/stargazers" target="_blank" rel="noopener noreferrer">Star</a><a href="https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md" target="_blank" rel="noopener noreferrer">提交连接器</a><a href="https://github.com/duhu2000/dsh-mcp-connector/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">参与贡献</a><button class="community-cta-close" type="button" onclick="window.__mcp.dismissCommunityCta()" aria-label="关闭社区入口" title="本次不再显示">×</button></aside>`;
+    return `<aside class="community-cta" aria-label="${t('MCP连接器社区入口')}"><span class="copy">${t('连接顺利？如果 MCP连接器对你有帮助，欢迎支持或一起改进。')}</span><a href="https://github.com/duhu2000/dsh-mcp-connector/stargazers" target="_blank" rel="noopener noreferrer">Star</a><a href="https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md" target="_blank" rel="noopener noreferrer">${t('提交连接器')}</a><a href="https://github.com/duhu2000/dsh-mcp-connector/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">${t('参与贡献')}</a><button class="community-cta-close" type="button" onclick="window.__mcp.dismissCommunityCta()" aria-label="${t('关闭社区入口')}" title="${t('本次不再显示')}">×</button></aside>`;
   }
 
   function markCommunityCtaEligible() {
@@ -1338,9 +1835,9 @@
     const expanded = expandedMarketSections.has(value);
     const visible = expanded ? items : items.slice(0, MARKET_SECTION_PREVIEW_LIMIT);
     const toggle = items.length > MARKET_SECTION_PREVIEW_LIMIT
-      ? `<button class="market-section-toggle" type="button" data-section-toggle="${esc(value)}" aria-expanded="${expanded ? 'true' : 'false'}">${expanded ? '收起' : `查看全部 ${items.length} 个`}</button>`
+      ? `<button class="market-section-toggle" type="button" data-section-toggle="${esc(value)}" aria-expanded="${expanded ? 'true' : 'false'}">${esc(expanded ? t('收起') : t('查看全部 {count} 个', { count: items.length }))}</button>`
       : '';
-    return `<section class="market-section" data-market-section="${esc(value)}"><div class="market-section-head"><h2 class="market-section-title">${esc(label)}<span class="market-section-count">${items.length} 个</span></h2>${toggle}</div><div class="grid">${visible.map(cardHtml).join('')}</div></section>`;
+    return `<section class="market-section" data-market-section="${esc(value)}"><div class="market-section-head"><h2 class="market-section-title">${esc(t(label))}<span class="market-section-count">${t('{count} 个', { count: items.length })}</span></h2>${toggle}</div><div class="grid">${visible.map(cardHtml).join('')}</div></section>`;
   }
 
   function groupedMarketHtml(items) {
@@ -1353,7 +1850,7 @@
       })),
     ];
     return sections.map((section) => marketSectionHtml(section.value, section.label, section.items)).join('')
-      || '<div class="empty">没有匹配当前搜索条件的连接器</div>';
+      || `<div class="empty">${t('没有匹配当前搜索条件的连接器')}</div>`;
   }
 
   async function loadMarket({ checkHealth = true, preserveScroll = false } = {}) {
@@ -1361,7 +1858,7 @@
     try {
     const previousScrollTop = preserveScroll ? main.scrollTop : 0;
     syncMarketNav();
-    main.innerHTML = '<div class="empty">加载中…</div>';
+    main.innerHTML = `<div class="empty">${t('加载中…')}</div>`;
     const [r, status] = await Promise.all([call('catalog', workspaceParams()), call('status', workspaceParams())]);
     if (!isViewRenderCurrent(render)) return;
     if (status.ok) {
@@ -1371,7 +1868,7 @@
     if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     const items = r.detail?.items ?? [];
     setTabCount('market', items.length);
-    if (!items.length) { main.innerHTML = '<div class="empty">暂无已上架的连接器</div>'; return; }
+    if (!items.length) { main.innerHTML = `<div class="empty">${t('暂无已上架的连接器')}</div>`; return; }
     marketItems = {};
     items.forEach((d) => { marketItems[d.id] = d; });
     const filtered = items.filter(matchesMarketFilters);
@@ -1379,7 +1876,7 @@
       ? groupedMarketHtml(items)
       : filtered.length > 0
         ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
-        : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
+        : `<div class="empty">${t('没有匹配当前筛选条件的连接器')}</div>`;
     main.innerHTML = resultHtml;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
@@ -1393,11 +1890,11 @@
 
   function connectionLabels(d) {
     const local = (d.servers || []).some((s) => s.transport === 'stdio');
-    const auth = d.id === 'dingtalk' ? '官方 CLI OAuth'
-      : ({ 'oauth2-pkce': 'OAuth 授权', bearer: 'Bearer 凭据', 'api-key': 'API Key' }[d.authMode] || '按服务要求授权');
-    return [d.vendor ? `提供方：${d.vendor}` : '提供方：待核实', auth,
-      local ? '运行于 DSH 主机' : '远程服务',
-      d.id === 'dingtalk' ? '当前桥接仅提供只读工具' : '权限以授权页和工具策略为准'];
+    const auth = d.id === 'dingtalk' ? t('官方 CLI OAuth')
+      : t(({ 'oauth2-pkce': 'OAuth 授权', bearer: 'Bearer 凭据', 'api-key': 'API Key' }[d.authMode] || '按服务要求授权'));
+    return [d.vendor ? t('提供方：{vendor}', { vendor: d.vendor }) : t('提供方：待核实'), auth,
+      t(local ? '运行于 DSH 主机' : '远程服务'),
+      t(d.id === 'dingtalk' ? '当前桥接仅提供只读工具' : '权限以授权页和工具策略为准')];
   }
 
   function cardHtml(d) {
@@ -1406,9 +1903,9 @@
       : `<span>${esc(d.icon || '🔌')}</span>`;
     const actions = actionHtml(d);
     const probe = d.probeStatus && d.probeStatus !== 'unverified' ? `<span class="badge ${esc(d.probeStatus)}">${d.probeStatus}</span>` : '';
-    const runtimeLabel = d.id === 'dingtalk' ? '本地 CLI' : (d.servers || []).some((s) => s.transport === 'stdio') ? '本地运行' : '';
-    const runtimeTag = runtimeLabel ? `<span class="runtime-tag" title="包含运行于 DSH 主机的服务；授权和权限要求请查看详情">${runtimeLabel}</span>` : '';
-    return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" role="button" tabindex="0" aria-label="查看 ${esc(d.name)} 详情" onclick="window.__mcp.showDetail(${jsString(d.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.__mcp.showDetail(${jsString(d.id)})}">
+    const runtimeLabel = d.id === 'dingtalk' ? t('本地 CLI') : (d.servers || []).some((s) => s.transport === 'stdio') ? t('本地运行') : '';
+    const runtimeTag = runtimeLabel ? `<span class="runtime-tag" title="${t('包含运行于 DSH 主机的服务；授权和权限要求请查看详情')}">${esc(runtimeLabel)}</span>` : '';
+    return `<div class="card ${d.featured ? 'featured' : ''}" data-id="${esc(d.id)}" role="button" tabindex="0" aria-label="${t('查看 {name} 详情', { name: esc(d.name) })}" onclick="window.__mcp.showDetail(${jsString(d.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.__mcp.showDetail(${jsString(d.id)})}">
       <div class="icon">${icon}</div>
       <div class="content">
         <div class="name">${esc(d.name)} ${probe} ${runtimeTag}</div>
@@ -1453,8 +1950,10 @@
     return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail(${idJs})">${t('details')}</button><button class="btn" type="button" onclick="event.stopPropagation();window.__mcp.openConfig(${idJs})">${t('configure')}</button>`;
   }
 
+  // value 是机器键（与接口返回值比较），只有展示文案走 t()。
   const EXPLORER_STATUS = { pending: '尚未发现', unknown: 'Host 状态未知', success: '最近发现成功', failed: '最近发现失败' };
-  const formatObserved = (value) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '尚无记录';
+  const explorerStatusLabel = (status) => t(EXPLORER_STATUS[status] || status);
+  const formatObserved = (value) => value ? new Date(value).toLocaleString(t.locale, { hour12: false }) : t('尚无记录');
 
   async function loadToolExplorer() {
     const render = beginViewRender();
@@ -1463,7 +1962,7 @@
     const workspaceId = currentWorkspace?.workspaceId;
     syncMarketNav();
     if (!$('#tool-explorer')) {
-      main.innerHTML = `<section id="tool-explorer"><p class="hint">搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。</p><div class="explorer-filters"><label>连接<select id="explorer-connection" aria-label="按连接筛选"></select></label><label>服务<select id="explorer-server" aria-label="按服务筛选"></select></label><label>发现状态<select id="explorer-status" aria-label="按发现状态筛选"><option value="">全部状态</option>${Object.entries(EXPLORER_STATUS).map(([key, label]) => `<option value="${key}">${label}</option>`).join('')}</select></label><button class="btn ghost" data-explorer-clear>清除筛选</button></div><p id="explorer-summary" role="status">正在读取缓存…</p><div id="explorer-connections"></div><div id="explorer-results"></div><div id="explorer-pages" class="m-actions"></div></section>`;
+      main.innerHTML = `<section id="tool-explorer"><p class="hint">${t('搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。')}</p><div class="explorer-filters"><label>${t('explorerConnection')}<select id="explorer-connection" aria-label="${t('按连接筛选')}"></select></label><label>${t('explorerServer')}<select id="explorer-server" aria-label="${t('按服务筛选')}"></select></label><label>${t('发现状态')}<select id="explorer-status" aria-label="${t('按发现状态筛选')}"><option value="">${t('全部状态')}</option>${Object.keys(EXPLORER_STATUS).map((key) => `<option value="${key}">${esc(explorerStatusLabel(key))}</option>`).join('')}</select></label><button class="btn ghost" data-explorer-clear>${t('清除筛选')}</button></div><p id="explorer-summary" role="status">${t('正在读取缓存…')}</p><div id="explorer-connections"></div><div id="explorer-results"></div><div id="explorer-pages" class="m-actions"></div></section>`;
     }
     const response = await call('toolExplorer', { ...workspaceParams(), ...explorerFilter, query: searchQuery, offset: explorerOffset, limit: 20 });
     if (!isViewRenderCurrent(render) || sequence !== explorerSequence || view !== 'tools' || workspaceId !== currentWorkspace?.workspaceId) return;
@@ -1471,16 +1970,16 @@
     explorerData = response.detail;
     const { connections = [], selectedConnections = [], items = [], total = 0 } = explorerData;
     if (explorerOffset >= total && explorerOffset > 0) { explorerOffset = Math.max(0, Math.floor((total - 1) / 20) * 20); return loadToolExplorer(); }
-    $('#explorer-connection').innerHTML = '<option value="">全部连接</option>' + connections.map((c) => `<option value="${esc(c.connectionKey)}">${esc(c.connectionName)} · ${esc(c.serverName)}</option>`).join('');
+    $('#explorer-connection').innerHTML = `<option value="">${t('全部连接')}</option>` + connections.map((c) => `<option value="${esc(c.connectionKey)}">${esc(c.connectionName)} · ${esc(c.serverName)}</option>`).join('');
     const services = [...new Set(connections.filter((c) => !explorerFilter.connectionKey || c.connectionKey === explorerFilter.connectionKey).map((c) => c.serverName))];
-    $('#explorer-server').innerHTML = '<option value="">全部服务</option>' + services.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+    $('#explorer-server').innerHTML = `<option value="">${t('全部服务')}</option>` + services.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
     $('#explorer-connection').value = explorerFilter.connectionKey;
     $('#explorer-server').value = explorerFilter.serverName;
     $('#explorer-status').value = explorerFilter.status;
-    $('#explorer-summary').textContent = `${explorerData.scopeLabel} · ${connections.length} 条连接 · 匹配 ${total} 个工具 · 显示 ${items.length} 个`;
-    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>连接状态与故障处理（${selectedConnections.length}）</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(EXPLORER_STATUS[c.status] || c.status)} · 缓存 ${c.toolCount} 个工具</div><div class="hint">最近发现：${esc(formatObserved(c.checkedAt))}；最后成功：${esc(formatObserved(c.observedAt))}${c.stale ? ' · 缓存超过 24 小时' : ''}${c.cacheTruncated ? ' · 缓存清单已截断' : ''}</div>${c.diagnostic ? `<div>${esc(c.diagnostic.stageLabel)}：${esc(c.diagnostic.message)}<br>建议：${esc(c.diagnostic.action)}</div>` : ''}${c.retryReason === 'auth' ? '<p>鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。</p>' : c.nextDiscoveryAt ? `<p class="hint">下次后台发现不早于：${esc(formatObserved(c.nextDiscoveryAt))}（页面保持连接时）</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>重新发现工具</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>检查连接</button></div></div>`).join('') || '<p>当前筛选下没有连接。</p>'}</details>`;
-    $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || '暂无描述')}</p><div class="hint">来源：${esc(item.connection.connectorName)} / ${esc(item.connection.connectionName)} / ${esc(item.serverName)}<br>${esc(EXPLORER_STATUS[item.connection.status])} · 最后成功缓存 ${esc(formatObserved(item.observedAt))}${item.stale ? ' · 已超过 24 小时' : ''}</div><button class="btn ghost" data-explorer-detail="${index}">参数详情</button></article>`).join('') || `<p class="empty">${connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。'}</p>`;
-    $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>上一页</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>下一页</button>`;
+    $('#explorer-summary').textContent = t('{scope} · {connections} 条连接 · 匹配 {tools} 个工具 · 显示 {shown} 个', { scope: explorerData.scopeLabel, connections: connections.length, tools: total, shown: items.length });
+    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${c.diagnostic ? `<div>${t('{stage}：{message}', { stage: esc(c.diagnostic.stageLabel), message: esc(c.diagnostic.message) })}<br>${t('建议：{action}', { action: esc(c.diagnostic.action) })}</div>` : ''}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
+    $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || t('暂无描述'))}</p><div class="hint">${t('来源：{connector} / {connection} / {server}', { connector: esc(item.connection.connectorName), connection: esc(item.connection.connectionName), server: esc(item.serverName) })}<br>${esc(explorerStatusLabel(item.connection.status))} · ${t('最后成功缓存 {at}', { at: esc(formatObserved(item.observedAt)) })}${item.stale ? t(' · 已超过 24 小时') : ''}</div><button class="btn ghost" data-explorer-detail="${index}">${t('参数详情')}</button></article>`).join('') || `<p class="empty">${t(connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。')}</p>`;
+    $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>${t('上一页')}</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>${t('下一页')}</button>`;
     } finally { finishViewRender(render); }
   }
 
@@ -1524,7 +2023,7 @@
     try {
     const previousScrollTop = preserveScroll ? main.scrollTop : 0;
     syncMarketNav();
-    main.innerHTML = '<div class="empty">加载中…</div>';
+    main.innerHTML = `<div class="empty">${t('加载中…')}</div>`;
     const [r, migration] = await Promise.all([call('status', workspaceParams()), call('migrationPreview', { scanStored: false })]);
     if (!isViewRenderCurrent(render)) return;
     if (!r.ok) {
@@ -1539,16 +2038,16 @@
     scopeRollbackRevision = r.detail?.scope?.history?.at(-1)?.revision ?? null;
     setTabCount('installed', items.length);
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
-    const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
+    const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>${t('发现旧企查查 MCP 授权')}</strong>${t('可安全复制 {count} 组授权到 MCP连接器；不会删除旧插件或原凭据。', { count: pendingMigration })}</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">${t('迁移')}</button></div>` : '';
     if (!items.length) {
-      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`;
+      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('可从旧企查查 OAuth 插件复制已有授权')}</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div><div class="empty">${t('还没有连接任何 MCP · 到「市场」里连接一个吧')}</div>`;
       if (preserveScroll) main.scrollTop = previousScrollTop;
       return;
     }
     markCommunityCtaEligible();
     const filtered = items.filter(matchesSearch);
     const rollbackDisabled = scopeRollbackRevision === null ? 'disabled' : '';
-    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 作用域 revision=${scopeRevision}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">回滚上次范围变更</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
+    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('共')} <strong>${filtered.length}</strong> ${t('条连接')}${searchQuery ? ` · ${t('搜索「{query}」', { query: esc(searchQuery) })}` : ''} · ${t('作用域 revision={revision}', { revision: scopeRevision })}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">${t('回滚上次范围变更')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     } finally { finishViewRender(render); }
   }
@@ -1561,13 +2060,13 @@
     const authMode = r.authMode === 'oauth' ? '<span class="badge auth-oauth">OAuth</span>' : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
     const healthLabels = { healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
-    const healthBadge = `<span class="badge ${healthClass}">${esc(healthLabels[r.connectionState] || '状态未知')}</span>`;
-    const scopeBadge = `<span class="badge">${esc(r.scope?.label || '全局')}</span>`;
-    const insecureNetworkBadge = r.insecurePrivateNetwork === true ? '<span class="badge partial">局域网 HTTP 风险已确认</span>' : '';
+    const healthBadge = `<span class="badge ${healthClass}">${esc(t(healthLabels[r.connectionState] || '状态未知'))}</span>`;
+    const scopeBadge = `<span class="badge">${esc(t(r.scope?.label || '全局'))}</span>`;
+    const insecureNetworkBadge = r.insecurePrivateNetwork === true ? `<span class="badge partial">${t('局域网 HTTP 风险已确认')}</span>` : '';
     const enabled = r.enabled !== false;
     const injectionMode = r.injectionMode === 'session' ? 'session' : 'always';
     const diagnostic = r.diagnostic
-      ? `<div class="rdiag">${esc(r.diagnostic.stageLabel || r.diagnostic.stage)} · ${esc(r.diagnostic.code)}：${esc(r.diagnostic.message)}；建议：${esc(r.diagnostic.action)}${r.lastSuccessfulAt ? `；最近成功：${esc(new Date(r.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}</div>`
+      ? `<div class="rdiag">${esc(t('{stage} · {code}：{message}；建议：{action}', { stage: r.diagnostic.stageLabel || r.diagnostic.stage, code: r.diagnostic.code, message: r.diagnostic.message, action: r.diagnostic.action }))}${r.lastSuccessfulAt ? esc(t('；最近成功：{at}', { at: new Date(r.lastSuccessfulAt).toLocaleString(t.locale, { hour12: false }) })) : ''}</div>`
       : '';
     return `<div class="row" data-key="${key}">
       <div class="info">
@@ -1575,27 +2074,27 @@
         <div class="rmeta">${esc(r.serverName || '')} · ${esc(r.endpoint || r.url || '')}</div>
         ${diagnostic}
       </div>
-      <select class="injection-select" aria-label="${esc(r.name)} 工具注入模式" title="按会话模式不会断开连接，只会默认隐藏业务工具 schema" onchange="window.__mcp.changeInjectionMode(${keyJs}, this.value, this)">
-        <option value="always" ${injectionMode === 'always' ? 'selected' : ''}>始终注入</option>
-        <option value="session" ${injectionMode === 'session' ? 'selected' : ''}>按会话启用（实验）</option>
+      <select class="injection-select" aria-label="${t('{name} 工具注入模式', { name: esc(r.name) })}" title="${t('按会话模式不会断开连接，只会默认隐藏业务工具 schema')}" onchange="window.__mcp.changeInjectionMode(${keyJs}, this.value, this)">
+        <option value="always" ${injectionMode === 'always' ? 'selected' : ''}>${t('始终注入')}</option>
+        <option value="session" ${injectionMode === 'session' ? 'selected' : ''}>${t('按会话启用（实验）')}</option>
       </select>
-      <label class="switch" title="${enabled ? '停用' : '启用'}" aria-label="${enabled ? '停用' : '启用'} ${esc(r.name)}">
+      <label class="switch" title="${t(enabled ? '停用' : '启用')}" aria-label="${t(enabled ? '停用' : '启用')} ${esc(r.name)}">
         <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle(${keyJs}, this.checked)">
         <span class="slider"></span>
       </label>
-      ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor(${keyJs})">编辑配置</button>` : ''}
-      ${r.canEditLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.openLocalEditor(${keyJs})">本地参数</button>` : r.hasLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${keyJs}, true)">清除本地参数</button>` : ''}
-      ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename(${keyJs})">重命名</button>` : ''}
-      ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">工具</button>` : ''}
-      ${enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式" onclick="window.__mcp.reconnect(${keyJs})">重新连接</button>` : ''}
-      <button class="btn ghost" type="button" onclick="window.__mcp.openScope(${keyJs})">范围</button>
-      <button class="btn danger" onclick="window.__mcp.disconnect(${keyJs})">断开</button>
+      ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor(${keyJs})">${t('编辑配置')}</button>` : ''}
+      ${r.canEditLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.openLocalEditor(${keyJs})">${t('本地参数')}</button>` : r.hasLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${keyJs}, true)">${t('清除本地参数')}</button>` : ''}
+      ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename(${keyJs})">${t('重命名')}</button>` : ''}
+      ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">${t('工具')}</button>` : ''}
+      ${enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="${t('重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式')}" onclick="window.__mcp.reconnect(${keyJs})">${t('重新连接')}</button>` : ''}
+      <button class="btn ghost" type="button" onclick="window.__mcp.openScope(${keyJs})">${t('范围')}</button>
+      <button class="btn danger" onclick="window.__mcp.disconnect(${keyJs})">${t('断开')}</button>
     </div>`;
   }
 
   function guidanceFor(message) {
-    const text = String(message || '未知错误');
-    const withAdvice = (advice) => `${text.replace(/[。！？.!?\s]+$/, '')}。${advice}`;
+    const text = String(message || t('未知错误'));
+    const withAdvice = (advice) => `${text.replace(/[。！？.!?\s]+$/, '')}${t('。')}${t(advice)}`;
     if (/CLI|OAuth|待授权|管理员|本地 MCP/i.test(text)) return text;
     if (/private-network HTTP requires explicit confirmation/i.test(text)) return withAdvice('如目标是可信的局域网私有 IP，请勾选明文 HTTP 风险确认；请勿对公网或不可信服务开启。');
     if (/protocol not allowed|only https/i.test(text)) return withAdvice('公网地址必须使用 HTTPS；HTTP 只允许回环地址，或经显式确认的私有 IP 字面量。');
@@ -1620,7 +2119,7 @@
     const primary = modal.querySelector('.m-actions .btn:not(.ghost)');
     if (busy && primary) {
       primary.dataset.idleLabel = primary.textContent;
-      primary.textContent = busyLabel || '处理中…';
+      primary.textContent = busyLabel || t('处理中…');
     } else if (!busy && primary?.dataset.idleLabel) {
       primary.textContent = primary.dataset.idleLabel;
       delete primary.dataset.idleLabel;
@@ -1629,10 +2128,10 @@
   }
 
   function addTabs(active) {
-    return `<div class="modal-tabs" role="tablist" aria-label="添加连接方式">
-      <button type="button" class="${active === 'json' ? 'active' : ''}" onclick="window.__mcp.openAdd('json')">导入 JSON</button>
-      <button type="button" class="${active === 'manual' ? 'active' : ''}" onclick="window.__mcp.openAdd('manual')">手动配置</button>
-      <button type="button" class="${active === 'url' ? 'active' : ''}" onclick="window.__mcp.openAdd('url')">市场卡片</button>
+    return `<div class="modal-tabs" role="tablist" aria-label="${t('添加连接方式')}">
+      <button type="button" class="${active === 'json' ? 'active' : ''}" onclick="window.__mcp.openAdd('json')">${t('导入 JSON')}</button>
+      <button type="button" class="${active === 'manual' ? 'active' : ''}" onclick="window.__mcp.openAdd('manual')">${t('手动配置')}</button>
+      <button type="button" class="${active === 'url' ? 'active' : ''}" onclick="window.__mcp.openAdd('url')">${t('市场卡片')}</button>
     </div>`;
   }
 
@@ -1642,41 +2141,41 @@
     const usesStdio = servers.some((server) => server.transport === 'stdio');
     const homepage = /^https:\/\//i.test(preset.homepage || '') ? preset.homepage : '';
     const credentialName = preset.credentialName || (authMode === 'bearer' ? 'Bearer Token' : 'API Key');
-    const credentialPlaceholder = preset.credentialPlaceholder || '仅保存在 DSH 本机';
-    const credentialDescription = preset.credentialDescription || '凭据仅保存在 DSH 本机，不会写入市场目录或对话。';
-    const credentialHelpLabel = preset.credentialHelpLabel || `前往 ${preset.vendor || preset.name} 官网获取`;
+    const credentialPlaceholder = preset.credentialPlaceholder || t('仅保存在 DSH 本机');
+    const credentialDescription = preset.credentialDescription || t('凭据仅保存在 DSH 本机，不会写入市场目录或对话。');
+    const credentialHelpLabel = preset.credentialHelpLabel || t('前往 {vendor} 官网获取', { vendor: preset.vendor || preset.name });
     const declaredFields = preset.credentialFields?.length ? preset.credentialFields : [{
       key: 'credential', label: credentialName, placeholder: credentialPlaceholder,
       description: credentialDescription, required: true, secret: true,
     }];
     const stdioCredentialFields = declaredFields.map((field) => {
       const id = `cfg-credential-${field.key}`;
-      return `<label for="${esc(id)}">${esc(field.label)}${field.required === false ? '（可选）' : '（必填）'}</label><input id="${esc(id)}" data-credential-key="${esc(field.key)}" type="${field.secret === false ? 'text' : 'password'}" autocomplete="off" placeholder="${esc(field.placeholder || '仅保存在 DSH 本机')}" />${field.description ? `<div class="field-help">${esc(field.description)}</div>` : ''}`;
+      return `<label for="${esc(id)}">${esc(field.label)}${t(field.required === false ? '（可选）' : '（必填）')}</label><input id="${esc(id)}" data-credential-key="${esc(field.key)}" type="${field.secret === false ? 'text' : 'password'}" autocomplete="off" placeholder="${esc(field.placeholder || t('仅保存在 DSH 本机'))}" />${field.description ? `<div class="field-help">${esc(field.description)}</div>` : ''}`;
     }).join('');
     const credentialFields = usesStdio
       ? stdioCredentialFields
       : authMode === 'bearer'
-        ? `<label for="cfg-token">${esc(credentialName)}（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
-        : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
+        ? `<label for="cfg-token">${esc(credentialName)}${t('（必填）')}</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`
+        : `<div class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.apiKeyHeader || 'X-Api-Key')}" /></div><div><label for="cfg-key-value">${esc(credentialName)}${t('（必填）')}</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /></div></div><div class="field-help">${esc(credentialDescription)}</div>`;
     const serverPreview = servers.map((server) => {
-      const modeLabel = server.transport === 'stdio' ? '本地 Agent · 本机文件' : '远程 Agent · 在线链接文档';
+      const modeLabel = t(server.transport === 'stdio' ? '本地 Agent · 本机文件' : '远程 Agent · 在线链接文档');
       const endpoint = server.transport === 'stdio'
         ? `stdio · ${server.command || ''} ${(server.args || []).join(' ')}`.trim()
         : server.url;
       return `<div><strong>${esc(modeLabel)}</strong><br>${esc(server.serverName)} · ${esc(endpoint)}</div>`;
     }).join('');
     const mixedDocumentModes = usesStdio && servers.some((server) => server.transport !== 'stdio');
-    openModal(`配置 ${preset.name}`, `
+    openModal(t('配置 {name}', { name: preset.name }), `
       <input id="cfg-connector-id" type="hidden" value="${esc(preset.id)}" />
       <input id="cfg-auth" type="hidden" value="${esc(authMode)}" />
-      <div class="form-note"><strong>一次配置 ${servers.length} 个 MCP Server</strong>以下 Server 共用同一份 ${esc(credentialName)}；凭据仅保存在本机，不会写入市场目录。</div>
-      ${mixedDocumentModes ? '<div class="form-note"><strong>在线链接 + 本机文件同时启用</strong>远程入口解析公网可访问的 URL；本地入口读取对话中上传、粘贴或指定路径的文件并自动提交解析，需 Node.js 20+。</div>' : ''}
+      <div class="form-note"><strong>${t('一次配置 {count} 个 MCP Server', { count: servers.length })}</strong>${t('以下 Server 共用同一份 {credential}；凭据仅保存在本机，不会写入市场目录。', { credential: esc(credentialName) })}</div>
+      ${mixedDocumentModes ? `<div class="form-note"><strong>${t('在线链接 + 本机文件同时启用')}</strong>${t('远程入口解析公网可访问的 URL；本地入口读取对话中上传、粘贴或指定路径的文件并自动提交解析，需 Node.js 20+。')}</div>` : ''}
       <div class="server-preview">${serverPreview}</div>
       ${scopeFieldHtml()}
       ${credentialFields}
       ${homepage ? `<div class="field-help"><a href="${esc(homepage)}" target="_blank" rel="noopener noreferrer">${esc(credentialHelpLabel)}</a></div>` : ''}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接 ${servers.length} 个 Server</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">${t('连接 {count} 个 Server', { count: servers.length })}</button></div>`);
   }
 
   function openConnectScope(connectorId) {
@@ -1685,56 +2184,56 @@
     const server = connector.servers?.[0];
     const allowLocalParameters = connector.authMode === 'none' && connectorId !== 'dingtalk'
       && server?.transport === 'stdio' && !server.oauthTokenEnv && !Object.keys(server.credentialBindings || {}).length;
-    openModal(`连接 ${connector.name}`, `
+    openModal(t('连接 {name}', { name: connector.name }), `
       <input id="scope-connector-id" type="hidden" value="${esc(connectorId)}" />
-      <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? '<p>企业尚未开放 CLI 或您无法取得授权？可以取消，等待管理员处理，无需反复登录或重启。一键授权也不能绕过企业政策。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。</p>' : ''}</div>
-      <div class="form-note"><strong>选择连接影响范围</strong>连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。</div>
+      <div class="form-note">${connectionLabels(connector).map(esc).join(' · ')}${connector.credentialDescription ? `<p>${esc(connector.credentialDescription)}</p>` : ''}${connectorId === 'dingtalk' ? `<p>${t('企业尚未开放 CLI 或您无法取得授权？可以取消，等待管理员处理，无需反复登录或重启。一键授权也不能绕过企业政策。本版本不会自动发起登录；工具注册不代表已获得全部业务权限。')}</p>` : ''}</div>
+      <div class="form-note"><strong>${t('选择连接影响范围')}</strong>${t('连接配置与凭据仍只保存一份；项目范围会由 Host 在工具可见性和执行层强制隔离。')}</div>
       ${scopeFieldHtml()}
-      ${allowLocalParameters ? '<details><summary>高级：首次连接前设置本地参数（可选）</summary><label for="initial-local-overrides">本地参数 JSON</label><textarea id="initial-local-overrides" rows="6" spellcheck="false" placeholder=\'{"argsAppend":[],"env":{},"cwd":""}\'></textarea><div class="field-help">留空使用市场参数（已有连接保留原覆盖）。argsAppend 追加命令参数，env 合并环境变量，cwd 设置工作目录；仅保存在本机。可用于指定浏览器路径或代理。参数可能扩大本地访问权限，请仅填写可信内容；启动失败时保留表单供修改重试。</div></details>' : ''}
+      ${allowLocalParameters ? `<details><summary>${t('高级：首次连接前设置本地参数（可选）')}</summary><label for="initial-local-overrides">${t('本地参数 JSON')}</label><textarea id="initial-local-overrides" rows="6" spellcheck="false" placeholder='{"argsAppend":[],"env":{},"cwd":""}'></textarea><div class="field-help">${t('留空使用市场参数（已有连接保留原覆盖）。argsAppend 追加命令参数，env 合并环境变量，cwd 设置工作目录；仅保存在本机。可用于指定浏览器路径或代理。参数可能扩大本地访问权限，请仅填写可信内容；启动失败时保留表单供修改重试。')}</div></details>` : ''}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.confirmConnect()">确认连接</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.confirmConnect()">${t('确认连接')}</button></div>`);
   }
 
   function openScopeManager(key) {
     const item = installedItems.find((candidate) => candidate.key === key);
-    if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
+    if (!item) { showToast(t('连接不存在，请刷新后重试'), false); return; }
     pendingScopeKey = key;
-    openModal(`连接范围 · ${item.name}`, `
-      <div class="form-note"><strong>当前：${esc(item.scope?.label || '全局')}</strong>变更前会预览受影响的 Server 和已知工具；连接配置、OAuth Grant 和凭据不会被复制。</div>
-      <label for="scope-change-mode">变更方式</label><select id="scope-change-mode"><option value="move">移动（替换现有范围）</option><option value="copy">复制（保留现有范围）</option></select>
+    openModal(t('连接范围 · {name}', { name: item.name }), `
+      <div class="form-note"><strong>${t('当前：{scope}', { scope: esc(t(item.scope?.label || '全局')) })}</strong>${t('变更前会预览受影响的 Server 和已知工具；连接配置、OAuth Grant 和凭据不会被复制。')}</div>
+      <label for="scope-change-mode">${t('变更方式')}</label><select id="scope-change-mode"><option value="move">${t('移动（替换现有范围）')}</option><option value="copy">${t('复制（保留现有范围）')}</option></select>
       ${scopeFieldHtml({ id: 'scope-change-target' })}
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitScopeChange()">预览并应用</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitScopeChange()">${t('预览并应用')}</button></div>`);
   }
 
   function openRenameConnection(key) {
     const item = installedItems.find((candidate) => candidate.key === key);
-    if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
+    if (!item) { showToast(t('连接不存在，请刷新后重试'), false); return; }
     if (item.canRename !== true) {
-      showToast('市场连接器名称由目录维护', false);
+      showToast(t('市场连接器名称由目录维护'), false);
       return;
     }
-    openModal('修改连接显示名', `
-      <div class="form-note"><strong>只修改页面显示名</strong>当前连接不会中断；<code>serverName</code>、工具前缀、作用范围和凭据均保持不变。</div>
-      <label for="rename-name">连接显示名（必填）</label><input id="rename-name" value="${esc(item.name)}" maxlength="80" autocomplete="off" />
-      <label for="rename-server-name">serverName（工具前缀，不可修改）</label><input id="rename-server-name" value="${esc(item.serverName || '')}" disabled />
+    openModal(t('修改连接显示名'), `
+      <div class="form-note"><strong>${t('只修改页面显示名')}</strong>${t('当前连接不会中断；')}<code>serverName</code>${t('、工具前缀、作用范围和凭据均保持不变。')}</div>
+      <label for="rename-name">${t('连接显示名（必填）')}</label><input id="rename-name" value="${esc(item.name)}" maxlength="80" autocomplete="off" />
+      <label for="rename-server-name">serverName${t('（工具前缀，不可修改）')}</label><input id="rename-server-name" value="${esc(item.serverName || '')}" disabled />
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitRename(${jsString(key)})">保存显示名</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitRename(${jsString(key)})">${t('保存显示名')}</button></div>`);
   }
 
   async function openConnectionEditor(key) {
     const item = installedItems.find((candidate) => candidate.key === key);
-    if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
+    if (!item) { showToast(t('连接不存在，请刷新后重试'), false); return; }
     const result = await call('editableConnectionConfig', { key });
     if (!result.ok) { showToast(result.message, false); return; }
-    const action = item.enabled === false ? '保存配置' : '保存并重连';
-    openModal(`编辑配置 · ${item.name}`, `
-      <div class="form-note"><strong>安全编辑标准化 JSON</strong><code>serverName</code> 是连接身份，不可修改；原始排版、注释和字段别名不会被还原。<code>&lt;KEEP_EXISTING&gt;</code> 表示敏感值继续留在本机，可直接保留，或替换为新值；删除字段表示清除该项。</div>
-      <div class="field-label-row"><label for="edit-connection-json">单连接 JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatEditJson()">格式化 JSON</button></div>
+    const action = t(item.enabled === false ? '保存配置' : '保存并重连');
+    openModal(t('编辑配置 · {name}', { name: item.name }), `
+      <div class="form-note"><strong>${t('安全编辑标准化 JSON')}</strong><code>serverName</code> ${t('是连接身份，不可修改；原始排版、注释和字段别名不会被还原。')}<code>&lt;KEEP_EXISTING&gt;</code> ${t('表示敏感值继续留在本机，可直接保留，或替换为新值；删除字段表示清除该项。')}</div>
+      <div class="field-label-row"><label for="edit-connection-json">${t('单连接 JSON')}</label><button class="text-btn" type="button" onclick="window.__mcp.formatEditJson()">${t('格式化 JSON')}</button></div>
       <textarea id="edit-connection-json" rows="14" spellcheck="false">${esc(result.detail?.json || '')}</textarea>
-      <div class="field-help">提交前会先验证新配置并创建快照。任何校验、启动或保存失败都会保留原连接；连接 key、作用范围与启停状态不变。</div>
+      <div class="field-help">${t('提交前会先验证新配置并创建快照。任何校验、启动或保存失败都会保留原连接；连接 key、作用范围与启停状态不变。')}</div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitReconfigure(${jsString(key)})">${action}</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitReconfigure(${jsString(key)})">${action}</button></div>`);
   }
 
   async function openLocalEditor(key) {
@@ -1742,13 +2241,13 @@
     if (!item) return;
     const result = await call('editableLocalOverrides', { key });
     if (!result.ok) { showToast(result.message, false); return; }
-    openModal(`本地参数 · ${item.name}`, `
-      <div class="form-note"><strong>仅覆盖本机，无需修改市场目录</strong><code>argsAppend</code> 追加到市场参数末尾；<code>env</code> 合并环境变量；<code>cwd</code> 设置工作目录。命令、连接身份与市场默认值保持不变。参数可能扩大本地访问权限，请仅填写可信内容。</div>
-      <label for="local-overrides-json">本地参数 JSON</label>
+    openModal(t('本地参数 · {name}', { name: item.name }), `
+      <div class="form-note"><strong>${t('仅覆盖本机，无需修改市场目录')}</strong><code>argsAppend</code> ${t('追加到市场参数末尾；')}<code>env</code> ${t('合并环境变量；')}<code>cwd</code> ${t('设置工作目录。命令、连接身份与市场默认值保持不变。参数可能扩大本地访问权限，请仅填写可信内容。')}</div>
+      <label for="local-overrides-json">${t('本地参数 JSON')}</label>
       <textarea id="local-overrides-json" rows="12" spellcheck="false">${esc(result.detail?.json || '')}</textarea>
-      <div class="field-help"><code>&lt;KEEP_EXISTING&gt;</code> 保留本机已有值；删除字段清除该项覆盖。保存会创建快照并重新加载已启用连接，停用连接保持停用；不代表工具调用已验收。</div>
+      <div class="field-help"><code>&lt;KEEP_EXISTING&gt;</code> ${t('保留本机已有值；删除字段清除该项覆盖。保存会创建快照并重新加载已启用连接，停用连接保持停用；不代表工具调用已验收。')}</div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${jsString(key)}, true)">恢复市场参数</button><button class="btn" type="button" onclick="window.__mcp.submitLocalOverrides(${jsString(key)})">保存本地参数</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${jsString(key)}, true)">${t('恢复市场参数')}</button><button class="btn" type="button" onclick="window.__mcp.submitLocalOverrides(${jsString(key)})">${t('保存本地参数')}</button></div>`);
   }
 
   function openAddConnection(mode = 'json', preset = {}) {
@@ -1758,72 +2257,72 @@
       return;
     }
     if (mode === 'json') {
-      openModal('添加 MCP 连接', `${addTabs(mode)}
-        <div class="field-label-row"><label for="import-json">粘贴 MCP JSON</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">格式化 JSON</button></div>
+      openModal(t('添加 MCP 连接'), `${addTabs(mode)}
+        <div class="field-label-row"><label for="import-json">${t('粘贴 MCP JSON')}</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">${t('格式化 JSON')}</button></div>
         <textarea id="import-json" rows="8" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
-        <div class="field-help">支持 <code>mcpServers</code> 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。私有 IP 明文 HTTP 必须在对应条目显式设置 <code>"allowInsecurePrivateNetwork": true</code>。</div>
+        <div class="field-help">${t('支持 {code} 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。私有 IP 明文 HTTP 必须在对应条目显式设置 {flag}。', { code: '<code>mcpServers</code>', flag: '<code>"allowInsecurePrivateNetwork": true</code>' })}</div>
         ${scopeFieldHtml()}
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
-        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">校验并导入</button></div>`);
+        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">${t('校验并导入')}</button></div>`);
       return;
     }
     if (mode === 'url') {
-      openModal('添加 MCP 连接', `${addTabs(mode)}
-        <p class="field-help">粘贴厂商提供的 ConnectorDescriptor JSON 地址。安装成功后会作为卡片显示在本机「市场」。</p>
-        <div class="form-note"><strong>公共市场如何上架</strong>向 <code>dsh-mcp-connector</code> registry 提交无 Token/API Key 的描述 JSON；Schema、URL、MCP 和 OAuth 探针通过后才会分发给所有用户。真正一键 OAuth 需厂商支持 Authorization Code + PKCE、标准元数据和动态客户端注册。</div>
-        <label for="descriptor-url">连接器描述 URL（必填）</label>
+      openModal(t('添加 MCP 连接'), `${addTabs(mode)}
+        <p class="field-help">${t('粘贴厂商提供的 ConnectorDescriptor JSON 地址。安装成功后会作为卡片显示在本机「市场」。')}</p>
+        <div class="form-note"><strong>${t('公共市场如何上架')}</strong>${t('向 {code} registry 提交无 Token/API Key 的描述 JSON；Schema、URL、MCP 和 OAuth 探针通过后才会分发给所有用户。真正一键 OAuth 需厂商支持 Authorization Code + PKCE、标准元数据和动态客户端注册。', { code: '<code>dsh-mcp-connector</code>' })}</div>
+        <label for="descriptor-url">${t('连接器描述 URL（必填）')}</label>
         <input id="descriptor-url" type="url" placeholder="https://example.com/dsh-connector.json" />
         ${scopeFieldHtml()}
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
-        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitUrl()">验证并安装</button></div>`);
+        <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitUrl()">${t('验证并安装')}</button></div>`);
       return;
     }
     const suggestedAuth = preset.authMode === 'bearer' || preset.authMode === 'api-key' ? preset.authMode : 'none';
-    openModal('添加 MCP 连接', `${addTabs(mode)}
-      <p class="field-help">适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。</p>
+    openModal(t('添加 MCP 连接'), `${addTabs(mode)}
+      <p class="field-help">${t('适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。')}</p>
       ${scopeFieldHtml()}
-      <div class="form-row"><div><label for="cfg-name">名称（必填）</label><input id="cfg-name" value="${esc(preset.name || '')}" placeholder="连接显示名" /></div>
-      <div><label for="cfg-sname">serverName（工具前缀）</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
-      <label for="cfg-transport">传输方式</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">Streamable HTTP（兼容 SSE）</option><option value="stdio">stdio（本地进程）</option></select>
+      <div class="form-row"><div><label for="cfg-name">${t('名称（必填）')}</label><input id="cfg-name" value="${esc(preset.name || '')}" placeholder="${t('连接显示名')}" /></div>
+      <div><label for="cfg-sname">serverName${t('（工具前缀）')}</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
+      <label for="cfg-transport">${t('传输方式')}</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">${t('Streamable HTTP（兼容 SSE）')}</option><option value="stdio">${t('stdio（本地进程）')}</option></select>
       <div id="cfg-http-fields">
-        <label for="cfg-url">MCP URL（必填）</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
-        <label class="insecure-network-consent" for="cfg-allow-insecure-lan"><input id="cfg-allow-insecure-lan" type="checkbox" />我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。</label>
-        <div class="field-help">仅放行 10/8、172.16/12、192.168/16 和 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍会被拒绝。</div>
-        <label for="cfg-auth">鉴权方式</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>无鉴权</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
-        <div id="cfg-bearer"><label for="cfg-token">Bearer Token（必填）</label><input id="cfg-token" type="password" autocomplete="off" placeholder="仅保存在本机" /></div>
-        <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key（必填）</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="仅保存在本机" /></div></div>
-        <label for="cfg-headers">额外 Headers（可选 JSON）</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
+        <label for="cfg-url">${t('MCP URL（必填）')}</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+        <label class="insecure-network-consent" for="cfg-allow-insecure-lan"><input id="cfg-allow-insecure-lan" type="checkbox" />${t('我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。')}</label>
+        <div class="field-help">${t('仅放行 10/8、172.16/12、192.168/16 和 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍会被拒绝。')}</div>
+        <label for="cfg-auth">${t('鉴权方式')}</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>${t('无鉴权')}</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
+        <div id="cfg-bearer"><label for="cfg-token">Bearer Token${t('（必填）')}</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${t('仅保存在本机')}" /></div>
+        <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key${t('（必填）')}</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${t('仅保存在本机')}" /></div></div>
+        <label for="cfg-headers">${t('额外 Headers（可选 JSON）')}</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
       </div>
       <div id="cfg-stdio-fields" hidden>
-        <label for="cfg-command">启动命令（必填）</label><input id="cfg-command" placeholder="npx" autocomplete="off" />
-        <label for="cfg-args">参数（JSON 数组）</label><textarea id="cfg-args" rows="2" spellcheck="false" placeholder='["-y","@modelcontextprotocol/server-filesystem","/path"]'></textarea>
-        <label for="cfg-env">环境变量（JSON 对象）</label><textarea id="cfg-env" rows="2" spellcheck="false" placeholder='{"SERVICE_TOKEN":"仅保存在本机"}'></textarea>
-        <label for="cfg-cwd">工作目录（可选）</label><input id="cfg-cwd" placeholder="默认使用 DSH 当前目录" autocomplete="off" />
-        <div class="field-help">stdio 会在本机启动进程；请只使用可信命令和软件包。环境变量不会写入市场目录。</div>
+        <label for="cfg-command">${t('启动命令（必填）')}</label><input id="cfg-command" placeholder="npx" autocomplete="off" />
+        <label for="cfg-args">${t('参数（JSON 数组）')}</label><textarea id="cfg-args" rows="2" spellcheck="false" placeholder='["-y","@modelcontextprotocol/server-filesystem","/path"]'></textarea>
+        <label for="cfg-env">${t('环境变量（JSON 对象）')}</label><textarea id="cfg-env" rows="2" spellcheck="false" placeholder='{"SERVICE_TOKEN":"${t('仅保存在本机')}"}'></textarea>
+        <label for="cfg-cwd">${t('工作目录（可选）')}</label><input id="cfg-cwd" placeholder="${t('默认使用 DSH 当前目录')}" autocomplete="off" />
+        <div class="field-help">${t('stdio 会在本机启动进程；请只使用可信命令和软件包。环境变量不会写入市场目录。')}</div>
       </div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">连接</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitConfig()">${t('连接')}</button></div>`);
     window.__mcp.syncTransportFields();
   }
 
   async function openConfigBackup() {
-    openModal('配置备份', '<div class="empty">正在生成脱敏配置并读取本机快照…</div>');
+    openModal(t('配置备份'), `<div class="empty">${t('正在生成脱敏配置并读取本机快照…')}</div>`);
     const [exported, snapshots] = await Promise.all([call('exportConfig', {}), call('listSnapshots', {})]);
     if (!exported.ok || !snapshots.ok) {
-      openModal('配置备份', `<div class="inline-error show">${esc(exported.ok ? snapshots.message : exported.message)}</div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
+      openModal(t('配置备份'), `<div class="inline-error show">${esc(exported.ok ? snapshots.message : exported.message)}</div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('关闭')}</button></div>`);
       return;
     }
     const items = snapshots.detail?.items || [];
     const snapshotHtml = items.length
-      ? `<div class="snapshot-list">${items.map((item) => `<div class="snapshot-item"><div class="snapshot-copy"><strong>${esc(item.reason)} · ${esc(new Date(item.createdAt).toLocaleString('zh-CN', { hour12: false }))}</strong>${item.existingCount} 条连接${item.absentCount ? ` · 可移除 ${item.absentCount} 条变更后新增连接` : ''}${item.restorable ? '' : ' · OAuth 需重新授权'}</div><button class="btn ghost" type="button" ${item.restorable ? '' : 'disabled'} onclick="window.__mcp.restoreBackup(${jsString(item.id)})">恢复</button></div>`).join('')}</div>`
-      : '<div class="field-help">还没有本机配置快照。连接、配置、导入、启停和断开前会自动创建，也可立即手动创建。</div>';
-    openModal('配置备份', `
-      <div class="form-note"><strong>可携带脱敏导出</strong>Token、API Key、Header/env 值、stdio 参数、本地路径与 OAuth Grant 均不会导出；占位符需在目标本机重填，OAuth 需重新授权。</div>
-      <div class="field-label-row"><label for="backup-json">脱敏 JSON</label><span><button class="text-btn" type="button" onclick="window.__mcp.copyBackup()">复制</button> · <button class="text-btn" type="button" onclick="window.__mcp.downloadBackup()">下载</button></span></div>
+      ? `<div class="snapshot-list">${items.map((item) => `<div class="snapshot-item"><div class="snapshot-copy"><strong>${esc(item.reason)} · ${esc(new Date(item.createdAt).toLocaleString(t.locale, { hour12: false }))}</strong>${t('{count} 条连接{removable}{oauth}', { count: item.existingCount, removable: item.absentCount ? t(' · 可移除 {count} 条变更后新增连接', { count: item.absentCount }) : '', oauth: item.restorable ? '' : t(' · OAuth 需重新授权') })}</div><button class="btn ghost" type="button" ${item.restorable ? '' : 'disabled'} onclick="window.__mcp.restoreBackup(${jsString(item.id)})">${t('恢复')}</button></div>`).join('')}</div>`
+      : `<div class="field-help">${t('还没有本机配置快照。连接、配置、导入、启停和断开前会自动创建，也可立即手动创建。')}</div>`;
+    openModal(t('配置备份'), `
+      <div class="form-note"><strong>${t('可携带脱敏导出')}</strong>${t('Token、API Key、Header/env 值、stdio 参数、本地路径与 OAuth Grant 均不会导出；占位符需在目标本机重填，OAuth 需重新授权。')}</div>
+      <div class="field-label-row"><label for="backup-json">${t('脱敏 JSON')}</label><span><button class="text-btn" type="button" onclick="window.__mcp.copyBackup()">${t('复制')}</button> · <button class="text-btn" type="button" onclick="window.__mcp.downloadBackup()">${t('下载')}</button></span></div>
       <textarea id="backup-json" readonly spellcheck="false">${esc(exported.detail?.json || '')}</textarea>
-      <div class="field-label-row"><label>本机配置快照（最多 20 个）</label><button class="text-btn" type="button" onclick="window.__mcp.createBackup()">立即创建</button></div>
+      <div class="field-label-row"><label>${t('本机配置快照（最多 20 个）')}</label><button class="text-btn" type="button" onclick="window.__mcp.createBackup()">${t('立即创建')}</button></div>
       ${snapshotHtml}
-      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">关闭</button></div>`);
+      <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('关闭')}</button></div>`);
   }
 
   function renderResolvedPrompt(prompt, values) {
@@ -1836,7 +2335,7 @@
       if (!value && spec.required !== false) missing.push(spec.label || name);
       return value;
     });
-    if (missing.length) throw new Error(`请填写：${[...new Set(missing)].join('、')}`);
+    if (missing.length) throw new Error(t('请填写：{fields}', { fields: [...new Set(missing)].join(t('、')) }));
     return text.replace(/\s+([，。！？；：])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
   }
 
@@ -1848,8 +2347,8 @@
       return;
     }
     pendingPrompt = prompt;
-    const fields = variables.map((variable) => `<label for="prompt-${esc(variable.name)}">${esc(variable.label)}${variable.required === false ? '（可选）' : '（必填）'}</label><input id="prompt-${esc(variable.name)}" data-prompt-variable="${esc(variable.name)}" value="${esc(variable.default || '')}" placeholder="${esc(variable.placeholder || '')}" autocomplete="off" />${variable.description ? `<div class="field-help">${esc(variable.description)}</div>` : ''}`).join('');
-    openModal(prompt.title || '填写查询参数', `<p class="field-help">发送前补全参数，内容只用于本次新会话，不会写回连接器目录。</p>${fields}<div class="inline-error" id="modal-error" tabindex="-1"></div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitPromptVariables()">带入新会话</button></div>`);
+    const fields = variables.map((variable) => `<label for="prompt-${esc(variable.name)}">${esc(variable.label)}${t(variable.required === false ? '（可选）' : '（必填）')}</label><input id="prompt-${esc(variable.name)}" data-prompt-variable="${esc(variable.name)}" value="${esc(variable.default || '')}" placeholder="${esc(variable.placeholder || '')}" autocomplete="off" />${variable.description ? `<div class="field-help">${esc(variable.description)}</div>` : ''}`).join('');
+    openModal(prompt.title || t('填写查询参数'), `<p class="field-help">${t('发送前补全参数，内容只用于本次新会话，不会写回连接器目录。')}</p>${fields}<div class="inline-error" id="modal-error" tabindex="-1"></div><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitPromptVariables()">${t('带入新会话')}</button></div>`);
   }
 
   window.__mcp = {
@@ -1863,7 +2362,7 @@
       catch (error) { showModalError(error.message); return; }
       const timeoutMs = marketItems[connectorId]?.authMode === 'oauth2-pkce' ? 310_000 : undefined;
       const localOverrides = $('#initial-local-overrides')?.value.trim();
-      setModalBusy(true, '正在连接…');
+      setModalBusy(true, t('正在连接…'));
       const r = await call('connect', { connectorId, ...scopeParams, ...(localOverrides ? { localOverrides } : {}) }, { timeoutMs });
       setModalBusy(false);
       showToast(r.message, r.ok);
@@ -1884,9 +2383,9 @@
     async openEditor(key) { await openConnectionEditor(key); },
     async openLocalEditor(key) { await openLocalEditor(key); },
     async submitLocalOverrides(key, reset = false) {
-      if (reset && !await confirmDialog({ title: '恢复市场参数', message: '清除本机追加参数、环境变量和工作目录覆盖；已启用连接将重新加载。', confirmLabel: '恢复' })) return;
+      if (reset && !await confirmDialog({ title: t('恢复市场参数'), message: t('清除本机追加参数、环境变量和工作目录覆盖；已启用连接将重新加载。'), confirmLabel: t('恢复') })) return;
       const json = $('#local-overrides-json')?.value || '{}';
-      setModalBusy(true, '正在更新本地参数…');
+      setModalBusy(true, t('正在更新本地参数…'));
       const result = await call('applyLocalOverrides', { key, json, reset });
       setModalBusy(false);
       if (!result.ok) { showToast(result.message, false); showModalError(result.message); return; }
@@ -1901,21 +2400,21 @@
         input.value = JSON.stringify(JSON.parse(input.value), null, 2);
         $('#modal-error')?.classList.remove('show');
       } catch (error) {
-        showModalError(`JSON 格式化失败: ${error.message}`);
+        showModalError(t('JSON 格式化失败: {error}', { error: error.message }));
       }
     },
     async submitReconfigure(key) {
       const input = $('#edit-connection-json');
-      if (!input?.value.trim()) { showModalError('连接配置不能为空'); return; }
+      if (!input?.value.trim()) { showModalError(t('连接配置不能为空')); return; }
       let json;
       try {
         json = JSON.stringify(JSON.parse(input.value), null, 2);
         input.value = json;
       } catch (error) {
-        showModalError(`连接配置不是合法 JSON: ${error.message}`);
+        showModalError(t('连接配置不是合法 JSON: {error}', { error: error.message }));
         return;
       }
-      setModalBusy(true, '正在校验并更新…');
+      setModalBusy(true, t('正在校验并更新…'));
       const result = await call('reconfigureConnection', { key, json });
       setModalBusy(false);
       if (!result.ok) { showModalError(result.message); return; }
@@ -1925,7 +2424,7 @@
     },
     async submitRename(key) {
       const name = $('#rename-name')?.value.trim() || '';
-      if (!name) { showModalError('连接显示名不能为空'); return; }
+      if (!name) { showModalError(t('连接显示名不能为空')); return; }
       setModalBusy(true);
       const result = await call('renameConnection', { key, name });
       setModalBusy(false);
@@ -1940,7 +2439,7 @@
       try { target = selectedScopeParams('scope-change-target'); }
       catch (error) { showModalError(error.message); return; }
       const mode = $('#scope-change-mode')?.value || 'move';
-      setModalBusy(true, '正在预览影响…');
+      setModalBusy(true, t('正在预览影响…'));
       const preview = await call('previewConnectionScope', {
         key: pendingScopeKey,
         mode,
@@ -1950,15 +2449,15 @@
       setModalBusy(false);
       if (!preview.ok || !preview.detail?.canApply) { showModalError(preview.message); return; }
       const affected = (preview.detail.impact?.servers || []).map((server) => {
-        const toolText = server.tools?.length ? server.tools.join('、') : '工具清单尚未观察';
+        const toolText = server.tools?.length ? server.tools.join(t('、')) : t('工具清单尚未观察');
         return `${server.serverName}：${toolText}`;
       }).join('\n');
       if (!await confirmDialog({
-        title: '变更连接范围',
-        message: `${preview.message}\n${affected}\n\n确认${mode === 'copy' ? '复制到' : '移动到'}所选范围？`,
-        confirmLabel: '应用',
+        title: t('变更连接范围'),
+        message: t('{message}\n{affected}\n\n确认{action}所选范围？', { message: preview.message, affected, action: t(mode === 'copy' ? '复制到' : '移动到') }),
+        confirmLabel: t('应用'),
       })) return;
-      setModalBusy(true, '正在应用范围…');
+      setModalBusy(true, t('正在应用范围…'));
       const result = await call('applyConnectionScope', {
         key: pendingScopeKey,
         mode,
@@ -1979,13 +2478,13 @@
       const preview = await call('previewConnectionScopeRollback', { rollbackRevision: scopeRollbackRevision });
       if (!preview.ok) { showToast(preview.message, false); return; }
       const affected = (preview.detail?.impact?.servers || []).map((server) => {
-        const toolText = server.tools?.length ? server.tools.join('、') : '工具清单尚未观察';
+        const toolText = server.tools?.length ? server.tools.join(t('、')) : t('工具清单尚未观察');
         return `${server.serverName}：${toolText}`;
       }).join('\n');
       if (!await confirmDialog({
-        title: '回滚连接范围',
-        message: `${preview.message}\n${affected}\n\n确认将全部连接范围恢复到 revision=${scopeRollbackRevision}？`,
-        confirmLabel: '回滚',
+        title: t('回滚连接范围'),
+        message: t('{message}\n{affected}\n\n确认将全部连接范围恢复到 revision={revision}？', { message: preview.message, affected, revision: scopeRollbackRevision }),
+        confirmLabel: t('回滚'),
       })) return;
       const result = await call('rollbackConnectionScope', {
         rollbackRevision: scopeRollbackRevision,
@@ -2007,9 +2506,9 @@
     async changeInjectionMode(key, mode, select) {
       const previous = mode === 'session' ? 'always' : 'session';
       if (mode === 'session' && !await confirmDialog({
-        title: '按会话启用',
-        message: '按会话启用不会断开 MCP 连接，但会在所有会话中默认隐藏该连接的业务工具。\n\n之后需要在对话中明确选择工具才会临时激活，最长 30 分钟。确认继续？',
-        confirmLabel: '启用',
+        title: t('按会话启用'),
+        message: t('按会话启用不会断开 MCP 连接，但会在所有会话中默认隐藏该连接的业务工具。\n\n之后需要在对话中明确选择工具才会临时激活，最长 30 分钟。确认继续？'),
+        confirmLabel: t('启用'),
       })) {
         select.value = previous;
         return;
@@ -2023,9 +2522,9 @@
     },
     async disconnect(key) {
       if (!await confirmDialog({
-        title: '断开连接',
-        message: '确认断开该连接？OAuth 授权会被撤销。',
-        confirmLabel: '断开',
+        title: t('断开连接'),
+        message: t('确认断开该连接？OAuth 授权会被撤销。'),
+        confirmLabel: t('断开'),
       })) return;
       const r = await call('disconnect', { key });
       showToast(r.message, r.ok);
@@ -2036,8 +2535,8 @@
     async openConfigBackup() { await openConfigBackup(); },
     async copyBackup() {
       const text = $('#backup-json')?.value || '';
-      try { await navigator.clipboard.writeText(text); showToast('已复制脱敏配置', true); }
-      catch { $('#backup-json')?.select(); showToast('请按 Ctrl/Cmd+C 复制脱敏配置', false); }
+      try { await navigator.clipboard.writeText(text); showToast(t('已复制脱敏配置'), true); }
+      catch { $('#backup-json')?.select(); showToast(t('请按 Ctrl/Cmd+C 复制脱敏配置'), false); }
     },
     downloadBackup() {
       const text = $('#backup-json')?.value || '';
@@ -2056,11 +2555,11 @@
       if (!preview.ok) { showToast(preview.message, false); return; }
       if (!preview.detail?.restorable) { showToast(preview.message, false); return; }
       if (!await confirmDialog({
-        title: '恢复配置快照',
-        message: `${preview.message}。确认恢复？恢复过程中任一 Server 失败会整体回滚。`,
-        confirmLabel: '恢复',
+        title: t('恢复配置快照'),
+        message: t('{message}。确认恢复？恢复过程中任一 Server 失败会整体回滚。', { message: preview.message }),
+        confirmLabel: t('恢复'),
       })) return;
-      setModalBusy(true, '正在原子恢复…');
+      setModalBusy(true, t('正在原子恢复…'));
       const result = await call('restoreSnapshot', { snapshotId });
       setModalBusy(false);
       showToast(result.message, result.ok);
@@ -2074,7 +2573,7 @@
         input.value = JSON.stringify(JSON.parse(value), null, 2);
         $('#modal-error')?.classList.remove('show');
       } catch (error) {
-        if (!silent) showModalError(`JSON 格式化失败: ${error.message}`);
+        if (!silent) showModalError(t('JSON 格式化失败: {error}', { error: error.message }));
       }
     },
     syncAuthFields() {
@@ -2100,7 +2599,7 @@
         document.querySelectorAll('[data-credential-key]').forEach((input) => {
           credentialValues[input.dataset.credentialKey] = input.value;
         });
-        setModalBusy(true, '正在验证凭据与连接…');
+        setModalBusy(true, t('正在验证凭据与连接…'));
         const r = await call('configure', {
           connectorId,
           authMode,
@@ -2122,20 +2621,20 @@
       const transport = $('#cfg-transport').value;
       const url = $('#cfg-url')?.value.trim() || '';
       const command = $('#cfg-command')?.value.trim() || '';
-      if (!name || (transport === 'stdio' ? !command : !url)) { showModalError(transport === 'stdio' ? '名称与启动命令必填' : '名称与 URL 必填'); return; }
+      if (!name || (transport === 'stdio' ? !command : !url)) { showModalError(t(transport === 'stdio' ? '名称与启动命令必填' : '名称与 URL 必填')); return; }
       let args;
       let envJson;
       if (transport === 'stdio') {
         try {
           args = JSON.parse($('#cfg-args').value || '[]');
           envJson = JSON.parse($('#cfg-env').value || '{}');
-          if (!Array.isArray(args)) throw new Error('参数必须是 JSON 数组');
-          if (!envJson || Array.isArray(envJson) || typeof envJson !== 'object') throw new Error('环境变量必须是 JSON 对象');
-        } catch (error) { showModalError(`stdio 配置错误: ${error.message}`); return; }
+          if (!Array.isArray(args)) throw new Error(t('参数必须是 JSON 数组'));
+          if (!envJson || Array.isArray(envJson) || typeof envJson !== 'object') throw new Error(t('环境变量必须是 JSON 对象'));
+        } catch (error) { showModalError(t('stdio 配置错误: {error}', { error: error.message })); return; }
       }
       let headersJson;
       try { headersJson = JSON.parse($('#cfg-headers')?.value || '{}'); }
-      catch { showModalError('额外 Headers 不是合法 JSON'); return; }
+      catch { showModalError(t('额外 Headers 不是合法 JSON')); return; }
       setModalBusy(true);
       const r = await call('configure', {
         name, url: url || undefined, serverName, headersJson,
@@ -2154,12 +2653,12 @@
     },
     async submitImport() {
       let json = $('#import-json').value.trim();
-      if (!json) { showModalError('请粘贴 MCP JSON'); return; }
+      if (!json) { showModalError(t('请粘贴 MCP JSON')); return; }
       try {
         json = JSON.stringify(JSON.parse(json), null, 2);
         $('#import-json').value = json;
       } catch (error) {
-        showModalError(`MCP JSON 不合法: ${error.message}`);
+        showModalError(t('MCP JSON 不合法: {error}', { error: error.message }));
         return;
       }
       let scopeParams;
@@ -2174,7 +2673,7 @@
     },
     async submitUrl() {
       const url = $('#descriptor-url').value.trim();
-      if (!url) { showModalError('连接器描述 URL 必填'); return; }
+      if (!url) { showModalError(t('连接器描述 URL 必填')); return; }
       let scopeParams;
       try { scopeParams = selectedScopeParams(); }
       catch (error) { showModalError(error.message); return; }
@@ -2187,9 +2686,9 @@
     },
     async migrateLegacy() {
       if (!await confirmDialog({
-        title: '迁移旧授权',
-        message: '确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。',
-        confirmLabel: '迁移',
+        title: t('迁移旧授权'),
+        message: t('确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。'),
+        confirmLabel: t('迁移'),
       })) return;
       const r = await call('migrateLegacy', { candidateIds: [] });
       showToast(r.message, r.ok);
@@ -2203,9 +2702,9 @@
       }
       const ids = (preview.detail.items || []).filter((item) => item.migratable && !item.alreadyMigrated).map((item) => item.id);
       if (!await confirmDialog({
-        title: '迁移旧授权',
-        message: `检测到 ${ids.length} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。`,
-        confirmLabel: '迁移',
+        title: t('迁移旧授权'),
+        message: t('检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。', { count: ids.length }),
+        confirmLabel: t('迁移'),
       })) return;
       const result = await call('migrateLegacy', { candidateIds: ids });
       showToast(result.message, result.ok);
@@ -2218,7 +2717,7 @@
         id: record.connectorId, connectionKey: key, name: record.name, icon: '🔌',
         authMode: record.authMode, connected: [record], connectionState: record.connectionState,
         servers: [{ transport: record.transport }],
-        description: '本机连接的工具发现与参数详情；不会执行工具。',
+        description: t('本机连接的工具发现与参数详情；不会执行工具。'),
       });
     },
     async showDetail(connectorId, connectionDescriptor) {
@@ -2235,9 +2734,9 @@
         : `<span style="font-size:24px;">${esc(d.icon || '')}</span>`;
       $('#detail-name').textContent = d.name || '';
       const initialStateLabel = incomplete
-        ? `待补充 ${d.missingServers?.length || 1} 个服务`
-        : (d.connectionLabel || (d.connected?.length ? '已配置' : '未连接'));
-      $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${initialStateLabel} ${d.connected?.length || 0} 个服务` : `${initialStateLabel} ${d.connected?.length || 0} 个服务`;
+        ? t('待补充 {count} 个服务', { count: d.missingServers?.length || 1 })
+        : (d.connectionLabel || t(d.connected?.length ? '已配置' : '未连接'));
+      $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${initialStateLabel} ${t('{count} 个服务', { count: d.connected?.length || 0 })}` : `${initialStateLabel} ${t('{count} 个服务', { count: d.connected?.length || 0 })}`;
       $('#detail-desc').textContent = d.description || d.summary || '';
       $('#detail-desc').textContent += '\n' + connectionLabels(d).join(' · ');
       detailPrompts = (d.prompts || []).filter((prompt) => prompt?.text || prompt?.title);
@@ -2248,8 +2747,8 @@
       toolRenderLimit = 50;
       $('#tools-search').value = '';
       $('#tools-disclosure').open = false;
-      $('#tools-summary').textContent = '加载中…';
-      $('#detail-tools').innerHTML = '<div class="tools-loading">正在读取可用工具及描述…</div>';
+      $('#tools-summary').textContent = t('加载中…');
+      $('#detail-tools').innerHTML = `<div class="tools-loading">${t('正在读取可用工具及描述…')}</div>`;
       syncGovernanceBar();
       setDetailOpen(true);
       $('#detail-disconnect-btn').style.display = d.connected?.length > 0 ? 'block' : 'none';
@@ -2257,11 +2756,11 @@
       $('#detail-try-btn').style.display = d.connectionKey ? 'none' : '';
       const needsCredential = ['bearer', 'api-key'].includes(d.authMode);
       $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure
-        ? detailFailureState === 'incomplete' ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? '🔐 重新授权' : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查'
+        ? detailFailureState === 'incomplete' ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? t('🔐 重新授权') : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : t('🔄 重新检查')
         : d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry'));
       if (!d.connected?.length && !d.toolsSnapshot?.length) {
-        $('#tools-summary').textContent = '连接后查看工具';
-        $('#detail-tools').innerHTML = '<div class="tools-empty">连接后可读取服务端工具清单</div>';
+        $('#tools-summary').textContent = t('连接后查看工具');
+        $('#detail-tools').innerHTML = `<div class="tools-empty">${t('连接后可读取服务端工具清单')}</div>`;
         renderPromptPage();
         return;
       }
@@ -2280,8 +2779,8 @@
         detailNeedsReconfigure = true;
         detailReconnectKey = detailFailureState === 'unknown' && d.connected?.length > 0 ? d.connected[0] : '';
         const diagnostic = toolsResult.detail?.diagnostic;
-        $('#tools-summary').textContent = detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败';
-        const failureHtml = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(diagnostic.stageLabel || diagnostic.stage)} · ${esc(diagnostic.code)}：${esc(diagnostic.message)}<br>建议：${esc(diagnostic.action)}${diagnostic.lastSuccessfulAt ? `<br>最近成功：${esc(new Date(diagnostic.lastSuccessfulAt).toLocaleString('zh-CN', { hour12: false }))}` : ''}` : ''}</div>`;
+        $('#tools-summary').textContent = t(detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败');
+        const failureHtml = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(t('{stage} · {code}：{message}', { stage: diagnostic.stageLabel || diagnostic.stage, code: diagnostic.code, message: diagnostic.message }))}<br>${esc(t('建议：{action}', { action: diagnostic.action }))}${diagnostic.lastSuccessfulAt ? `<br>${esc(t('最近成功：{at}', { at: new Date(diagnostic.lastSuccessfulAt).toLocaleString(t.locale, { hour12: false }) }))}` : ''}` : ''}</div>`;
         detailToolServers = toolsResult.detail?.servers || [];
         if (detailToolServers.length > 0) {
           renderTools();
@@ -2290,12 +2789,12 @@
           $('#detail-tools').innerHTML = failureHtml;
         }
         const failureLabel = detailFailureState === 'reauth'
-          ? (d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
-          : detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常';
+          ? t(d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
+          : t(detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常');
         $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${failureLabel}` : failureLabel;
         $('#detail-try-btn').textContent = detailTryLabel(d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth'
-          ? '🔐 重新授权'
-          : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : '🔄 重新检查');
+          ? t('🔐 重新授权')
+          : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : t('🔄 重新检查'));
         renderPromptPage();
         return;
       }
@@ -2303,8 +2802,8 @@
       detailNeedsReconfigure = incomplete;
       detailReconnectKey = detailFailureState === 'unknown' && d.connected?.length > 0 ? d.connected[0] : '';
       const connectedLabel = incomplete
-        ? `待补充 ${d.missingServers?.length || 1} 个服务`
-        : `${detailFailureState === 'degraded' ? '部分服务可用' : '已连接'} ${d.connected?.length || 0} 个服务`;
+        ? t('待补充 {count} 个服务', { count: d.missingServers?.length || 1 })
+        : `${t(detailFailureState === 'degraded' ? '部分服务可用' : '已连接')} ${t('{count} 个服务', { count: d.connected?.length || 0 })}`;
       $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${connectedLabel}` : connectedLabel;
       $('#detail-try-btn').textContent = detailTryLabel(incomplete ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : t('try'));
       renderPromptPage();
@@ -2326,33 +2825,33 @@
     sendPrompt(promptText) {
       const prompt = String(promptText || '').trim();
       if (!prompt) {
-        showToast('Prompt 不能为空', false);
+        showToast(t('Prompt 不能为空'), false);
         return;
       }
       if (promptRequestId !== null) return;
       if (window.parent === window) {
-        showToast('请在 DSH Desktop 中使用「发送到新会话」', false);
+        showToast(t('请在 DSH Desktop 中使用「发送到新会话」'), false);
         return;
       }
       const requestId = `prompt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       promptRequestId = requestId;
       setPromptLaunchPending(true);
-      showToast('正在创建新会话…', true);
+      showToast(t('正在创建新会话…'), true);
       window.parent.postMessage({
         type: PROMPT_REQUEST_TYPE,
         requestId,
         prompt
       }, window.location.origin);
       promptRequestTimer = setTimeout(() => {
-        finishPromptLaunch(requestId, false, '打开新会话超时，请重试');
+        finishPromptLaunch(requestId, false, t('打开新会话超时，请重试'));
       }, 10000);
     },
     async disconnectCurrent() {
       const name = detailConnector?.name || $('#detail-name').textContent;
       if (!await confirmDialog({
-        title: '断开连接',
-        message: `确认断开「${name}」的连接？OAuth 授权会被撤销。`,
-        confirmLabel: '断开',
+        title: t('断开连接'),
+        message: t('确认断开「{name}」的连接？OAuth 授权会被撤销。', { name }),
+        confirmLabel: t('断开'),
       })) return;
       // Find connection keys for this connector
       const r = await call('status', workspaceParams());
@@ -2458,7 +2957,7 @@
     if (prompt) {
       openPromptForm(prompt);
     } else {
-      showToast('暂无预设 Prompt', false);
+      showToast(t('暂无预设 Prompt'), false);
     }
   });
   $('#detail-disconnect-btn').addEventListener('click', () => {
@@ -2491,7 +2990,7 @@
     if (!result.detail?.servers) {
       detailToolServers = [];
       renderTools();
-      $('#tools-summary').textContent = result.message || '连接当前不可用';
+      $('#tools-summary').textContent = result.message || t('连接当前不可用');
       return;
     }
     if (result.detail?.servers) {
@@ -2500,14 +2999,14 @@
       const pending = detailToolServers.some((server) => server.pending);
       const unknown = detailToolServers.some((server) => server.unknown);
       const available = detailToolServers.filter((server) => server.ok).length;
-      const label = pending ? '正在后台发现工具' : unknown && available === 0 ? '工具状态尚未确认'
+      const label = t(pending ? '正在后台发现工具' : unknown && available === 0 ? '工具状态尚未确认'
         : available === detailToolServers.length ? '已连接'
-        : available > 0 ? '部分服务可用' : '当前连接异常';
+        : available > 0 ? '部分服务可用' : '当前连接异常');
       detailFailureState = pending ? 'unknown' : available > 0 ? 'healthy' : 'unavailable';
       detailNeedsReconfigure = !pending && available === 0;
       detailReconnectKey = '';
       $('#detail-vendor').textContent = detailConnector.vendor ? `${detailConnector.vendor} · ${label}` : label;
-      $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure ? '🔄 重新检查' : t('try'));
+      $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure ? t('🔄 重新检查') : t('try'));
     }
   }
 
@@ -2563,8 +3062,8 @@
 
   function refresh() { return view === 'tools' ? loadToolExplorer() : view === 'market' ? loadMarket() : loadInstalled(); }
   function syncTabs() {
-    searchInput.placeholder = view === 'tools' ? '搜索工具名称或描述…' : '搜索连接器…';
-    $('#refresh').textContent = view === 'tools' ? '刷新工具视图' : '刷新连接器目录';
+    searchInput.placeholder = t(view === 'tools' ? '搜索工具名称或描述…' : '搜索连接器…');
+    $('#refresh').textContent = t(view === 'tools' ? '刷新工具视图' : '刷新连接器目录');
     $('#refresh').title = $('#refresh').textContent;
     document.querySelectorAll('#tabs button').forEach((button) => button.classList.toggle('active', button.dataset.view === view));
     syncMarketNav();
@@ -2619,6 +3118,33 @@
     refresh();
   });
 
+  // 静态标记里的中文同样走 t()：中文（默认）逐字不变，英文时整体切换。
+  // 这里显式列举而不用通用的属性扫描机制：面板只有两种语言，逐项更直观、也便于测试。
+  function applyStaticLocale() {
+    document.title = t('MCP连接器');
+    const setText = (selector, msgid) => { const node = $(selector); if (node) node.textContent = t(msgid); };
+    setText('#tab-market', '市场');
+    setText('#tab-installed', '已安装');
+    setText('#tab-tools', '工具');
+    setText('#add-connection', '＋ 添加连接');
+    setText('#prompt-title', '试试这样用');
+    setText('#prompt-next', '换一批');
+    setText('#tools-title', '工具详情');
+    setText('#governance-title', '连接策略');
+    setText('#policy-rollback', '撤销最近变更');
+    setText('#tools-loading', '加载中...');
+    setText('#detail-try-btn', '💬 去试试');
+    setText('#detail-disconnect-btn', '断开连接');
+    setText('#tools-summary', '加载中…');
+    const setAttr = (selector, attr, msgid) => { const node = $(selector); if (node) node.setAttribute(attr, t(msgid)); };
+    setAttr('#market-nav', 'aria-label', '市场分类导航');
+    setAttr('#detail-close', 'aria-label', '关闭详情');
+    setAttr('#detail-close', 'title', '关闭详情');
+    setAttr('#connection-policy', 'aria-label', '连接策略');
+  }
+
+  applyStaticLocale();
+  syncTabs();
   if (viewStateReady) restoreViewState();
   requestWorkspaceContext();
   connectStatusEvents();

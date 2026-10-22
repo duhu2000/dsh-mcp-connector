@@ -1,0 +1,5 @@
+{
+  "_comment": "未翻译的中文字面量基线（scripts/i18n-scan.mjs 扫描，scripts/i18n-baseline.mjs 写入）。只允许减少：修好一个文件就把对应条目去掉；数量增加即视为回归。最终目标是把 files 清空。",
+  "total": 0,
+  "files": {}
+}

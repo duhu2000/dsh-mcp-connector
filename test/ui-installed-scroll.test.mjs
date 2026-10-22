@@ -46,12 +46,15 @@ function createLoadInstalled({ main, status, migration = { ok: true, detail: {} 
     'syncMarketNav', 'main', 'call', 'workspaceParams', 'esc', 'updateAvailableWorkspaces', 'installedItems',
     'scopeRevision', 'scopeRollbackRevision', 'setTabCount', 'markCommunityCtaEligible', 'matchesSearch',
     'searchQuery', 'rowHtml', 'communityCtaHtml', 'beginViewRender', 'isViewRenderCurrent', 'finishViewRender',
+    't',
     `${loadInstalledSource()}; return loadInstalled;`,
   );
   const loadInstalled = make(
     () => {}, main, call, () => ({}), (value) => String(value ?? ''), () => {}, [],
     0, null, (tab, count) => tabs.push({ tab, count }), () => {}, () => true, '',
     () => '<div class="row">row</div>', () => '', () => ({}), () => true, () => {},
+    // i18n 改造后 loadInstalled 的文案走 t()；默认语言中文时它是恒等函数（docs/I18N.md §7）。
+    (message) => message,
   );
   return { loadInstalled, calls, tabs };
 }

@@ -148,11 +148,13 @@ function makeDom() {
 
 function makeConfirmDialog() {
   const dom = makeDom();
+  // 确认框的默认文案现在走面板 i18n 的 t()（默认语言中文时是恒等函数）；
+  // 传入 `(s) => s` 即可复现既有中文断言，符合 docs/I18N.md §7 的约定。
   const factory = new Function(
-    'document', 'window', '$', 'setTimeout',
+    'document', 'window', '$', 'setTimeout', 't',
     `${confirmDialogSource()}; return confirmDialog;`,
   );
-  const confirmDialog = factory(dom.document, dom.window, dom.$, (callback) => dom.timers.push(callback));
+  const confirmDialog = factory(dom.document, dom.window, dom.$, (callback) => dom.timers.push(callback), (s) => s);
   return { confirmDialog, dom };
 }
 

@@ -2,6 +2,16 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；首个公开版本从 `0.1.0` 开始。
 
+## [Unreleased]
+
+### Added
+
+- 可选 `locale` 界面语言（默认 `'auto'`）：跟随用户在 DSH「设置 → Language」里的选择，读不到时按系统语言，最后回退中文；也可写 `'zh-CN'` / `'en'` 强制指定。中文路径不查表、逐字不变；英文缺项回退中文原文，不会出现空白。连接器目录、URL 与错误码不翻译。详见 `docs/I18N.md`。
+
+### Verification scope
+
+- 本地完整检查通过；Windows CI 与真实 Desktop 验收分别记录，不以本机测试替代。安全修复已独立发布于 0.2.77。
+
 ## [0.2.77] - 2026-10-22
 
 ### Security
