@@ -108,7 +108,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.82（2026-10-26）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.83（2026-10-26）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -226,7 +226,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.82`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.82](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.82)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.83`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.83](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.83)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
