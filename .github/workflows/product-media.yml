@@ -1,0 +1,64 @@
+name: Refresh product documentation and media
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  schedule:
+    - cron: '20 1 * * 1'
+  push:
+    branches: [main]
+    paths: ['ui/**', 'catalog/catalog.json', 'scripts/ui-harness.mjs', 'scripts/capture-storefront.mjs', 'package.json']
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: product-media-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check freshness
+        id: freshness
+        run: |
+          if npm run storefront:freshness && node scripts/sync-product-docs.mjs --check; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.freshness.outputs.needed == 'true'
+        run: |
+          npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+          npm install --no-save --legacy-peer-deps --ignore-scripts --no-package-lock playwright@1.62.1
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+      - if: steps.freshness.outputs.needed == 'true'
+        run: |
+          npm run storefront:capture
+          npm run docs:sync
+          npm run storefront:freshness
+          npm run check
+          git diff --check
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.freshness.outputs.needed == 'true'
+        with:
+          branch: automation/product-media
+          commit-message: 'QMCP-2014 docs: refresh product media and generated versions'
+          title: 'QMCP-2014 docs: refresh product media and generated versions'
+          body: |
+            Regenerated current screenshots/GIF from the isolated credential-free harness and synchronized package-derived documentation.
+            Review all images before merging. This is Mock UI evidence, not real authorization or business acceptance.
+            No automatic merge or public social posting.
+          add-paths: |
+            README.md
+            README.en.md
+            docs/tutorials/FIRST-SUCCESS-SCENARIOS.md
+            docs/screenshots
+            docs/demo.gif

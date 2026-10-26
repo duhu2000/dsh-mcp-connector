@@ -106,7 +106,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-Assets `01`, `02`, `04`, and `07` are `v0.2.73` demos captured on 2026-10-16; `03` retains a historical `v0.2.37` snapshot; `05`, `06`, and the 43-second GIF retain `v0.2.46` demos. All are credential-free Mock UI harness assets, not evidence of real business acceptance on the current version. They contain no credentials, local paths, or query results. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for provenance.
+<!-- generated:media -->Screenshots and GIF were captured from v0.2.82 (2026-10-26), using the credential-free Mock harness. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -231,7 +231,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-The current public version is [`dsh-mcp-connector@0.2.82`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.82](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.82).
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.82`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.82](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.82).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

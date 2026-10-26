@@ -55,7 +55,7 @@
     "market:check": "node scripts/check-market-registration.mjs",
     "distribution:check:live": "node scripts/check-distribution-sync.mjs --strict-sync",
     "registry:stats:sync": "node scripts/sync-registry-stats.mjs",
-    "docs:check": "node scripts/check-readme-version.mjs",
+    "docs:check": "node scripts/check-readme-version.mjs && node scripts/sync-product-docs.mjs --check",
     "docs:first-use:check": "node scripts/check-first-use-docs.mjs",
     "marketing:check": "node scripts/check-marketing-metadata.mjs",
     "marketing:check:github": "node scripts/check-marketing-metadata.mjs --live-github",
@@ -65,7 +65,10 @@
     "verify-pack": "node scripts/verify-pack.mjs",
     "docs:tutorial-links:check": "node scripts/check-tutorial-links.mjs",
     "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:tutorial-links:check",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "docs:sync": "node scripts/sync-product-docs.mjs",
+    "storefront:capture": "node scripts/capture-storefront.mjs",
+    "storefront:freshness": "node scripts/check-media-freshness.mjs"
   },
   "keywords": [
     "deepseek-harness",

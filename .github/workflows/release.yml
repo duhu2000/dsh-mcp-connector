@@ -22,6 +22,8 @@ jobs:
       - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Verify tag matches package version
         run: node -e "const p=require('./package.json');if(process.env.GITHUB_REF_NAME!=='v'+p.version)throw new Error('tag '+process.env.GITHUB_REF_NAME+' != v'+p.version)"
+      - name: Require current product media before publishing
+        run: npm run storefront:freshness
       - run: npm run check
       - name: Publish to npm with Trusted Publishing
         run: npm publish --access public
