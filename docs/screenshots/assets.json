@@ -3,7 +3,7 @@
   "capture": {
     "capturedOn": "2026-10-26",
     "sourceVersion": "0.2.82",
-    "sourceFingerprint": "6342ed9e30acbdb630c90445d2c52e6a41cb3a471600b84a899daf2408b86c55",
+    "sourceFingerprint": "4a677c677d57b6389199d2bf6dfd5b376182444dd1105ba7afd34c335eb3b29e",
     "browserViewport": {
       "width": 1280,
       "height": 720
@@ -16,7 +16,7 @@
   "screenshots": [
     {
       "path": "docs/screenshots/01-market-overview.jpg",
-      "sha256": "ca14237b10d8d8b183a35fb8ad074e525fe1fde82dafa1bed6fbab2c20ec2652",
+      "sha256": "3d0dbc88f8d4a765b4986d7cbdd9893f242cd948c1e799cd4803f28b18f6580c",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -24,7 +24,7 @@
     },
     {
       "path": "docs/screenshots/02-connector-detail.jpg",
-      "sha256": "7eaa0008b1c1c0a8271c11e7e7c2b58f7df51f2948277d07dfe87abc5bde2ba8",
+      "sha256": "e51a2c3d27ad13ef334abb9f31ea17153b20108081b2a14bcd31fdab1493c0a7",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -32,7 +32,7 @@
     },
     {
       "path": "docs/screenshots/03-tool-discovery.jpg",
-      "sha256": "779acac7cdd10d422339d3cd789dcbd0b1e2b680470fc1f5c1cd2f9bf24e9487",
+      "sha256": "615961dc9287e03db4b4258aff4d220178b6c907d3c1d84c768ad1ce67ca57d5",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -40,7 +40,7 @@
     },
     {
       "path": "docs/screenshots/04-json-import.jpg",
-      "sha256": "7ec699785fbfe4d376c8a6da8ad5c4a98b486057a7b14193e9a81715eb27c2c1",
+      "sha256": "89ed94877e4fd008af22469c3494fc12e2a18c3c0049e5227d79a034e34381d1",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -48,7 +48,7 @@
     },
     {
       "path": "docs/screenshots/05-unified-tool-search.png",
-      "sha256": "9a7cd36db87da3185c760bbb7928008e45a87abe2db230666b7a32ae444f18a7",
+      "sha256": "22a49cf8decb18c39fa8d3d3aae3623dfbb74735cd0c6e857453d042b6c1b647",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -56,7 +56,7 @@
     },
     {
       "path": "docs/screenshots/06-tool-parameters.png",
-      "sha256": "484300e4cd48176b587b22babb9b3d1d20d60c4970128692c67ff64fef7906b6",
+      "sha256": "67e4494abddb4d3e0b5f9222428d8fef18da8d6286f0447033324801e048838d",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -64,7 +64,7 @@
     },
     {
       "path": "docs/screenshots/07-connection-diagnostics.png",
-      "sha256": "cde37aa399629e6c1a2679e949c3e4f9665a9a87b24d2c484395efa92256c9f0",
+      "sha256": "16bb7dfc78eea1547583c2c88ba04ea3b2959764b53d35f06375fa5400172f8d",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-10-26",
@@ -73,7 +73,7 @@
   ],
   "demo": {
     "path": "docs/demo.gif",
-    "sha256": "5b2b0f655f3d2b64fe2da31e9033912a902b36ab93526b70ec19101b53f0cb9a",
+    "sha256": "b8ad8d75cceebfdbff79bb53db69157cf556fecfec5a386962eddeb140ba4bcd",
     "width": 960,
     "height": 540,
     "capturedOn": "2026-10-26",
