@@ -2,6 +2,19 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；首个公开版本从 `0.1.0` 开始。
 
+## [0.2.83] - 2026-10-26
+
+### Fixed
+
+- #190 / PR #191：连接范围变更和回退的确认框限制最大高度，正文独立滚动，标题与确认、取消按钮保持可见；工具列表只展示前 12 项并注明总数。
+- 不修改连接范围应用、回退、乐观锁或凭据处理语义。
+
+### Documentation and verification
+
+- 同步当前版本文档，并重新采集本版本无凭据 Mock 截图及 GIF；素材不代表真实授权或业务调用成功。
+- macOS 浏览器组件验收覆盖 360×400、640×300、1000×720 视口、8 个 Server 各 125 个长工具名、正文滚动、键盘确认/取消及焦点恢复；不等同于 Windows Desktop 实机验收。
+- #178、#181 保持开放，继续等待原报告者 Windows 复测。
+
 ## [0.2.82] - 2026-10-26
 
 ### Added
@@ -1097,7 +1110,8 @@
 - 外部 URL 与导入 Header 执行安全校验。
 - iframe 消息校验同源和消息来源。
 
-[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.82...HEAD
+[Unreleased]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.83...HEAD
+[0.2.83]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.82...v0.2.83
 [0.2.82]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.81...v0.2.82
 [0.2.48]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.47...v0.2.48
 [0.2.47]: https://github.com/duhu2000/dsh-mcp-connector/compare/v0.2.46...v0.2.47
