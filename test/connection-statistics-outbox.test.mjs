@@ -65,3 +65,7 @@ test('corrupt state fails closed without replacing history',async t=>{
  await assert.rejects(box.setParticipation(true),/storage invalid/);
  assert.equal(await readFile(join(dir,'outbox.json'),'utf8'),'{broken');
 });
+test('connection started before participation cannot enroll even if consent read finishes later',async t=>{
+ const {box,advance}=await fixture(t);const started=Date.parse('2026-10-27T00:00:00Z');advance(1000);
+ const {revision}=await box.setParticipation(true);assert.equal(await box.recordSuccess('a',revision,started),false);
+});

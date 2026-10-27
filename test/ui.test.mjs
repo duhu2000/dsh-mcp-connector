@@ -81,8 +81,8 @@ test('市场卡片恢复紧凑信息量，运行提示为短标签，完整说�
   const end = uiSource.indexOf('  function actionHtml(', start);
   const source = uiSource.slice(start, end);
   const escape = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-  const render = new Function('esc', 'jsString', 'isImageIcon', 'actionHtml',
-    source + '; return cardHtml;')(escape, (value) => escape(JSON.stringify(String(value))), () => false, () => '<button>详情</button>');
+  const render = new Function('esc', 'jsString', 'isImageIcon', 'actionHtml', 'communityAggregate',
+    source + '; return cardHtml;')(escape, (value) => escape(JSON.stringify(String(value))), () => false, () => '<button>详情</button>', null);
   const remote = { id: 'qcc', name: '企查查', summary: '企业工商信息', vendor: '长提供方说明', servers: [{ transport: 'streamable-http' }] };
   const html = render(remote);
   assert.match(html, /class="name"/);
