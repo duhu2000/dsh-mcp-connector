@@ -80,3 +80,9 @@ Host 通过 HTTPS 发送单个事件，建议请求体上限 4 KiB，拒绝额�
 - 卡片仅显示服务端真实聚合；缺失/过期数据不伪造；搜索相关性与编辑精选不被热度强制覆盖。
 
 全部通过后再将 PR 转正式、合并并安排补丁发布。本文未向后端人员发送通知，交接由用户指定渠道执行。
+
+## 可执行契约（已提供，尚未接入网络）
+
+`lib/connection-statistics-contract.js` 提供严格事件、确认响应与聚合响应 schema，及公共卡片/时间窗口/4 KiB 请求校验。`test/connection-statistics-contract.test.mjs` 是后端可对照的契约案例。执行 `node --test test/connection-statistics-contract.test.mjs`。
+
+这些校验不等于后端完成：事务幂等、防刷、队列、参与开关和真实接口仍需实现。当前 Host 不导入该模块、不生成统计身份、不发网络请求。时间窗口由调用方显式传入，测试的7天/5分钟仅为提议参数，待后端确认。错误信息固定，不回显拒绝的数据。
