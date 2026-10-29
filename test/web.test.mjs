@@ -81,6 +81,26 @@ const api = {
 
 /* ───────────────────────── 测试 ───────────────────────── */
 
+test('仅开放本机统计 API，已撤回社区统计 API 不可调用', async () => {
+  const wctx = makeWctx();
+  mountWebRoutes(wctx, { connectionStatistics: async () => ({ ok: true, detail: { scope: 'local-profile' } }) }, { logger: { warn() {} } });
+  const route = wctx.routes.get('/mcp-connector/api');
+  for (const method of ['connectionStatistics', 'communityStatistics', 'communityAggregate', 'setStatisticsParticipation']) {
+    const res = new FakeRes();
+    await route.handler(fakeReq({
+      method: 'POST', url: '/mcp-connector/api',
+      headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+      body: JSON.stringify({ method, params: {} }),
+    }), res);
+    if (method === 'connectionStatistics') {
+      assert.equal(res.status, 200);
+      assert.equal(JSON.parse(res.body).detail.scope, 'local-profile');
+    } else {
+      assert.equal(JSON.parse(res.body).ok, false);
+    }
+  }
+});
+
 test('fence：回环 + 同源放行', () => {
   assert.equal(isTrustedWebRequest({ headers: { host: '127.0.0.1:62929' } }), true);
   assert.equal(isTrustedWebRequest({ headers: { host: 'localhost:62929', 'sec-fetch-site': 'same-origin', origin: 'http://localhost:62929' } }), true);

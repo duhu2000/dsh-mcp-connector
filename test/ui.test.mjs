@@ -7,6 +7,13 @@ const uiSource = normalizeLineEndings(await readFile(new URL('../ui/index.html',
 const clientSource = normalizeLineEndings(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'));
 const harnessSource = normalizeLineEndings(await readFile(new URL('../scripts/ui-harness.mjs', import.meta.url), 'utf8'));
 
+test('统计仅在已安装页展示本机卡片口径，无社区上报或热门排序入口', () => {
+  assert.match(uiSource, /成功连接过的卡片数/);
+  assert.match(uiSource, /近 30 天首次连接的新卡片/);
+  assert.match(uiSource, /不是社区总量或独立用户数/);
+  assert.doesNotMatch(uiSource, /communityAggregate|community-order|setStatisticsParticipation|openCommunityStatistics|累计热门|近期热门/);
+});
+
 test('已安装工具详情保留实际传输类型，stdio 不误标远程服务', () => {
   const start = uiSource.indexOf('    async showConnectionTools(key) {');
   const end = uiSource.indexOf('    async showDetail(', start);

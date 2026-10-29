@@ -1720,14 +1720,14 @@
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>发现旧企查查 MCP 授权</strong>可安全复制 ${pendingMigration} 组授权到 MCP连接器；不会删除旧插件或原凭据。</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">迁移</button></div>` : '';
     if (!items.length) {
-      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`;
+      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">可从旧企查查 OAuth 插件复制已有授权</span><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">本机连接统计</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="empty">还没有连接任何 MCP · 到「市场」里连接一个吧</div>`;
       if (preserveScroll) main.scrollTop = previousScrollTop;
       return;
     }
     markCommunityCtaEligible();
     const filtered = items.filter(matchesSearch);
     const rollbackDisabled = scopeRollbackRevision === null ? 'disabled' : '';
-    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 作用域 revision=${scopeRevision}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">回滚上次范围变更</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
+    main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">共 <strong>${filtered.length}</strong> 条连接${searchQuery ? ` · 搜索「${esc(searchQuery)}」` : ''} · 作用域 revision=${scopeRevision}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">回滚上次范围变更</button><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">本机连接统计</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">配置备份</button><button class="btn ghost" type="button" title="扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据" onclick="window.__mcp.scanLegacy()">检测企查查旧授权</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     } finally { finishViewRender(render); }
   }
@@ -2206,6 +2206,20 @@
     },
     openAdd(mode) { openAddConnection(mode); },
     openConfig(connectorId) { openAddConnection('manual', marketItems[connectorId] || {}); },
+    async openConnectionStatistics() {
+      openModal('本机连接统计', '<p>正在读取本机记录…</p>');
+      const r = await call('connectionStatistics', {});
+      const d = r.detail;
+      if (!r.ok || !d?.available) {
+        openModal('本机连接统计', '<p>统计暂不可用，不影响连接。请检查 Host 日志。</p>');
+        return;
+      }
+      openModal('本机连接统计', `<div class="form-note">仅统计当前 profile，不是社区总量或独立用户数。数据保存在本机，不向外上传。${d.persistent ? '' : '当前未启用持久化，重启后计数清空。'}</div>
+        <p>成功连接过的卡片数 <strong>${esc(d.cumulativeSuccessfulConnections)}</strong> · 近 30 天首次连接的新卡片 <strong>${esc(d.newSuccessfulConnections30d)}</strong></p>
+        <p>历史已有连接基线：${esc(d.historicalBaseline)} 张卡片，未验证前不计成功，验证后也不计新增。</p>
+        <p>同一卡片只计一次；重启、升级、重新授权和重连不重复增加，断开不扣减。此处成功指连接流程完成，不代表业务调用成功。</p>
+        <div>${(d.items || []).map(x => `<p><strong>${esc(x.connectorId)}</strong>：${x.cumulativeSuccessfulConnections ? '已记录成功' : '历史配置，待验证'}${x.historicalBaseline ? ' · 历史基线' : ''}</p>`).join('') || '尚无统计记录。'}</div>`);
+    },
     async openConfigBackup() { await openConfigBackup(); },
     async copyBackup() {
       const text = $('#backup-json')?.value || '';
