@@ -493,7 +493,6 @@
     </div>
     <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
     <button class="icon-btn" id="refresh" title="刷新连接器目录">刷新连接器目录</button>
-    <button class="icon-btn" id="community-statistics" type="button">社区统计</button>
     <button class="icon-btn" id="first-use" type="button">首次使用</button>
     <div class="market-nav" id="market-nav" aria-label="市场分类导航"></div>
   </header>
@@ -616,8 +615,6 @@
 
   let view = 'market';
   let marketItems = {};
-  let communityAggregate = null;
-  let marketOrder = "default";
   let searchQuery = '';
   let explorerFilter = { connectionKey: '', serverName: '', status: '' };
   let explorerOffset = 0;
@@ -1485,7 +1482,7 @@
 
   function marketFilterHtml() {
     const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(cat.label)}</button>`).join('');
-    return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div><label>排序 <select id="community-order"><option value="default">默认推荐</option><option value="cumulativeSuccessfulConnections" ${marketOrder === "cumulativeSuccessfulConnections" ? "selected" : ""}>累计热门</option><option value="newSuccessfulConnections30d" ${marketOrder === "newSuccessfulConnections30d" ? "selected" : ""}>近期热门</option></select></label></div>`;
+    return `<div class="market-filters" role="group" aria-label="市场分类"><div class="filter-chips category-chips" role="group" aria-label="按分类筛选">${categoryChips}</div></div>`;
   }
 
   function syncMarketNav() {
@@ -1544,8 +1541,7 @@
     const previousScrollTop = preserveScroll ? main.scrollTop : 0;
     syncMarketNav();
     main.innerHTML = '<div class="empty">加载中…</div>';
-    const [r, status, aggregate] = await Promise.all([call('catalog', workspaceParams()), call('status', workspaceParams()), call('communityAggregate', {})]);
-    communityAggregate = aggregate.ok && aggregate.detail?.available ? aggregate.detail : null;
+    const [r, status] = await Promise.all([call('catalog', workspaceParams()), call('status', workspaceParams())]);
     if (!isViewRenderCurrent(render)) return;
     if (status.ok) {
       updateAvailableWorkspaces(status.detail?.scope?.workspaces);
@@ -1558,17 +1554,12 @@
     marketItems = {};
     items.forEach((d) => { marketItems[d.id] = d; });
     const filtered = items.filter(matchesMarketFilters);
-    const canRank = marketOrder !== "default" && communityAggregate && !$("#search").value.trim();
-    if (canRank) {
-      const counts = new Map(communityAggregate.items.map(x => [x.connectorId, x[marketOrder]]));
-      filtered.sort((a,b) => (counts.get(b.id) ?? -1) - (counts.get(a.id) ?? -1));
-    }
-    const resultHtml = !marketCategory && !canRank
+    const resultHtml = !marketCategory
       ? groupedMarketHtml(items)
       : filtered.length > 0
         ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
         : '<div class="empty">没有匹配当前筛选条件的连接器</div>';
-    main.innerHTML = (marketOrder !== "default" ? `<p class="form-note">${!communityAggregate ? "社区统计尚不可用，保持默认顺序。" : $("#search").value.trim() ? "搜索时保持原搜索结果顺序，热度不覆盖搜索。" : "按参与统计实例的成功连接排序；精选标记与社区热度独立。"}</p>` : "") + resultHtml;
+    main.innerHTML = resultHtml;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
@@ -1593,9 +1584,6 @@
       ? `<img src="${esc(d.icon)}" alt="" onerror="this.parentElement.innerHTML='🔌';" />`
       : `<span>${esc(d.icon || '🔌')}</span>`;
     const actions = actionHtml(d);
-    const metric = communityAggregate?.items.find(x => x.connectorId === d.id);
-    const metricHtml = metric && metric.cumulativeSuccessfulConnections !== null
-      ? `<div class="summary" title="${esc(`仅参与统计的实例，非独立用户；统计起点 ${communityAggregate.startedAt}；更新 ${communityAggregate.updatedAt}`)}">累计成功连接 ${esc(metric.cumulativeSuccessfulConnections)}${metric.newSuccessfulConnections30d === null ? '' : ` · 近30天新增 ${esc(metric.newSuccessfulConnections30d)}`}</div>` : '';
     const probe = d.probeStatus && d.probeStatus !== 'unverified' ? `<span class="badge ${esc(d.probeStatus)}">${d.probeStatus}</span>` : '';
     const runtimeLabel = d.id === 'dingtalk' ? '本地 CLI' : (d.servers || []).some((s) => s.transport === 'stdio') ? '本地运行' : '';
     const runtimeTag = runtimeLabel ? `<span class="runtime-tag" title="包含运行于 DSH 主机的服务；授权和权限要求请查看详情">${runtimeLabel}</span>` : '';
@@ -1603,7 +1591,7 @@
       <div class="icon">${icon}</div>
       <div class="content">
         <div class="name">${esc(d.name)} ${probe} ${runtimeTag}</div>
-        <div class="summary">${esc(d.summary || '')}</div>${metricHtml}
+        <div class="summary">${esc(d.summary || '')}</div>
       </div>
       <div class="actions">${actions}</div>
     </div>`;
@@ -2218,18 +2206,6 @@
     },
     openAdd(mode) { openAddConnection(mode); },
     openConfig(connectorId) { openAddConnection('manual', marketItems[connectorId] || {}); },
-    async openCommunityStatistics() {
-      openModal('社区连接统计', '<p>读取状态…</p>');
-      const r = await call('communityStatistics', {}); const d = r.detail;
-      if (!r.ok || !d?.configured || d.available === false) {
-        openModal('社区连接统计', `<p>${esc(d?.reason || '统计状态暂不可用，连接不受影响。')}</p><p>累计成功连接只统计参与实例，不代表独立用户或全量客户。</p>`); return;
-      }
-      openModal('社区连接统计', `<p>${esc(d.policyText)}</p><p>发送：随机统计实例和事件 ID、公开卡片 ID、成功类型、发生时间及插件版本。不发送账号、凭据、对话或工具结果。</p><p>关闭会清空未发送队列；已送达请求无法撤回。断开卡片不扣减累计。</p><p>状态：${d.enabled ? '已开启' : '已关闭'} · 待发送 ${esc(d.pending)} ${esc(d.lastError || '')}</p><button class="icon-btn primary" onclick="window.__mcp.setCommunityParticipation(${jsString(!d.enabled)},${jsString(d.policyVersion)})">${d.enabled ? '关闭并清空队列' : '同意上述说明并开启'}</button>`);
-    },
-    async setCommunityParticipation(enabled, policyVersion) {
-      const r = await call('setStatisticsParticipation', { enabled: enabled === 'true', policyVersion });
-      showToast(r.message, r.ok); if (r.ok) await window.__mcp.openCommunityStatistics();
-    },
     async openConnectionStatistics() {
       openModal('本机连接统计', '<p>正在读取本机记录…</p>');
       const r = await call('connectionStatistics', {});
@@ -2239,7 +2215,7 @@
         return;
       }
       openModal('本机连接统计', `<div class="form-note">仅统计当前 profile，不是社区总量或独立用户数。数据保存在本机，不向外上传。${d.persistent ? '' : '当前未启用持久化，重启后计数清空。'}</div>
-        <p>累计成功连接 <strong>${esc(d.cumulativeSuccessfulConnections)}</strong> · 近 30 天新增 <strong>${esc(d.newSuccessfulConnections30d)}</strong></p>
+        <p>成功连接过的卡片数 <strong>${esc(d.cumulativeSuccessfulConnections)}</strong> · 近 30 天首次连接的新卡片 <strong>${esc(d.newSuccessfulConnections30d)}</strong></p>
         <p>历史已有连接基线：${esc(d.historicalBaseline)} 张卡片，未验证前不计成功，验证后也不计新增。</p>
         <p>同一卡片只计一次；重启、升级、重新授权和重连不重复增加，断开不扣减。此处成功指连接流程完成，不代表业务调用成功。</p>
         <div>${(d.items || []).map(x => `<p><strong>${esc(x.connectorId)}</strong>：${x.cumulativeSuccessfulConnections ? '已记录成功' : '历史配置，待验证'}${x.historicalBaseline ? ' · 历史基线' : ''}</p>`).join('') || '尚无统计记录。'}</div>`);
@@ -2596,8 +2572,6 @@
     if (prompt && detailConnector?.connected?.length && !detailNeedsReconfigure) openPromptForm(prompt);
   });
   $('#tools-search').addEventListener('input', () => { toolRenderLimit = 50; renderTools(); });
-  $('#community-statistics').addEventListener('click', () => window.__mcp.openCommunityStatistics());
-  $('#market-nav').addEventListener('change', event => { if (event.target.id === 'community-order') { marketOrder = event.target.value; loadMarket({ checkHealth: false }); } });
   $('#connection-policy').addEventListener('change', (event) => applyPolicySelection(event.target));
   $('#policy-rollback').addEventListener('click', rollbackLatestPolicy);
   $('#detail-tools').addEventListener('change', (event) => {

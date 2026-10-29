@@ -8,7 +8,7 @@
 
 | 项目 | 验收要求 |
 |---|---|
-| 前提 | <!-- generated:version -->正式 `dsh-mcp-connector@0.2.83`<!-- /generated:version -->；当前 Workspace；企查查 OAuth 可用；测试账号具有目标企业数据权限 |
+| 前提 | <!-- generated:version -->正式 `dsh-mcp-connector@0.2.84`<!-- /generated:version -->；当前 Workspace；企查查 OAuth 可用；测试账号具有目标企业数据权限 |
 | 权限/管理员 | 账号权限、组织授权和可见字段由服务商控制；企业组织可能需要管理员开通，当前文档不能替代审批 |
 | 费用 | 可能受套餐、次数或字段权限影响；MCP连接器无法确认本次费用，调用前在服务商侧核对 |
 | 运行/数据去向 | 远程 MCP Server；企业名称、查询参数和调用结果经 DSH Host 发送到/返回自 `agent.qcc.com` |
