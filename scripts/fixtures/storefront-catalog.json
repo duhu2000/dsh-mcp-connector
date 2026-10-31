@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 1,
+  "connectors": [
+    {
+      "schemaVersion": 1,
+      "id": "amap",
+      "name": "高德地图",
+      "vendor": "高德开放平台",
+      "icon": "🗺️",
+      "category": "效率工具",
+      "summary": "地点搜索 / 地理编码 / 路线规划 / 天气查询",
+      "description": "通过 @amap/amap-maps-mcp-server npm 包启动本地 stdio Server，调用高德开放平台 Web 服务完成地点搜索、地理编码、路线规划和天气查询。需填写高德 Web 服务 API Key；调用配额以高德账号为准。",
+      "tags": [
+        "高德地图",
+        "地图",
+        "路线规划",
+        "POI",
+        "stdio"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://lbs.amap.com/api/webservice/create-project-and-key",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "api-key",
+        "credentialDescription": "API Key 仅保存在 DSH 本机，并注入本地 MCP 进程。",
+        "credentialHelpLabel": "查看高德 Web 服务 Key 申请说明",
+        "credentialFields": [
+          {
+            "key": "apiKey",
+            "label": "高德 Web 服务 API Key",
+            "placeholder": "请输入 API Key",
+            "required": true,
+            "secret": true
+          }
+        ]
+      },
+      "servers": [
+        {
+          "serverKey": "amap",
+          "serverName": "amap",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@amap/amap-maps-mcp-server"
+          ],
+          "credentialBindings": {
+            "AMAP_MAPS_API_KEY": "apiKey"
+          },
+          "transport": "stdio"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "context7",
+      "name": "Context7",
+      "vendor": "Upstash",
+      "icon": "📚",
+      "category": "开发工具",
+      "summary": "最新版本库文档 / 代码示例 / API 查询",
+      "description": "接入 Upstash Context7 官方远程 MCP Server，按库和版本获取最新文档与代码示例。公开端点可免密使用；登录后的 API Key 仅用于提高额度，本卡片不保存或要求真实密钥。",
+      "tags": [
+        "Context7",
+        "Upstash",
+        "开发文档",
+        "代码示例",
+        "免密",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/upstash/context7",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "none"
+      },
+      "servers": [
+        {
+          "serverKey": "context7",
+          "serverName": "context7",
+          "url": "https://mcp.context7.com/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "feishu",
+      "name": "飞书开放平台",
+      "vendor": "飞书",
+      "icon": "🐦",
+      "category": "办公协作",
+      "summary": "消息 / 文档 / 多维表格 / 通讯录协作",
+      "description": "通过飞书开放平台官方 @larksuiteoapi/lark-mcp npm 包启动本地 stdio Server，调用消息、文档、多维表格和通讯录等开放 API。本卡片使用应用身份，需创建飞书应用并填写 App ID 与 App Secret；能力范围受应用权限、应用可见范围和租户授权限制，用户私有数据需要另行完成飞书用户 OAuth，发送消息或修改数据前必须确认。",
+      "tags": [
+        "飞书",
+        "Lark",
+        "文档",
+        "多维表格",
+        "消息",
+        "官方 MCP",
+        "stdio"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/larksuite/lark-openapi-mcp",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "api-key",
+        "credentialDescription": "应用凭据仅保存在 DSH 本机，并以 APP_ID/APP_SECRET 环境变量注入飞书官方 MCP 进程；请只开通完成任务所需的权限和应用可见范围。",
+        "credentialHelpLabel": "查看飞书开放平台 MCP 说明",
+        "credentialFields": [
+          {
+            "key": "appId",
+            "label": "App ID",
+            "placeholder": "请输入飞书应用 App ID",
+            "required": true,
+            "secret": false
+          },
+          {
+            "key": "appSecret",
+            "label": "App Secret",
+            "placeholder": "请输入飞书应用 App Secret",
+            "required": true,
+            "secret": true
+          }
+        ]
+      },
+      "servers": [
+        {
+          "serverKey": "feishu",
+          "serverName": "feishu-openapi",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@larksuiteoapi/lark-mcp",
+            "mcp"
+          ],
+          "env": {
+            "LARK_DOMAIN": "https://open.feishu.cn"
+          },
+          "credentialBindings": {
+            "APP_ID": "appId",
+            "APP_SECRET": "appSecret"
+          },
+          "transport": "stdio"
+        }
+      ],
+      "prompts": [
+        {
+          "title": "查找飞书资料",
+          "text": "只读检索与主题相关的飞书文档和多维表格并汇总来源；未经我确认不要发送消息或修改数据",
+          "server": "feishu"
+        },
+        {
+          "title": "检查飞书应用权限",
+          "text": "只读列出当前飞书应用身份可访问的工具和范围，说明哪些请求需要应用权限、租户管理员审批或用户 OAuth；不要发送消息或修改任何数据",
+          "server": "feishu"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "github",
+      "name": "GitHub",
+      "vendor": "GitHub",
+      "icon": "🐙",
+      "category": "开发工具",
+      "summary": "代码仓库 / Issue / Pull Request / Actions 协作",
+      "description": "接入 GitHub 官方远程 MCP Server，查询和管理仓库、Issue、Pull Request、Actions 等 GitHub 资源。需提供具备适当最小权限的 GitHub Personal Access Token；实际可用工具和数据范围受 Token 权限及组织策略限制。",
+      "tags": [
+        "GitHub",
+        "代码仓库",
+        "Issue",
+        "Pull Request",
+        "Actions",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/github/github-mcp-server",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "bearer",
+        "credentialName": "GitHub Personal Access Token",
+        "credentialPlaceholder": "请输入最小权限的 GitHub PAT",
+        "credentialDescription": "Token 仅保存在 DSH 本机；建议使用 fine-grained PAT 并仅授权所需仓库和权限。",
+        "credentialHelpLabel": "查看 GitHub MCP Server 官方说明"
+      },
+      "servers": [
+        {
+          "serverKey": "github",
+          "url": "https://api.githubcopilot.com/mcp/",
+          "serverName": "github",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "查看仓库概况",
+          "text": "使用 GitHub MCP 查看我最近活跃的仓库，并汇总未关闭 Issue 与 Pull Request",
+          "server": "github"
+        },
+        {
+          "title": "检查 Pull Request",
+          "text": "使用 GitHub MCP 查看当前仓库最近的 Pull Request、检查状态和待处理评审；不要执行合并或写操作",
+          "server": "github"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "notion",
+      "name": "Notion",
+      "vendor": "Notion",
+      "icon": "📝",
+      "category": "办公协作",
+      "summary": "工作区搜索 / 页面读取与创建 / 数据库协作",
+      "description": "接入 Notion 官方托管 MCP Server，通过 OAuth 授权访问用户选择的 Notion 工作区，可搜索、读取、创建和更新页面及数据库内容。权限范围与当前 Notion 用户及工作区授权一致。",
+      "tags": [
+        "Notion",
+        "知识库",
+        "文档",
+        "数据库",
+        "协作",
+        "OAuth",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://developers.notion.com/guides/mcp/get-started-with-mcp",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "oauth2-pkce",
+        "issuer": "https://mcp.notion.com",
+        "scope": "default",
+        "clientName": "DeepSeek Harness - Notion MCP",
+        "tokenEndpointAuthMethod": "none",
+        "grantSharing": "connector"
+      },
+      "servers": [
+        {
+          "serverKey": "notion",
+          "url": "https://mcp.notion.com/mcp",
+          "serverName": "notion",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "搜索工作区资料",
+          "text": "使用 Notion MCP 搜索工作区中与当前主题相关的页面，汇总关键结论并附页面标题",
+          "server": "notion"
+        },
+        {
+          "title": "整理项目进展",
+          "text": "使用 Notion MCP 读取当前项目页面和数据库，整理进展、风险与待办；不要修改页面",
+          "server": "notion"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "playwright",
+      "name": "Playwright",
+      "vendor": "Microsoft",
+      "icon": "🎭",
+      "category": "开发工具",
+      "summary": "浏览器自动化 / 页面检查 / 交互测试 / 可访问性快照",
+      "description": "通过 Microsoft 官方 @playwright/mcp npm 包启动本地 stdio Server，使用结构化可访问性快照检查网页并执行浏览器自动化。当前包要求 Node.js 18+。连接器可以读取页面内容、点击、输入、上传文件并提交表单；登录、发送、发布、购买、授权、删除或其他会产生外部影响的操作必须在执行前明确确认，并避免把敏感数据交给不受信任页面。",
+      "tags": [
+        "Playwright",
+        "浏览器自动化",
+        "网页测试",
+        "可访问性",
+        "stdio",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/microsoft/playwright-mcp",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "none"
+      },
+      "servers": [
+        {
+          "serverKey": "playwright",
+          "serverName": "playwright",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@playwright/mcp@latest"
+          ],
+          "transport": "stdio"
+        }
+      ],
+      "promptVariables": [
+        {
+          "name": "targetUrl",
+          "label": "目标网址",
+          "placeholder": "https://example.com",
+          "required": true
+        },
+        {
+          "name": "goal",
+          "label": "测试目标",
+          "placeholder": "例如：检查登录页的表单与错误提示",
+          "required": true
+        }
+      ],
+      "prompts": [
+        {
+          "title": "只读检查网页",
+          "text": "使用 Playwright 打开 {{targetUrl}}，只读取页面结构、链接、表单和错误信息并完成“{{goal}}”的检查；不要登录、提交表单、上传或下载文件、购买、发布、授权或删除任何内容",
+          "server": "playwright"
+        },
+        {
+          "title": "预演浏览器操作",
+          "text": "为在 {{targetUrl}} 完成“{{goal}}”制定操作步骤，标出将发送的数据、账号权限和外部副作用；可以执行无副作用的检查，但必须停在最终提交、发送、发布、购买、授权或删除之前等待我明确确认",
+          "server": "playwright"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "tencent-docs",
+      "name": "腾讯文档",
+      "vendor": "腾讯",
+      "icon": "📄",
+      "category": "办公协作",
+      "summary": "文档创建 / 内容查询与编辑 / 在线协作",
+      "description": "接入腾讯文档官方远程 MCP 服务，可查询、创建和编辑在线文档。需在腾讯文档 MCP 授权页获取 Token，并通过 Authorization 请求头传入原始 Token；未经用户确认不得创建、编辑、分享文档或变更权限。",
+      "tags": [
+        "腾讯文档",
+        "在线文档",
+        "协作",
+        "办公",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://developer.cloud.tencent.com/mcp/server/11803",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "api-key",
+        "apiKeyHeader": "Authorization",
+        "credentialName": "腾讯文档 MCP Token",
+        "credentialPlaceholder": "请输入腾讯文档 MCP Token",
+        "credentialDescription": "按官方要求将原始 Token 写入 Authorization 请求头；Token 仅保存在 DSH 本机。",
+        "credentialHelpLabel": "前往腾讯文档 MCP 授权页"
+      },
+      "servers": [
+        {
+          "serverKey": "tencent-docs",
+          "serverName": "tencent-docs",
+          "url": "https://docs.qq.com/openapi/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "查找文档资料",
+          "text": "使用腾讯文档 MCP 查找与当前主题相关的文档并汇总要点；只读查询，不要编辑、分享文档或修改权限",
+          "server": "tencent-docs"
+        },
+        {
+          "title": "整理文档修改建议",
+          "text": "读取我指定的腾讯文档并给出修改建议；未经我确认，不要创建、编辑、分享文档或变更权限",
+          "server": "tencent-docs"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wind-stock-data",
+      "name": "Wind·股票数据",
+      "vendor": "Wind 万得",
+      "icon": "/mcp-connector/ui/assets/wind-logo.png",
+      "category": "金融投资",
+      "summary": "全球股票档案 / 行情 / 技术指标 / 财务与公司事件",
+      "description": "接入万得股票数据服务，覆盖公司档案、股本与股东、行情报价、技术指标、基本面财务、公司事件及风险波动性数据。需使用 Wind Key，服务权限以万得账户实际开通范围为准。",
+      "tags": [
+        "股票",
+        "行情",
+        "财务",
+        "技术指标",
+        "第三方收录"
+      ],
+      "published": true,
+      "featured": true,
+      "homepage": "https://aifinmarket.wind.com.cn/#/market?tab=mcps&detailType=mcp&detailId=wind_stock_data-0",
+      "probeStatus": "unverified",
+      "promptVariables": [
+        {
+          "name": "stock",
+          "label": "股票名称或代码",
+          "default": "贵州茅台（600519.SH）",
+          "placeholder": "例如：贵州茅台（600519.SH）",
+          "required": true
+        }
+      ],
+      "auth": {
+        "mode": "bearer",
+        "credentialName": "Wind API Key（个人密钥）",
+        "credentialPlaceholder": "请输入您的个人 Wind API Key",
+        "credentialDescription": "用于访问 Wind MCP 的个人访问令牌；仅保存在 DSH 本机。",
+        "credentialHelpLabel": "如何获取 Wind API Key？"
+      },
+      "servers": [
+        {
+          "serverKey": "stock-data",
+          "url": "https://mcp.wind.com.cn/vserver_stock_data/mcp/",
+          "serverName": "wind_stock_data",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "公司档案与行业",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 的公司档案、主营业务和所属行业",
+          "server": "stock-data"
+        },
+        {
+          "title": "最新行情",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 的最新价格、成交量、换手率和买卖报价",
+          "server": "stock-data"
+        },
+        {
+          "title": "技术与波动指标",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 最近 20 个交易日的 MACD、RSI、波动率和涨跌幅",
+          "server": "stock-data"
+        },
+        {
+          "title": "核心财务指标",
+          "text": "用 Wind 股票数据 MCP 查询 {{stock}} 最新报告期的营业收入、净利润、ROE 和现金流",
+          "server": "stock-data"
+        }
+      ]
+    }
+  ]
+}

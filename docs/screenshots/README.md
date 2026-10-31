@@ -1,10 +1,10 @@
 # 产品截图与演示的来源及更新
 
-<!-- generated:media -->本组 7 张截图和 GIF 均从 v0.2.86 于 2026-10-31 重新采集，未修改截图中的版本文字。<!-- /generated:media -->
+<!-- generated:media -->本组 8 张截图和 GIF 均从 v0.2.86 于 2026-10-31 重新采集，未修改截图中的版本文字。<!-- /generated:media -->
 
-全部素材由真实产品 UI 的无凭据 Mock harness 渲染：1280×720 浏览器视口、800px 产品面板、桌面两列卡片。顶部保留“无凭据 Mock”标识；目录数、连接数与工具数是演示夹具，不代表生产统计或真实授权、业务验收。不会读取用户 profile、调用服务商或上传业务数据。
+前七张素材由真实产品 UI 的无凭据 Mock harness 渲染：1280×720 浏览器视口、800px 产品面板、桌面两列卡片。顶部保留“无凭据 Mock”标识；目录数、连接数与工具数是演示夹具，不代表生产统计或真实授权、业务验收。不会读取用户 profile、调用服务商或上传业务数据。
 
-根目录 [screenshots.json](../../screenshots.json) 保持外部市场兼容的 7 张图片路径与顺序；[assets.json](assets.json) 是采集版本、日期、源码指纹、SHA-256、尺寸和 GIF 时长的唯一记录。
+根目录 [screenshots.json](../../screenshots.json) 保持外部市场兼容的 8 张图片路径与顺序；[assets.json](assets.json) 是采集版本、日期、源码指纹、SHA-256、尺寸和 GIF 时长的唯一记录。
 
 | 文件 | 内容 |
 |---|---|
@@ -15,8 +15,11 @@
 | 05-unified-tool-search.png | 跨连接工具查询 |
 | 06-tool-parameters.png | 参数结构详情 |
 | 07-connection-diagnostics.png | 模拟发现失败与诊断 |
+| 08-ten-recommendations.jpg | 全部十张推荐长图 |
 
 `docs/demo.gif` 由当前截图状态顺序编码，仅缩放和调色，不修改版本号或连接状态。旧素材可通过 Git 历史查看，不继续用作当前产品首屏。
+
+第八张为 1280×1400 的完整推荐长图，Mock 面板高度扩展为 1280px，宽度与卡片尺寸不变；这是素材画布，不修改产品布局。采集固定读取 `scripts/fixtures/storefront-catalog.json` 的公开目录快照，与内置目录合并。快照变化纳入源码指纹检查。
 
 ## 更新与发布
 

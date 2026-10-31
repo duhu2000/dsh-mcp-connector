@@ -10,6 +10,12 @@ OAuth availability depends on each provider's client-registration policy and acc
 
 [简体中文](README.md)
 
+### Homepage recommendations
+
+The homepage shows ten recommendations in a fixed order: Qichacha company data, Tencent Docs, Feishu, Notion, GitHub, Playwright, Wind stock data, Qichacha legal data, Amap, and Context7. All available recommended cards are expanded by default. This is a curated selection, not a usage ranking; provider authorization and configuration requirements still apply.
+
+![Homepage recommendations](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/08-ten-recommendations.jpg)
+
 ### Tool discovery and troubleshooting
 
 Search cached tools across enabled connections visible to the current workspace in the Tools tab. Filter by connection, service and latest discovery status, then open parameter details for types, required fields and nested structures. Without a selected workspace, only global connections appear.
