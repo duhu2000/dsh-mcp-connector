@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { EN_DICTIONARY } from '../lib/i18n/locales/en.js';
 import { CJK, listSourceFiles, stripComments } from '../scripts/i18n-scan.mjs';
@@ -187,7 +188,7 @@ test('客户端 bundle 的内置词典与共享英文分片完全一致', async 
 test('lib/ 下每个 t(中文…) msgid 都有英文译文（全量，非抽样）', async () => {
   // 回归：曾有 50 条 msgid 只翻译了源码、英文词条没落盘，界面上就会回退中文，
   // 而按文件的抽样断言看不出来。这里扫全量源码，逐条比对合并后的词典。
-  const root = new URL('..', import.meta.url).pathname;
+  const root = fileURLToPath(new URL('..', import.meta.url));
   const modules = await listSourceFiles(path.join(root, 'lib'));
   assert.ok(modules.length > 20, `应扫描到全部模块，实际 ${modules.length}`);
 
