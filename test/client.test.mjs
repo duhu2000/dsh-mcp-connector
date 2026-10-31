@@ -120,6 +120,8 @@ function clientContext({
     workspaces,
     sessions,
     get(service) {
+      if (service === 'workspaces') return ctx.workspaces;
+      if (service === 'sessions') return ctx.sessions;
       if (service === 'uiWorkspace') return uiWorkspace;
       if (service === 'conversation') return { input: { shell: () => shell } };
       if (service === 'layout') return layout;
@@ -188,9 +190,70 @@ function mutableSettingsScope(initial) {
   return { scope, writes };
 }
 
-test('客户端声明新会话所需服务', async () => {
+test('客户端入口只等待槽位，不等待 Prompt 运行时', async () => {
   const plugin = await loadClient();
-  assert.deepEqual(plugin.inject, ['slots', 'sessions', 'workspaces', 'conversation']);
+  assert.deepEqual(plugin.inject, ['slots']);
+});
+
+test('缺少工作区与会话服务时仍注册原生入口，Prompt 不降级到全局', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ nativeSidebar: true });
+  delete ctx.workspaces;
+  delete ctx.sessions;
+  plugin.apply(ctx);
+  assert.ok(registrations.has('sidebar.panellist'));
+  const props = registrations.get('main').options.inject();
+  assert.equal(props.workspaceContext(), null);
+  assert.deepEqual(props.workspaceOptions(), []);
+  await assert.rejects(() => props.startPromptSession('test'), /工作空间/);
+  assert.deepEqual(calls, []);
+});
+
+test('对话服务未就绪时拒绝 Prompt，且不提前创建会话', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ nativeSidebar: true });
+  const originalGet = ctx.get;
+  ctx.get = name => name === 'conversation' ? undefined : originalGet(name);
+  plugin.apply(ctx);
+  assert.ok(registrations.has('sidebar.panellist'));
+  await assert.rejects(() => registrations.get('main').options.inject().startPromptSession('test'), /尚未就绪/);
+  assert.deepEqual(calls, []);
+});
+
+test('服务延迟就绪后同一入口可创建工作区会话，服务移除后再次拒绝', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ nativeSidebar: true });
+  const { workspaces, sessions, get } = ctx;
+  delete ctx.workspaces;
+  delete ctx.sessions;
+  ctx.get = () => undefined;
+  plugin.apply(ctx);
+  const props = registrations.get('main').options.inject();
+  await assert.rejects(() => props.startPromptSession('test'), /工作空间/);
+  assert.deepEqual(calls, []);
+  Object.assign(ctx, { workspaces, sessions, get });
+  await props.startPromptSession('test');
+  assert.deepEqual(calls, [
+    ['connectWorkspace', 'workspace-1'], ['setDraft', 'test'], ['open', 'session-new'],
+  ]);
+  ctx.get = name => name === 'conversation' ? undefined : get(name);
+  await assert.rejects(() => props.startPromptSession('must not create'), /尚未就绪/);
+  assert.equal(calls.length, 3);
+});
+
+test('未注入服务的属性 getter 抛错时仍通过动态 get 获取服务', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations, calls } = clientContext({ nativeSidebar: true });
+  const strict = new Proxy(ctx, { get(target, key) {
+    if (['workspaces', 'sessions', 'conversation'].includes(key)) throw new Error('cannot get property without inject');
+    return Reflect.get(target, key);
+  } });
+  plugin.apply(strict);
+  const props = registrations.get('main').options.inject();
+  assert.equal(props.workspaceContext().workspaceId, 'workspace-1');
+  assert.equal(props.workspaceOptions().length, 1);
+  await props.startPromptSession('safe');
+  assert.deepEqual(calls, [['connectWorkspace', 'workspace-1'], ['setDraft', 'safe'], ['open', 'session-new']]);
 });
 
 test('客户端入口不依赖 Host 版本特有的 Store、Runtime 或 UI Primitives 模块', async () => {
