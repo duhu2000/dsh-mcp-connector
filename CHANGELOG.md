@@ -2,6 +2,19 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；首个公开版本从 `0.1.0` 开始。
 
+## [0.2.88] - 2026-10-31
+
+### Added
+
+- 整合 #167 / #174 的中英文 UI、诊断和管理工具翻译，并保留至 0.2.87 的运行时、安全、多工作区和分享功能。感谢 Marek Vrbka 的国际化贡献。
+- 面板新增简体中文 / English 切换；切换时若有未保存编辑需先确认。Host `locale: auto` 跟随 DSH 显式偏好，缺失时回退中文，不再根据英文 shell 环境自动切换。显式 `zh-CN` / `en` 控制 Host 文案。
+- 补译近期新增的首次使用、范围管理、统计与分享编辑器提示，修复 Windows 翻译完整性检查的文件路径处理。
+- 连接器品牌和描述、用户输入、工具 ID、URL、错误码及分享模板 v1 固定安全标记不翻译；不改变凭据、权限或数据格式。
+
+### Verification scope
+
+- 本地完整检查及隔离真实 Chromium 中英 UI 检查分别执行；后者只使用 Mock API，不是业务调用或 Windows Desktop 实机验收。Windows Desktop 反馈继续在 #167 跟踪。
+
 ## [0.2.87] - 2026-10-31
 
 ### Added

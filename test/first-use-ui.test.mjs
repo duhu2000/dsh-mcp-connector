@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createTranslator } from '../lib/i18n/index.js';
+const t = createTranslator('zh-CN');
 
 const html = await readFile(new URL('../ui/index.html', import.meta.url), 'utf8');
 const client = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
 const source = html.slice(html.indexOf('  function firstUseReadiness('), html.indexOf('  function firstUseNavigate('));
-const readiness = new Function(`${source}; return firstUseReadiness;`)();
+const readiness = new Function('t', `${source}; return firstUseReadiness;`)(t);
 const status = { ok: true, detail: { items: [{ key: 'qcc' }] } };
 const match = { connectionKey: 'qcc', serverName: 'qcc-company', name: 'get_company_profile', observedAt: 1000 };
 const tools = (...items) => ({ ok: true, detail: { items } });
@@ -39,7 +41,7 @@ function fixture(statusResult, toolsResult) {
   const win = { parent: {}, __mcp: { sendPrompt: (text) => drafts.push(text) } };
   const start = html.indexOf('  async function openFirstUse(');
   const end = html.indexOf('  function normalizeWorkspaceOptions(', start);
-  const make = new Function('$', 'call', 'openModal', 'viewStateKey', 'workspaceParams', 'firstUseReadiness', 'firstUseNavigate', 'esc', 'window', `
+  const make = new Function('$', 'call', 'openModal', 'viewStateKey', 'workspaceParams', 'firstUseReadiness', 'firstUseNavigate', 'esc', 'window', 't', `
     let firstUseSequence = 0, promptRequestId = null, currentWorkspace = { workspaceId: 'test' };
     const FIRST_USE_PROMPT = 'fixture draft';
     const openSharingExperience = () => {};
@@ -50,7 +52,7 @@ function fixture(statusResult, toolsResult) {
   const api = make($, async (method, params) => {
     calls.push({ method, params });
     return method === 'status' ? statusResult : toolsResult;
-  }, () => {}, () => 'workspace:test', () => ({ workspaceId: 'test' }), readiness, () => {}, String, win);
+  }, () => {}, () => 'workspace:test', () => ({ workspaceId: 'test' }), readiness, () => {}, String, win, t);
   return { ...api, $, calls, drafts, win };
 }
 

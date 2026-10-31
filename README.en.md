@@ -10,6 +10,8 @@ OAuth availability depends on each provider's client-registration policy and acc
 
 [简体中文](README.md)
 
+**Bilingual interface:** Choose **简体中文 / English** at the top of the panel. Host messages follow the explicit DSH language preference, defaulting to Chinese when unavailable; configure `locale: en` or `locale: zh-CN` to override. The panel selector reloads only the panel and confirms before discarding edits. Provider descriptions and user content retain their original language. See [language configuration](docs/I18N.md).
+
 ### Homepage recommendations
 
 The homepage shows ten recommendations in a fixed order: Qichacha company data, Tencent Docs, Feishu, Notion, GitHub, Playwright, Wind stock data, Qichacha legal data, Amap, and Context7. All available recommended cards are expanded by default. This is a curated selection, not a usage ranking; provider authorization and configuration requirements still apply.
@@ -112,7 +114,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->Screenshots and GIF were captured from v0.2.87 (2026-10-31), using the credential-free Mock harness. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->Screenshots and GIF were captured from v0.2.88 (2026-10-31), using the credential-free Mock harness. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -152,6 +154,7 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 - [Per-session tool activation, TTL, and Host safety boundary](docs/SESSION-TOOL-INJECTION.md)
 - [Tool trial: official API evidence and safety design](docs/TOOL-TRIAL-DESIGN.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
+- [Localization: `locale`, dictionary conventions, and the translation completeness gate](docs/I18N.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
 - [First contribution: from a good first issue to your first PR](docs/FIRST-CONTRIBUTION.md)
@@ -180,6 +183,7 @@ The default bundle configuration is in `cordis.patch.yml`:
     openBrowser: true
     showSidebarEntry: true
     compactManagementTools: false
+    locale: 'auto'
     frameAncestors: ['self']
 ```
 
@@ -199,6 +203,10 @@ The proxy variables must be present in the running DSH process. After changing t
 Use the connector UI for connection setup, authorization, import, editing, snapshots and migration. There is no arbitrary execution proxy or automatic management-tool loading. Keep this option `false` for conversation-only deployments or workflows that depend on legacy tool names. Set it back to `false` and reload to restore those names; do not run duplicate plugin instances.
 
 This setting does not hide downstream business tools, disable connections, migrate credentials, change workspace/governance rules or bypass Host approval. Use the existing session injection mode for downstream tool visibility. Reduced tool count/schema size is not a measured token or cost saving.
+
+`locale` selects the language of the panel and of the text returned by the conversation tools. It defaults to `'auto'`, which follows the language you picked in DSH under Settings → Language (the `preference` of `@deepseek-ai/dsh-client-locale`), then `LC_ALL` / `LC_MESSAGES` / `LANG`, and falls back to Chinese when nothing matches. The interface language is the user's own preference, so the plugin does not override it: a Chinese user who changes nothing still gets Chinese (the DSH default), and a user who selected English in DSH gets English. Set it to `'zh-CN'` or `'en'` to force one language. Reload the plugin after changing it.
+
+Connector names, vendors, categories, URLs and error codes are never translated, so the same catalog renders in both languages. See [docs/I18N.md](docs/I18N.md).
 
 `frameAncestors` defaults to `['self']`: the CSP of the panel page (`/mcp-connector/ui/`) only allows same-origin embedding, which is the existing behaviour and is not relaxed by default. When a desktop shell (Tauri/Electron) embeds the panel, the ancestor origin differs from the panel origin, so the browser blocks it with `Framing '...' violates the following Content Security Policy directive: "frame-ancestors 'self'"` and the panel renders blank. Deployers must opt in explicitly:
 
@@ -237,7 +245,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.87`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.87](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.87).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.88`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.88](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.88).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

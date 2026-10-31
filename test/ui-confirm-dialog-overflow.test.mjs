@@ -63,8 +63,9 @@ function scopeAffectedTextSource() {
 function makeScopeAffectedText() {
   const limit = uiSource.match(/const SCOPE_TOOLS_INLINE_LIMIT = (\d+);/);
   assert.ok(limit, '必须在源码里声明 SCOPE_TOOLS_INLINE_LIMIT');
-  const factory = new Function(`${scopeAffectedTextSource()}; return scopeAffectedText;`);
-  return { scopeAffectedText: factory(), limit: Number(limit[1]) };
+  const factory = new Function('t', `${scopeAffectedTextSource()}; return scopeAffectedText;`);
+  const t = (text, params = {}) => text.replace(/\{(\w+)\}/g, (token, key) => params[key] ?? token);
+  return { scopeAffectedText: factory(t), limit: Number(limit[1]) };
 }
 test('工具过多时只列前若干项并补总数，不整屏铺开', () => {
   const { scopeAffectedText, limit } = makeScopeAffectedText();

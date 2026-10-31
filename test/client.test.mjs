@@ -42,6 +42,7 @@ function clientContext({
   workspaceNavigation = 'legacy',
   nativeSidebar = false,
   layout,
+  locale,
 } = {}) {
   const registrations = new Map();
   const registrationOrder = [];
@@ -93,6 +94,14 @@ function clientContext({
       }
     : undefined;
   const ctx = {
+    // Cordis 官方「不要求 inject」的服务读取入口。`locale` 未写进 inject 列表，
+    // 直接读 ctx.locale 会抛 `cannot get property "locale" without inject`。
+    reflect: {
+      get(service) {
+        if (service === 'locale' && locale !== undefined) return { getLocale: () => ({ active: locale }) };
+        return undefined;
+      },
+    },
     effect(start) {
       start();
     },
@@ -489,7 +498,9 @@ test('DSH 0.2 优先注册 main 与原生 panellist，不创建 footer 降级入
   assert.ok(registrationOrder.indexOf('main') < registrationOrder.indexOf('sidebar.panellist'), 'main 必须先于可点击的行注册');
   assert.equal(entry.options.id, 'mcp-connector');
   assert.equal(entry.options.order, 40);
-  assert.equal(entry.options.label, 'MCP连接器');
+  // label 现在传函数：槽位每次投影重新读取，语言晚于 apply 就绪也能跟上。
+  assert.equal(typeof entry.options.label, 'function', 'label 应为 thunk 以跟随语言变化');
+  assert.equal(entry.options.label(), 'MCP连接器', '中文（默认语言）下解析结果不变');
   assert.equal(main.options.key, 'mcp-connector');
   assert.equal(main.options.store, overlay.options.store, '原生面板与设置弹框应共用市场 Store');
   assert.equal(main.options.inject().presentation, 'panel');
@@ -1026,7 +1037,7 @@ test('磁盘版本高于运行版本时识别为等待重启，不重复提示�
   ), null);
 
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-  assert.match(source, /v\$\{activationPendingVersion\} 已安装，重启后生效/);
+  assert.match(source, /t\(\"v\{version\} 已安装，重启后生效\", \{ version: activationPendingVersion \}\)/);
   assert.match(source, /pendingActivationVersion\(versionStatus, providerUpdateCheck\)/);
 });
 
@@ -1334,4 +1345,40 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   assert.ok(descendants(tree).some((node) => node.type === 'button'
     && node.props?.children === '已复制'));
   assert.equal(requests.some((url) => url.startsWith('https://evil.example/')), false);
+});
+
+test('用户选了英文时，侧边栏文案为英文', async () => {
+  // 端到端回归：locale 服务存在且 active=en 时，客户端必须真正显示英文。
+  // 旧实现的 ctx.locale 读取会抛错并被 try/catch 吞掉 → activeLocale 永远是中文，
+  // 用户在 DSH 里选了 English，侧边栏仍显示「MCP连接器」。
+  const plugin = await loadClient({
+    jsxRuntime: { jsx(type, props) { return { type, props }; }, jsxs(type, props) { return { type, props }; } },
+  });
+
+  const english = clientContext({
+    nativeSidebar: true,
+    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: null }) }, selectPanel() {} },
+    locale: 'en',
+  });
+  plugin.apply(english.ctx);
+  const enEntry = english.registrations.get('sidebar.panellist');
+  assert.ok(enEntry, '英文用户应注册侧边栏入口');
+  assert.equal(enEntry.options.label(), 'MCP Connector', '英文用户应看到英文侧边栏文案');
+
+  // 中文用户保持原样（逐字不变）。
+  const chinese = clientContext({
+    nativeSidebar: true,
+    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: null }) }, selectPanel() {} },
+    locale: 'zh',
+  });
+  plugin.apply(chinese.ctx);
+  assert.equal(chinese.registrations.get('sidebar.panellist').options.label(), 'MCP连接器');
+
+  // 宿主没有 locale 服务时也必须照常加载并回退中文（§6.6 可选依赖）。
+  const bare = clientContext({
+    nativeSidebar: true,
+    layout: { panelInfo: { getSnapshot: () => ({ activePanelId: null }) }, selectPanel() {} },
+  });
+  plugin.apply(bare.ctx);
+  assert.equal(bare.registrations.get('sidebar.panellist').options.label(), 'MCP连接器');
 });

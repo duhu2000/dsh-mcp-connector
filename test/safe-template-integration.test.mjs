@@ -11,7 +11,7 @@ const source = await readFile(new URL('../lib/index.js', import.meta.url), 'utf8
 test('template reference endpoint exposes exactly four fixed-bundle fields, ignores caller data', async () => {
   const start = source.indexOf('    async templateCatalogReferences()');
   const end = source.indexOf('    async catalog(', start);
-  const api = new Function('bundledTemplateReferences', `return {${source.slice(start, end)}}`)(bundledTemplateReferences);
+  const api = new Function('bundledTemplateReferences', 't', `return {${source.slice(start, end)}}`)(bundledTemplateReferences, text => text);
   const response = await api.templateCatalogReferences({ items: [{ connectorId: 'injected-private', name: 'private' }] });
   assert.equal(response.ok, true);
   const refs = response.detail.items;
@@ -44,7 +44,7 @@ function loader(response) {
   const root = { textContent: '' };
   const start = html.indexOf('  async function openSafeTemplate(');
   const end = html.indexOf('  async function openFirstUse(', start);
-  const factory = new Function('root', 'call', 'loadModule', `
+  const factory = new Function('root', 'call', 'loadModule', 't', `
     let sharingSequence = 0, sharingDispose = null;
     const $ = key => key === '#safe-template-root' ? root : {classList:{contains:()=>true}};
     const openModal = () => sharingSequence++;
@@ -52,7 +52,7 @@ function loader(response) {
     ${html.slice(start, end).replace("import('./connection-template-sharing.js')", 'loadModule()')}
     return {open:openSafeTemplate, close:()=>sharingSequence++};
   `);
-  const api = factory(root, async (method, params) => { calls.push([method, params]); return response; }, async () => ({ mount(_root, options) { mounts++; mountedOptions = options; return () => {}; } }));
+  const api = factory(root, async (method, params) => { calls.push([method, params]); return response; }, async () => ({ mount(_root, options) { mounts++; mountedOptions = options; return () => {}; } }), text => text);
   return { ...api, root, calls, get mounts() { return mounts; }, get options() { return mountedOptions; } };
 }
 

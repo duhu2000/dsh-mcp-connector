@@ -61,9 +61,9 @@ test('lib/client.js 不再出现原生 confirm/alert/prompt 调用', () => {
   assert.doesNotMatch(code, /window\.alert/);
 });
 
-test('11 处确认均使用 await confirmDialog，且脚本仍可解析（async 上下文正确）', () => {
+test('12 处确认均使用 await confirmDialog，且脚本仍可解析（async 上下文正确）', () => {
   const sites = [...scriptCode.matchAll(/await confirmDialog\(/g)];
-  assert.equal(sites.length, 11, '原有 10 处确认加本地覆盖重置确认均使用内嵌对话框');
+  assert.equal(sites.length, 12, '既有确认和语言切换丢弃编辑确认均使用内嵌对话框');
   // node 解析阶段就会拒绝「非 async 函数里 await」，因此能构造出函数即证明每个
   // 调用点的 async 上下文都正确。
   assert.doesNotThrow(() => new Function(scriptCode), '内联脚本必须能被解析');
@@ -148,11 +148,13 @@ function makeDom() {
 
 function makeConfirmDialog() {
   const dom = makeDom();
+  // 确认框的默认文案现在走面板 i18n 的 t()（默认语言中文时是恒等函数）；
+  // 传入 `(s) => s` 即可复现既有中文断言，符合 docs/I18N.md §7 的约定。
   const factory = new Function(
-    'document', 'window', '$', 'setTimeout',
+    'document', 'window', '$', 'setTimeout', 't',
     `${confirmDialogSource()}; return confirmDialog;`,
   );
-  const confirmDialog = factory(dom.document, dom.window, dom.$, (callback) => dom.timers.push(callback));
+  const confirmDialog = factory(dom.document, dom.window, dom.$, (callback) => dom.timers.push(callback), (s) => s);
   return { confirmDialog, dom };
 }
 

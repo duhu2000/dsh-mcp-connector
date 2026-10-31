@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createTranslator } from '../lib/i18n/index.js';
 
 const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
 const start = source.indexOf('\t\tfunction versionApiFailureMessage(');
 const end = source.indexOf('\n\t\t/**', start);
 assert.ok(start >= 0 && end > start);
 function checkWith(fetch) {
-  return new Function('window', `${source.slice(start, end)}; return fetchVersionStatus;`)({ fetch });
+  return new Function('window', 't', `${source.slice(start, end)}; return fetchVersionStatus;`)({ fetch }, createTranslator('zh-CN'));
 }
 
 for (const status of [401, 403, 404, 502]) {

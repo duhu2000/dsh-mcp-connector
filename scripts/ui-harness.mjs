@@ -177,9 +177,13 @@ const server = createServer(async (req, res) => {
     const body = Buffer.from(captureShell());
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': body.byteLength }); res.end(body); return;
   }
-  if (req.method === 'GET' && req.url === '/mcp-connector/ui/') {
+  if (req.method === 'GET' && req.url?.split('?')[0] === '/mcp-connector/ui/') {
     const body = await readFile(join(root, 'ui/index.html'));
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/ui/locale.js') {
+    const body = await readFile(join(root, 'ui/locale.js'));
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); res.end(body); return;
   }
   if (req.method === 'GET' && req.url === '/mcp-connector/ui/sharing-experience.js') {
     const body = await readFile(join(root, 'ui/sharing-experience.js'));
@@ -318,6 +322,11 @@ const server = createServer(async (req, res) => {
       history: document.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
       credentialsStoredInScopeDocument: false,
     } }); return;
+  }
+  if (method === 'connectionStatistics') {
+    json(res, { ok: true, detail: { available: true, persistent: false,
+      cumulativeSuccessfulConnections: connected.size, newSuccessfulConnections30d: connected.size,
+      historicalBaseline: 0, items: [] } }); return;
   }
   if (method === 'previewConnectionScope') {
     try {

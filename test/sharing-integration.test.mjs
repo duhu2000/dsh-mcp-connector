@@ -8,13 +8,13 @@ const slice = (start, end) => html.slice(html.indexOf(start), html.indexOf(end, 
 function bridge() {
   const sent = [];
   const window = { parent: {}, __mcp: { sendPrompt(text) { sent.push(text); } } };
-  const factory = new Function('window', '$', 'showToast', 'setPromptLaunchPending', `
+  const factory = new Function('window', '$', 'showToast', 'setPromptLaunchPending', 't', `
     let currentWorkspace = { workspaceId: 'test' }, promptRequestId = null, promptRequestTimer = null, draftHandoff = null;
     ${slice('  function openSharingDraft(', '  async function openSharingExperience(')}
     ${slice('  function finishPromptLaunch(', '  // First-use integration boundary:')}
     return { open: openSharingDraft, reply: finishPromptLaunch, pending: () => promptRequestId = 'request', noWorkspace: () => currentWorkspace = null };
   `);
-  return { ...factory(window, () => null, () => {}, () => {}), sent, window };
+  return { ...factory(window, () => null, () => {}, () => {}, text => text), sent, window };
 }
 
 test('sharing bridge resolves only on matching Host acknowledgement, never on request dispatch', async () => {
@@ -60,7 +60,7 @@ test('sharing bridge refuses standalone pages, missing workspace and blank draft
 
 function loader(loadSharing) {
   const root = { textContent: '' };
-  const factory = new Function('loadSharing', 'root', `
+  const factory = new Function('loadSharing', 'root', 't', `
     let sharingSequence = 0, sharingDispose = null, visible = true;
     const $ = (selector) => selector === '#sharing-root' ? root : { classList: { contains: () => visible } };
     const openModal = () => { sharingSequence++; };
@@ -68,7 +68,7 @@ function loader(loadSharing) {
     ${slice('  async function openSharingExperience(', '  async function openFirstUse(').replace("import('./sharing-experience.js')", 'loadSharing()')}
     return { open: openSharingExperience, close: () => { visible = false; sharingSequence++; }, dispose: () => sharingDispose?.() };
   `);
-  return { ...factory(loadSharing, root), root };
+  return { ...factory(loadSharing, root, text => text), root };
 }
 
 test('sharing editor lazy loads once requested, passes only explicit draft/message capabilities', async () => {

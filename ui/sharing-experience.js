@@ -1,7 +1,8 @@
+import { t } from './locale.js';
 const STATUS_LABELS = Object.freeze({
-  success: '成功',
-  failed: '失败',
-  untested: '未测试',
+  success: t('成功'),
+  failed: t('失败'),
+  untested: t('未测试'),
 });
 
 const ROOT_FIELDS = ['schemaVersion', 'task', 'versions', 'steps', 'limitations'];
@@ -68,37 +69,37 @@ export const SHARING_CASE_TEMPLATES = Object.freeze({
 export const SHARING_AUTHOR_ASSETS = Object.freeze([
   Object.freeze({
     id: 'one-success-case',
-    label: '企业简介首次成功案例',
+    label: t("企业简介首次成功案例"),
     href: 'docs/tutorials/ONE-SUCCESS-CASE.md',
     provenance: 'historical-real-readonly-summary',
-    note: '仅摘录 2026-10-16 已有连接的一次真实只读调用结论；不是当前版本全流程验收。',
+    note: t("仅摘录 2026-10-16 已有连接的一次真实只读调用结论；不是当前版本全流程验收。"),
   }),
   Object.freeze({
     id: 'json-migration',
-    label: 'mcpServers JSON 迁移教程',
+    label: t("mcpServers JSON 迁移教程"),
     href: 'docs/tutorials/JSON-MIGRATION.md',
     provenance: 'procedure-with-isolated-tests',
-    note: '流程与代码测试可复核；当前真实迁移后的业务调用仍未验收。',
+    note: t("流程与代码测试可复核；当前真实迁移后的业务调用仍未验收。"),
   }),
   Object.freeze({
     id: 'tool-recovery',
-    label: '工具查找与发现恢复教程',
+    label: t("工具查找与发现恢复教程"),
     href: 'docs/tutorials/TOOL-SEARCH-RECOVERY.md',
     provenance: 'procedure-with-isolated-tests',
-    note: '缓存与恢复链路有隔离测试；不等于真实连接或业务工具调用成功。',
+    note: t("缓存与恢复链路有隔离测试；不等于真实连接或业务工具调用成功。"),
   }),
   Object.freeze({
     id: 'storefront-screenshots',
-    label: '界面截图与 GIF',
+    label: t("界面截图与 GIF"),
     href: 'docs/screenshots/README.md',
     provenance: 'credential-free-mock',
-    note: '必须保留逐资产版本和 Mock 标记，不得作为真实业务成功证据。',
+    note: t("必须保留逐资产版本和 Mock 标记，不得作为真实业务成功证据。"),
   }),
 ]);
 
 function assertPlainObject(value, path) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new SharingExperienceError('INVALID_TYPE', path, `${path} 必须是对象`);
+    throw new SharingExperienceError('INVALID_TYPE', path, t("{path} 必须是对象", { path: path }));
   }
 }
 
@@ -108,7 +109,7 @@ function assertAllowedFields(value, allowed, path) {
     throw new SharingExperienceError(
       'UNSUPPORTED_FIELD',
       path,
-      `${path} 包含不支持的字段：${unknown.join(', ')}`,
+      t("{path} 包含不支持的字段：{p0}", { path: path, p0: unknown.join(', ') }),
     );
   }
 }
@@ -116,16 +117,16 @@ function assertAllowedFields(value, allowed, path) {
 function normalizeText(value, { path, maxLength, required = false }) {
   const text = value == null ? '' : String(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim();
   if (required && !text) {
-    throw new SharingExperienceError('REQUIRED', path, `${path} 不能为空`);
+    throw new SharingExperienceError('REQUIRED', path, t("{path} 不能为空", { path: path }));
   }
   if (text.length > maxLength) {
-    throw new SharingExperienceError('TOO_LONG', path, `${path} 最多 ${maxLength} 个字符`);
+    throw new SharingExperienceError('TOO_LONG', path, t("{path} 最多 {maxLength} 个字符", { path: path, maxLength: maxLength }));
   }
   if (SENSITIVE_PATTERNS.some((pattern) => pattern.test(text))) {
     throw new SharingExperienceError(
       'SENSITIVE_TEXT',
       path,
-      `${path} 可能包含凭据、授权回调或本机用户路径，请先脱敏`,
+      t("{path} 可能包含凭据、授权回调或本机用户路径，请先脱敏", { path: path }),
     );
   }
   return text;
@@ -138,7 +139,7 @@ function normalizeVersions(value = {}) {
   const plugin = normalizeText(value.plugin, { path: 'versions.plugin', maxLength: 80 });
   for (const [path, version] of [['versions.dsh', dsh], ['versions.plugin', plugin]]) {
     if (version && !/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
-      throw new SharingExperienceError('INVALID_VERSION', path, `${path} 必须是语义版本，例如 0.2.81 或 0.2.1-rc.2`);
+      throw new SharingExperienceError('INVALID_VERSION', path, t("{path} 必须是语义版本，例如 0.2.81 或 0.2.1-rc.2", { path: path }));
     }
   }
   return Object.freeze({
@@ -150,7 +151,7 @@ function normalizeVersions(value = {}) {
 
 function normalizeSteps(value) {
   if (!Array.isArray(value) || value.length === 0 || value.length > 12) {
-    throw new SharingExperienceError('INVALID_STEPS', 'steps', 'steps 必须包含 1–12 项');
+    throw new SharingExperienceError('INVALID_STEPS', 'steps', t("steps 必须包含 1–12 项"));
   }
   return Object.freeze(value.map((step, index) => {
     const path = `steps[${index}]`;
@@ -158,7 +159,7 @@ function normalizeSteps(value) {
     assertAllowedFields(step, STEP_FIELDS, path);
     const status = String(step.status || 'untested');
     if (!SHARING_STEP_STATUSES.includes(status)) {
-      throw new SharingExperienceError('INVALID_STATUS', `${path}.status`, `${path}.status 必须是 success、failed 或 untested`);
+      throw new SharingExperienceError('INVALID_STATUS', `${path}.status`, t("{path}.status 必须是 success、failed 或 untested", { path: path }));
     }
     return Object.freeze({
       name: normalizeText(step.name, { path: `${path}.name`, maxLength: 120, required: true }),
@@ -169,7 +170,7 @@ function normalizeSteps(value) {
 
 function normalizeLimitations(value = []) {
   if (!Array.isArray(value) || value.length > 12) {
-    throw new SharingExperienceError('INVALID_LIMITATIONS', 'limitations', 'limitations 必须是最多 12 项的数组');
+    throw new SharingExperienceError('INVALID_LIMITATIONS', 'limitations', t("limitations 必须是最多 12 项的数组"));
   }
   return Object.freeze(value.map((item, index) => normalizeText(item, {
     path: `limitations[${index}]`,
@@ -182,7 +183,7 @@ export function createSharingExperience(input) {
   assertPlainObject(input, 'draft');
   assertAllowedFields(input, ROOT_FIELDS, 'draft');
   if (input.schemaVersion != null && input.schemaVersion !== SHARING_EXPERIENCE_SCHEMA_VERSION) {
-    throw new SharingExperienceError('INVALID_SCHEMA_VERSION', 'schemaVersion', '不支持的体验草稿版本');
+    throw new SharingExperienceError('INVALID_SCHEMA_VERSION', 'schemaVersion', t("不支持的体验草稿版本"));
   }
   return Object.freeze({
     schemaVersion: SHARING_EXPERIENCE_SCHEMA_VERSION,
@@ -196,7 +197,7 @@ export function createSharingExperience(input) {
 export function createSharingExperienceFromTemplate(templateId, versions = {}) {
   const template = SHARING_CASE_TEMPLATES[templateId];
   if (!template) {
-    throw new SharingExperienceError('UNKNOWN_TEMPLATE', 'templateId', `未知体验模板：${templateId}`);
+    throw new SharingExperienceError('UNKNOWN_TEMPLATE', 'templateId', t("未知体验模板：{templateId}", { templateId: templateId }));
   }
   return createSharingExperience({ ...template, versions });
 }
@@ -218,30 +219,30 @@ function escapeMarkdown(value) {
 }
 
 function displayValue(value) {
-  return value ? escapeMarkdown(value) : '未填写';
+  return value ? escapeMarkdown(value) : t("未填写");
 }
 
 export function renderSharingExperiencePreview(input) {
   const draft = createSharingExperience(input);
   const lines = [
-    '# MCP连接器使用体验（草稿）',
+    t("# MCP连接器使用体验（草稿）"),
     '',
-    '> 本草稿只包含用户主动填写的任务、版本、步骤状态与限制；复制草稿不代表连接或业务调用成功。',
+    t("> 本草稿只包含用户主动填写的任务、版本、步骤状态与限制；复制草稿不代表连接或业务调用成功。"),
     '',
-    `- 任务：${displayValue(draft.task)}`,
-    `- DSH 版本：${displayValue(draft.versions.dsh)}`,
-    `- 插件版本：${displayValue(draft.versions.plugin)}`,
-    `- 宿主：${displayValue(draft.versions.host)}`,
+    t("- 任务：{p0}", { p0: displayValue(draft.task) }),
+    t("- DSH 版本：{p0}", { p0: displayValue(draft.versions.dsh) }),
+    t("- 插件版本：{p0}", { p0: displayValue(draft.versions.plugin) }),
+    t("- 宿主：{p0}", { p0: displayValue(draft.versions.host) }),
     '',
-    '## 步骤',
+    t("## 步骤"),
     '',
     ...draft.steps.map((step, index) => `${index + 1}. [${STATUS_LABELS[step.status]}] ${escapeMarkdown(step.name)}`),
     '',
-    '## 限制',
+    t("## 限制"),
     '',
     ...(draft.limitations.length > 0
       ? draft.limitations.map((item) => `- ${escapeMarkdown(item)}`)
-      : ['- 未填写']),
+      : [t("- 未填写")]),
     '',
   ];
   return lines.join('\n');
@@ -276,20 +277,20 @@ function addLabeledInput(document, parent, labelText, value) {
 
 export function mount(root, { openDraft, showMessage } = {}) {
   if (!root || typeof root.replaceChildren !== 'function' || !root.ownerDocument) {
-    throw new SharingExperienceError('INVALID_ROOT', 'root', 'root 必须是可挂载的 DOM 元素');
+    throw new SharingExperienceError('INVALID_ROOT', 'root', t("root 必须是可挂载的 DOM 元素"));
   }
   const document = root.ownerDocument;
   let draft = createSharingExperienceFromTemplate('companyProfile');
 
   const container = makeElement(document, 'section', { className: 'sharing-experience' });
-  container.setAttribute('aria-label', '分享使用体验草稿');
-  const heading = makeElement(document, 'h2', { text: '分享使用体验' });
+  container.setAttribute('aria-label', t("分享使用体验草稿"));
+  const heading = makeElement(document, 'h2', { text: t("分享使用体验") });
   const intro = makeElement(document, 'p', {
-    text: '只整理你主动填写的内容；不会读取对话、工具返回或真实连接。',
+    text: t("只整理你主动填写的内容；不会读取对话、工具返回或真实连接。"),
   });
   const form = makeElement(document, 'div', { className: 'sharing-experience-form' });
   const templateLabel = makeElement(document, 'label', { className: 'sharing-experience-field' });
-  templateLabel.append(makeElement(document, 'span', { text: '任务模板' }));
+  templateLabel.append(makeElement(document, 'span', { text: t("任务模板") }));
   const template = makeElement(document, 'select');
   for (const [value, item] of Object.entries(SHARING_CASE_TEMPLATES)) {
     const option = makeElement(document, 'option', { text: item.task });
@@ -300,21 +301,21 @@ export function mount(root, { openDraft, showMessage } = {}) {
   template.value = activeTemplateId;
   templateLabel.append(template);
   form.append(templateLabel);
-  const task = addLabeledInput(document, form, '任务', draft.task);
-  const dshVersion = addLabeledInput(document, form, 'DSH 版本', draft.versions.dsh);
-  const pluginVersion = addLabeledInput(document, form, '插件版本', draft.versions.plugin);
-  const host = addLabeledInput(document, form, '宿主', draft.versions.host);
+  const task = addLabeledInput(document, form, t("任务"), draft.task);
+  const dshVersion = addLabeledInput(document, form, t("DSH 版本"), draft.versions.dsh);
+  const pluginVersion = addLabeledInput(document, form, t("插件版本"), draft.versions.plugin);
+  const host = addLabeledInput(document, form, t("宿主"), draft.versions.host);
   const steps = makeElement(document, 'div', { className: 'sharing-experience-steps' });
   const limitationsLabel = makeElement(document, 'label', { className: 'sharing-experience-field' });
-  limitationsLabel.append(makeElement(document, 'span', { text: '限制（每行一项）' }));
+  limitationsLabel.append(makeElement(document, 'span', { text: t("限制（每行一项）") }));
   const limitations = makeElement(document, 'textarea');
   limitations.value = draft.limitations.join('\n');
   limitationsLabel.append(limitations);
   form.append(steps, limitationsLabel);
 
   const actions = makeElement(document, 'div', { className: 'sharing-experience-actions' });
-  const previewButton = makeElement(document, 'button', { type: 'button', text: '生成预览' });
-  const copyButton = makeElement(document, 'button', { type: 'button', text: '复制到会话草稿' });
+  const previewButton = makeElement(document, 'button', { type: 'button', text: t("生成预览") });
+  const copyButton = makeElement(document, 'button', { type: 'button', text: t("复制到会话草稿") });
   copyButton.disabled = typeof openDraft !== 'function';
   const message = makeElement(document, 'p', { className: 'sharing-experience-message' });
   message.setAttribute('role', 'status');
@@ -337,10 +338,10 @@ export function mount(root, { openDraft, showMessage } = {}) {
     steps.replaceChildren();
     draft.steps.forEach((step, index) => {
       const row = makeElement(document, 'div', { className: 'sharing-experience-step' });
-      const name = addLabeledInput(document, row, `步骤 ${index + 1}`, step.name);
+      const name = addLabeledInput(document, row, t("步骤 {p0}", { p0: index + 1 }), step.name);
       name.dataset.stepName = String(index);
       const label = makeElement(document, 'label', { className: 'sharing-experience-field' });
-      label.append(makeElement(document, 'span', { text: '状态' }));
+      label.append(makeElement(document, 'span', { text: t("状态") }));
       const select = makeElement(document, 'select');
       select.dataset.stepStatus = String(index);
       for (const value of SHARING_STEP_STATUSES) {
@@ -372,10 +373,10 @@ export function mount(root, { openDraft, showMessage } = {}) {
     try {
       draft = readDraft();
       preview.textContent = renderSharingExperiencePreview(draft);
-      notify('预览已更新；尚未复制、发送或发布。');
+      notify(t("预览已更新；尚未复制、发送或发布。"));
       return draft;
     } catch (error) {
-      notify(error instanceof SharingExperienceError ? error.message : '无法生成预览', 'error');
+      notify(error instanceof SharingExperienceError ? error.message : t("无法生成预览"), 'error');
       throw error;
     }
   }
@@ -391,11 +392,11 @@ export function mount(root, { openDraft, showMessage } = {}) {
       limitations.value = draft.limitations.join('\n');
       renderStepControls();
       preview.textContent = renderSharingExperiencePreview(draft);
-      notify('已载入公开教程模板；所有步骤保持“未测试”，请按实际情况编辑。');
+      notify(t("已载入公开教程模板；所有步骤保持“未测试”，请按实际情况编辑。"));
     } catch (error) {
       template.value = activeTemplateId;
-      const reason = error instanceof SharingExperienceError ? error.message : '无法载入所选模板';
-      notify(`${reason}；模板未切换，请纠正后重试。`, 'error');
+      const reason = error instanceof SharingExperienceError ? error.message : t("无法载入所选模板");
+      notify(t("{reason}；模板未切换，请纠正后重试。", { reason: reason }), 'error');
     }
   }
 
@@ -412,12 +413,12 @@ export function mount(root, { openDraft, showMessage } = {}) {
       const current = updatePreview();
       const payload = createSharingCopyPayload(current);
       if (typeof openDraft !== 'function') {
-        throw new SharingExperienceError('OPEN_DRAFT_UNAVAILABLE', 'openDraft', '当前宿主无法打开会话草稿');
+        throw new SharingExperienceError('OPEN_DRAFT_UNAVAILABLE', 'openDraft', t("当前宿主无法打开会话草稿"));
       }
       await openDraft(payload.text);
-      notify('草稿已带入会话输入框但尚未发送；这不代表连接、工具发现或业务调用成功。', 'success');
+      notify(t("草稿已带入会话输入框但尚未发送；这不代表连接、工具发现或业务调用成功。"), 'success');
     } catch (error) {
-      notify(error instanceof SharingExperienceError ? error.message : '无法打开会话草稿，请保留当前预览', 'error');
+      notify(error instanceof SharingExperienceError ? error.message : t("无法打开会话草稿，请保留当前预览"), 'error');
     }
   }
 

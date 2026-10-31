@@ -1,3 +1,4 @@
+import { t } from './locale.js';
 const FORMAT = 'dsh-mcp-connector.share-template';
 const VERSION = 1;
 const REDACTED = '<REDACTED:REENTER>';
@@ -13,14 +14,14 @@ const API_KEY_HEADERS = new Map([
 
 function isoTime(value) {
   const date = new Date(value ?? Date.now());
-  if (!Number.isFinite(date.getTime())) throw new TypeError('生成时间无效');
+  if (!Number.isFinite(date.getTime())) throw new TypeError(t("生成时间无效"));
   return date.toISOString();
 }
 
 function identifier(value, field) {
   const text = String(value ?? '').trim();
   if (!/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/.test(text)) {
-    throw new TypeError(`${field} 必须是公开目录标识`);
+    throw new TypeError(t("{field} 必须是公开目录标识", { field: field }));
   }
   return text;
 }
@@ -29,7 +30,7 @@ function publicName(value) {
   const text = String(value ?? '');
   if (!text.trim() || text !== text.trim() || [...text].length > 80
     || /[\u0000-\u001f\u007f\\/]|^[A-Za-z]:|file:/i.test(text)) {
-    throw new TypeError('名称必须是 1–80 字符的公开名称，不得包含路径或控制字符');
+    throw new TypeError(t("名称必须是 1–80 字符的公开名称，不得包含路径或控制字符"));
   }
   return text;
 }
@@ -37,7 +38,7 @@ function publicName(value) {
 function canonicalServerName(value) {
   const text = String(value ?? '');
   if (!/^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$/.test(text)) {
-    throw new TypeError('serverName 必须是已规范化的小写 ASCII 名称');
+    throw new TypeError(t("serverName 必须是已规范化的小写 ASCII 名称"));
   }
   return text;
 }
@@ -54,7 +55,7 @@ function documentBase(generatedAt) {
 
 function normalizeCatalogReference(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new TypeError('公开目录引用无效');
+    throw new TypeError(t("公开目录引用无效"));
   }
   return Object.freeze({
     connectorId: identifier(value.connectorId, 'connectorId'),
@@ -73,13 +74,13 @@ export function createCatalogReferenceTemplate(catalogReferences, {
   serverKey,
   generatedAt,
 } = {}) {
-  if (!Array.isArray(catalogReferences)) throw new TypeError('必须提供受信任的公开目录引用白名单');
+  if (!Array.isArray(catalogReferences)) throw new TypeError(t("必须提供受信任的公开目录引用白名单"));
   const safeConnectorId = identifier(connectorId, 'connectorId');
   const safeServerKey = identifier(serverKey, 'serverKey');
   const matches = catalogReferences
     .map(normalizeCatalogReference)
     .filter((item) => item.connectorId === safeConnectorId && item.serverKey === safeServerKey);
-  if (matches.length !== 1) throw new TypeError('所选 Connector 不在已审计的公开目录白名单中');
+  if (matches.length !== 1) throw new TypeError(t("所选 Connector 不在已审计的公开目录白名单中"));
   const reference = matches[0];
   return {
     ...documentBase(generatedAt),
@@ -99,7 +100,7 @@ export function createCustomHttpTemplate({
   generatedAt,
 } = {}) {
   if (!['none', 'bearer', 'api-key'].includes(authMode)) {
-    throw new TypeError('自定义模板只支持 none、bearer 或 api-key');
+    throw new TypeError(t("自定义模板只支持 none、bearer 或 api-key"));
   }
   const connection = {
     name: CUSTOM_NAME,
@@ -116,7 +117,7 @@ export function createCustomHttpTemplate({
   }
   if (authMode === 'api-key') {
     const safeHeader = API_KEY_HEADERS.get(String(apiKeyHeader ?? '').trim().toLowerCase());
-    if (!safeHeader) throw new TypeError('API Key Header 只能选择通用公开名称');
+    if (!safeHeader) throw new TypeError(t("API Key Header 只能选择通用公开名称"));
     connection.apiKeyHeader = safeHeader;
     connection.apiKeyValue = REDACTED;
     connection.redactedFields.push('apiKeyValue');
@@ -153,13 +154,13 @@ function option(document, value, text) {
 
 async function defaultCopyText(text) {
   const clipboard = globalThis.navigator?.clipboard;
-  if (!clipboard?.writeText) throw new Error('当前环境不支持剪贴板，请使用下载');
+  if (!clipboard?.writeText) throw new Error(t("当前环境不支持剪贴板，请使用下载"));
   await clipboard.writeText(text);
 }
 
 function defaultDownloadText(text, filename, document) {
   if (typeof Blob !== 'function' || typeof URL?.createObjectURL !== 'function') {
-    throw new Error('当前环境不支持下载，请使用复制');
+    throw new Error(t("当前环境不支持下载，请使用复制"));
   }
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   try {
@@ -185,10 +186,10 @@ export function mount(container, {
   now = () => Date.now(),
 } = {}) {
   if (!container || typeof container.replaceChildren !== 'function') {
-    throw new TypeError('container 必须是可挂载的 DOM 元素');
+    throw new TypeError(t("container 必须是可挂载的 DOM 元素"));
   }
-  if (typeof openDraft !== 'function') throw new TypeError('openDraft 必须是函数');
-  if (typeof copyText !== 'function') throw new TypeError('copyText 必须是函数');
+  if (typeof openDraft !== 'function') throw new TypeError(t("openDraft 必须是函数"));
+  if (typeof copyText !== 'function') throw new TypeError(t("copyText 必须是函数"));
   const notify = typeof showMessage === 'function' ? showMessage : () => {};
   const document = container.ownerDocument ?? globalThis.document;
   const saveText = typeof downloadText === 'function'
@@ -214,21 +215,21 @@ export function mount(container, {
     @media(max-width:640px){.mcp-safe-template-share__grid{grid-template-columns:1fr}}
   `;
   const title = document.createElement('h3');
-  title.textContent = '安全分享连接模板';
+  title.textContent = t("安全分享连接模板");
   const copy = document.createElement('p');
-  copy.textContent = '仅生成已审计公开目录引用或全重填的自定义 HTTP 模板；请勿在此粘贴 URL、Token、Header 值或业务数据。';
+  copy.textContent = t("仅生成已审计公开目录引用或全重填的自定义 HTTP 模板；请勿在此粘贴 URL、Token、Header 值或业务数据。");
 
-  const modeField = field(document, '模板来源', 'mode', 'select');
-  modeField.control.append(option(document, 'custom', '自定义 HTTP（URL 和凭据全部重填）'));
-  if (trustedCatalog.length > 0) modeField.control.append(option(document, 'catalog', '已审计公开 Connector 目录引用'));
+  const modeField = field(document, t("模板来源"), 'mode', 'select');
+  modeField.control.append(option(document, 'custom', t("自定义 HTTP（URL 和凭据全部重填）")));
+  if (trustedCatalog.length > 0) modeField.control.append(option(document, 'catalog', t("已审计公开 Connector 目录引用")));
   modeField.control.value = 'custom';
 
   const customGrid = document.createElement('div');
   customGrid.className = 'mcp-safe-template-share__grid';
   customGrid.dataset.role = 'custom-fields';
-  const authField = field(document, '鉴权类型', 'auth-mode', 'select');
+  const authField = field(document, t("鉴权类型"), 'auth-mode', 'select');
   authField.control.append(
-    option(document, 'none', '无鉴权'),
+    option(document, 'none', t("无鉴权")),
     option(document, 'bearer', 'Bearer Token'),
     option(document, 'api-key', 'API Key'),
   );
@@ -243,7 +244,7 @@ export function mount(container, {
   catalogGrid.className = 'mcp-safe-template-share__grid';
   catalogGrid.dataset.role = 'catalog-fields';
   catalogGrid.hidden = true;
-  const catalogField = field(document, '已审计 Connector / Server', 'catalog-reference', 'select');
+  const catalogField = field(document, t("已审计 Connector / Server"), 'catalog-reference', 'select');
   trustedCatalog.forEach((item, index) => {
     catalogField.control.append(option(document, String(index), `${item.name} · ${item.serverName}`));
   });
@@ -255,21 +256,21 @@ export function mount(container, {
   const previewButton = document.createElement('button');
   previewButton.type = 'button';
   previewButton.dataset.role = 'preview';
-  previewButton.textContent = '生成安全预览';
+  previewButton.textContent = t("生成安全预览");
   const copyButton = document.createElement('button');
   copyButton.type = 'button';
   copyButton.dataset.role = 'copy';
-  copyButton.textContent = '复制 JSON';
+  copyButton.textContent = t("复制 JSON");
   copyButton.disabled = true;
   const downloadButton = document.createElement('button');
   downloadButton.type = 'button';
   downloadButton.dataset.role = 'download';
-  downloadButton.textContent = '下载 JSON';
+  downloadButton.textContent = t("下载 JSON");
   downloadButton.disabled = true;
   const draftButton = document.createElement('button');
   draftButton.type = 'button';
   draftButton.dataset.role = 'draft';
-  draftButton.textContent = '带入新会话检查';
+  draftButton.textContent = t("带入新会话检查");
   draftButton.disabled = true;
   actions.append(previewButton, copyButton, downloadButton, draftButton);
 
@@ -348,22 +349,22 @@ export function mount(container, {
         });
       revision += 1;
       setPreview(stringifySafeTemplate(template));
-      message('已生成本地安全预览，尚未复制、下载或带入会话。', 'success');
+      message(t("已生成本地安全预览，尚未复制、下载或带入会话。"), 'success');
     } catch (error) {
       invalidate();
       message(error instanceof Error ? error.message : String(error), 'error');
     }
   });
-  on(copyButton, 'click', () => runExclusive(copyButton, copyText, '已复制安全模板 JSON。'));
+  on(copyButton, 'click', () => runExclusive(copyButton, copyText, t("已复制安全模板 JSON。")));
   on(downloadButton, 'click', () => runExclusive(
     downloadButton,
     (text) => saveText(text, 'mcp-connection-template.json'),
-    '已下载安全模板 JSON。',
+    t("已下载安全模板 JSON。"),
   ));
   on(draftButton, 'click', () => runExclusive(
     draftButton,
     openDraft,
-    '已将安全 JSON 带入新会话草稿；未自动发送。',
+    t("已将安全 JSON 带入新会话草稿；未自动发送。"),
   ));
 
   return function dispose() {

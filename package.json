@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.87",
+  "version": "0.2.88",
   "description": "DeepSeek Harness MCP Connector: connect servers, search tools across active connections, and troubleshoot discovery. Includes a continuously updated catalog; supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and mcpServers JSON import.",
   "type": "module",
   "main": "lib/index.js",
@@ -21,6 +21,7 @@
     "docs/DESKTOP-E2E.md",
     "docs/MARKET-REGISTRATION.md",
     "docs/PLUGIN-UPDATE.md",
+    "docs/I18N.md",
     "docs/CONFIG-BACKUP.md",
     "docs/CONNECTION-SCOPES.md",
     "docs/TOOL-GOVERNANCE.md",
