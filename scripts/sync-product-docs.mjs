@@ -20,7 +20,7 @@ export async function syncProductDocs({root = process.cwd(), check = false} = {}
     'README.md': { version: `当前公开版本为 [\`dsh-mcp-connector@${v}\`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v${v}](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v${v})。`, media: zh },
     'README.en.md': { version: `The current public version is [\`dsh-mcp-connector@${v}\`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v${v}](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v${v}).`, media: en },
     'docs/tutorials/FIRST-SUCCESS-SCENARIOS.md': { version: `正式 \`dsh-mcp-connector@${v}\`` },
-    'docs/screenshots/README.md': { media: `本组 7 张截图和 GIF 均从 v${capture.sourceVersion} 于 ${capture.capturedOn} 重新采集，未修改截图中的版本文字。` },
+    'docs/screenshots/README.md': { media: `本组 ${assets.screenshots.length} 张截图和 GIF 均从 v${capture.sourceVersion} 于 ${capture.capturedOn} 重新采集，未修改截图中的版本文字。` },
   };
   const drift = [];
   for (const [path, values] of Object.entries(blocks)) {

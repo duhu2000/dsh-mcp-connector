@@ -10,6 +10,12 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 
 [English](README.en.md)
 
+### 首页推荐
+
+首页“推荐”默认展开十张卡片：企查查·企业工商、腾讯文档、飞书开放平台、Notion、GitHub、Playwright、Wind·股票数据、企查查·法律数据、高德地图、Context7。按固定顺序展示，不因连接状态重排；这是场景推荐，不是使用量排行。接入时仍需满足各服务的授权和配置条件。
+
+![Homepage recommendations](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/08-ten-recommendations.jpg)
+
 ### 工具查找与故障处理
 
 在“工具”页统一查找当前工作区可见、已启用连接的工具。输入工具名或描述，再按连接、服务和最近发现状态筛选；点击“参数详情”查看类型、必填项与嵌套结构。未选择工作区时，仅展示全局连接。

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-export const INPUTS = ['ui/index.html', 'ui/sharing-experience.js', 'ui/connection-template-sharing.js', 'scripts/ui-harness.mjs', 'scripts/capture-storefront.mjs', 'catalog/catalog.json'];
+export const INPUTS = ['ui/index.html', 'ui/sharing-experience.js', 'ui/connection-template-sharing.js', 'scripts/ui-harness.mjs', 'scripts/capture-storefront.mjs', 'catalog/catalog.json', 'scripts/fixtures/storefront-catalog.json'];
 export async function sourceFingerprint(root = process.cwd()) {
   const hash = createHash('sha256');
   for (const path of INPUTS) { hash.update(path + '\0'); hash.update(await readFile(resolve(root, path))); }
