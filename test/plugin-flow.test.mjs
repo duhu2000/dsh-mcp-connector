@@ -504,7 +504,10 @@ test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢�
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${server.address().port}/mcp`;
-  const plugin = makePluginContext();
+  const plugin = makePluginContext({ workspaces: [
+    { id: 'workspace-1', title: 'A', sessionIds: [] },
+    { id: 'workspace-2', title: 'B', sessionIds: [] },
+  ] });
   const { tools, tables, disposers } = plugin;
   const { apply } = await import('../lib/index.js');
   const connectors = [{ id: 'discovery-demo', name: 'Demo', auth: { mode: 'none' }, servers: [{ serverKey: 'one', serverName: 'catalog-demo', url }] }];
@@ -512,11 +515,23 @@ test('后台发现覆盖手动、JSON、目录连接，缓存隔离且断网恢�
   try {
     await apply(plugin.ctx, baseConfig({ connectors }));
     assert.equal((await execute('configure', { name: 'Manual', serverName: 'manual-demo', url, scope: 'project', workspaceId: 'workspace-1' })).ok, true);
+    const scopeInput = { key: 'custom-manual-demo', mode: 'move', targetScope: 'project', targetWorkspaceIds: ['workspace-2', 'workspace-1', 'workspace-1'] };
+    const scopePreview = await execute('scope', { ...scopeInput, action: 'preview' });
+    assert.equal(scopePreview.ok, true, scopePreview.message);
+    assert.deepEqual(scopePreview.detail.next.projects, ['workspace-1', 'workspace-2']);
+    const badScope = await execute('scope', { ...scopeInput, action: 'apply', targetWorkspaceIds: ['workspace-1', 'missing'], expectedRevision: scopePreview.detail.baseRevision });
+    assert.equal(badScope.ok, false);
+    assert.match(badScope.message, /不存在/);
+    const scopeApplied = await execute('scope', { ...scopeInput, action: 'apply', expectedRevision: scopePreview.detail.baseRevision });
+    assert.equal(scopeApplied.ok, true, scopeApplied.message);
+    assert.equal(scopeApplied.detail.connection.binding.global, false);
     assert.equal((await execute('import_json', { json: JSON.stringify({ mcpServers: { 'json-demo': { url } } }) })).ok, true);
     assert.equal((await execute('connect', { connectorId: 'discovery-demo' })).ok, true);
     await waitFor(() => [...tables.get('tool_catalog').entries()].length === 3);
     const search = await execute('tool_search', { query: 'lookup_1', workspaceId: 'workspace-1' });
     assert.equal(search.detail.items.length, 3);
+    const secondWorkspace = await execute('tool_search', { query: 'lookup_1', workspaceId: 'workspace-2' });
+    assert.equal(secondWorkspace.detail.items.length, 3);
     const other = await execute('tool_search', { query: 'lookup_1', workspaceId: 'workspace-other' });
     assert.equal(other.detail.items.length, 2);
     const custom = search.detail.items.find((item) => item.connectionKey === 'custom-manual-demo');
