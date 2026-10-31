@@ -106,7 +106,7 @@ function governanceHost(initialNames, initialAgents = [], { emitFromSchemas = fa
     for (const listener of listeners.get(event) ?? []) listener(payload);
   };
   const tools = {
-    schemas() {
+    definitions() {
       schemaReads += 1;
       if (emitFromSchemas) emit('tools/change');
       return names.map((name) => ({ name, description: '', parameters: {} }));
@@ -191,7 +191,7 @@ test('Host controller 对多 Server 真正收窄 Agent schema 并以 guard 拒�
   assert.equal(secondAgent.restrictions.size, 0);
 });
 
-test('治理同步忽略 schemas 与 restrict 同步触发的嵌套 tools/change，避免永久重扫', () => {
+test('治理同步忽略名称读取与 restrict 同步触发的嵌套 tools/change，避免永久重扫', () => {
   const deniedTool = publicToolName('search', 'write');
   const host = governanceHost([deniedTool], [], { emitFromSchemas: true });
   const agent = host.makeAgent('nested-change');

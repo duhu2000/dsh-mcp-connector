@@ -46,10 +46,54 @@ jobs:
       - run: npm install zod@4.1.8 --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - run: npm test
 
+  host-visibility:
+    name: Host visibility (${{ matrix.os }}, ${{ matrix.host }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        host: [0.2.1-rc.2, 0.2.1-rc.3]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Isolated published Host code only: no profile, Desktop UI or real MCP.
+      # Pin the internal-view compatibility contract on each supported release.
+      - name: Install isolated Host runtime
+        run: >-
+          npm install --prefix .host-runtime-fixture --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          @deepseek-ai/cordis@4.0.5
+          @deepseek-ai/dsh-tools@${{ matrix.host }}
+          @deepseek-ai/dsh-scope@${{ matrix.host }}
+          @deepseek-ai/dsh-llm@${{ matrix.host }}
+          @deepseek-ai/dsh-sandbox@${{ matrix.host }}
+      - name: Real ToolRuntime visibility lifecycle (not Desktop UI acceptance)
+        run: >-
+          node -e "const {spawnSync}=require('node:child_process');
+          const anchor=require('node:path').resolve('.host-runtime-fixture/package.json');
+          const r=spawnSync(process.execPath,['--test','test/visibility-host.test.mjs'],
+          {stdio:'inherit',env:{...process.env,DSH_HOST_INTEGRATION_ANCHOR:anchor}});
+          if(r.error)throw r.error;process.exit(r.status??1)"
+
+  fresh-install:
+    name: Fresh generation install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install --global pnpm@11.1.1 --ignore-scripts
+      - run: node scripts/check-fresh-install.mjs
+
   pr-package:
     name: PR test package
     if: github.event_name == 'pull_request'
-    needs: [test, windows, zod-compat]
+    needs: [test, windows, zod-compat, host-visibility, fresh-install]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

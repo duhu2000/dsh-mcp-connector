@@ -64,3 +64,13 @@ Desktop 和 Web 使用同一个 Host API：
 - `action=rollback`：使用预览时的 `expectedRevision` 恢复指定 `rollbackRevision`。
 
 页面和对话工具调用同一 API 门面与 Host 控制器，Desktop 与 `dsh web` 没有另外的前端作用域实现。
+
+## 6. 多工作区选择（#199，0.2.87）
+
+在「已安装 → 修改连接范围」选择「指定工作区（多选）」，勾选一个或多个工作区，再预览并应用。此操作替换原有范围，并取消原先的全局可见；选择「所有项目（全局）」时勾选项不生效。首次连接仍可选择单个工作区，连接后可在范围管理中改为多选。
+
+连接及凭据不会复制，MCP 服务不会按工作区重复启动。列表去重后保存，最多接受 100 项；空选、无效或已删除的工作区整批拒绝。预览版本过期或另一次保存尚未完成时，需重新预览，不能覆盖正在写入的数据。保存失败保留原范围，历史回滚保留完整工作区列表。
+
+API 的 `previewConnectionScope` / `applyConnectionScope` 支持 `targetScope: 'project'` 和 `targetWorkspaceIds: ['id-a', 'id-b']`；与旧 `targetWorkspaceId` 互斥。UI 使用 `mode: 'move'` 替换范围。旧 API `copy` 仍表示追加，**不会清除已有全局权限**。`expectedRevision` 仍必须来自预览。现有治理、会话控制和 Host 审批边界不变。
+
+开发验证不等于 Windows Desktop 实机验收；未获得实机反馈前不据此关闭 #199。

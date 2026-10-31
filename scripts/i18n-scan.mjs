@@ -226,6 +226,8 @@ export function dictionaryRanges(source) {
  * 需要在 review 里解释清楚为什么它不是文案。
  */
 export const ACCEPTED_UNTRANSLATED = Object.freeze({
+  '导入前必须在本机重新填写所有 <REDACTED:REENTER> 值并显式确认；目录引用请回到市场重新授权或确认启动。': 'serialized v1 safety sentinel, validated by exact equality across locales',
+  '自定义 MCP 连接': 'serialized v1 anonymous connection identity; translating would invalidate cross-locale templates',
   // 目录分类的**数据值**：`catalog.json` 里就是中文（"category": "其他"），
   // 面板 `CATEGORY_MAP[c] || '其他'` 与 `matchesMarketFilters` 按此值做相等比较，
   // 并会持久化进 catalog store。英文模式下把它翻译成 "Other" 会让默认分类的卡片

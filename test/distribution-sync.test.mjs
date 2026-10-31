@@ -8,6 +8,7 @@ import {
   parseAwesome,
   parseDshbasePage,
   parseDshfind,
+  parseDshopen,
   parseJsonLdPage,
   reportMarkdown,
 } from '../scripts/check-distribution-sync.mjs';
@@ -54,7 +55,10 @@ test('does not expose a closed PR as the awesome directory follow-up', () => {
 test('links each active external metadata defect to its current follow-up', () => {
   const tracking = Object.fromEntries(DEFAULT_TARGETS.map((candidate) => [candidate.id, candidate.trackingUrl]));
   assert.equal(tracking.dshfind, undefined);
-  assert.equal(tracking['dsh-pub'], 'https://github.com/dsh-pub/dsh-pub/issues/117');
+  assert.equal(tracking.dshopen, undefined);
+  // #117 closed after PR #140 added the npm link. Normal version lag now has
+  // only the deduplicated connector Issue #69 and no resolved upstream link.
+  assert.equal(tracking['dsh-pub'], undefined);
   // #100 was closed by the maintainer after fixing npm metadata; transient
   // availability/version drift must not point users to a resolved defect.
   assert.equal(tracking.dshbase, undefined);
@@ -85,6 +89,72 @@ test('parses dshfind install metadata', () => {
     npmPublished: true,
     detail: 'last synced 2026-09-11T01:51:35Z',
   });
+});
+
+test('parses the connector and npm source from the dshopen index', () => {
+  assert.deepEqual(parseDshopen({
+    format: 1,
+    plugins: [{
+      name: 'dsh-mcp-connector',
+      versions: [{
+        version: '0.2.80',
+        source: { type: 'npm', registry: 'https://registry.npmjs.org/' },
+      }],
+    }],
+  }), {
+    observedVersion: '0.2.80',
+    npmPublished: true,
+    detail: 'format 1 index; npm source present',
+  });
+});
+
+test('rejects dshopen registry lookalikes, userinfo and non-root paths', () => {
+  const registryUrls = [
+    'https://registry.npmjs.org.attacker.test/',
+    'https://registry.npmjs.org@attacker.test/',
+    'https://user@registry.npmjs.org/',
+    'https://registry.npmjs.org/package/',
+    'http://registry.npmjs.org/',
+  ];
+  for (const registry of registryUrls) {
+    const parsed = parseDshopen({
+      format: 1,
+      plugins: [{
+        name: 'dsh-mcp-connector',
+        versions: [{ version: '0.2.81', source: { type: 'npm', registry } }],
+      }],
+    });
+    assert.equal(parsed.npmPublished, false, registry);
+    assert.equal(parsed.detail, 'format 1 index; npm source invalid', registry);
+    assert.equal(assessTarget({ target, canonicalVersion: '0.2.81', parsed }).status, 'invalid', registry);
+  }
+});
+
+test('rejects malformed or missing dshopen indexes', () => {
+  assert.deepEqual(parseDshopen(null), {
+    observedVersion: null,
+    detail: 'unsupported index format: missing',
+  });
+  assert.deepEqual(parseDshopen({ format: 2, plugins: [] }), {
+    observedVersion: null,
+    detail: 'unsupported index format: 2',
+  });
+  assert.deepEqual(parseDshopen({ format: 1 }), {
+    observedVersion: null,
+    detail: 'index.json has no plugins array',
+  });
+  assert.deepEqual(parseDshopen({ format: 1, plugins: [] }), {
+    observedVersion: null,
+    detail: 'connector entry is missing',
+  });
+  const missingRelease = parseDshopen({
+    format: 1,
+    plugins: [{ name: 'dsh-mcp-connector' }],
+  });
+  assert.equal(missingRelease.observedVersion, null);
+  assert.equal(missingRelease.npmPublished, false);
+  assert.equal(missingRelease.detail, 'format 1 index; npm source missing');
+  assert.equal(assessTarget({ target, canonicalVersion: '0.2.81', parsed: missingRelease }).status, 'missing');
 });
 
 test('parses structured public directory pages', () => {

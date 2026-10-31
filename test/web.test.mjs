@@ -81,6 +81,26 @@ const api = {
 
 /* ───────────────────────── 测试 ───────────────────────── */
 
+test('仅开放本机统计 API，已撤回社区统计 API 不可调用', async () => {
+  const wctx = makeWctx();
+  mountWebRoutes(wctx, { connectionStatistics: async () => ({ ok: true, detail: { scope: 'local-profile' } }) }, { logger: { warn() {} } });
+  const route = wctx.routes.get('/mcp-connector/api');
+  for (const method of ['connectionStatistics', 'communityStatistics', 'communityAggregate', 'setStatisticsParticipation']) {
+    const res = new FakeRes();
+    await route.handler(fakeReq({
+      method: 'POST', url: '/mcp-connector/api',
+      headers: { host: '127.0.0.1:62929', 'content-type': 'application/json' },
+      body: JSON.stringify({ method, params: {} }),
+    }), res);
+    if (method === 'connectionStatistics') {
+      assert.equal(res.status, 200);
+      assert.equal(JSON.parse(res.body).detail.scope, 'local-profile');
+    } else {
+      assert.equal(JSON.parse(res.body).ok, false);
+    }
+  }
+});
+
 test('fence：回环 + 同源放行', () => {
   assert.equal(isTrustedWebRequest({ headers: { host: '127.0.0.1:62929' } }), true);
   assert.equal(isTrustedWebRequest({ headers: { host: 'localhost:62929', 'sec-fetch-site': 'same-origin', origin: 'http://localhost:62929' } }), true);
@@ -423,15 +443,14 @@ test('Windows 路径：URL 始终按正斜杠分段且静态资源不误报 404'
   assert.equal(resolveUiFile('\\..\\package.json').ok, false);
 });
 
-test('面板语言注入：中文不注入、英文注入安全常量、非法值不产生脚本', () => {
+test('面板语言注入：中英文均注入安全常量、非法值不产生脚本载荷', () => {
   const html = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head><body></body></html>';
   const buffer = Buffer.from(html);
 
-  // 中文是面板内置默认值：响应字节必须完全不变，避免既有部署出现任何差异。
-  assert.equal(injectPanelLocale(buffer, 'zh-CN'), buffer);
-  assert.equal(injectPanelLocale(buffer, 'zh'), buffer);
-  assert.equal(injectPanelLocale(buffer, undefined), buffer);
-  assert.equal(injectPanelLocale(buffer, 'fr'), buffer);
+  // Explicit Chinese must not be overridden by a stale English client URL.
+  for (const locale of ['zh-CN', 'zh', undefined, 'fr']) {
+    assert.ok(injectPanelLocale(buffer, locale).includes('window.__MCP_CONNECTOR_LOCALE__="zh-CN"'));
+  }
 
   const injected = injectPanelLocale(buffer, 'en').toString('utf8');
   assert.ok(injected.includes('<script>window.__MCP_CONNECTOR_LOCALE__="en"</script>'));

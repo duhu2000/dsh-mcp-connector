@@ -15,10 +15,6 @@ for p in schemastery dsh-storage-domain dsh-storage cordis dsh-mcp-client dsh-to
     echo "WARN: @deepseek-ai/$p not found in $DSH_NODE_MODULES (skip)" >&2
   fi
 done
-if [ -d "$DSH_NODE_MODULES/zod" ]; then
-  ln -sfn "$DSH_NODE_MODULES/zod" "$HERE/node_modules/zod"
-  echo "linked zod"
-else
-  echo "WARN: zod not found in $DSH_NODE_MODULES (skip)" >&2
-fi
+# zod is a plugin-owned dependency. Never replace it with a Host symlink (#181).
+# Install normal dependencies with npm install --legacy-peer-deps first.
 echo "done"

@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const PATHS = {
+  oneSuccess: 'docs/tutorials/ONE-SUCCESS-CASE.md',
+  sharing: 'docs/tutorials/SHARING-KIT.md',
   readmeZh: 'README.md',
   readmeEn: 'README.en.md',
   userGuide: 'docs/USER-GUIDE.md',
@@ -26,6 +28,15 @@ function requireText(path, text, expected) {
 export async function checkFirstUseDocs() {
   const entries = await Promise.all(Object.entries(PATHS).map(async ([key, path]) => [key, await readFile(path, 'utf8')]));
   const docs = Object.fromEntries(entries);
+
+  for (const filename of ['ONE-SUCCESS-CASE.md', 'SHARING-KIT.md']) {
+    requireText(PATHS.entry, docs.entry, `(${filename})`);
+    for (const key of ['readmeZh', 'readmeEn']) {
+      requireText(PATHS[key], docs[key], `(docs/tutorials/${filename})`);
+    }
+  }
+  requireText(PATHS.oneSuccess, docs.oneSuccess, '本次文档更新没有新增真实调用');
+  requireText(PATHS.sharing, docs.sharing, '不新增遥测');
 
   requireText(PATHS.readmeZh, docs.readmeZh, '(docs/tutorials/README.md)');
   requireText(PATHS.readmeEn, docs.readmeEn, '(docs/tutorials/README.md)');

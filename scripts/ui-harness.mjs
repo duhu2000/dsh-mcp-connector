@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalizeConnectorDescriptor } from '../lib/schema.js';
-import { auditDescriptor, auditRawDescriptor, mergeCatalog } from '../lib/catalog.js';
+import { auditDescriptor, auditRawDescriptor, mergeCatalog, bundledTemplateReferences } from '../lib/catalog.js';
 import { normalizeGovernanceMutation, publicToolName, resolveGovernancePolicy } from '../lib/governance.js';
 import { ConnectionScopeService, bindingForConnection, scopeLabel } from '../lib/connection-scopes.js';
 import { browseToolCatalog, createToolCatalogRecord } from '../lib/tool-catalog-cache.js';
@@ -38,6 +38,7 @@ const scopeService = new ConnectionScopeService({
 });
 await scopeService.load();
 const mockWorkspace = { workspaceId: 'workspace-mock', title: '无凭据验收项目' };
+const mockWorkspaces = [mockWorkspace, { workspaceId: 'workspace-second', title: '第二验收项目' }];
 const bundledAssets = new Map([
   ['qcc-logo.svg', 'image/svg+xml'],
   ['pkulaw-logo.png', 'image/png'],
@@ -161,7 +162,8 @@ function captureShell() {
       if (event.data?.type === 'mcp-connector:workspace-context-request') {
         frame.contentWindow.postMessage({
           type: 'mcp-connector:workspace-context',
-          workspace: ${JSON.stringify(mockWorkspace)}
+          workspace: ${JSON.stringify(mockWorkspace)},
+          workspaces: ${JSON.stringify(mockWorkspaces)}
         }, window.location.origin);
       }
     });
@@ -175,9 +177,21 @@ const server = createServer(async (req, res) => {
     const body = Buffer.from(captureShell());
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': body.byteLength }); res.end(body); return;
   }
-  if (req.method === 'GET' && req.url === '/mcp-connector/ui/') {
+  if (req.method === 'GET' && req.url?.split('?')[0] === '/mcp-connector/ui/') {
     const body = await readFile(join(root, 'ui/index.html'));
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/ui/locale.js') {
+    const body = await readFile(join(root, 'ui/locale.js'));
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/ui/sharing-experience.js') {
+    const body = await readFile(join(root, 'ui/sharing-experience.js'));
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); res.end(body); return;
+  }
+  if (req.method === 'GET' && req.url === '/mcp-connector/ui/connection-template-sharing.js') {
+    const body = await readFile(join(root, 'ui/connection-template-sharing.js'));
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); res.end(body); return;
   }
   const assetName = req.url?.match(/^\/mcp-connector\/ui\/assets\/([^/?#]+)$/)?.[1];
   if (req.method === 'GET' && assetName && bundledAssets.has(assetName)) {
@@ -199,6 +213,9 @@ const server = createServer(async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const { method, params = {} } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  if (method === 'templateCatalogReferences') {
+    json(res, { ok: true, detail: { items: bundledTemplateReferences() } }); return;
+  }
   if (method === 'catalog') {
     json(res, { ok: true, detail: { items: catalog.map((item) => ({
       ...item,
@@ -231,6 +248,7 @@ const server = createServer(async (req, res) => {
     const scopeDocument = scopeService.snapshot();
     json(res, { ok: true, detail: { items, scope: {
       revision: scopeDocument.revision,
+      workspaces: mockWorkspaces,
       history: scopeDocument.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
     } } }); return;
   }
@@ -300,15 +318,20 @@ const server = createServer(async (req, res) => {
     const document = scopeService.snapshot();
     json(res, { ok: true, message: `Mock 连接作用域 revision=${document.revision}`, detail: {
       revision: document.revision,
-      workspaces: [{ id: mockWorkspace.workspaceId, title: mockWorkspace.title }],
+      workspaces: mockWorkspaces,
       history: document.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
       credentialsStoredInScopeDocument: false,
     } }); return;
   }
+  if (method === 'connectionStatistics') {
+    json(res, { ok: true, detail: { available: true, persistent: false,
+      cumulativeSuccessfulConnections: connected.size, newSuccessfulConnections30d: connected.size,
+      historicalBaseline: 0, items: [] } }); return;
+  }
   if (method === 'previewConnectionScope') {
     try {
       const target = params.targetScope === 'project'
-        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId, workspaceIds: params.targetWorkspaceIds }
         : { scope: 'global' };
       const preview = scopeService.preview({ connectionKey: params.key, mode: params.mode, target });
       const serverName = catalog.flatMap((item) => item.servers).find((server) => params.key.endsWith(`:${server.serverKey}`))?.serverName ?? params.key;
@@ -327,7 +350,7 @@ const server = createServer(async (req, res) => {
   if (method === 'applyConnectionScope') {
     try {
       const target = params.targetScope === 'project'
-        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId, workspaceIds: params.targetWorkspaceIds }
         : { scope: 'global' };
       const result = await scopeService.apply({ connectionKey: params.key, mode: params.mode, target }, { expectedRevision: params.expectedRevision });
       json(res, { ok: true, message: `Mock 连接作用域已更新（revision=${result.document.revision}）`, detail: {

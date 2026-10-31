@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.77",
+  "version": "0.2.88",
   "description": "DeepSeek Harness MCP Connector: connect servers, search tools across active connections, and troubleshoot discovery. Includes a continuously updated catalog; supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and mcpServers JSON import.",
   "type": "module",
   "main": "lib/index.js",
@@ -43,18 +43,20 @@
     "scripts/probe-connector.mjs",
     "scripts/cli-bridge.mjs",
     "scripts/build-registry.mjs",
-    "scripts/ui-harness.mjs"
+    "scripts/ui-harness.mjs",
+    "docs/DATA-MCP-CONTRIBUTION-REVIEW.md",
+    "docs/SHAREABLE-CONNECTION-TEMPLATES.md"
   ],
   "scripts": {
     "test": "node --test",
-    "lint": "node --check lib/discovery-policy.js && node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/settings.js && node --check lib/version-status.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/diagnostics.js && node --check lib/connection-backup.js && node --check lib/connection-editor.js && node --check lib/connection-scopes.js && node --check lib/governance.js && node --check lib/session-injection.js && node --check lib/tool-catalog-cache.js && node --check lib/status-events.js && node --check lib/mcp-validation.js && node --check lib/mcp-http.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/grant-journal.js && node --check lib/oauth.js && node --check lib/grant-lifecycle.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/stdio-startup-guard.js && node --check lib/cli-providers.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check scripts/probe-connector.mjs && node --check scripts/cli-bridge.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs && node --check scripts/check-distribution-sync.mjs && node --check scripts/check-readme-version.mjs && node --check scripts/check-first-use-docs.mjs && node --check scripts/check-marketing-metadata.mjs && node --check scripts/check-storefront-screenshots.mjs && node --check scripts/sync-registry-stats.mjs && node --check scripts/verify-pack.mjs && node --check scripts/check-tutorial-links.mjs",
+    "lint": "node --check lib/discovery-policy.js && node --check lib/index.js && node --check lib/web.js && node --check lib/client.js && node --check lib/settings.js && node --check lib/version-status.js && node --check lib/schema.js && node --check lib/catalog.js && node --check lib/prompts.js && node --check lib/probe.js && node --check lib/diagnostics.js && node --check lib/connection-backup.js && node --check lib/shareable-connection-template.js && node --check lib/connection-editor.js && node --check lib/connection-scopes.js && node --check lib/governance.js && node --check lib/session-injection.js && node --check lib/tool-catalog-cache.js && node --check lib/status-events.js && node --check lib/mcp-validation.js && node --check lib/mcp-http.js && node --check lib/migration.js && node --check lib/stores.js && node --check lib/grant-journal.js && node --check lib/oauth.js && node --check lib/grant-lifecycle.js && node --check lib/callback-server.js && node --check lib/mcp-provision.js && node --check lib/stdio-startup-guard.js && node --check lib/cli-providers.js && node --check lib/util.js && node --check lib/constants.js && node --check lib/tools.js && node --check lib/connectors/oauth-connector.js && node --check lib/connectors/manual-connector.js && node --check lib/connectors/json-connector.js && node --check ui/sharing-experience.js && node --check ui/connection-template-sharing.js && node --check scripts/probe-connector.mjs && node --check scripts/cli-bridge.mjs && node --check scripts/build-registry.mjs && node --check scripts/ui-harness.mjs && node --check scripts/check-market-registration.mjs && node --check scripts/check-distribution-sync.mjs && node --check scripts/check-readme-version.mjs && node --check scripts/check-first-use-docs.mjs && node --check scripts/check-marketing-metadata.mjs && node --check scripts/check-storefront-screenshots.mjs && node --check scripts/sync-registry-stats.mjs && node --check scripts/verify-pack.mjs && node --check scripts/check-tutorial-links.mjs",
     "registry:build": "node scripts/build-registry.mjs",
     "registry:validate": "node scripts/probe-connector.mjs catalog/catalog.json --validate-only",
     "dev:ui": "node scripts/ui-harness.mjs",
     "market:check": "node scripts/check-market-registration.mjs",
     "distribution:check:live": "node scripts/check-distribution-sync.mjs --strict-sync",
     "registry:stats:sync": "node scripts/sync-registry-stats.mjs",
-    "docs:check": "node scripts/check-readme-version.mjs",
+    "docs:check": "node scripts/check-readme-version.mjs && node scripts/sync-product-docs.mjs --check",
     "docs:first-use:check": "node scripts/check-first-use-docs.mjs",
     "marketing:check": "node scripts/check-marketing-metadata.mjs",
     "marketing:check:github": "node scripts/check-marketing-metadata.mjs --live-github",
@@ -64,7 +66,10 @@
     "verify-pack": "node scripts/verify-pack.mjs",
     "docs:tutorial-links:check": "node scripts/check-tutorial-links.mjs",
     "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:tutorial-links:check",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "docs:sync": "node scripts/sync-product-docs.mjs",
+    "storefront:capture": "node scripts/capture-storefront.mjs",
+    "storefront:freshness": "node scripts/check-media-freshness.mjs"
   },
   "keywords": [
     "deepseek-harness",
@@ -150,19 +155,18 @@
     "@deepseek-ai/schemastery": "^3.18.1",
     "@deepseek-ai/cordis": "^4.0.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "zod": ">=4.1.8 <5"
+    "react-dom": "^18.2.0"
   },
   "dependencies": {
     "cross-spawn": "^7.0.6",
-    "undici": "^6.29.0"
+    "undici": "^6.29.0",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-storage": "^0.1.0-rc.7",
     "@deepseek-ai/dsh-storage-domain": "^0.1.0-rc.7",
-    "@deepseek-ai/schemastery": "^3.18.1",
-    "zod": "^4.4.0"
+    "@deepseek-ai/schemastery": "^3.18.1"
   },
   "engines": {
     "node": ">=20"

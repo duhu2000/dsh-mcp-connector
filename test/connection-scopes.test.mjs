@@ -10,6 +10,47 @@ import {
   normalizeScopeTarget,
 } from '../lib/connection-scopes.js';
 
+test('多选范围严格校验，去重且替换 global，不影响旧单目标接口', () => {
+  const target = normalizeScopeTarget({ scope: 'project', workspaceIds: ['b', ' a ', 'a'] });
+  assert.deepEqual(target.workspaceIds, ['a', 'b']);
+  for (const workspaceIds of [[], 'a', [null], [''], Array(101).fill('a')]) {
+    assert.throws(() => normalizeScopeTarget({ scope: 'project', workspaceIds }), /workspaceIds/);
+  }
+  assert.throws(() => normalizeScopeTarget({ scope: 'project', workspaceId: 'a', workspaceIds: ['b'] }), /同时/);
+  const binding = mutateScopeBinding({ connectionKey: 'x', global: true, projects: [] }, { mode: 'move', target });
+  assert.equal(binding.global, false);
+  for (const id of ['a', 'b']) assert.equal(connectionVisibleInWorkspace(binding, id), true);
+  for (const id of ['c', undefined, '']) assert.equal(connectionVisibleInWorkspace(binding, id), false);
+  const reduced = mutateScopeBinding(binding, { mode: 'move', target: { scope: 'project', workspaceIds: ['a'] } });
+  assert.equal(connectionVisibleInWorkspace(reduced, 'b'), false);
+});
+
+test('多选保存互斥、失败不改内存，持久恢复和回滚保持完整列表', async () => {
+  let persisted;
+  let release;
+  const store = { get: async () => persisted, put: async (value) => {
+    await new Promise((resolve) => { release = resolve; });
+    persisted = structuredClone(value);
+  } };
+  const service = new ConnectionScopeService(store);
+  await service.load();
+  const input = { connectionKey: 'x', mode: 'move', target: { scope: 'project', workspaceIds: ['a', 'b'] } };
+  const first = service.apply(input, { expectedRevision: 0 });
+  await assert.rejects(service.apply({ ...input, target: { scope: 'project', workspaceIds: ['c'] } }, { expectedRevision: 0 }), /正在保存/);
+  release();
+  await first;
+  const restored = new ConnectionScopeService(store);
+  await restored.load();
+  assert.deepEqual(restored.binding('x').projects, ['a', 'b']);
+  await assert.rejects(restored.apply(input, { expectedRevision: 0 }), /重新预览/);
+  store.put = async () => { throw new Error('disk failure'); };
+  await assert.rejects(restored.apply({ ...input, target: { scope: 'global' } }, { expectedRevision: 1 }), /disk failure/);
+  assert.deepEqual(restored.binding('x').projects, ['a', 'b']);
+  store.put = async (value) => { persisted = structuredClone(value); };
+  await restored.rollback(0, { expectedRevision: 1 });
+  assert.equal(restored.binding('x').global, true);
+});
+
 test('旧连接缺少显式绑定时保持 profile/global 兼容', () => {
   const document = normalizeScopeDocument(null);
   assert.deepEqual(bindingForConnection(document.bindings, 'legacy'), {
@@ -100,7 +141,7 @@ function scopeHost(names, { emitFromSchemas = false } = {}) {
   };
   const ctx = {
     tools: {
-      schemas: () => {
+      definitions: () => {
         schemaReads += 1;
         if (emitFromSchemas) emit('tools/change');
         return names.map((name) => ({ name }));
@@ -167,12 +208,21 @@ test('Host 对 project-only 工具同时收窄可见性并在执行层 fail clos
   assert.equal(guard({ name: globalTool }), undefined);
   assert.equal(guard({ name: 'unrelated' }), undefined);
 
+  bindings[0].projects.push('workspace-b');
+  controller.refresh();
+  assert.deepEqual([...host.denied(outside)], []);
+  assert.equal(guard({ name: projectTool, agent: outside }), undefined);
+  bindings[0].projects = ['workspace-a'];
+  controller.refresh();
+  assert.deepEqual([...host.denied(outside)], [projectTool]);
+  assert.match(guard({ name: projectTool, agent: outside }), /不属于当前工作区/);
+
   controller.dispose();
   assert.equal(host.guards.size, 0);
   assert.equal(outside.restrictions.size, 0);
 });
 
-test('作用域同步忽略 schemas 同步触发的嵌套 tools/change，后续独立变更仍生效', () => {
+test('作用域同步忽略名称读取同步触发的嵌套 tools/change，后续独立变更仍生效', () => {
   const projectTool = 'mcp__project-server__read';
   const host = scopeHost([projectTool], { emitFromSchemas: true });
   const outside = host.agent('outside', 'workspace-b');

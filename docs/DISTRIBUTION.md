@@ -1,8 +1,35 @@
 # DSH MCP Connector Distribution Ledger
 
-Last updated: 2026-10-15 (Asia/Shanghai)
+Last updated: 2026-10-25 (Asia/Shanghai)
 
-## Current closeout — 2026-10-15
+## Current closeout — 2026-10-25
+
+This section supersedes the previous closeout while retaining older rows as
+dated historical evidence.
+
+- Canonical npm and GitHub release is `0.2.81` at commit `28bc03d`.
+- [The dated P2 audit](DISTRIBUTION-AUDIT-2026-10-25.md) verifies npm/GitHub,
+  awesome-dsh-plugin, DSH Market, and dshopen source, version, install
+  coordinates, ranking semantics, screenshots, tutorial links, and historical
+  PR state.
+- At 22:50–23:05 Asia/Shanghai, awesome/DSH Market reported `0.2.79` and
+  dshopen reported `0.2.80`. The release was less than 30 minutes old, so this
+  is an automatic-refresh lag, not a reason for another listing submission.
+- `dshopen.org/index.json` is now part of the strict synchronization check.
+- Connector Issue #69 remains the sole convergence tracker. No duplicate
+  external Issue or PR was created.
+- Explicit npm intervals are 2,722 downloads over the last seven complete UTC
+  days, 21,486 over the last thirty complete UTC days, and 41,477 from first
+  publication through 2026-10-24. These are separate from rolling npm aliases,
+  GitHub cumulative metrics, and directory ranking fields.
+- dsh.pub Issue #117 is closed and PR #140 is merged. Its canonical npm-link
+  defect is resolved; remaining version lag is monitored automatically.
+- The browser automation service failed before any browser action. Public
+  machine sources were verified, but no new actual-UI screenshot was captured.
+
+This documentation/monitoring change requires no npm release or tag.
+
+## Previous closeout — 2026-10-15
 
 This section supersedes the dated historical observations below.
 
@@ -37,7 +64,7 @@ the same upstream data source.
 | Product | MCP Connector / MCP连接器 |
 | Repository | [`duhu2000/dsh-mcp-connector`](https://github.com/duhu2000/dsh-mcp-connector) |
 | npm package | [`dsh-mcp-connector`](https://www.npmjs.com/package/dsh-mcp-connector) |
-| Current release | `0.2.73` (npm `latest`, checked 2026-10-15) |
+| Current release | `0.2.81` (npm `latest`, checked 2026-10-25) |
 | License | MIT |
 | GitHub discovery topic | `dsh-plugin` |
 | Plugin type | DSH client plugin, MCP connection manager, and connector marketplace |
@@ -128,7 +155,7 @@ named markets.
 | awesome-dsh-plugin current description/feed | [Description PR #4982](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/4982), [statistics PR #5309](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/5309) | Both merged; the successful 2026-09-29 audit reports live version `0.2.59` and canonical npm metadata | Complete; keep download counts labeled by explicit window and do not call them users |
 | external directory post-release convergence | [Connector Issue #69](https://github.com/duhu2000/dsh-mcp-connector/issues/69) | Open and deduplicated for release `0.2.64`; two normal one-patch lags and two persistent upstream defects remain | All five automated targets become current and valid; the workflow then closes Issue #69 |
 | dshfind metadata refresh | [Resolved #49](https://github.com/hikariming/dshfind/issues/49#issuecomment-5949135575) | Complete: the API advanced from `0.2.59` to `0.2.64`, preserved the npm identity, and the targeted Issue was closed | Complete; retain automatic monitoring only |
-| dsh.pub npm link | [Feature #117](https://github.com/dsh-pub/dsh-pub/issues/117) | Version sync #88 is complete; the separate npm-link rendering request is now tracked as requested by the maintainer | Canonical npm URL is visible without a duplicate package submission |
+| dsh.pub npm link | [Closed #117](https://github.com/dsh-pub/dsh-pub/issues/117) / [merged PR #140](https://github.com/dsh-pub/dsh-pub/pull/140) | Complete: the canonical npm link is visible; only normal release-version lag remains in automatic monitoring | Complete; no duplicate package submission |
 | DSH Plugin Directory | [Submission #226](https://github.com/alexchenzl/dsh-plugin-directory/issues/226) | Accepted and one patch behind at `0.2.63` immediately after the `0.2.64` release | Complete after its automatic refresh; no duplicate listing Issue |
 | dshbase source metadata | [Closed correction PR #110](https://github.com/ylwl1997/dshbase/pull/110) / [Issue #100 follow-up](https://github.com/ylwl1997/dshbase/issues/100#issuecomment-5948468259) | Public version is `0.2.62` and still says npm unavailable; PR #110 closed unmerged, so the maintainer has been asked for the preferred replacement path | Production page exposes the npm package and current release while retaining verified/install-tested status |
 | HackSing DSH Plugins | [Submission #167](https://github.com/HackSing/dsh-plugins/issues/167) | Accepted by automation and closed; directory commit [`5054ed8`](https://github.com/HackSing/dsh-plugins/commit/5054ed8dbb7a2ec78da898b44e4abd31d72b3ccf) recorded | Complete; future changes use the information-update form |
@@ -164,7 +191,7 @@ the destination schema without changing the product identity.
 
 - Repository: `https://github.com/duhu2000/dsh-mcp-connector`
 - npm: `https://www.npmjs.com/package/dsh-mcp-connector`
-- Release: use [latest release](https://github.com/duhu2000/dsh-mcp-connector/releases/latest); verified `0.2.73` on 2026-10-15
+- Release: use [latest release](https://github.com/duhu2000/dsh-mcp-connector/releases/latest); verified `0.2.81` on 2026-10-25
 - License: MIT
 - Category preference: `Integrations & Connectors`; otherwise
   `Plugins & Runtime`, `Integration`, or `Plugin Markets & Managers`

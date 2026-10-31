@@ -14,7 +14,7 @@ function sessionHost(initialNames) {
     for (const listener of listeners.get(event) ?? []) listener(payload);
   };
   const ctx = { tools: {
-    schemas: () => names.map((name) => ({ name })),
+    definitions: () => names.map((name) => ({ name })),
     guard(fn) { guards.add(fn); return () => guards.delete(fn); },
     restrict() {},
   } };
