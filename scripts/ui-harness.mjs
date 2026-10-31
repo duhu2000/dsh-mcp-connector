@@ -38,6 +38,7 @@ const scopeService = new ConnectionScopeService({
 });
 await scopeService.load();
 const mockWorkspace = { workspaceId: 'workspace-mock', title: '无凭据验收项目' };
+const mockWorkspaces = [mockWorkspace, { workspaceId: 'workspace-second', title: '第二验收项目' }];
 const bundledAssets = new Map([
   ['qcc-logo.svg', 'image/svg+xml'],
   ['pkulaw-logo.png', 'image/png'],
@@ -161,7 +162,8 @@ function captureShell() {
       if (event.data?.type === 'mcp-connector:workspace-context-request') {
         frame.contentWindow.postMessage({
           type: 'mcp-connector:workspace-context',
-          workspace: ${JSON.stringify(mockWorkspace)}
+          workspace: ${JSON.stringify(mockWorkspace)},
+          workspaces: ${JSON.stringify(mockWorkspaces)}
         }, window.location.origin);
       }
     });
@@ -242,6 +244,7 @@ const server = createServer(async (req, res) => {
     const scopeDocument = scopeService.snapshot();
     json(res, { ok: true, detail: { items, scope: {
       revision: scopeDocument.revision,
+      workspaces: mockWorkspaces,
       history: scopeDocument.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
     } } }); return;
   }
@@ -311,7 +314,7 @@ const server = createServer(async (req, res) => {
     const document = scopeService.snapshot();
     json(res, { ok: true, message: `Mock 连接作用域 revision=${document.revision}`, detail: {
       revision: document.revision,
-      workspaces: [{ id: mockWorkspace.workspaceId, title: mockWorkspace.title }],
+      workspaces: mockWorkspaces,
       history: document.history.map((item) => ({ revision: item.revision, createdAt: item.createdAt, bindingCount: item.bindings.length })),
       credentialsStoredInScopeDocument: false,
     } }); return;
@@ -319,7 +322,7 @@ const server = createServer(async (req, res) => {
   if (method === 'previewConnectionScope') {
     try {
       const target = params.targetScope === 'project'
-        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId, workspaceIds: params.targetWorkspaceIds }
         : { scope: 'global' };
       const preview = scopeService.preview({ connectionKey: params.key, mode: params.mode, target });
       const serverName = catalog.flatMap((item) => item.servers).find((server) => params.key.endsWith(`:${server.serverKey}`))?.serverName ?? params.key;
@@ -338,7 +341,7 @@ const server = createServer(async (req, res) => {
   if (method === 'applyConnectionScope') {
     try {
       const target = params.targetScope === 'project'
-        ? { scope: 'project', workspaceId: params.targetWorkspaceId }
+        ? { scope: 'project', workspaceId: params.targetWorkspaceId, workspaceIds: params.targetWorkspaceIds }
         : { scope: 'global' };
       const result = await scopeService.apply({ connectionKey: params.key, mode: params.mode, target }, { expectedRevision: params.expectedRevision });
       json(res, { ok: true, message: `Mock 连接作用域已更新（revision=${result.document.revision}）`, detail: {

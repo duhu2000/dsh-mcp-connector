@@ -1890,10 +1890,13 @@
     const item = installedItems.find((candidate) => candidate.key === key);
     if (!item) { showToast('连接不存在，请刷新后重试', false); return; }
     pendingScopeKey = key;
+    const binding = item.scope?.binding || { global: true, projects: [] };
+    const choices = availableWorkspaces.map((workspace) => `<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" style="width:auto" data-scope-workspace value="${esc(workspace.workspaceId)}" ${binding.projects.includes(workspace.workspaceId) ? 'checked' : ''}>${esc(workspace.title)}</label>`).join('');
     openModal(`连接范围 · ${item.name}`, `
       <div class="form-note"><strong>当前：${esc(item.scope?.label || '全局')}</strong>变更前会预览受影响的 Server 和已知工具；连接配置、OAuth Grant 和凭据不会被复制。</div>
-      <label for="scope-change-mode">变更方式</label><select id="scope-change-mode"><option value="move">移动（替换现有范围）</option><option value="copy">复制（保留现有范围）</option></select>
-      ${scopeFieldHtml({ id: 'scope-change-target' })}
+      <label for="scope-change-target">替换连接范围</label><select id="scope-change-target"><option value="global" ${binding.global ? 'selected' : ''}>所有项目（全局）</option><option value="project" ${!binding.global ? 'selected' : ''}>指定工作区（多选）</option></select>
+      <div role="group" aria-label="指定工作区" style="max-height:240px;overflow:auto">${choices || '<p>暂无可用 Workspace，请刷新后重试。</p>'}</div>
+      <div class="field-help">选择指定工作区后，至少勾选一项；应用会替换原有范围并取消全局可见。全局模式下勾选项不生效。首次连接后可在此设置多个工作区。</div>
       <div class="inline-error" id="modal-error" tabindex="-1"></div>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">取消</button><button class="btn" type="button" onclick="window.__mcp.submitScopeChange()">预览并应用</button></div>`);
   }
@@ -2127,31 +2130,39 @@
     },
     async submitScopeChange() {
       if (!pendingScopeKey) return;
+      const key = pendingScopeKey;
       let target;
-      try { target = selectedScopeParams('scope-change-target'); }
+      try {
+        const scope = $('#scope-change-target')?.value;
+        if (!['global', 'project'].includes(scope)) throw new Error('请选择连接范围');
+        const workspaceIds = [...document.querySelectorAll('[data-scope-workspace]:checked')].map((input) => input.value);
+        if (scope === 'project' && !workspaceIds.length) throw new Error('请至少选择一个 Workspace');
+        target = { scope, ...(scope === 'project' ? { workspaceIds } : {}) };
+      }
       catch (error) { showModalError(error.message); return; }
-      const mode = $('#scope-change-mode')?.value || 'move';
+      const mode = 'move';
       setModalBusy(true, '正在预览影响…');
       const preview = await call('previewConnectionScope', {
-        key: pendingScopeKey,
+        key,
         mode,
         targetScope: target.scope,
-        targetWorkspaceId: target.workspaceId,
+        targetWorkspaceIds: target.workspaceIds,
       });
       setModalBusy(false);
       if (!preview.ok || !preview.detail?.canApply) { showModalError(preview.message); return; }
       const affected = scopeAffectedText(preview.detail.impact?.servers);
       if (!await confirmDialog({
         title: '变更连接范围',
-        message: `${preview.message}\n${affected}\n\n确认${mode === 'copy' ? '复制到' : '移动到'}所选范围？`,
+        message: `${preview.message}\n${affected}\n\n目标：${target.scope === 'global' ? '所有项目（全局）' : target.workspaceIds.map((id) => availableWorkspaces.find((w) => w.workspaceId === id)?.title || id).join('、')}\n确认替换原有范围？${target.scope === 'project' ? '应用后取消全局可见。' : ''}`,
         confirmLabel: '应用',
       })) return;
+      if (pendingScopeKey !== key) return;
       setModalBusy(true, '正在应用范围…');
       const result = await call('applyConnectionScope', {
-        key: pendingScopeKey,
+        key,
         mode,
         targetScope: target.scope,
-        targetWorkspaceId: target.workspaceId,
+        targetWorkspaceIds: target.workspaceIds,
         expectedRevision: preview.detail.baseRevision,
       });
       setModalBusy(false);
