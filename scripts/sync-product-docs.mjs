@@ -13,9 +13,10 @@ export function replaceGenerated(text, key, value) {
 export async function syncProductDocs({root = process.cwd(), check = false} = {}) {
   const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const assets = JSON.parse(await readFile(resolve(root, 'docs/screenshots/assets.json'), 'utf8'));
+  const englishAssets = JSON.parse(await readFile(resolve(root, 'docs/screenshots/en/assets.json'), 'utf8'));
   const v = pkg.version, capture = assets.capture;
   const zh = `截图与 GIF 采集自 v${capture.sourceVersion}（${capture.capturedOn}）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。`;
-  const en = `Screenshots and GIF were captured from v${capture.sourceVersion} (${capture.capturedOn}), using the credential-free Mock harness. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).`;
+  const en = `English UI screenshots and GIF were captured from v${englishAssets.capture.sourceVersion} (${englishAssets.capture.capturedOn}), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).`;
   const blocks = {
     'README.md': { version: `当前公开版本为 [\`dsh-mcp-connector@${v}\`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v${v}](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v${v})。`, media: zh },
     'README.en.md': { version: `The current public version is [\`dsh-mcp-connector@${v}\`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v${v}](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v${v}).`, media: en },

@@ -128,8 +128,11 @@ export async function checkStorefrontScreenshots({
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
 if (invokedPath === fileURLToPath(import.meta.url)) {
-  checkStorefrontScreenshots()
-    .then((screenshots) => console.log(`Storefront 截图校验通过：${screenshots.length} 张图片`))
+  Promise.all([
+    checkStorefrontScreenshots(),
+    checkStorefrontScreenshots({manifestPath: 'screenshots.en.json'}),
+  ])
+    .then((groups) => console.log(`Storefront 截图校验通过：中英文共 ${groups.flat().length} 张图片`))
     .catch((error) => {
       console.error(`Storefront 截图校验失败：${error instanceof Error ? error.message : String(error)}`);
       process.exitCode = 1;

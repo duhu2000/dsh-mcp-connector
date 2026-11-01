@@ -1,11 +1,22 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { checkStorefrontScreenshots } from '../scripts/check-storefront-screenshots.mjs';
+
+test('English README references independently verified English screenshots and GIF', async () => {
+  const paths = await checkStorefrontScreenshots({manifestPath: 'screenshots.en.json'});
+  assert.equal(paths.length, 8);
+  const readme = await readFile('README.en.md', 'utf8');
+  for (const path of paths) assert.ok(readme.includes('/main/' + path), path);
+  assert.ok(readme.includes('/main/docs/screenshots/en/demo.gif'));
+  assert.doesNotMatch(readme, /\/main\/docs\/screenshots\/\d/);
+  const metadata = JSON.parse(await readFile('docs/screenshots/en/assets.json', 'utf8'));
+  assert.equal(metadata.capture.locale, 'en');
+});
 
 async function fixture(manifest, files = ['docs/market.jpg']) {
   const root = await mkdtemp(join(tmpdir(), 'mcp-storefront-'));

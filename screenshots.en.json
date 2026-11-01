@@ -1,0 +1,13 @@
+{
+  "assetMetadata": "docs/screenshots/en/assets.json",
+  "screenshots": [
+    "docs/screenshots/en/01-market-overview.jpg",
+    "docs/screenshots/en/02-connector-detail.jpg",
+    "docs/screenshots/en/03-tool-discovery.jpg",
+    "docs/screenshots/en/04-json-import.jpg",
+    "docs/screenshots/en/05-unified-tool-search.png",
+    "docs/screenshots/en/06-tool-parameters.png",
+    "docs/screenshots/en/07-connection-diagnostics.png",
+    "docs/screenshots/en/08-ten-recommendations.jpg"
+  ]
+}

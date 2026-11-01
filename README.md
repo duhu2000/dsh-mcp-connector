@@ -8,7 +8,19 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 
 > 注：“技能扩展”指通过 MCP 工具和 Prompt 扩展智能体能力，本包不会伪装成独立 DSH Skill。
 
-[English](README.en.md)
+[English documentation](https://github.com/duhu2000/dsh-mcp-connector/blob/main/README.en.md) · [English overview](#english-overview)
+
+### English overview
+
+**MCP Connector for DeepSeek Harness** brings server setup, authorization, cross-connection tool search and troubleshooting into one panel. Browse a continuously updated catalog of 100+ connectors; connect through OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio or `mcpServers` JSON import.
+
+Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
+
+![MCP Connector — English interface](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/01-market-overview.jpg)
+
+*Credential-free Mock demonstration; counts are fixtures, not production statistics.* [Full English guide and demo](https://github.com/duhu2000/dsh-mcp-connector/blob/main/README.en.md)
+
+### 中文界面与使用说明
 
 **中英文界面：** 顶部工具栏直接展示「中文 / EN」按钮，完整语言名称保留在提示中，并记住当前浏览器中的主动选择。插件 Host 默认跟随 DSH 显式语言偏好，缺失时保持中文；可配置 `locale: zh-CN` 或 `locale: en`。面板切换不重启 DSH；详情见 [语言设置](docs/I18N.md)。
 
@@ -116,7 +128,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.90（2026-11-01）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.91（2026-11-01）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -240,7 +252,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.90`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.90](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.90)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.91`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.91](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.91)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

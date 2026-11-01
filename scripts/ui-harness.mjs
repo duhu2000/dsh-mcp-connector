@@ -132,7 +132,8 @@ function policyImpact(connectorId, serverName, beforeRules, afterRules) {
 }
 
 function captureShell() {
-  return `<!doctype html>
+  const english = process.env.MCP_CONNECTOR_UI_CAPTURE_LOCALE === 'en';
+  const shell = `<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
@@ -170,6 +171,7 @@ function captureShell() {
   </script>
 </body>
 </html>`;
+  return english ? shell.replaceAll('MCP连接器', 'MCP Connector').replaceAll('无凭据验收环境', 'Credential-free test harness').replaceAll('无凭据 Mock', 'Credential-free Mock').replace('lang="zh-CN"', 'lang="en"').replace('src="/mcp-connector/ui/"', 'src="/mcp-connector/ui/?uiLocale=en"') : shell;
 }
 
 const server = createServer(async (req, res) => {
