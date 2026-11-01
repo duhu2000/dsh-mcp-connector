@@ -123,7 +123,10 @@
   .stats .count { font-size: 13px; color: var(--text-2); }
   .stats .count strong { color: var(--text); font-weight: 600; }
   .market-nav { flex: 0 0 100%; min-width: 0; order: 4; }
-  .market-filters { position: static; display: flex; align-items: center; }
+  .market-filters { position: static; min-width: 0; width: 100%; display: flex; align-items: center; gap: 5px; }
+  .category-arrow { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font-size: 20px; }
+  .category-arrow:disabled { opacity: .3; cursor: default; }
+  .category-arrow[hidden] { display: none; }
   .filter-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .filter-chip {
     border: 1px solid var(--line); background: var(--bg); color: var(--text-2);
@@ -131,7 +134,8 @@
   }
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
   .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
-  .category-chips { width: 100%; display: flex; gap: 5px; flex-wrap: nowrap; overflow: visible; }
+  .category-chips { flex: 1 1 0; min-width: 0; display: flex; gap: 5px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .category-chips::-webkit-scrollbar { display: none; }
   .category-chip { flex: 0 0 auto; padding-inline: 9px; }
 
   /* Grouped marketplace */
@@ -466,7 +470,7 @@
     .injection-select { margin-left: 52px; }
     .form-row { grid-template-columns: 1fr; gap: 0; }
     .market-filters { align-items: stretch; }
-    .category-chips { flex-wrap: wrap; }
+    .category-chips { flex-wrap: nowrap; }
   }
 
   .sharing-experience { color: var(--text); font-size: 13px; }
@@ -1101,6 +1105,8 @@
       "工具详情": "Tool details",
       "连接策略": "Connection policy",
       "市场分类导航": "Marketplace category navigation",
+      "查看前面的分类": "Show previous categories",
+      "查看后面的分类": "Show more categories",
       "关闭详情": "Close details",
       "换一批": "Show another batch",
       "撤销最近变更": "Undo the last change",
@@ -2089,13 +2095,43 @@
 
   function marketFilterHtml() {
     const categoryChips = CATEGORIES.map((cat) => `<button class="filter-chip category-chip ${cat.value === marketCategory ? 'active' : ''}" type="button" data-category-filter="${esc(cat.value)}" aria-pressed="${cat.value === marketCategory ? 'true' : 'false'}">${esc(t(cat.label))}</button>`).join('');
-    return `<div class="market-filters" role="group" aria-label="${t('市场分类')}"><div class="filter-chips category-chips" role="group" aria-label="${t('按分类筛选')}">${categoryChips}</div></div>`;
+    return `<div class="market-filters" role="group" aria-label="${t('市场分类')}"><button type="button" class="category-arrow" data-category-direction="-1" aria-label="${t('查看前面的分类')}" title="${t('查看前面的分类')}" hidden>‹</button><div class="filter-chips category-chips" role="group" aria-label="${t('按分类筛选')}">${categoryChips}</div><button type="button" class="category-arrow" data-category-direction="1" aria-label="${t('查看后面的分类')}" title="${t('查看后面的分类')}" hidden>›</button></div>`;
+  }
+
+  function updateCategoryArrows() {
+    const rail = $('#market-nav .category-chips');
+    if (!rail) return;
+    const arrows = [...document.querySelectorAll('#market-nav .category-arrow')];
+    // Measure the full available width to avoid arrow visibility oscillating on resize.
+    const available = rail.parentElement.clientWidth;
+    const overflow = rail.scrollWidth > available + 1;
+    arrows.forEach(button => { button.hidden = !overflow; });
+    arrows[0].disabled = rail.scrollLeft <= 1;
+    arrows[1].disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 1;
   }
 
   function syncMarketNav() {
     const nav = $('#market-nav');
+    if (view === 'market' && nav.querySelector('.category-chips')) {
+      nav.hidden = false;
+      nav.querySelectorAll('[data-category-filter]').forEach(button => {
+        const active = button.dataset.categoryFilter === marketCategory;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      updateCategoryArrows();
+      return;
+    }
+    const previousScroll = nav.querySelector('.category-chips')?.scrollLeft || 0;
     nav.hidden = view !== 'market';
     nav.innerHTML = view === 'market' ? marketFilterHtml() : '';
+    const rail = nav.querySelector('.category-chips');
+    if (rail) {
+      updateCategoryArrows();
+      rail.scrollLeft = previousScroll;
+      rail.addEventListener('scroll', updateCategoryArrows, {passive: true});
+      updateCategoryArrows();
+    }
   }
 
   function setTabCount(tab, count) {
@@ -3381,6 +3417,12 @@
 
   $('#add-connection').addEventListener('click', () => openAddConnection('json'));
   $('#market-nav').addEventListener('click', (event) => {
+    const arrow = event.target.closest('[data-category-direction]');
+    if (arrow) {
+      const rail = $('#market-nav .category-chips');
+      rail.scrollBy({left: Number(arrow.dataset.categoryDirection) * Math.max(100, rail.clientWidth * .8), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+      return;
+    }
     const categoryFilter = event.target.closest('[data-category-filter]');
     if (categoryFilter) {
       marketCategory = categoryFilter.dataset.categoryFilter || '';
@@ -3388,6 +3430,7 @@
       loadMarket({ checkHealth: false });
     }
   });
+  new ResizeObserver(updateCategoryArrows).observe($('#market-nav'));
   main.addEventListener('click', (event) => {
     const sectionToggle = event.target.closest('[data-section-toggle]');
     if (sectionToggle) {
