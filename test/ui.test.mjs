@@ -482,16 +482,18 @@ test('全部市场按分类分章节，每章默认展示 4 个并可展开', ()
   assert.doesNotMatch(uiSource, /catalogRenderLimit|id="catalog-more"/);
 });
 
-test('市场分类栏位于固定头部且不会覆盖卡片，桌面单行无横向滚动', () => {
+test('市场分类栏位于固定头部，以独立单行箭头导航约束横向溢出', () => {
   const headerSource = uiSource.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? '';
   assert.match(headerSource, /id="market-nav"/);
   assert.match(uiSource, /\.market-nav \{[^}]*flex: 0 0 100%;[^}]*order: 4;/);
   assert.match(uiSource, /\.market-filters \{[^}]*position: static;/);
   assert.doesNotMatch(uiSource, /\.market-filters \{[^}]*position: sticky;/);
   assert.match(uiSource, /#market-nav'\)\.addEventListener\('click'/);
-  assert.match(uiSource, /\.category-chips \{[^}]*flex-wrap: nowrap;[^}]*overflow: visible;/);
-  assert.match(uiSource, /@media \(max-width: 620px\) \{[\s\S]*?\.category-chips \{ flex-wrap: wrap; \}/);
-  assert.doesNotMatch(uiSource, /\.category-chips \{[^}]*overflow-x: auto;/);
+  assert.match(uiSource, /\.category-chips \{[^}]*min-width: 0;[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/);
+  assert.match(uiSource, /data-category-direction="-1"/);
+  assert.match(uiSource, /data-category-direction="1"/);
+  assert.match(uiSource, /new ResizeObserver\(updateCategoryArrows\)/);
+  assert.doesNotMatch(uiSource, /\.category-chips \{[^}]*overflow: visible;/);
 });
 
 test('市场总数移入页签且正文不再显示冗余操作提示', () => {

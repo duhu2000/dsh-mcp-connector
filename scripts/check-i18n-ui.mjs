@@ -31,6 +31,27 @@ try {
   await page.keyboard.press('Enter');
   await frame.locator('#tab-market').filter({ hasText: 'Market' }).waitFor();
   assert.equal(await frame.locator('html').getAttribute('lang'), 'en');
+  const rail = frame.locator('.category-chips');
+  const nextCategory = frame.getByRole('button', {name: 'Show more categories', exact: true});
+  const previousCategory = frame.getByRole('button', {name: 'Show previous categories', exact: true});
+  await nextCategory.waitFor();
+  assert.equal(await previousCategory.isDisabled(), true);
+  assert.ok(await frame.locator('html').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'English categories must not widen the page');
+  for (let step = 0; step < 12 && await nextCategory.isEnabled(); step++) {
+    await nextCategory.click();
+    await page.waitForTimeout(350);
+  }
+  assert.equal(await nextCategory.isDisabled(), true, 'end of category rail');
+  assert.ok(await rail.evaluate(el => el.scrollLeft > 0));
+  await frame.locator('[data-category-filter]').last().click();
+  assert.equal(await frame.locator('[data-category-filter]').last().getAttribute('aria-pressed'), 'true');
+  for (let step = 0; step < 12 && await previousCategory.isEnabled(); step++) {
+    await previousCategory.click();
+    await page.waitForTimeout(350);
+  }
+  assert.equal(await previousCategory.isDisabled(), true, 'return to start');
+  await frame.locator('[data-category-filter=""]').click();
+  await page.screenshot({path: '/tmp/mcp-category-arrows-en.png'});
   assert.equal(await frame.locator('[data-locale="en"]').getAttribute('aria-pressed'), 'true');
   // Reopening without uiLocale remembers an explicit choice.
   await page.goto(base);
@@ -66,6 +87,8 @@ try {
   assert.ok(await frame.locator('header').evaluate(el => el.clientHeight < 130), 'compact desktop header');
   await page.screenshot({ path: '/tmp/mcp-compact-zh.png' });
   await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await frame.locator('html').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'mobile categories must not widen the page');
+  await frame.locator('[data-category-direction="1"]').waitFor();
   assert.equal(await frame.locator('[data-locale="en"]').isVisible(), true);
   await page.screenshot({ path: '/tmp/mcp-i18n-zh-mobile.png' });
   assert.deepEqual(errors, []);
