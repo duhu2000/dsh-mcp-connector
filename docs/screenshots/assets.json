@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "capture": {
     "capturedOn": "2026-11-01",
-    "sourceVersion": "0.2.89",
-    "sourceFingerprint": "1db40e9ed7412f99597d80987790e7e455e6a6b42a9c7b964046abc40edf2348",
+    "sourceVersion": "0.2.90",
+    "sourceFingerprint": "1aafa7ba2ccd272fa7f554a5307f55f1c322978169fdbca6464139c4b8108c74",
     "browserViewport": {
       "width": 1280,
       "height": 720
@@ -16,63 +16,63 @@
   "screenshots": [
     {
       "path": "docs/screenshots/01-market-overview.jpg",
-      "sha256": "30768c6e90d073495ca731107adf860415ddb049ba3b5804d3c20bc11e4c6c60",
+      "sha256": "4ed694eaf1a515a5e92ee93b75408ba99eb5c2cf0aa9c66148150a2044a14892",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/02-connector-detail.jpg",
-      "sha256": "6890c053f18a29120f0b1b41321a742cfc7317cbf0942a451d9c5986572d5ae8",
+      "sha256": "e7e96e98462c8a21a54f8832611941ae94fd2ffef7c7d1655544ec9d39100e7d",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/03-tool-discovery.jpg",
-      "sha256": "8f3499e346e141ae9543ff5a177ec97dc78cad4ba6a1c850412569dfa676871c",
+      "sha256": "ed7a23f2e4ff57a64d2688c83f502186b78a303a1bad319266f79b553cff9837",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/04-json-import.jpg",
-      "sha256": "b74565c5100bc3323486a902b13d6a4b962a08a352434f0754c5d5c915b17d8a",
+      "sha256": "25430f6e3ad740140ccdee67c69c93173a8576bd343f9e733fcb8657b7f7b998",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/05-unified-tool-search.png",
-      "sha256": "af007d9add536090ab4a08dc7c7a68a2e7dbd461cee5ae4e2b270d3324c16a4f",
+      "sha256": "7f61c94dcf46e4f1e7d364bcae8cde878306b8e599ec7336a188f54ebe1a4ace",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/06-tool-parameters.png",
-      "sha256": "20727309f6fd911cac1d41eced11ebfc61b25e284ce53443a54b6c0417eeb30b",
+      "sha256": "bf131b3de0c6098c72eab84a5b889ee78cbf92495ddd3769f96fcf35fb26ba40",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/07-connection-diagnostics.png",
-      "sha256": "f3b2e764daf63da7fdebea8688b792ac54017473267bf2b8c90d751cc795ddbb",
+      "sha256": "ea7dd623d7de1e9eac516839540b7b0429b3baa6d9ac90cb684d6a567eb10863",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     },
     {
       "path": "docs/screenshots/08-ten-recommendations.jpg",
-      "sha256": "2d5c6dd304dbd6dffb705abb73d3ee80e1a775a2ce2f75f742da1a1351231114",
+      "sha256": "8d22b656446382eedb0a235e976922bf1db0db1e14bd298c55d179f9d883efb8",
       "width": 1280,
       "height": 1400,
       "browserViewport": {
@@ -81,16 +81,16 @@
       },
       "panelHeight": 1280,
       "capturedOn": "2026-11-01",
-      "sourceVersion": "0.2.89"
+      "sourceVersion": "0.2.90"
     }
   ],
   "demo": {
     "path": "docs/demo.gif",
-    "sha256": "e9ff879c9245f9b68792da3ccf6ec47788ae8e4acf3ef2f198f1a0dd6aa589a7",
+    "sha256": "37db590b4b1ff1338890353fdaa4540de4987bbfac3ba362fcc9ce6d1940c160",
     "width": 960,
     "height": 540,
     "capturedOn": "2026-11-01",
-    "sourceVersion": "0.2.89",
+    "sourceVersion": "0.2.90",
     "durationSeconds": 36
   }
 }

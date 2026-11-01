@@ -195,10 +195,10 @@ test('默认界面仍是中文且直接展示双语语言切换入口', () => {
   assert.match(uiSource, /<html lang="zh-CN">/);
   assert.doesNotMatch(uiSource, /id="locale-toggle"/);
   assert.doesNotMatch(uiSource, /mcp-connector:locale/);
-  assert.match(uiSource, /data-locale="zh-CN" lang="zh-CN" aria-pressed="true">简体中文/);
-  assert.match(uiSource, /data-locale="en" lang="en" aria-pressed="false">English/);
+  assert.match(uiSource, /data-locale="zh-CN" lang="zh-CN" aria-label="简体中文" title="简体中文" aria-pressed="true">中文/);
+  assert.match(uiSource, /data-locale="en" lang="en" aria-label="English" title="English" aria-pressed="false">EN/);
   assert.doesNotMatch(uiSource, /<select id="ui-language"/);
-  assert.doesNotMatch(uiSource, /Switch language|>EN<\/button>/);
+  assert.doesNotMatch(uiSource, /class="language-bar"/);
   assert.doesNotMatch(uiSource, /data-i18n/);
   assert.match(uiSource, /const LABELS = \{[\s\S]*?details: '详情'/);
   // 中文原文即 msgid：默认语言不查词典（中文词典为空表），保证中文逐字不变。
@@ -228,7 +228,7 @@ test('语言偏好优先级及禁用存储时降级', () => {
 });
 
 test('目录刷新文案与插件升级明确区分', () => {
-  assert.match(uiSource, /id="refresh" title="刷新连接器目录">刷新连接器目录<\/button>/);
+  assert.match(uiSource, /id="refresh" type="button" title="刷新连接器目录" aria-label="刷新连接器目录">↻<\/button>/);
   assert.match(uiSource, /call\('refreshCatalog', \{\}\)/);
 });
 

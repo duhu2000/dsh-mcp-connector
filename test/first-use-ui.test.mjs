@@ -107,7 +107,7 @@ test('closed guide ignores asynchronous status completion', async () => {
 });
 
 test('first use preserves existing Host draft-only boundary and safe task wording', () => {
-  assert.match(html, /id="first-use" type="button">首次使用/);
+  assert.match(html, /id="first-use" type="button" title="首次使用" aria-label="首次使用">\?/);
   assert.match(html, /不明确时停止并询问我/);
   assert.match(html, /不自动扩大查询或连续重试/);
   const host = client.slice(client.indexOf('async function startPromptSession('), client.indexOf('/** 市场主体：'));

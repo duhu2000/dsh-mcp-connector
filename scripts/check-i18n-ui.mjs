@@ -45,8 +45,9 @@ try {
   await frame.getByRole('button', { name: 'Generate safe preview', exact: true }).waitFor();
   await frame.getByRole('button', { name: 'Generate safe preview', exact: true }).click();
   await frame.getByRole('button', { name: 'Copy JSON', exact: true }).waitFor();
-  // Switching while editing requires explicit discard confirmation.
-  await frame.locator('[data-locale="zh-CN"]').click();
+  // A modal intentionally covers the toolbar. Exercise the defensive handler
+  // programmatically, rather than claiming a user can click through its mask.
+  await frame.locator('[data-locale="zh-CN"]').dispatchEvent('click');
   await frame.locator('#confirmMask.show').waitFor();
   await frame.getByRole('button', { name: 'Cancel', exact: true }).click();
   assert.equal(await frame.locator('[data-locale="en"]').getAttribute('aria-pressed'), 'true');
@@ -59,6 +60,11 @@ try {
   await frame.locator('#tab-market').filter({ hasText: '市场' }).waitFor();
   await page.goto(base);
   await frame.locator('#tab-market').filter({ hasText: '市场' }).waitFor();
+  const tabsBox = await frame.locator('#tabs').boundingBox();
+  const refreshBox = await frame.locator('#refresh').boundingBox();
+  assert.ok(Math.abs(tabsBox.y - refreshBox.y) < 12, 'refresh must share the desktop toolbar row');
+  assert.ok(await frame.locator('header').evaluate(el => el.clientHeight < 130), 'compact desktop header');
+  await page.screenshot({ path: '/tmp/mcp-compact-zh.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await frame.locator('[data-locale="en"]').isVisible(), true);
   await page.screenshot({ path: '/tmp/mcp-i18n-zh-mobile.png' });
