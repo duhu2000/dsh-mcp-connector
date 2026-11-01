@@ -61,8 +61,8 @@
 
   /* Header */
   header {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
     background: var(--card); position: sticky; top: 0; z-index: 5;
     flex-shrink: 0;
   }
@@ -84,9 +84,15 @@
   .tabs button.active .tab-count { background: var(--accent-light); color: var(--accent); }
   .tab-count:empty { display: none; }
   .header-spacer { flex: 1; }
-  .language-bar { display: flex; flex-shrink: 0; justify-content: flex-end; padding: 8px 24px; background: var(--card); position: relative; z-index: 201; }
+  .toolbar { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+  .toolbar .tabs { flex-shrink: 0; }
+  .toolbar .tabs button { padding-inline: 10px; }
+  .toolbar .search-box { flex: 1; width: auto; min-width: 80px; }
+  .toolbar .icon-btn { white-space: nowrap; padding-inline: 10px; min-height: 34px; }
+  .toolbar .compact-action { width: 34px; flex-shrink: 0; padding: 4px; font-size: 18px; }
   .language-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
-  .language-switch button { min-height: 36px; padding: 6px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; cursor: pointer; }
+  .language-switch { flex-shrink: 0; }
+  .language-switch button { min-height: 28px; padding: 3px 7px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; }
   .language-switch button[aria-pressed="true"] { background: var(--card); color: var(--accent); font-weight: 600; box-shadow: var(--shadow); }
   .language-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .search-box {
@@ -447,7 +453,10 @@
   @media (max-width: 620px) {
     header { padding: 12px; }
     .header-spacer { display: none; }
-    .search-box { order: 3; width: 100%; }
+    .toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; }
+    .toolbar .tabs { grid-column: 1 / 4; }
+    .toolbar .language-switch { grid-column: 4; justify-self: end; }
+    .toolbar .search-box { grid-column: 1; min-width: 0; }
     main { padding: 14px; }
     .grid { grid-template-columns: 1fr; }
     .card { flex-wrap: wrap; }
@@ -485,26 +494,25 @@
 </head>
 <body>
 <div class="app">
-  <div class="language-bar">
-    <div id="ui-language" class="language-switch" role="group" aria-label="Language / 语言">
-      <button type="button" data-locale="zh-CN" lang="zh-CN" aria-pressed="true">简体中文</button>
-      <button type="button" data-locale="en" lang="en" aria-pressed="false">English</button>
-    </div>
-  </div>
   <header>
+    <div class="toolbar">
     <div class="tabs" id="tabs">
       <button data-view="market" class="active"><span id="tab-market">市场</span> <span class="tab-count" id="market-tab-count"></span></button>
       <button data-view="installed"><span id="tab-installed">已安装</span> <span class="tab-count" id="installed-tab-count"></span></button>
       <button data-view="tools"><span id="tab-tools">工具</span></button>
     </div>
-    <div class="header-spacer"></div>
+    <div id="ui-language" class="language-switch" role="group" aria-label="Language / 语言">
+      <button type="button" data-locale="zh-CN" lang="zh-CN" aria-label="简体中文" title="简体中文" aria-pressed="true">中文</button>
+      <button type="button" data-locale="en" lang="en" aria-label="English" title="English" aria-pressed="false">EN</button>
+    </div>
     <div class="search-box">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="search" type="text" placeholder="搜索连接器…" />
     </div>
     <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
-    <button class="icon-btn" id="refresh" title="刷新连接器目录">刷新连接器目录</button>
-    <button class="icon-btn" id="first-use" type="button">首次使用</button>
+    <button class="icon-btn compact-action" id="refresh" type="button" title="刷新连接器目录" aria-label="刷新连接器目录">↻</button>
+    <button class="icon-btn compact-action" id="first-use" type="button" title="首次使用" aria-label="首次使用">?</button>
+    </div>
     <div class="market-nav" id="market-nav" aria-label="市场分类导航"></div>
   </header>
   <main id="main"></main>
@@ -3365,8 +3373,8 @@
   function refresh() { return view === 'tools' ? loadToolExplorer() : view === 'market' ? loadMarket() : loadInstalled(); }
   function syncTabs() {
     searchInput.placeholder = t(view === 'tools' ? '搜索工具名称或描述…' : '搜索连接器…');
-    $('#refresh').textContent = t(view === 'tools' ? '刷新工具视图' : '刷新连接器目录');
-    $('#refresh').title = $('#refresh').textContent;
+    $('#refresh').title = t(view === 'tools' ? '刷新工具视图' : '刷新连接器目录');
+    $('#refresh').setAttribute('aria-label', $('#refresh').title);
     document.querySelectorAll('#tabs button').forEach((button) => button.classList.toggle('active', button.dataset.view === view));
     syncMarketNav();
   }
@@ -3429,7 +3437,8 @@
     setText('#tab-installed', '已安装');
     setText('#tab-tools', '工具');
     setText('#add-connection', '＋ 添加连接');
-    setText('#first-use', '首次使用');
+    $('#first-use').title = t('首次使用');
+    $('#first-use').setAttribute('aria-label', t('首次使用'));
     setText('#prompt-title', '试试这样用');
     setText('#prompt-next', '换一批');
     setText('#tools-title', '工具详情');
