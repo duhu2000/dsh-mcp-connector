@@ -191,22 +191,40 @@ test('宿主原生面板填满 main 区域，兼容弹窗和截图 harness 保�
   assert.doesNotMatch(harnessSource, /new Set\(\['qcc-company'\]\)/);
 });
 
-test('默认界面仍是中文且不提供语言切换入口', () => {
+test('默认界面仍是中文且直接展示双语语言切换入口', () => {
   assert.match(uiSource, /<html lang="zh-CN">/);
   assert.doesNotMatch(uiSource, /id="locale-toggle"/);
   assert.doesNotMatch(uiSource, /mcp-connector:locale/);
-  // 面板只跟随 Host 注入的全局或 ?locale=，页面内没有语言切换器。
+  assert.match(uiSource, /data-locale="zh-CN" lang="zh-CN" aria-pressed="true">简体中文/);
+  assert.match(uiSource, /data-locale="en" lang="en" aria-pressed="false">English/);
+  assert.doesNotMatch(uiSource, /<select id="ui-language"/);
   assert.doesNotMatch(uiSource, /Switch language|>EN<\/button>/);
   assert.doesNotMatch(uiSource, /data-i18n/);
   assert.match(uiSource, /const LABELS = \{[\s\S]*?details: '详情'/);
   // 中文原文即 msgid：默认语言不查词典（中文词典为空表），保证中文逐字不变。
   assert.match(uiSource, /const MESSAGES = \{ 'zh-CN': \{\}, en: \{\} \};/);
   assert.match(uiSource, /MESSAGES\.en = \{/);
-  // 语言解析顺序：Host 注入 → ?locale= → <html lang>，并归一化 zh*/en*。
+  // 明确的面板选择优先；没有选择时仍跟随宿主并归一化 zh*/en*。
   assert.match(uiSource, /function detectLocale\(\) \{/);
   assert.match(uiSource, /normalizeLocale\(window\.__MCP_CONNECTOR_LOCALE__\)/);
   assert.match(uiSource, /new URLSearchParams\(window\.location\.search \|\| ''\)\.get\('locale'\)/);
   assert.match(uiSource, /document\.documentElement\.lang = ACTIVE_LOCALE;/);
+});
+
+test('语言偏好优先级及禁用存储时降级', () => {
+  const start = uiSource.indexOf('  function normalizeLocale(value) {');
+  const end = uiSource.indexOf('  function interpolate(', start);
+  const resolve = (search, saved, host, blocked = false) => new Function('window', 'document', 'DEFAULT_LOCALE', 'LANGUAGE_STORAGE_KEY',
+    uiSource.slice(start, end) + '; return detectLocale();')({
+      location: { search }, __MCP_CONNECTOR_LOCALE__: host,
+      localStorage: { getItem() { if (blocked) throw Error('blocked'); return saved; } },
+    }, { documentElement: { getAttribute: () => 'zh-CN' } }, 'zh-CN', 'mcp-connector.ui-language');
+  assert.equal(resolve('', null, undefined), 'zh-CN');
+  assert.equal(resolve('', 'en', 'zh-CN'), 'en');
+  assert.equal(resolve('?uiLocale=zh-CN', 'en', 'en'), 'zh-CN');
+  assert.equal(resolve('', 'invalid', 'en'), 'en');
+  assert.equal(resolve('', 'en', 'zh-CN', true), 'zh-CN');
+  assert.equal(resolve('?uiLocale=en', null, 'zh-CN', true), 'en');
 });
 
 test('目录刷新文案与插件升级明确区分', () => {
