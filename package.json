@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.90",
+  "version": "0.2.91",
   "description": "DeepSeek Harness MCP Connector: connect servers, search tools across active connections, and troubleshoot discovery. Includes a continuously updated catalog; supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and mcpServers JSON import.",
   "type": "module",
   "main": "lib/index.js",
@@ -68,7 +68,7 @@
     "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:tutorial-links:check",
     "prepublishOnly": "npm run check",
     "docs:sync": "node scripts/sync-product-docs.mjs",
-    "storefront:capture": "node scripts/capture-storefront.mjs",
+    "storefront:capture": "node scripts/capture-storefront.mjs && node scripts/capture-storefront.mjs --locale=en",
     "storefront:freshness": "node scripts/check-media-freshness.mjs"
   },
   "keywords": [

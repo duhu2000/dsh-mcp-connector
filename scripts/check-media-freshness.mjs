@@ -20,9 +20,13 @@ export function freshnessErrors(meta, version, fingerprint, now = new Date()) {
   return [...new Set(errors)];
 }
 export async function checkFreshness(root = process.cwd()) {
-  const meta = JSON.parse(await readFile(resolve(root,'docs/screenshots/assets.json'), 'utf8'));
   const pkg = JSON.parse(await readFile(resolve(root,'package.json'), 'utf8'));
-  const errors = freshnessErrors(meta, pkg.version, await sourceFingerprint(root));
+  const fingerprint = await sourceFingerprint(root);
+  const errors = [];
+  for (const path of ['docs/screenshots/assets.json', 'docs/screenshots/en/assets.json']) {
+    const meta = JSON.parse(await readFile(resolve(root, path), 'utf8'));
+    errors.push(...freshnessErrors(meta, pkg.version, fingerprint).map(error => path + ': ' + error));
+  }
   if (errors.length) throw Error(`${errors.join('; ')}. Run npm run storefront:capture && npm run docs:sync before release.`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

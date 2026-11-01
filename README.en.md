@@ -16,7 +16,7 @@ OAuth availability depends on each provider's client-registration policy and acc
 
 The homepage shows ten recommendations in a fixed order: Qichacha company data, Tencent Docs, Feishu, Notion, GitHub, Playwright, Wind stock data, Qichacha legal data, Amap, and Context7. All available recommended cards are expanded by default. This is a curated selection, not a usage ranking; provider authorization and configuration requirements still apply.
 
-![Homepage recommendations](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/08-ten-recommendations.jpg)
+![Homepage recommendations — English UI](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/08-ten-recommendations.jpg)
 
 ### Tool discovery and troubleshooting
 
@@ -56,7 +56,7 @@ For a first successful use, confirm the connection and scope in Installed, find 
 
 First-success guide (Chinese): [install → connect → find a tool → make the first read-only call](docs/tutorials/README.md). Task details: [three acceptance-ready scenarios](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md) · [migrate `mcpServers` JSON](docs/tutorials/JSON-MIGRATION.md) · [diagnose OAuth](docs/tutorials/OAUTH-DIAGNOSTICS.md) · [find and recover tools](docs/tutorials/TOOL-SEARCH-RECOVERY.md) · [trusted status copy](docs/tutorials/TRUSTED-STATUS-COPY.md).
 
-![43-second MCP Connector walkthrough](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/demo.gif)
+![MCP Connector walkthrough — English UI](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/demo.gif)
 
 If the plugin helps you connect an MCP server faster, consider [starring the repository](https://github.com/duhu2000/dsh-mcp-connector/stargazers), [submitting a connector](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md), or [contributing a fix](CONTRIBUTING.md).
 
@@ -106,15 +106,15 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 
 | Marketplace overview | Connector details and curated prompts |
 |---|---|
-| ![Marketplace overview](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/01-market-overview.jpg) | ![Connector details](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/02-connector-detail.jpg) |
+| ![Marketplace overview](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/01-market-overview.jpg) | ![Connector details](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/02-connector-detail.jpg) |
 | Tool discovery, descriptions, and scrolling | JSON import |
-| ![Tool discovery](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/03-tool-discovery.jpg) | ![JSON import](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/04-json-import.jpg) |
+| ![Tool discovery](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/03-tool-discovery.jpg) | ![JSON import](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/04-json-import.jpg) |
 | Unified tool search and sources | Parameter details and safe schema |
-| ![Unified tool search](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/05-unified-tool-search.png) | ![Tool parameter details](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/06-tool-parameters.png) |
+| ![Unified tool search](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/05-unified-tool-search.png) | ![Tool parameter details](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/06-tool-parameters.png) |
 | Connection diagnostics and last-success cache |  |
-| ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
+| ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->Screenshots and GIF were captured from v0.2.90 (2026-11-01), using the credential-free Mock harness. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.91 (2026-11-01), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -245,7 +245,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.90`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.90](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.90).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.91`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.91](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.91).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
