@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.93
+
+- Reposition homepage recommendations around ten specialist data sources, preserving card sizes, category previews and fixed ordering.
+- Update bilingual product metadata, README and credential-free media for the data marketplace positioning.
+- Recommendation placement does not certify live provider authorization or business calls; provider acceptance remains required.
+
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；首个公开版本从 `0.1.0` 开始。
 
 ## [0.2.92] - 2026-11-01

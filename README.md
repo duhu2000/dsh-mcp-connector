@@ -1,6 +1,6 @@
-# MCP连接器：在 DeepSeek Harness 接入、查找和排障 MCP Server
+# MCP连接器：DeepSeek Harness 的专业数据源市场
 
-> DeepSeek Harness 的 MCP 接入与管理面板：超百个 MCP连接器，一个入口完成 MCP Server 授权配置、跨连接工具搜索与连接排障。
+> DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
 从持续更新的连接器目录接入 MCP Server；跨当前范围内已启用连接查找工具，查看易读参数、来源和最后成功缓存时间，并在发现异常时检查连接或重新发现工具。支持 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 与 `mcpServers` JSON 导入。
 
@@ -12,7 +12,7 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 
 ### English overview
 
-**MCP Connector for DeepSeek Harness** brings server setup, authorization, cross-connection tool search and troubleshooting into one panel. Browse a continuously updated catalog of 100+ connectors; connect through OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio or `mcpServers` JSON import.
+**MCP Connector for DeepSeek Harness** is a specialist data marketplace connecting data providers and open data sources, with authorization, cross-connection tool search and troubleshooting in one panel. Browse a continuously updated catalog of 100+ connectors; connect through OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio or `mcpServers` JSON import.
 
 Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
 
@@ -26,7 +26,7 @@ Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN*
 
 ### 首页推荐
 
-首页“推荐”默认展开十张卡片：企查查·企业工商、腾讯文档、飞书开放平台、Notion、GitHub、Playwright、Wind·股票数据、企查查·法律数据、高德地图、Context7。按固定顺序展示，不因连接状态重排；这是场景推荐，不是使用量排行。接入时仍需满足各服务的授权和配置条件。
+首页“推荐”默认展开十张数据源卡片：企查查·企业工商、Wind·股票数据、高德地图、智慧芽专利与文献、企查查·法律数据、北大法宝·法律检索、TuShare、OpenAlex 全球学术研究、PubMed 生物医学文献、IMF 全球宏观经济统计。按固定顺序展示，不因连接状态重排；这是数据场景推荐，不是使用量排行。社区接入不代表数据机构官方 MCP；授权、额度与实际调用需分别验证。办公与开发连接器仍可通过分类和搜索找到。
 
 ![Homepage recommendations](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/08-ten-recommendations.jpg)
 
@@ -128,7 +128,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.92（2026-11-01）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.93（2026-11-02）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -252,7 +252,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.92`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.92](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.92)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.93`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.93](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.93)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
