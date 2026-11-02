@@ -558,11 +558,11 @@ test('工具清单使用中文计数并标记服务商弃用工具', () => {
   const start = uiSource.indexOf('  const RECOMMENDED_CONNECTOR_IDS =');
   const end = uiSource.indexOf('  function matchesMarketFilters', start);
   const select = new Function(uiSource.slice(start, end) + '; return recommendedConnectors;')();
-  const ids = ['qcc-company','tencent-docs','feishu','notion','github','playwright','wind-stock-data','qcc-legal','amap','context7'];
+  const ids = ["qcc-company", "wind-stock-data", "amap", "patsnap", "qcc-legal", "pkulaw-legal", "tushare", "openalex-research-catalog", "pubmed-biomedical-literature", "imf-macroeconomic-statistics"];
   const input = [...ids].reverse().map((id, i) => ({id, connected: i % 2 ? [{}] : [], featured: false}));
   input.unshift({id:'qcc-document',featured:true});
   assert.deepEqual(select(input).map(x => x.id), ids);
-  assert.deepEqual(select(input.filter(x => x.id !== 'notion')).map(x => x.id), ids.filter(x => x !== 'notion'));
+  assert.deepEqual(select(input.filter(x => x.id !== 'patsnap')).map(x => x.id), ids.filter(x => x !== 'patsnap'));
   const sectionStart = uiSource.indexOf('  function marketSectionHtml(');
   const sectionEnd = uiSource.indexOf('  function groupedMarketHtml(', sectionStart);
   const section = new Function('expandedMarketSections','MARKET_SECTION_PREVIEW_LIMIT','esc','cardHtml','t',

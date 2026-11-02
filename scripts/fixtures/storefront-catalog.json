@@ -453,6 +453,397 @@
           "server": "stock-data"
         }
       ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "patsnap",
+      "name": "智慧芽专利与文献",
+      "vendor": "PatSnap / 智慧芽",
+      "icon": "🔬",
+      "category": "调研分析",
+      "summary": "全球专利 / 科学文献 / 研发情报检索",
+      "description": "接入智慧芽官方远程 MCP 服务，检索和分析全球专利、科学文献与研发情报。需使用智慧芽 MCP Key，实际可用数据、工具与调用额度以账户订阅为准；检索结果仅用于信息参考，不构成法律意见。",
+      "tags": [
+        "智慧芽",
+        "PatSnap",
+        "专利",
+        "科学文献",
+        "研发情报",
+        "官方 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://open.patsnap.com/devportal/guides/mcp-quickstart",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "bearer",
+        "credentialName": "PatSnap MCP Key",
+        "credentialPlaceholder": "请输入智慧芽 MCP Key",
+        "credentialDescription": "用于访问智慧芽 MCP 的个人密钥；仅保存在 DSH 本机。",
+        "credentialHelpLabel": "查看智慧芽 MCP 快速入门"
+      },
+      "servers": [
+        {
+          "serverKey": "patsnap",
+          "serverName": "patsnap",
+          "url": "https://connect.patsnap.com/1458a4/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "检索专利技术",
+          "text": "使用智慧芽 MCP 检索我指定技术主题的相关专利，列出申请人、公开时间、关键权利要求和来源链接；不要将结果表述为法律意见",
+          "server": "patsnap"
+        },
+        {
+          "title": "调研科学文献",
+          "text": "使用智慧芽 MCP 检索我指定主题的科学文献，按时间和相关性整理研究方向、主要结论与来源链接",
+          "server": "patsnap"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "pkulaw-legal",
+      "name": "北大法宝·法律检索",
+      "vendor": "北大法宝 PKULaw",
+      "icon": "/mcp-connector/ui/assets/pkulaw-logo.png",
+      "category": "法律合规",
+      "summary": "法规 / 法条 / 司法案例检索与引用核验",
+      "description": "接入北大法宝法律法规、司法案例、法条识别与引用核验能力。需使用北大法宝 Access Token，相关服务可能需要单独开通或购买。",
+      "tags": [
+        "法律",
+        "法规",
+        "案例",
+        "法条",
+        "第三方收录"
+      ],
+      "published": true,
+      "featured": true,
+      "homepage": "https://mcp.pkulaw.com/",
+      "probeStatus": "unverified",
+      "promptVariables": [
+        {
+          "name": "topic",
+          "label": "法律主题",
+          "default": "劳动合同解除",
+          "placeholder": "例如：劳动合同解除",
+          "required": true
+        },
+        {
+          "name": "caseTopic",
+          "label": "案例主题",
+          "default": "竞业限制违约",
+          "placeholder": "例如：竞业限制违约",
+          "required": true
+        },
+        {
+          "name": "citation",
+          "label": "法律引用",
+          "default": "《民法典》第五百七十七条",
+          "placeholder": "例如：《民法典》第五百七十七条",
+          "required": true
+        }
+      ],
+      "auth": {
+        "mode": "bearer",
+        "credentialName": "北大法宝 Access Token",
+        "credentialPlaceholder": "请输入您的北大法宝 Access Token",
+        "credentialDescription": "用于访问北大法宝 MCP；仅保存在 DSH 本机。",
+        "credentialHelpLabel": "如何获取北大法宝 Token？"
+      },
+      "servers": [
+        {
+          "serverKey": "law-search",
+          "url": "https://apim-gateway.pkulaw.com/mcp-law-search-service",
+          "serverName": "pkulaw-law-search",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-law",
+          "serverName": "pkulaw-law-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-semantic-search",
+          "url": "https://apim-gateway.pkulaw.com/mcp-case-search-service",
+          "serverName": "pkulaw-case-semantic-search",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-case",
+          "serverName": "pkulaw-case-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-item-keyword",
+          "url": "https://apim-gateway.pkulaw.com/mcp-fatiao",
+          "serverName": "pkulaw-law-item-keyword",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "law-recognition",
+          "url": "https://apim-gateway.pkulaw.com/law_recognition",
+          "serverName": "pkulaw-law-recognition",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "case-number-recognition",
+          "url": "https://apim-gateway.pkulaw.com/case_number_recognition",
+          "serverName": "pkulaw-case-number-recognition",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "citation-validator",
+          "url": "https://apim-gateway.pkulaw.com/pku_citation_validator",
+          "serverName": "pkulaw-citation-validator",
+          "transport": "streamable-http",
+          "headers": {}
+        },
+        {
+          "serverKey": "doc-link",
+          "url": "https://apim-gateway.pkulaw.com/add-doc-link",
+          "serverName": "pkulaw-doc-link",
+          "transport": "streamable-http",
+          "headers": {}
+        }
+      ],
+      "prompts": [
+        {
+          "title": "法规与法条检索",
+          "text": "用北大法宝 MCP 检索与「{{topic}}」相关的现行法律规定，并给出法条原文和效力信息",
+          "server": "law-search"
+        },
+        {
+          "title": "典型司法案例",
+          "text": "用北大法宝 MCP 检索与「{{caseTopic}}」相关的典型司法案例，并列出案号和裁判要点",
+          "server": "case-semantic-search"
+        },
+        {
+          "title": "法律引用识别",
+          "text": "用北大法宝 MCP 识别并核验 {{citation}} 的标准出处和现行法条原文",
+          "server": "law-recognition"
+        },
+        {
+          "title": "法律引用核验",
+          "text": "用北大法宝 MCP 核验 {{citation}} 是否准确，并说明当前效力状态",
+          "server": "citation-validator"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "tushare",
+      "name": "TuShare",
+      "vendor": "TuShare 社区",
+      "icon": "📊",
+      "category": "金融投资",
+      "summary": "A 股 / 指数 / 基金 / 财务 / 宏观数据",
+      "description": "通过社区 @tushare/mcp npm 包启动本地 stdio Server，调用 TuShare Pro 数据接口查询股票、指数、基金、财务与宏观数据。需填写 TuShare Token；数据权限、频率和积分要求以 TuShare 账号为准，不构成投资建议。",
+      "tags": [
+        "TuShare",
+        "A股",
+        "基金",
+        "财务数据",
+        "stdio",
+        "社区 MCP"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/kshern/tushare-ts",
+      "probeStatus": "unverified",
+      "auth": {
+        "mode": "api-key",
+        "credentialDescription": "TuShare Token 仅保存在 DSH 本机，并注入本地 MCP 进程。",
+        "credentialHelpLabel": "查看 TuShare MCP 项目说明",
+        "credentialFields": [
+          {
+            "key": "token",
+            "label": "TuShare Token",
+            "placeholder": "请输入 TuShare Token",
+            "required": true,
+            "secret": true
+          }
+        ]
+      },
+      "servers": [
+        {
+          "serverKey": "tushare",
+          "serverName": "tushare",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@tushare/mcp",
+            "--stdio"
+          ],
+          "credentialBindings": {
+            "TUSHARE_TOKEN": "token"
+          },
+          "transport": "stdio"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "openalex-research-catalog",
+      "name": "OpenAlex 全球学术研究",
+      "vendor": "cyanheads（独立社区项目）",
+      "icon": "📚",
+      "category": "调研分析",
+      "summary": "论文 / 作者机构 / 主题趋势 / 引用网络",
+      "description": "连接 OpenAlex 全球开放学术目录，检索论文、作者、机构、主题、来源和出版商，分析年度趋势与引用关系。结果应保留 OpenAlex ID、筛选条件、覆盖年份和引用口径，并区分目录元数据、开放获取状态与论文全文；OpenAlex 数据按 CC0 发布。本连接器由 cyanheads 独立社区维护，并非 OpenAlex 官方产品。",
+      "tags": [
+        "OpenAlex",
+        "学术研究",
+        "论文",
+        "引用分析",
+        "科研机构",
+        "开放数据"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/cyanheads/openalex-mcp-server",
+      "probeStatus": "pass",
+      "probeCheckedAt": 1788269920888,
+      "auth": {
+        "mode": "none"
+      },
+      "servers": [
+        {
+          "serverKey": "main",
+          "serverName": "openalex-research-catalog",
+          "url": "https://openalex.caseyjhand.com/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "分析生成式 AI 法律研究",
+          "text": "检索 2020—2026 年生成式人工智能与法律服务相关研究，按年份统计论文数和被引次数，列出高影响论文、OpenAlex ID、开放获取状态及检索条件。",
+          "server": "main"
+        },
+        {
+          "title": "比较碳捕集科研产出",
+          "text": "比较中国、美国和欧盟机构 2015—2025 年碳捕集与封存研究产出，列出主要机构、年度论文数、被引次数和主题口径，并说明覆盖限制。",
+          "server": "main"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "pubmed-biomedical-literature",
+      "name": "PubMed 生物医学文献",
+      "vendor": "cyanheads（独立社区项目）",
+      "icon": "🩺",
+      "category": "调研分析",
+      "summary": "PubMed / Europe PMC / MeSH / 引用与开放全文",
+      "description": "连接 cyanheads 托管的 PubMed MCP，检索 PubMed 与 Europe PMC，读取论文元数据、摘要、MeSH 主题词、引用关系，并在明确可用时访问 PMC、Europe PMC 或 Unpaywall 开放全文。结果应保留 PMID、PMCID、DOI、来源库、检索式、发表时间、全文可用性和文章级许可；可免费阅读不等于允许复制或再发布，摘要和全文可能受版权保护。文献检索结果不构成医疗诊断或治疗建议。本连接器由 cyanheads 独立社区维护，并非 NCBI、NLM、NIH 或医疗机构官方产品。",
+      "tags": [
+        "PubMed",
+        "生物医学",
+        "文献检索",
+        "MeSH",
+        "引用",
+        "开放全文",
+        "科研数据"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/cyanheads/pubmed-mcp-server",
+      "probeStatus": "pass",
+      "probeCheckedAt": 1788587696257,
+      "auth": {
+        "mode": "none"
+      },
+      "servers": [
+        {
+          "serverKey": "main",
+          "serverName": "pubmed-biomedical-literature",
+          "url": "https://pubmed.caseyjhand.com/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "检索减重药物证据",
+          "text": "检索 2022—2026 年 GLP-1 受体激动剂用于成人肥胖管理的随机对照试验和系统综述，列出 PMID、DOI、研究类型、发表时间、期刊、检索式、引用信息及开放全文可用性，不超出摘要或全文证据下结论。",
+          "server": "main"
+        },
+        {
+          "title": "评估家庭血压监测研究",
+          "text": "检索 2020—2026 年家庭血压监测改善高血压控制效果的系统综述和荟萃分析，补充相关 MeSH 词并列出 PMID、PMCID 或 DOI、样本范围、主要结局、引用关系、来源链接和文章级许可。",
+          "server": "main"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "imf-macroeconomic-statistics",
+      "name": "IMF 全球宏观经济统计",
+      "vendor": "cyanheads（独立社区项目）",
+      "icon": "🏦",
+      "category": "调研分析",
+      "summary": "WEO / 国际收支 / CPI / 汇率 / 190 国宏观数据",
+      "description": "连接 IMF SDMX 3.0 数据接口，发现和查询 WEO、国际收支、消费者价格、汇率等宏观经济数据流，覆盖约 190 个国家和地区。支持国家、指标和时间序列比较，并保留数据流、维度、频率、单位及缺失值说明，适合国别研究、宏观分析和跨境市场判断。本连接器由 cyanheads 独立社区维护，并非 IMF 官方产品。",
+      "tags": [
+        "IMF",
+        "宏观经济",
+        "WEO",
+        "国际收支",
+        "CPI",
+        "汇率",
+        "SDMX"
+      ],
+      "published": true,
+      "featured": false,
+      "homepage": "https://github.com/cyanheads/imf-mcp-server",
+      "probeStatus": "pass",
+      "probeCheckedAt": 1788155234865,
+      "auth": {
+        "mode": "none"
+      },
+      "servers": [
+        {
+          "serverKey": "main",
+          "serverName": "imf-macroeconomic-statistics",
+          "url": "https://imf.caseyjhand.com/mcp",
+          "transport": "streamable-http",
+          "headers": {
+            "Accept": "application/json, text/event-stream"
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "title": "比较三国 CPI 变化",
+          "text": "比较美国、中国和印度 2015—2025 年消费者价格指数变化，列出 IMF 数据流、指标代码和频率。",
+          "server": "main"
+        },
+        {
+          "title": "比较拉美经常账户",
+          "text": "查询巴西、墨西哥和智利 2018—2025 年经常账户余额占 GDP 比重，并标注估算值与缺失值。",
+          "server": "main"
+        }
+      ]
     }
   ]
 }

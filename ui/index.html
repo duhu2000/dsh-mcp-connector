@@ -2077,10 +2077,17 @@
   function normalizeCategory(c) { return CATEGORY_MAP[c] || '其他'; }
 
   const RECOMMENDED_CONNECTOR_IDS = [
-    'qcc-company', 'tencent-docs', 'feishu', 'notion',
-    'github', 'playwright', 'wind-stock-data', 'qcc-legal',
-    'amap', 'context7',
-  ];
+    "qcc-company",
+    "wind-stock-data",
+    "amap",
+    "patsnap",
+    "qcc-legal",
+    "pkulaw-legal",
+    "tushare",
+    "openalex-research-catalog",
+    "pubmed-biomedical-literature",
+    "imf-macroeconomic-statistics"
+];
   function recommendedConnectors(items) {
     const byId = new Map(items.map(item => [item.id, item]));
     return RECOMMENDED_CONNECTOR_IDS.map(id => byId.get(id)).filter(Boolean);

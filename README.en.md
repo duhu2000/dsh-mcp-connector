@@ -1,6 +1,6 @@
-# Connect, Find, and Troubleshoot MCP Servers in DeepSeek Harness
+# MCP Connector: a Specialist Data Marketplace for DeepSeek Harness
 
-> MCP Connector for DeepSeek Harness: one panel to connect MCP servers, manage authorization, search tools across connections, and troubleshoot failures; browse 100+ connectors in a continuously updated catalog.
+> MCP Connector for DeepSeek Harness: a data marketplace connecting specialist providers and open data sources. Browse 100+ connectors, manage authorization, search tools and troubleshoot MCP connections.
 
 Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
 
@@ -14,7 +14,7 @@ OAuth availability depends on each provider's client-registration policy and acc
 
 ### Homepage recommendations
 
-The homepage shows ten recommendations in a fixed order: Qichacha company data, Tencent Docs, Feishu, Notion, GitHub, Playwright, Wind stock data, Qichacha legal data, Amap, and Context7. All available recommended cards are expanded by default. This is a curated selection, not a usage ranking; provider authorization and configuration requirements still apply.
+The homepage shows ten data-source recommendations in a fixed order: Qichacha company data, Wind stock data, Amap, PatSnap, Qichacha legal data, PKULaw, TuShare, OpenAlex, PubMed, and IMF. All available recommended cards are expanded by default. This is a curated selection, not a usage ranking. Community adapters are not official institutional MCP products. Verify authorization, entitlements and actual calls separately. Office and developer connectors remain accessible through categories and search.
 
 ![Homepage recommendations — English UI](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/08-ten-recommendations.jpg)
 
@@ -114,7 +114,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.92 (2026-11-01), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.93 (2026-11-02), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -245,7 +245,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.92`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.92](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.92).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.93`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.93](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.93).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

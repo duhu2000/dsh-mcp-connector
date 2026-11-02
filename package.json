@@ -1,7 +1,7 @@
 {
   "name": "dsh-mcp-connector",
-  "version": "0.2.92",
-  "description": "DeepSeek Harness MCP Connector: connect servers, search tools across active connections, and troubleshoot discovery. Includes a continuously updated catalog; supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and mcpServers JSON import.",
+  "version": "0.2.93",
+  "description": "MCP Connector for DeepSeek Harness: a data marketplace connecting enterprise, financial, legal, patent and research data. Manage authorization, search tools and troubleshoot MCP connections. Supports OAuth, API keys and HTTP/stdio.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -120,7 +120,10 @@
     "技能扩展",
     "插件",
     "扩展",
-    "企查查"
+    "企查查",
+    "data-marketplace",
+    "data-sources",
+    "open-data"
   ],
   "license": "MIT",
   "publishConfig": {
