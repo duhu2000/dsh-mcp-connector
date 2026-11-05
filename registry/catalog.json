@@ -89,6 +89,7 @@
         "credentialPlaceholder": "",
         "credentialDescription": "",
         "credentialHelpLabel": "",
+        "credentialHelpUrl": "",
         "credentialFields": []
       },
       "servers": [
@@ -183,6 +184,7 @@
         "credentialPlaceholder": "请输入您的北大法宝 Access Token",
         "credentialDescription": "用于访问北大法宝 MCP；仅保存在 DSH 本机。",
         "credentialHelpLabel": "如何获取北大法宝 Token？",
+        "credentialHelpUrl": "",
         "credentialFields": [
           {
             "key": "credential",
@@ -326,6 +328,7 @@
         "credentialPlaceholder": "请输入您的个人 Wind API Key",
         "credentialDescription": "用于访问 Wind MCP 的个人访问令牌；仅保存在 DSH 本机。",
         "credentialHelpLabel": "如何获取 Wind API Key？",
+        "credentialHelpUrl": "",
         "credentialFields": [
           {
             "key": "credential",
