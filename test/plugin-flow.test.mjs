@@ -145,6 +145,26 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
   }
 }
 
+test('stdio first discovery becomes ready automatically without a manual recheck (#210)', { timeout: 15000 }, async () => {
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const descriptor = { id: 'startup-test', name: 'Startup test', auth: { mode: 'none' }, servers: [{ serverKey: 'main', serverName: 'startup-test', transport: 'stdio', command: 'node', args: ['server.js'] }] };
+  try {
+    await apply(host.ctx, baseConfig({ connectors: [descriptor] }));
+    assert.equal((await host.webCall('connect', { connectorId: descriptor.id })).ok, true);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const pending = await host.webCall('toolsList', { connectorId: descriptor.id, cachedOnly: true });
+    assert.equal(pending.detail.servers[0].pending, true);
+    host.tools.register({ name: 'mcp__startup-test__search', description: 'Synthetic tool', parameters: {} });
+    // Background registry reads work without an SSE client. No second spawn or tools/call.
+    await new Promise(resolve => setTimeout(resolve, 10500));
+    const ready = await host.webCall('toolsList', { connectorId: descriptor.id, cachedOnly: true });
+    assert.equal(ready.detail.servers[0].ok, true);
+    assert.equal(ready.detail.servers[0].pending, false);
+    assert.equal(ready.detail.totalTools, 1);
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
 test('精简工具配置保持旧默认；开启后仅两个入口且图形 API 仍可用（#161）', async () => {
   const { apply, Config } = await import('../lib/index.js');
   assert.equal(Config({}).compactManagementTools, false);
