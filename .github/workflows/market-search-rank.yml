@@ -1,0 +1,111 @@
+name: DSH Market search rank
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 4 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/market-search-rank.yml'
+      - 'scripts/check-market-search-rank.mjs'
+      - 'test/market-search-rank.test.mjs'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dsh-market-search-rank
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Simulate fixed DSH Market searches
+        id: rank
+        continue-on-error: true
+        env:
+          MARKET_RANK_REPORT_PATH: market-search-rank-report.json
+        run: node scripts/check-market-search-rank.mjs --strict
+      - name: Upload machine-readable report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-search-rank-report
+          path: market-search-rank-report.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Reconcile the single rank-drift issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs')
+            const marker = '<!-- market-search-rank-monitor -->'
+            const reportPath = 'market-search-rank-report.json'
+            if (!fs.existsSync(reportPath)) {
+              core.warning('No market rank report was produced; leaving any existing rank issue unchanged.')
+              return
+            }
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+            const escapeCell = (value) => String(value ?? '-').replaceAll('|', '\\|').replaceAll('\n', ' ')
+            const rows = report.queries.map((query) => {
+              const gate = query.required ? (query.passed ? '✅ required' : '❌ required') : 'ℹ️ observed'
+              return `| \`${escapeCell(query.query)}\` | ${gate} | ${query.rank ?? '-'} | ≤ ${query.maxRank} | ${escapeCell(query.top?.[0]?.name)} | ${query.connector?.downloads ?? '-'} | ${query.connector?.stars ?? '-'} |`
+            })
+            const body = [
+              marker,
+              '## DSH Market search-rank drift',
+              '',
+              `Catalog: ${report.registryUrl}`,
+              `Catalog updated: \`${report.catalogUpdated ?? 'unknown'}\``,
+              `Market package version: \`${report.marketVersion ?? 'unknown'}\``,
+              `Fixed contract: \`${report.locale}\` · \`${report.category}\` · \`${report.sort}\``,
+              `Algorithm: ${report.algorithm} (${report.algorithmContract})`,
+              '',
+              '| Query | Gate | Rank | Target | Top result | Connector downloads | Connector stars |',
+              '|---|---|---:|---:|---|---:|---:|',
+              ...rows,
+              '',
+              `Last checked: ${report.checkedAt}`,
+              '',
+              'This issue is maintained automatically and will close after every required core query meets its target.',
+              'Ranking is catalog discoverability under fixed conditions. It is not installation conversion, a unique-user count, or business-call acceptance.',
+            ].join('\n')
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })
+            const existing = issues.find((issue) => issue.body?.includes(marker))
+            if (!report.ok) {
+              if (existing) {
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body })
+              } else {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: 'DSH Market MCP search rank is below target',
+                  body,
+                  labels: [],
+                })
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: 'Every required core query now meets its fixed rank target. Closing automatically.',
+              })
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: 'closed' })
+            }
+      - name: Preserve failing status for required rank drift
+        if: steps.rank.outcome == 'failure'
+        run: exit 1
