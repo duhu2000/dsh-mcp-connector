@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.94
+
+- Clarify session activation steps and expose exact preview revision and activation arguments in model-visible text, without inventing user consent (#212).
+- Observe pending stdio Host registration with bounded startup retries and automatic tool discovery refresh (#210).
+- Support optional HTTPS credential-help links with a backward-compatible homepage fallback and bilingual labels (#209).
+- Automated and credential-free UI checks do not replace real TuShare or Windows Desktop acceptance. The provider Content-Type issue #208 remains unresolved.
+
 ## 0.2.93
 
 - Reposition homepage recommendations around ten specialist data sources, preserving card sizes, category previews and fixed ordering.
