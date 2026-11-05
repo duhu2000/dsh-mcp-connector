@@ -37,6 +37,7 @@
         "credentialPlaceholder": { "type": "string" },
         "credentialDescription": { "type": "string" },
         "credentialHelpLabel": { "type": "string" },
+        "credentialHelpUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
         "credentialFields": {
           "type": "array",
           "items": { "$ref": "#/$defs/credentialField" }

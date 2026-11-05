@@ -72,6 +72,7 @@ test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () =
       credentialPlaceholder: '请输入 Token',
       credentialDescription: '仅保存在本机',
       credentialHelpLabel: '如何获取 Token？',
+      credentialHelpUrl: 'https://tushare.pro/document/1?doc_id=39',
     },
     promptVariables: [{ name: 'company', label: '企业名称', required: true }],
     prompts: [{ title: '查询', text: '查询 {{company}}' }],
@@ -84,6 +85,7 @@ test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () =
   assert.equal(d.auth.credentialPlaceholder, '请输入 Token');
   assert.equal(d.auth.credentialDescription, '仅保存在本机');
   assert.equal(d.auth.credentialHelpLabel, '如何获取 Token？');
+  assert.equal(d.auth.credentialHelpUrl, 'https://tushare.pro/document/1?doc_id=39');
   assert.deepEqual(d.auth.credentialFields, [{
     key: 'credential',
     label: 'Vendor Access Token',
@@ -95,6 +97,14 @@ test('normalizeConnectorDescriptor 接受参数化 Prompt 与工具快照', () =
   }]);
   assert.equal(d.probeStatus, 'pass');
   assert.equal(d.toolsSnapshot[0].tools[0].name, 'search');
+});
+
+test('credential help links reject non-HTTPS URLs and survive normalization', () => {
+  const source = { id: 'help', name: 'Help', servers: [{ serverKey: 'main', serverName: 'help', url: 'https://example.com/mcp' }], auth: { mode: 'bearer', credentialHelpUrl: 'https://example.com/token' } };
+  assert.equal(normalizeConnectorDescriptor(normalizeConnectorDescriptor(source)).auth.credentialHelpUrl, source.auth.credentialHelpUrl);
+  for (const url of ['javascript:alert(1)', 'http://example.com/token']) {
+    assert.throws(() => normalizeConnectorDescriptor({ ...source, auth: { ...source.auth, credentialHelpUrl: url } }));
+  }
 });
 
 test('normalizeConnectorDescriptor 拒绝缺 servers 的描述', () => {

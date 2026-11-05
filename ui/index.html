@@ -630,6 +630,7 @@
   // 的扁平映射（与 lib/i18n/locales/en/*.js 同一约定）。缺项回退中文原文，绝不空白。
   // 少量同名中文在不同上下文需要不同英文时，用 LABELS 的 key 单独提供词条。
   MESSAGES.en = {
+    "如何获取 TuShare Token": "How to get a TuShare Token",
     "connect": "Connect",
     "切换界面语言": "Change interface language",
     "切换语言将重新加载面板，未保存的编辑会丢失。继续吗？": "Changing the language reloads this panel and discards unsaved edits. Continue?",
@@ -2473,11 +2474,12 @@
     const authMode = preset.authMode === 'api-key' ? 'api-key' : 'bearer';
     const servers = preset.servers || [];
     const usesStdio = servers.some((server) => server.transport === 'stdio');
-    const homepage = /^https:\/\//i.test(preset.homepage || '') ? preset.homepage : '';
+    const helpUrl = preset.credentialHelpUrl || preset.homepage;
+    const homepage = /^https:\/\//i.test(helpUrl || '') ? helpUrl : '';
     const credentialName = preset.credentialName || (authMode === 'bearer' ? 'Bearer Token' : 'API Key');
     const credentialPlaceholder = preset.credentialPlaceholder || t('仅保存在 DSH 本机');
     const credentialDescription = preset.credentialDescription || t('凭据仅保存在 DSH 本机，不会写入市场目录或对话。');
-    const credentialHelpLabel = preset.credentialHelpLabel || t('前往 {vendor} 官网获取', { vendor: preset.vendor || preset.name });
+    const credentialHelpLabel = preset.credentialHelpLabel ? t(preset.credentialHelpLabel) : t('前往 {vendor} 官网获取', { vendor: preset.vendor || preset.name });
     const declaredFields = preset.credentialFields?.length ? preset.credentialFields : [{
       key: 'credential', label: credentialName, placeholder: credentialPlaceholder,
       description: credentialDescription, required: true, secret: true,

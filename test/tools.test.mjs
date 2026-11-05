@@ -363,3 +363,19 @@ test('会话工具元工具传递 Agent 上下文并强调精确预览与确认'
   assert.match(tool.output.render({}, result)[0].text, /下一次模型推理边界/);
   dispose();
 });
+
+test('session preview text retains exact activation arguments without inventing user consent (#212)', () => {
+  const { tools } = captureTools({});
+  const tool = tools.get('mcp_connector_session_tools');
+  const text = tool.output.render({ action: 'preview-activate' }, { ok: true, message: 'preview', detail: {
+    connectionKey: 'demo', publicNames: ['mcp__demo__read'], ttlMinutes: 5, baseRevision: 7,
+    secret: 'must-not-render',
+  } })[0].text;
+  const call = JSON.parse(text.split('\n').find(line => line.startsWith('{')));
+  assert.deepEqual(call, { action: 'activate', connectionKey: 'demo', publicNames: ['mcp__demo__read'], ttlMinutes: 5, expectedRevision: 7, confirmed: false });
+  assert.doesNotMatch(text, /must-not-render/);
+  assert.match(text, /等待明确确认/);
+  const done = tool.output.render({ action: 'activate' }, { ok: true, message: 'done', detail: { activated: ['mcp__demo__read'], revision: 8 } })[0].text;
+  assert.match(done, /不要再次 search/);
+  assert.match(done, /revision=8/);
+});

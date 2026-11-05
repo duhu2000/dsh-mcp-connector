@@ -2,6 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nextDiscovery, discoveryDue, parseRetryAfter } from '../lib/discovery-policy.js';
 
+test('stdio startup polling is bounded and never changes HTTP/auth backoff', () => {
+  const outcome = { ok: false, pending: true, managed: true, diagnosticCode: 'host-tools-pending' };
+  let plan = nextDiscovery(null, outcome, 0);
+  assert.equal(plan.nextAt, 5000);
+  for (let now = 5000; now < 60000; now += 5000) {
+    plan = nextDiscovery(plan, outcome, now);
+    assert.equal(plan.reason, 'startup-pending');
+    assert.equal(plan.startupStartedAt, 0);
+  }
+  plan = nextDiscovery(plan, outcome, 60000);
+  assert.equal(plan.reason, 'retry');
+  assert.equal(plan.nextAt, 90000);
+  assert.equal(nextDiscovery(plan, { ok: true }, 61000).reason, 'success');
+  assert.equal(nextDiscovery(null, { ok: false, pending: true }, 0).nextAt, 30000);
+});
+
 test('成功发现每五分钟到期，普通故障指数退避并封顶，恢复重置', () => {
   const success = nextDiscovery(null, { ok: true }, 0);
   assert.equal(success.nextAt, 300_000);
