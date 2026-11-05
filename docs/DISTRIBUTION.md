@@ -230,6 +230,16 @@ the public pages converge. Temporary network outages are reported as
 `unavailable` and fail strict verification: this means unverified accessibility,
 not proven metadata corruption. They do not permit automatic issue closure.
 
+Run `npm run market:rank:live` to reproduce the DSH Market search contract
+against the official awesome-dsh-plugin feed: Chinese locale, all categories,
+and `downloads-desc` after the market's field-aware relevance score. The daily
+`DSH Market search rank` workflow requires `mcp`, `mcp connector`, `MCP连接器`,
+`MCP 管理`, and `连接器` to rank first and maintains one deduplicated drift
+Issue until every required query recovers. Model Context Protocol, marketplace,
+data-market, and MCP Server queries remain visible as non-blocking observations.
+The report is a deterministic catalog simulation; it does not claim actual UI
+acceptance, unique users, installation conversion, or business-call success.
+
 ## Out-of-scope directories
 
 Do not submit the connector itself to the Official MCP Registry, Smithery,
