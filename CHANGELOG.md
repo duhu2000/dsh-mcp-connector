@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.95
+
+- Add a standalone Settings → MCP Connector page with the existing sidebar visibility switch and open-panel action, including hosts without a Plugins settings page (#216).
+- Retain the legacy plugin settings card and shared profile preference; hiding the shortcut does not disable connections or tools.
+- Cover delayed settings slots, removal/remount and opening with the sidebar hidden. Windows Desktop and the original reporter environment still require acceptance; this does not close #166 or #216.
+
 ## 0.2.94
 
 - Clarify session activation steps and expose exact preview revision and activation arguments in model-visible text, without inventing user consent (#212).

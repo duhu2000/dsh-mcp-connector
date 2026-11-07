@@ -245,6 +245,41 @@ test('partial optional settings services do not block the connector UI', async (
   }
 });
 
+test('independent settings section works without a Plugins page and survives slot remount', async () => {
+  const plugin = await loadClient({
+    jsxRuntime: { jsx: (type, props) => ({ type, props }) },
+  });
+  const settings = mutableSettingsScope({
+    status: 'ready', value: { showSidebarEntry: false },
+    writable: true, user: { showSidebarEntry: false },
+  });
+  const { ctx, registrations, slotControls } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  slotControls.remove('settings.plugin.item');
+  plugin.apply(ctx);
+  assert.equal(registrations.has('settings.plugin.item'), false);
+  assert.equal(registrations.has('settings.section'), false);
+  slotControls.declare('settings.section');
+  const section = registrations.get('settings.section');
+  assert.equal(section.options.id, 'mcp-connector');
+  assert.equal(section.options.label, 'MCP连接器');
+  assert.equal(section.options.inject().settingsScope, settings.scope);
+  assert.equal(section.options.store, registrations.get('shell.overlay').options.store);
+  const store = section.options.store.create();
+  assert.equal(store.getSnapshot().sidebarVisible, false);
+  store.actions.open();
+  assert.equal(store.getSnapshot().open, true, 'hidden sidebar must not prevent opening');
+  slotControls.remove('settings.section');
+  assert.equal(registrations.has('settings.section'), false);
+  slotControls.declare('settings.section');
+  assert.ok(registrations.has('settings.section'));
+  slotControls.declare('settings.plugin.item');
+  const rendered = section.component({ settingsScope: settings.scope, actions: store.actions });
+  assert.equal(rendered.type, 'ul');
+  assert.equal(rendered.props.children.type, registrations.get('settings.plugin.item').component);
+});
+
 test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口', async () => {
   const plugin = await loadClient();
   const settings = mutableSettingsScope({
