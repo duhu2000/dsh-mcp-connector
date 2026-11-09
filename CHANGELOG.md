@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.96
 
 - Honor catalog TTL on startup; use audited stale cache immediately and refresh in the background, renew freshness on HTTP 304, and cancel superseded/disposed refreshes (#219). First installation without a valid cache still uses the existing foreground fetch path.
 - Expose exact connection keys and Workspace scope to the health-check tool; reject mismatched identifiers and prevent scoped checks from overwriting connector-wide health (#218).
