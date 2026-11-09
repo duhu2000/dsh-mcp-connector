@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.97
+
+- Bind remote catalog caches and ETags to catalogUrl. Changing the source fetches the new catalog immediately, including while the old cache TTL is fresh; failed requests do not expose entries from another source (#219).
+- Refresh legacy caches without a source URL once before reuse. Preserve same-source TTL hits, background refresh, HTTP 304 revalidation, and manual refresh behavior.
+- Add 13 regression cases covering source changes, failure isolation, storage validation, restart reuse, and manual refresh. Real Windows Desktop verification for #218 and #219 remains pending.
+
 ## 0.2.96
 
 - Honor catalog TTL on startup; use audited stale cache immediately and refresh in the background, renew freshness on HTTP 304, and cancel superseded/disposed refreshes (#219). First installation without a valid cache still uses the existing foreground fetch path.
