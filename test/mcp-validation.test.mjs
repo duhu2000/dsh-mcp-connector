@@ -39,6 +39,49 @@ function bearerRecord(url, token) {
   };
 }
 
+test('initialize SSE response completes without waiting for a persistent stream to close (#218)', async () => {
+  const { server, url } = await listen((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+    res.write('data: {"jsonrpc":"2.0","method":"notifications/message","params":{}}\n\n');
+    res.write('data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","capabilities":{}}}\n\n');
+    // Valid initialize result, but keep the SSE stream open like a persistent server.
+  });
+  try {
+    const result = await validateConnectionRecord(bearerRecord(url, 'test-only'), { timeoutMs: 300 });
+    assert.equal(result.ok, true, JSON.stringify(result));
+  } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+});
+
+test('SSE initialize handles fragmented multiline events and ignores other request ids (#218)', async () => {
+  let cancelled = false;
+  const chunks = [
+    'data: {"jsonrpc":"2.0","id":2,"result":{}}\r\n\r',
+    '\ndata: {"jsonrpc":"2.0",\r\ndata: "id":1,"result":{"serverInfo":{"name":"demo"}}}\r',
+    '\n\r\n',
+  ];
+  const result = await validateConnectionRecord(bearerRecord('https://example.com/mcp', 'test-only'), {
+    fetchImpl: async () => new Response(new ReadableStream({
+      start(controller) { for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk)); },
+      cancel() { cancelled = true; },
+    }), { headers: { 'Content-Type': 'text/event-stream' } }),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(cancelled, true);
+});
+
+test('SSE initialize preserves authentication errors and rejects unrelated responses (#218)', async () => {
+  for (const [payload, kind] of [
+    [{ jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'unauthorized' } }, 'auth'],
+    [{ jsonrpc: '2.0', id: 2, result: { capabilities: {} } }, 'protocol'],
+  ]) {
+    const result = await validateConnectionRecord(bearerRecord('https://example.com/mcp', 'test-only'), {
+      fetchImpl: async () => new Response(`data: ${JSON.stringify(payload)}\n\n`, { headers: { 'Content-Type': 'text/event-stream' } }),
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.kind, kind);
+  }
+});
+
 test('MCP 连接校验通过 initialize 鉴权后才返回成功', async () => {
   let seenAuthorization;
   const { server, url } = await listen(async (req, res) => {

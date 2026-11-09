@@ -145,6 +145,92 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
   }
 }
 
+test('fresh remote catalog cache skips startup fetch; manual refresh bypasses TTL (#219)', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => { calls++; return new Response('[]'); });
+  await host.tables.get('catalog').put('remote', { updatedAt: Date.now(), connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    assert.equal(calls, 0);
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    assert.equal(calls, 1);
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+test('expired cache starts Host before network completes and 304 renews freshness (#219)', async (t) => {
+  const host = makePluginContext();
+  let release;
+  const response = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    calls++;
+    assert.equal(options.headers['If-None-Match'], 'cached-etag');
+    return response;
+  });
+  await host.tables.get('catalog').put('remote', { updatedAt: 1, etag: 'cached-etag', connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    assert.ok(host.tools.defs.has('mcp_connector_health_check'));
+    await waitFor(() => calls === 1);
+    release(new Response(null, { status: 304 }));
+    let saved;
+    await waitFor(() => { host.tables.get('catalog').get('remote').then(value => { saved = value; }); return saved?.updatedAt > 1; });
+    assert.equal(saved.etag, 'cached-etag');
+  } finally { release(new Response(null, { status: 304 })); for (const dispose of host.disposers) await dispose(); }
+});
+
+test('disposing Host aborts stale catalog refresh without replacing cache (#219)', async (t) => {
+  const host = makePluginContext();
+  let signal;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    signal = options.signal;
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+  });
+  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+  try { await waitFor(() => signal); }
+  finally { for (const dispose of host.disposers) await dispose(); }
+  assert.equal(signal.aborted, true);
+  assert.equal((await host.tables.get('catalog').get('remote')).updatedAt, 1);
+});
+
+test('manual catalog refresh supersedes an older background response (#219)', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  let release;
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    if (++calls === 1) return new Promise(resolve => { release = resolve; });
+    return new Response('[]', { headers: { etag: 'manual' } });
+  });
+  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    await waitFor(() => release);
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    release(new Response('[]', { headers: { etag: 'obsolete' } }));
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal((await host.tables.get('catalog').get('remote')).etag, 'manual');
+  } finally { release?.(new Response('[]')); for (const dispose of host.disposers) await dispose(); }
+});
+
+test('failed stale catalog refresh preserves cached descriptors (#219)', async (t) => {
+  const host = makePluginContext();
+  t.mock.method(globalThis, 'fetch', async () => { throw new Error('offline'); });
+  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    await waitFor(() => host.logs.some(line => line.includes('catalog background refresh failed')));
+    assert.equal((await host.tables.get('catalog').get('remote')).updatedAt, 1);
+    assert.ok(host.tools.defs.has('mcp_connector_health_check'));
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
 test('stdio first discovery becomes ready automatically without a manual recheck (#210)', { timeout: 15000 }, async () => {
   const host = makePluginContext({ withWeb: true });
   const { apply } = await import('../lib/index.js');
@@ -679,6 +765,21 @@ test('工具浏览 API：分页与筛选、无 Workspace 仅全局、只读搜�
     const check = await webCall('toolExplorerAction', { connectionKey: 'custom-c', action: 'check' });
     assert.equal(check.ok, true, check.message);
     assert.ok(requests.slice(before).every((request) => request.path === '/c'));
+    // #218: management health checks must honor exact keys and Workspace visibility.
+    const health = tools.defs.get('mcp_connector_health_check');
+    let checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-b' })).ok, true);
+    assert.ok(requests.length > checkpoint);
+    assert.ok(requests.slice(checkpoint).every(request => request.path === '/b'));
+    checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-a' })).ok, false);
+    assert.equal((await health.execute({ connectorId: 'wrong-id', connectionKey: 'custom-b' })).ok, false);
+    assert.equal(requests.length, checkpoint);
+    assert.equal((await health.execute({ workspaceId: 'workspace-other' })).ok, true);
+    assert.ok(requests.slice(checkpoint).every(request => request.path !== '/a'));
+    checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-a', workspaceId: 'workspace-1' })).ok, true);
+    assert.ok(requests.slice(checkpoint).every(request => request.path === '/a'));
     limited = true;
     const failed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: '__custom__', connectionKey: 'custom-b' });
     assert.equal(failed.ok, false);

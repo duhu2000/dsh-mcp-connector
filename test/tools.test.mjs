@@ -163,6 +163,22 @@ test('所有对话工具在 execute 边界清洗 transport 专属 undefined 字�
   dispose();
 });
 
+test('健康检查精确定位参数原样传给后端（#218）', async () => {
+  const calls = [];
+  const { tools, dispose } = captureTools({ healthCheck: async (...args) => {
+    calls.push(args);
+    return { ok: true };
+  } });
+  const tool = tools.get('mcp_connector_health_check');
+  assert.equal(tool.parameters.properties.connectionKey.type, 'string');
+  assert.equal(tool.parameters.properties.workspaceId.type, 'string');
+  await tool.execute({ connectorId: '__custom__', workspaceId: 'ws', connectionKey: 'custom-a' });
+  assert.deepEqual(calls[0], ['__custom__', 'ws', 'custom-a']);
+  await tool.execute({});
+  assert.deepEqual(calls[1], [undefined, undefined, undefined]);
+  dispose();
+});
+
 test('健康检查工具向模型渲染状态、阶段、代码和建议', () => {
   const tools = new Map();
   const ctx = {

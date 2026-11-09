@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Honor catalog TTL on startup; use audited stale cache immediately and refresh in the background, renew freshness on HTTP 304, and cancel superseded/disposed refreshes (#219). First installation without a valid cache still uses the existing foreground fetch path.
+- Expose exact connection keys and Workspace scope to the health-check tool; reject mismatched identifiers and prevent scoped checks from overwriting connector-wide health (#218).
+- Finish initialize validation when the matching SSE response arrives instead of waiting for a persistent stream to close. Handle fragmented/multiline events, ignore unrelated responses, and preserve authentication failures (#218).
+- Local synthetic regression reproduces the persistent-SSE timeout and verifies the fix. This does not establish the original reporter's root cause or replace Windows Desktop / business-call acceptance; #218 and #219 remain open pending review and reporter verification.
+
 ## 0.2.95
 
 - Add a standalone Settings → MCP Connector page with the existing sidebar visibility switch and open-panel action, including hosts without a Plugins settings page (#216).
