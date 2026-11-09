@@ -5,6 +5,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMockQccServer } from './mock-oauth-server.mjs';
+import { DEFAULT_CATALOG_URL } from '../lib/constants.js';
+import { catalogRecordSchema } from '../lib/schema.js';
 
 /* ───────────────────────── fake cordis ctx ───────────────────────── */
 
@@ -145,11 +147,102 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
   }
 }
 
+function catalogDescriptor(id) {
+  return { id, name: id, auth: { mode: 'none' }, servers: [
+    { serverKey: 'main', serverName: id, url: 'https://mcp.example.com/mcp' },
+  ] };
+}
+
+for (const [source, previousUrl, catalogUrl] of [
+  ['default to custom', DEFAULT_CATALOG_URL, 'https://new-catalog.example.com/catalog.json'],
+  ['custom to default', 'https://old-catalog.example.com/catalog.json', DEFAULT_CATALOG_URL],
+  ['custom to custom', 'https://old-catalog.example.com/catalog.json', 'https://new-catalog.example.com/catalog.json'],
+  ['legacy to default', undefined, DEFAULT_CATALOG_URL],
+  ['legacy to custom', undefined, 'https://new-catalog.example.com/catalog.json'],
+]) {
+  for (const fresh of [true, false]) {
+    test(`catalogUrl change (${source}, ${fresh ? 'fresh' : 'expired'}) fetches the new source without old entries or ETag (#219)`, async (t) => {
+      const host = makePluginContext();
+      const oldRecord = { key: 'remote', updatedAt: fresh ? Date.now() : 1, etag: 'old-etag', connectors: [catalogDescriptor('old-source')] };
+      if (previousUrl !== undefined) oldRecord.catalogUrl = previousUrl;
+      await host.tables.get('catalog').put('remote', oldRecord);
+      const requests = [];
+      t.mock.method(globalThis, 'fetch', async (url, options) => {
+        requests.push({ url, etag: options.headers['If-None-Match'] });
+        return new Response(JSON.stringify([catalogDescriptor('new-source')]), { headers: { etag: 'new-etag' } });
+      });
+      const { apply } = await import('../lib/index.js');
+      try {
+        await apply(host.ctx, baseConfig({ catalogUrl }));
+        assert.deepEqual(requests, [{ url: catalogUrl, etag: undefined }]);
+        const catalog = await host.tools.defs.get('mcp_connector_catalog').execute({});
+        assert.ok(catalog.detail.items.some(item => item.id === 'new-source'));
+        assert.ok(!catalog.detail.items.some(item => item.id === 'old-source'));
+        const saved = await host.tables.get('catalog').get('remote');
+        assert.equal(saved.catalogUrl, catalogUrl);
+        assert.equal(saved.etag, 'new-etag');
+      } finally { for (const dispose of host.disposers) await dispose(); }
+    });
+  }
+}
+
+for (const fresh of [true, false]) {
+  test(`catalogUrl change does not expose ${fresh ? 'fresh' : 'expired'} old-source entries when the new source fails (#219)`, async (t) => {
+    const host = makePluginContext();
+    const record = { key: 'remote', updatedAt: fresh ? Date.now() : 1, catalogUrl: DEFAULT_CATALOG_URL, etag: 'old-etag', connectors: [catalogDescriptor('old-source')] };
+    await host.tables.get('catalog').put('remote', record);
+    const catalogUrl = 'https://new-catalog.example.com/catalog.json';
+    const requests = [];
+    t.mock.method(globalThis, 'fetch', async (url, options) => {
+      requests.push({ url, etag: options.headers['If-None-Match'] });
+      throw new Error('new source offline');
+    });
+    const { apply } = await import('../lib/index.js');
+    try {
+      await apply(host.ctx, baseConfig({ catalogUrl }));
+      assert.deepEqual(requests, [{ url: catalogUrl, etag: undefined }]);
+      const catalog = await host.tools.defs.get('mcp_connector_catalog').execute({});
+      assert.ok(!catalog.detail.items.some(item => item.id === 'old-source'));
+      assert.ok(catalog.detail.items.some(item => item.id === 'qcc-company'));
+      assert.equal(await host.tables.get('catalog').get('remote'), record, 'failed requests must not relabel the old source cache');
+    } finally { for (const dispose of host.disposers) await dispose(); }
+  });
+}
+
+test('catalog source survives storage validation, restart, and manual refresh (#219)', async (t) => {
+  const host = makePluginContext();
+  const catalogUrl = 'https://catalog.example.com/catalog.json';
+  const table = host.tables.get('catalog');
+  const put = table.put.bind(table);
+  t.mock.method(table, 'put', (key, record) => put(key, catalogRecordSchema.parse(record)));
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, etag: options.headers['If-None-Match'] });
+    return new Response(JSON.stringify([catalogDescriptor(`source-${requests.length}`)]));
+  });
+  const { apply } = await import('../lib/index.js');
+  const hosts = [host];
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl }));
+    assert.equal((await table.get('remote')).catalogUrl, catalogUrl);
+    for (const dispose of host.disposers.splice(0)) await dispose();
+    const restarted = makePluginContext({ shared: host, withWeb: true });
+    hosts.push(restarted);
+    await apply(restarted.ctx, baseConfig({ catalogUrl }));
+    assert.equal(requests.length, 1, 'same-source fresh cache must survive a restart without fetching');
+    const catalog = await restarted.tools.defs.get('mcp_connector_catalog').execute({});
+    assert.ok(catalog.detail.items.some(item => item.id === 'source-1'));
+    assert.equal((await restarted.webCall('refreshCatalog')).ok, true);
+    assert.equal((await table.get('remote')).catalogUrl, catalogUrl);
+    assert.equal(requests.length, 2);
+  } finally { for (const active of hosts) for (const dispose of active.disposers.splice(0)) await dispose(); }
+});
+
 test('fresh remote catalog cache skips startup fetch; manual refresh bypasses TTL (#219)', async (t) => {
   const host = makePluginContext({ withWeb: true });
   let calls = 0;
   t.mock.method(globalThis, 'fetch', async () => { calls++; return new Response('[]'); });
-  await host.tables.get('catalog').put('remote', { updatedAt: Date.now(), connectors: [] });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: Date.now(), connectors: [] });
   const { apply } = await import('../lib/index.js');
   try {
     await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
@@ -169,7 +262,7 @@ test('expired cache starts Host before network completes and 304 renews freshnes
     assert.equal(options.headers['If-None-Match'], 'cached-etag');
     return response;
   });
-  await host.tables.get('catalog').put('remote', { updatedAt: 1, etag: 'cached-etag', connectors: [] });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, etag: 'cached-etag', connectors: [] });
   const { apply } = await import('../lib/index.js');
   try {
     await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
@@ -179,6 +272,7 @@ test('expired cache starts Host before network completes and 304 renews freshnes
     let saved;
     await waitFor(() => { host.tables.get('catalog').get('remote').then(value => { saved = value; }); return saved?.updatedAt > 1; });
     assert.equal(saved.etag, 'cached-etag');
+    assert.equal(saved.catalogUrl, 'https://catalog.example.com/catalog.json');
   } finally { release(new Response(null, { status: 304 })); for (const dispose of host.disposers) await dispose(); }
 });
 
@@ -189,7 +283,7 @@ test('disposing Host aborts stale catalog refresh without replacing cache (#219)
     signal = options.signal;
     return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
   });
-  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
   const { apply } = await import('../lib/index.js');
   await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
   try { await waitFor(() => signal); }
@@ -206,7 +300,7 @@ test('manual catalog refresh supersedes an older background response (#219)', as
     if (++calls === 1) return new Promise(resolve => { release = resolve; });
     return new Response('[]', { headers: { etag: 'manual' } });
   });
-  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
   const { apply } = await import('../lib/index.js');
   try {
     await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
@@ -221,7 +315,7 @@ test('manual catalog refresh supersedes an older background response (#219)', as
 test('failed stale catalog refresh preserves cached descriptors (#219)', async (t) => {
   const host = makePluginContext();
   t.mock.method(globalThis, 'fetch', async () => { throw new Error('offline'); });
-  await host.tables.get('catalog').put('remote', { updatedAt: 1, connectors: [] });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
   const { apply } = await import('../lib/index.js');
   try {
     await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
