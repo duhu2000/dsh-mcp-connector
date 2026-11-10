@@ -1,4 +1,4 @@
-# Third-party DSH plugin index 
+# Third-party DSH plugin index
 
 This is an independent index in the upstream DSH `format: 1` format. It is
 not the official DeepSeek marketplace, a certification, or a usage ranking.
