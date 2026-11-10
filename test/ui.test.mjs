@@ -321,7 +321,7 @@ test('连接、健康检查与工具加载均有有限超时和可重试提示',
   assert.match(uiSource, /signal: controller\.signal/);
   assert.match(uiSource, /authMode === 'oauth2-pkce' \? 310_000/);
   assert.match(uiSource, /t\('请求超时（\{seconds\} 秒），请检查服务状态和 Host 日志后重试', \{ seconds: Math\.ceil\(timeoutMs \/ 1000\) \}\)/);
-  assert.match(uiSource, /detailNeedsReconfigure = true/);
+  assert.match(uiSource, /detailNeedsReconfigure = detailFailureState !== 'healthy'/);
   assert.match(uiSource, /重新检查/);
 });
 
@@ -446,6 +446,45 @@ test('已安装列表和详情展示可解释诊断与最近成功时间', () =>
   assert.match(uiSource, /r\.lastSuccessfulAt/);
   assert.match(uiSource, /detailFailureState === 'unknown' \? '工具状态未知'/);
   assert.match(uiSource, /状态尚未确认/);
+});
+
+test('#218 工具页同时展示连接通过与发现失败，且转义服务端消息', () => {
+  const start = uiSource.indexOf('  function explorerDiagnosticsHtml(');
+  const end = uiSource.indexOf('  async function loadToolExplorer(', start);
+  const escapeHtml = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  const render = new Function('t', 'esc', uiSource.slice(start, end) + '; return explorerDiagnosticsHtml;')(tZh, escapeHtml);
+  const html = render({
+    diagnostic: { stageLabel: '可用性确认', message: '连接通过', action: '无需操作' },
+    discoveryDiagnostic: { stageLabel: '工具发现', message: '<script>失败</script>', action: '重新发现工具' },
+  });
+  assert.match(html, /可用性确认：连接通过/);
+  assert.match(html, /工具发现：&lt;script&gt;失败&lt;\/script&gt;/);
+  assert.match(html, /重新发现工具/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test('#218 实时缓存刷新保留连接健康状态，不把工具失败变成连接异常', async () => {
+  const start = uiSource.indexOf('  async function refreshOpenToolDetail()');
+  const end = uiSource.indexOf('  function scheduleStatusRefresh()', start);
+  const nodes = {
+    '#detail-overlay': { classList: { contains: () => true } },
+    '#detail-vendor': {}, '#detail-try-btn': {},
+  };
+  let connectionState = 'healthy';
+  const refresh = new Function('call', '$', 'renderTools', 'workspaceParams', 't', 'detailTryLabel', `
+    let detailConnector = { id: 'review', connectionKey: 'custom-review', vendor: 'Example' };
+    let detailLoadId = 1;
+    let detailToolServers = [];
+    let detailFailureState, detailNeedsReconfigure, detailReconnectKey;
+    ${uiSource.slice(start, end)}
+    return async () => { await refreshOpenToolDetail(); return { detailFailureState, detailNeedsReconfigure }; };
+  `)(async () => ({ ok: false, detail: { connectionState, servers: [{ ok: false, error: 'timeout', cached: true }] } }),
+    (selector) => nodes[selector], () => {}, () => ({}), tZh, (value) => value);
+  assert.deepEqual(await refresh(), { detailFailureState: 'healthy', detailNeedsReconfigure: false });
+  assert.equal(nodes['#detail-vendor'].textContent, 'Example · 已连接');
+  connectionState = 'reauth';
+  assert.deepEqual(await refresh(), { detailFailureState: 'reauth', detailNeedsReconfigure: true });
+  assert.equal(nodes['#detail-vendor'].textContent, 'Example · 凭据已失效');
 });
 
 test('市场只保留推荐与业务分类筛选', () => {

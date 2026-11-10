@@ -2290,6 +2290,11 @@
   const explorerStatusLabel = (status) => t(EXPLORER_STATUS[status] || status);
   const formatObserved = (value) => value ? new Date(value).toLocaleString(t.locale, { hour12: false }) : t('尚无记录');
 
+  function explorerDiagnosticsHtml(connection) {
+    return [connection.diagnostic, connection.discoveryDiagnostic].filter(Boolean).map((diagnostic) =>
+      `<div>${t('{stage}：{message}', { stage: esc(diagnostic.stageLabel), message: esc(diagnostic.message) })}<br>${t('建议：{action}', { action: esc(diagnostic.action) })}</div>`).join('');
+  }
+
   async function loadToolExplorer() {
     const render = beginViewRender();
     try {
@@ -2312,7 +2317,7 @@
     $('#explorer-server').value = explorerFilter.serverName;
     $('#explorer-status').value = explorerFilter.status;
     $('#explorer-summary').textContent = t('{scope} · {connections} 条连接 · 匹配 {tools} 个工具 · 显示 {shown} 个', { scope: explorerData.scopeLabel, connections: connections.length, tools: total, shown: items.length });
-    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${c.diagnostic ? `<div>${t('{stage}：{message}', { stage: esc(c.diagnostic.stageLabel), message: esc(c.diagnostic.message) })}<br>${t('建议：{action}', { action: esc(c.diagnostic.action) })}</div>` : ''}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
+    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${explorerDiagnosticsHtml(c)}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
     $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || t('暂无描述'))}</p><div class="hint">${t('来源：{connector} / {connection} / {server}', { connector: esc(item.connection.connectorName), connection: esc(item.connection.connectionName), server: esc(item.serverName) })}<br>${esc(explorerStatusLabel(item.connection.status))} · ${t('最后成功缓存 {at}', { at: esc(formatObserved(item.observedAt)) })}${item.stale ? t(' · 已超过 24 小时') : ''}</div><button class="btn ghost" data-explorer-detail="${index}">${t('参数详情')}</button></article>`).join('') || `<p class="empty">${t(connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。')}</p>`;
     $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>${t('上一页')}</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>${t('下一页')}</button>`;
     } finally { finishViewRender(render); }
@@ -3131,9 +3136,9 @@
       syncGovernanceBar();
       if (!toolsResult.ok) {
         detailFailureState = toolsResult.detail?.connectionState || detailFailureState || 'unavailable';
-        detailNeedsReconfigure = true;
+        detailNeedsReconfigure = detailFailureState !== 'healthy';
         detailReconnectKey = detailFailureState === 'unknown' && d.connected?.length > 0 ? d.connected[0] : '';
-        const diagnostic = toolsResult.detail?.diagnostic;
+        const diagnostic = toolsResult.detail?.discoveryDiagnostic || toolsResult.detail?.diagnostic;
         $('#tools-summary').textContent = t(detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败');
         const failureHtml = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(t('{stage} · {code}：{message}', { stage: diagnostic.stageLabel || diagnostic.stage, code: diagnostic.code, message: diagnostic.message }))}<br>${esc(t('建议：{action}', { action: diagnostic.action }))}${diagnostic.lastSuccessfulAt ? `<br>${esc(t('最近成功：{at}', { at: new Date(diagnostic.lastSuccessfulAt).toLocaleString(t.locale, { hour12: false }) }))}` : ''}` : ''}</div>`;
         detailToolServers = toolsResult.detail?.servers || [];
@@ -3145,7 +3150,7 @@
         }
         const failureLabel = detailFailureState === 'reauth'
           ? t(d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
-          : t(detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常');
+          : t(detailFailureState === 'healthy' ? '已连接' : detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常');
         $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${failureLabel}` : failureLabel;
         $('#detail-try-btn').textContent = detailTryLabel(d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth'
           ? t('🔐 重新授权')
@@ -3352,13 +3357,10 @@
       detailToolServers = result.detail.servers;
       renderTools();
       const pending = detailToolServers.some((server) => server.pending);
-      const unknown = detailToolServers.some((server) => server.unknown);
-      const available = detailToolServers.filter((server) => server.ok).length;
-      const label = t(pending ? '正在后台发现工具' : unknown && available === 0 ? '工具状态尚未确认'
-        : available === detailToolServers.length ? '已连接'
-        : available > 0 ? '部分服务可用' : '当前连接异常');
-      detailFailureState = pending ? 'unknown' : available > 0 ? 'healthy' : 'unavailable';
-      detailNeedsReconfigure = !pending && available === 0;
+      detailFailureState = result.detail.connectionState || 'unknown';
+      const label = t(detailFailureState === 'healthy' ? '已连接' : detailFailureState === 'reauth' ? '凭据已失效'
+        : detailFailureState === 'unknown' ? '状态尚未确认' : detailFailureState === 'degraded' ? '部分服务可用' : '当前连接异常');
+      detailNeedsReconfigure = !pending && detailFailureState !== 'healthy';
       detailReconnectKey = '';
       $('#detail-vendor').textContent = detailConnector.vendor ? `${detailConnector.vendor} · ${label}` : label;
       $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure ? t('🔄 重新检查') : t('try'));

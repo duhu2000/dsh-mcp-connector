@@ -153,6 +153,143 @@ function catalogDescriptor(id) {
   ] };
 }
 
+function mockDiscoveryFetch(t, handle) {
+  t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
+    if (options.method === 'DELETE') return new Response(null, { status: 204 });
+    const request = JSON.parse(options.body || '{}');
+    const override = await handle(request, url, options);
+    if (override) return override;
+    if (!request.id) return new Response(null, { status: 202 });
+    return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: request.method === 'initialize'
+      ? { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'review', version: '1' } }
+      : { tools: [{ name: 'probe_echo', inputSchema: { type: 'object' } }] } }), { headers: { 'Content-Type': 'application/json' } });
+  });
+}
+
+test('#218 tool discovery failures retain handshake health and separate diagnostics', async (t) => {
+  let failure;
+  let rejectHandshake = false;
+  let requests = 0;
+  mockDiscoveryFetch(t, (request) => {
+    requests += 1;
+    if (request.method === 'initialize' && rejectHandshake) return new Response(null, { status: 401 });
+    if (request.method !== 'tools/list') return;
+    if (failure === 'timeout') throw new Error('tools/list timeout');
+    if (failure === 'protocol') return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -32601, message: 'tools/list unavailable' } }));
+    if (failure === 'auth') return new Response(null, { status: 403 });
+    if (failure === 'rate-limit') return new Response(null, { status: 429, headers: { 'retry-after': '600' } });
+  });
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  const target = { connectorId: '__custom__', connectionKey: 'custom-review' };
+  try {
+    await apply(host.ctx, baseConfig());
+    assert.equal((await execute('configure', { name: 'review', serverName: 'review', url: 'https://review.example/mcp' })).ok, true);
+    assert.equal((await execute('tools_list', target)).ok, true);
+    for (failure of ['timeout', 'protocol', 'auth', 'rate-limit']) {
+      const listed = await execute('tools_list', target);
+      assert.equal(listed.ok, false, failure);
+      assert.equal(listed.detail.connectionState, 'healthy', failure);
+      assert.equal(listed.detail.diagnostic.code, 'ok', failure);
+      assert.equal(listed.detail.discoveryDiagnostic.stage, 'tool-discovery', failure);
+      assert.equal(listed.detail.discoveryDiagnostic.code, failure);
+      assert.equal(listed.detail.servers[0].cached, true);
+      assert.deepEqual(listed.detail.servers[0].tools.map((tool) => tool.name), ['probe_echo']);
+      // A subsequent connection check must not erase the separate discovery failure.
+      assert.equal((await execute('health_check', target)).detail.items[0].connectionState, 'healthy');
+      assert.equal((await execute('status')).detail.items[0].connectionState, 'healthy');
+      const connection = (await host.webCall('toolExplorer', { connectionKey: target.connectionKey })).detail.selectedConnections[0];
+      assert.equal(connection.status, 'failed');
+      assert.equal(connection.diagnostic.state, 'healthy');
+      assert.equal(connection.discoveryDiagnostic.stage, 'tool-discovery');
+      assert.equal(connection.discoveryDiagnostic.code, failure);
+      const checkpoint = requests;
+      const cached = await host.webCall('toolsList', { ...target, cachedOnly: true });
+      assert.equal(cached.detail.connectionState, 'healthy');
+      assert.equal(cached.detail.discoveryDiagnostic.code, failure);
+      assert.equal(requests, checkpoint, 'cached refresh must not perform network requests');
+    }
+    rejectHandshake = true;
+    const denied = await execute('tools_list', target);
+    assert.equal(denied.detail.connectionState, 'reauth');
+    assert.equal(denied.detail.diagnostic.stage, 'authentication');
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'reauth');
+    rejectHandshake = false;
+    await execute('health_check', target);
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'healthy');
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+test('#218 scoped health checks retain other connections and project visibility', async (t) => {
+  const requests = [];
+  let rejectFirst = false;
+  mockDiscoveryFetch(t, (request, url) => {
+    requests.push(url);
+    if (request.method === 'initialize' && rejectFirst && url.endsWith('/first')) return new Response(null, { status: 401 });
+  });
+  const host = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  try {
+    await apply(host.ctx, baseConfig());
+    for (const name of ['first', 'second']) {
+      assert.equal((await execute('configure', { name, serverName: name, url: `https://review.example/${name}`,
+        ...(name === 'first' ? { scope: 'project', workspaceId: 'workspace-1' } : {}) })).ok, true);
+      await execute('tools_list', { connectorId: '__custom__', connectionKey: `custom-${name}`, workspaceId: 'workspace-1' });
+    }
+    rejectFirst = true;
+    await execute('health_check', { connectionKey: 'custom-first', workspaceId: 'workspace-1' });
+    const checkpoint = requests.length;
+    await execute('health_check', { connectionKey: 'custom-second' });
+    assert.ok(requests.slice(checkpoint).every((url) => url.endsWith('/second')));
+    assert.equal((await execute('health_check', { connectionKey: 'custom-first' })).ok, false);
+    const states = Object.fromEntries((await execute('status')).detail.items.map((item) => [item.key, item.connectionState]));
+    assert.deepEqual(states, { 'custom-first': 'reauth', 'custom-second': 'healthy' });
+    const all = await execute('health_check', { connectorId: '__custom__' });
+    assert.equal(all.detail.items[0].configuredServers, 2);
+    assert.equal(all.detail.items[0].connectionState, 'degraded');
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+for (const elapsed of [0, 100]) test(`#218 late discovery completion cannot overwrite a newer handshake failure (${elapsed} ms)`, async (t) => {
+  let clock = Date.now();
+  t.mock.method(Date, 'now', () => clock);
+  let hold = false;
+  let denied = false;
+  let entered;
+  let release;
+  const pending = new Promise((resolve) => { entered = resolve; });
+  mockDiscoveryFetch(t, async (request) => {
+    if (request.method === 'initialize' && denied) return new Response(null, { status: 401 });
+    if (request.method === 'tools/list' && hold) {
+      entered();
+      await new Promise((resolve) => { release = resolve; });
+    }
+  });
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  const target = { connectorId: '__custom__', connectionKey: 'custom-review' };
+  try {
+    await apply(host.ctx, baseConfig());
+    await execute('configure', { name: 'review', serverName: 'review', url: 'https://review.example/mcp' });
+    await execute('tools_list', target);
+    hold = true;
+    const discovery = execute('tools_list', target);
+    await pending;
+    clock += elapsed;
+    denied = true;
+    await execute('health_check', target);
+    release();
+    assert.equal((await discovery).ok, true);
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'reauth');
+    const connection = (await host.webCall('toolExplorer', { connectionKey: target.connectionKey })).detail.selectedConnections[0];
+    assert.equal(connection.status, 'success');
+    assert.equal(connection.diagnostic.state, 'reauth');
+  } finally { release?.(); for (const dispose of host.disposers) await dispose(); }
+});
+
 for (const [source, previousUrl, catalogUrl] of [
   ['default to custom', DEFAULT_CATALOG_URL, 'https://new-catalog.example.com/catalog.json'],
   ['custom to default', 'https://old-catalog.example.com/catalog.json', DEFAULT_CATALOG_URL],

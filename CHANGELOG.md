@@ -4,6 +4,8 @@
 
 - Finish tool discovery when a streamable-HTTP server keeps the SSE response open after initialize or tools/list, instead of waiting for EOF and reporting a timeout (#218).
 - Ignore notifications and unrelated request ids while consuming SSE events; preserve authentication error classification.
+- Share a line-based SSE reader between connection validation and tool discovery, including mixed LF/CRLF/CR endings and UTF-8 fragments (#218).
+- Keep handshake health separate from tool-discovery failures. Preserve per-connection checks, show discovery diagnostics independently, and retain real handshake/authentication failures (#218).
 
 ## 0.2.97
 
