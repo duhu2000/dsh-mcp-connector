@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "title": {
+    "en": "QCC Community Plugins",
+    "zh": "企查查社区插件"
+  },
+  "description": {
+    "en": "Independent third-party index; not an official DeepSeek marketplace.",
+    "zh": "独立第三方插件索引；非 DeepSeek 官方市场或官方推荐。数据服务授权与费用另计。"
+  },
+  "plugins": [
+    {
+      "name": "dsh-mcp-connector",
+      "title": {
+        "en": "MCP Connector — Data Marketplace",
+        "zh": "MCP连接器 · 专业数据源市场"
+      },
+      "description": "MCP Connector for DeepSeek Harness: a data marketplace connecting enterprise, financial, legal, patent and research data. Manage authorization, search tools and troubleshoot MCP connections. Supports OAuth, API keys and HTTP/stdio.",
+      "versions": [
+        {
+          "version": "0.2.97",
+          "publishTimestamp": 1794212031,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          }
+        }
+      ],
+      "homepage": "https://github.com/duhu2000/dsh-mcp-connector#readme",
+      "repository": {
+        "url": "https://github.com/duhu2000/dsh-mcp-connector"
+      }
+    },
+    {
+      "name": "qcc-dsh-mcp-oauth",
+      "title": {
+        "en": "Qichacha Enterprise Data OAuth",
+        "zh": "企查查 · 企业数据 OAuth"
+      },
+      "description": "DeepSeek Harness 插件：一键 OAuth 授权连接企查查（Qichacha）MCP 服务 / One-click OAuth connect to Qichacha MCP services",
+      "versions": [
+        {
+          "version": "0.1.8",
+          "publishTimestamp": 1792143703,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          }
+        }
+      ],
+      "homepage": "https://github.com/duhu2000/qcc-mcp-oauth#readme",
+      "repository": {
+        "url": "https://github.com/duhu2000/qcc-mcp-oauth"
+      }
+    },
+    {
+      "name": "qcc-dsh-mcp-legal-oauth",
+      "title": {
+        "en": "Qichacha Legal Data OAuth",
+        "zh": "企查查 · 法律数据 OAuth"
+      },
+      "description": "DeepSeek Harness 插件：一键 OAuth 授权连接企查查（Qichacha）法律数据 MCP（法律产品：法规/reg 案例） / One-click OAuth connect to Qichacha Legal MCP (regulation & case)",
+      "versions": [
+        {
+          "version": "0.1.5",
+          "publishTimestamp": 1792143975,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org/"
+          }
+        }
+      ],
+      "homepage": "https://github.com/duhu2000/qcc-mcp-legal-oauth#readme",
+      "repository": {
+        "url": "https://github.com/duhu2000/qcc-mcp-legal-oauth"
+      }
+    }
+  ]
+}
