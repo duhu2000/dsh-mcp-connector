@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Finish tool discovery when a streamable-HTTP server keeps the SSE response open after initialize or tools/list, instead of waiting for EOF and reporting a timeout (#218).
+- Ignore notifications and unrelated request ids while consuming SSE events; preserve authentication error classification.
+
 ## 0.2.97
 
 - Bind remote catalog caches and ETags to catalogUrl. Changing the source fetches the new catalog immediately, including while the old cache TTL is fresh; failed requests do not expose entries from another source (#219).
