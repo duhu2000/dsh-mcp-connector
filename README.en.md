@@ -1,5 +1,10 @@
 # MCP Connector: a Specialist Data Marketplace for DeepSeek Harness
 
+<!-- npm-download-trend:start -->
+[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
+
 > MCP Connector for DeepSeek Harness: a data marketplace connecting specialist providers and open data sources. Browse 100+ connectors, manage authorization, search tools and troubleshoot MCP connections.
 
 Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.

@@ -1,5 +1,10 @@
 # MCP连接器：DeepSeek Harness 的专业数据源市场
 
+<!-- npm-download-trend:start -->
+[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
+
 > DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
 从持续更新的连接器目录接入 MCP Server；跨当前范围内已启用连接查找工具，查看易读参数、来源和最后成功缓存时间，并在发现异常时检查连接或重新发现工具。支持 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 与 `mcpServers` JSON 导入。
