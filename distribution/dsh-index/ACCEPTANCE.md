@@ -13,15 +13,16 @@ Candidate: PR #222, `feat/dsh-plugin-index-20261110`.
 
 ## Blocked — not accepted for promotion
 
-Discover displayed “无法读取此索引”. Two independently observed problems remain:
+Discover displayed “无法读取此索引”. A subsequent Node fetch of GitHub Raw
+timed out after 15 seconds. The earlier successful response does not establish
+reliable reachability on this network.
 
-1. A subsequent Node fetch of GitHub Raw timed out after 15 seconds. The earlier
-   successful response does not establish reliable reachability on this network.
-2. The installed official market package's `lib/types/parse-thread.js` resolves
-   `./worker.cjs`, but the published installation contains `worker.js` and
-   `worker.d.ts`, not `worker.cjs`. Calling `parseIndexInWorker` with our local
-   JSON reproduces `Cannot find module .../lib/types/worker.cjs`, independently
-   of the network. This is a host/package artifact problem, not OAuth failure.
+Correction after inspecting the actual runtime bundle: `lib/index.js` embeds
+the parser and resolves `lib/worker.cjs`, which exists. Running this published
+Worker against the candidate index returned `{ok:true}`. The earlier failure
+came from directly importing an internal `lib/types/parse-thread.js` file;
+that is not the host's runtime path and does not establish an upstream defect.
+No upstream packaging bug is claimed. Continue with HTTPS reachability diagnosis.
 
 The test host lives entirely under `/tmp`; production DSH and WorkDSH profiles
 and credentials were not changed. No workaround was applied to the official
@@ -29,7 +30,7 @@ host to claim a pass.
 
 ## Next gates, in order
 
-1. Verify a corrected official market artifact or upstream packaging fix.
+1. Published runtime Worker verified successfully; no package patch required.
 2. Establish a reliably reachable HTTPS index URL; repeat Discover loading.
 3. Verify exact-name and Chinese searches and the npm version confirmation.
 4. Install, enable and restart; verify installed/update state.
