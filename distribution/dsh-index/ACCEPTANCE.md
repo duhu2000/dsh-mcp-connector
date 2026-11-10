@@ -11,7 +11,7 @@ Candidate: PR #222, `feat/dsh-plugin-index-20261110`.
 - An isolated official DSH 0.2.2-rc.1 Web host started successfully.
 - Custom plugin indexes enabled; Discover appeared; candidate source was saved.
 
-## Blocked — not accepted for promotion
+## Runtime follow-up — distribution path passed, authorized calls pending
 
 Discover displayed “无法读取此索引”. A subsequent Node fetch of GitHub Raw
 timed out after 15 seconds. The earlier successful response does not establish
@@ -41,3 +41,20 @@ host to claim a pass.
 No npm release or tag is required for this distribution-only change. Official
 listing requirements and a real submission entry still need independent
 verification before application.
+
+## Successful UI retry
+
+After restarting the isolated host, the same HTTPS source loaded all three
+entries without a host patch. Exact package-name and Chinese `连接器` searches
+found Connector. The confirmation named `dsh-mcp-connector@0.2.97` and
+`https://registry.npmjs.org/`; installation completed and immediate enable
+added the sidebar entry. Discover then showed the installed-state link.
+Connector rendered version 0.2.97, 116 catalog entries and 10 recommendations.
+Its version check completed. This is not a tested old-to-new upgrade.
+
+An OpenAlex connection completed in the isolated `default-workspace` scope.
+The global tool explorer correctly showed no project-scoped connection outside
+that workspace. No model account or QCC credentials were added; agent tool
+execution, per-session loading, restart persistence, dedicated OAuth package
+runtime and old-to-new upgrade remain unverified. Keep the PR draft until the
+remaining acceptance scope is resolved; do not claim official certification.
