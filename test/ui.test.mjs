@@ -363,7 +363,7 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.match(trySource, /openAddConnection\('manual', detailConnector\)/);
   assert.ok(trySource.indexOf("openAddConnection('manual', detailConnector)") < trySource.indexOf("call('connect'"));
   assert.match(uiSource, /configureConnect: '🔑 录入凭据并连接'/);
-  assert.match(uiSource, /showToast\(r\.message, true\); await refreshConnectionUi\(connectorId\)/);
+  assert.match(uiSource, /showToast\(r\.message, true\); await completeCatalogConnection\(connectorId\)/);
   assert.match(uiSource, /正在验证凭据与连接…/);
   assert.match(uiSource, /detailNeedsReconfigure[\s\S]*?reconfigureCredential/);
   assert.match(uiSource, /detailConnector\?\.connected\?\.length > 0 && !detailNeedsReconfigure/);
@@ -376,13 +376,15 @@ test('连接成功后原地重载已打开的详情与工具清单', () => {
   const connectSource = uiSource.match(/async connect\(connectorId\) \{[\s\S]*?\n    \},/)?.[0] ?? '';
   const configureSource = uiSource.match(/async submitConfig\(\) \{[\s\S]*?\n    \},\n    async submitImport/)?.[0] ?? '';
   const trySource = uiSource.match(/\$\('#detail-try-btn'\)\.addEventListener\('click', async \(\) => \{[\s\S]*?\n  \}\);/)?.[0] ?? '';
+  const completeSource = uiSource.match(/async function completeCatalogConnection\(connectorId,[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.match(uiSource, /async function refreshConnectionUi\(connectorId\)/);
   assert.match(uiSource, /const reloadOpenDetail = isDetailOpenFor\(connectorId\)/);
   assert.match(uiSource, /detailLoadId !== openDetailLoadId/);
   assert.match(uiSource, /await window\.__mcp\.showDetail\(connectorId\)/);
-  assert.match(connectSource, /await refreshConnectionUi\(connectorId\)/);
-  assert.match(configureSource, /await refreshConnectionUi\(connectorId\)/);
-  assert.match(trySource, /await refreshConnectionUi\(id\)/);
+  assert.match(completeSource, /await refreshConnectionUi\(connectorId\)/);
+  assert.match(connectSource, /await completeCatalogConnection\(connectorId, \{ healthCheck: true \}\)/);
+  assert.match(configureSource, /await completeCatalogConnection\(connectorId\)/);
+  assert.match(trySource, /await completeCatalogConnection\(id, \{ healthCheck: true \}\)/);
   assert.doesNotMatch(configureSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
 });
 
@@ -469,6 +471,33 @@ test('市场支持分类筛选与推荐位（9 分类 + 推荐）', () => {
   assert.match(uiSource, /data-category-filter=/);
   assert.match(uiSource, /\.category-chips/);
   assert.match(uiSource, /let marketCategory = '';/);
+});
+
+test('新用户在无连接时看到推荐入口与首次使用引导', () => {
+  assert.match(uiSource, /function firstUseBannerHtml\(\)/);
+  assert.match(uiSource, /function installedEmptyHtml\(\)/);
+  assert.match(uiSource, /data-first-use-action="recommended"/);
+  assert.match(uiSource, /data-first-use-action="guide"/);
+  assert.match(uiSource, /status\.ok && \(status\.detail\?\.items \?\? \[\]\)\.length === 0 && !marketCategory && !searchQuery \? firstUseBannerHtml\(\) : ''/);
+  assert.match(uiSource, /先从推荐连接器开始，查看详情并按服务商要求完成授权/);
+  assert.match(uiSource, /先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具/);
+  assert.match(uiSource, /function showRecommendedMarket\(\)/);
+  assert.match(uiSource, /view = 'market'; marketCategory = 'recommended';/);
+  assert.match(uiSource, /syncTabs\(\);\s*loadMarket\(\{ checkHealth: false \}\);/);
+  assert.doesNotMatch(uiSource, /无需授权|免授权/);
+});
+
+test('首次连接后提供下一步，并只记录不上传的本机引导路径', () => {
+  assert.match(uiSource, /const LOCAL_CONVERSION_STORAGE_KEY = 'mcp-connector\.local-conversion-v1'/);
+  assert.match(uiSource, /function recordLocalConversion\(stage, connectorId = ''\)/);
+  assert.match(uiSource, /function localConversionSnapshot\(\)/);
+  assert.match(uiSource, /function openPostConnectionSuccess\(connectorId\)/);
+  assert.match(uiSource, /function completeCatalogConnection\(connectorId, \{ healthCheck = false \} = \{\}\)/);
+  assert.match(uiSource, /检查已发现工具/);
+  assert.match(uiSource, /查看示例 Prompt/);
+  assert.match(uiSource, /入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率/);
+  assert.match(uiSource, /recordLocalConversion\('toolDiscoverySucceeded', connectorId\)/);
+  assert.doesNotMatch(uiSource, /fetch\([^)]*LOCAL_CONVERSION_STORAGE_KEY|sendBeacon\([^)]*LOCAL_CONVERSION_STORAGE_KEY/);
 });
 
 test('全部市场按分类分章节，每章默认展示 4 个并可展开', () => {
