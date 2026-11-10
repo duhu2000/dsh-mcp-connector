@@ -1,4 +1,4 @@
-# Third-party DSH plugin index (acceptance candidate)
+# Third-party DSH plugin index 
 
 This is an independent index in the upstream DSH `format: 1` format. It is
 not the official DeepSeek marketplace, a certification, or a usage ranking.
@@ -30,7 +30,8 @@ index parsing does not establish runtime compatibility of any package.
 
 The 2026-11-10 candidate passed upstream `parseMarketIndex` and
 `marketInstallTarget`; this is schema/installation-coordinate validation only.
-Before advertising an index URL:
+Verification procedure (completed steps and remaining limitations are in
+[ACCEPTANCE.md](./ACCEPTANCE.md)):
 
 1. Serve the reviewed JSON via HTTPS, with 2xx and no redirects.
 2. Use an isolated DSH home/profile supporting Custom plugin indexes.
@@ -62,3 +63,13 @@ Do not claim official endorsement, universal compatibility, or free data.
 References:
 - https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/guide/plugin-market.md
 - https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/util/plugin-market-index
+
+## Published source
+
+Add this URL in Custom plugin indexes → Discover → Add source:
+
+https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/distribution/dsh-index/index.json
+
+This opt-in source does not automatically enroll the plugins in an official
+central catalog. Connector search/install/enable/restart were tested on DSH
+0.2.2-rc.1; see the acceptance report for unverified runtime scenarios.

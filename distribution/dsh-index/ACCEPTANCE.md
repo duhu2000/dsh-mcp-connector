@@ -28,19 +28,20 @@ The test host lives entirely under `/tmp`; production DSH and WorkDSH profiles
 and credentials were not changed. No workaround was applied to the official
 host to claim a pass.
 
-## Next gates, in order
+## Release scope
 
-1. Published runtime Worker verified successfully; no package patch required.
-2. Establish a reliably reachable HTTPS index URL; repeat Discover loading.
-3. Verify exact-name and Chinese searches and the npm version confirmation.
-4. Install, enable and restart; verify installed/update state.
-5. Verify tool discovery and representative authorized calls for each package.
-6. Only then remove the draft status and advertise the source. A custom source
-   is not an official listing, certification or commercial-market approval.
+Release this third-party distribution index after CI and the verified discovery,
+installation, enablement and restart checks. This does not certify the runtime
+of every listed OAuth plugin. The following broader acceptance remains open:
+real authorized calls, agent per-session loading and old-to-new upgrade.
+No model account or QCC production credentials are copied for acceptance.
 
-No npm release or tag is required for this distribution-only change. Official
-listing requirements and a real submission entry still need independent
-verification before application.
+No npm release or version tag is required: this change publishes a JSON index
+of existing npm versions and changes no plugin runtime. The stable source is:
+https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/distribution/dsh-index/index.json
+
+Official listing requirements and a real submission entry still need independent
+verification before application. This is not an official listing or endorsement.
 
 ## Successful UI retry
 
@@ -55,6 +56,11 @@ Its version check completed. This is not a tested old-to-new upgrade.
 An OpenAlex connection completed in the isolated `default-workspace` scope.
 The global tool explorer correctly showed no project-scoped connection outside
 that workspace. No model account or QCC credentials were added; agent tool
-execution, per-session loading, restart persistence, dedicated OAuth package
-runtime and old-to-new upgrade remain unverified. Keep the PR draft until the
-remaining acceptance scope is resolved; do not claim official certification.
+execution, per-session loading, dedicated OAuth package
+runtime and old-to-new upgrade remain unverified. These are follow-up checks, not claims made by this index release.
+
+## Restart verification
+
+On 2026-11-10 the isolated host was fully stopped and restarted. Connector
+remained enabled, reopened at 0.2.97 and retained one installed connection.
+The production DSH/WorkDSH profiles remained untouched.
