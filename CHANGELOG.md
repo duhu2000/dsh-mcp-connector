@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.98
+
+- Replace the hidden first-use question mark with a bilingual Quick start action and a zero-connection guidance card that leads directly to recommended connectors or the existing read-only getting-started flow.
+- Add a first successful connection handoff to discovered tools and example prompts without claiming authorization, tool execution, or business-call success.
+- Add bounded, local-browser guidance counters for Quick start, recommendations, first connector setup and tool discovery. No data is uploaded and the UI explicitly avoids calculating a conversion rate across mixed denominators.
+- Refresh the bilingual credential-free Mock screenshots and GIFs so the storefront matches the current two-column UI and does not display a reauthorization state.
+
 ## 0.2.97
 
 - Bind remote catalog caches and ETags to catalogUrl. Changing the source fetches the new catalog immediately, including while the old cache TTL is fresh; failed requests do not expose entries from another source (#219).
