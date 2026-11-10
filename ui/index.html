@@ -90,6 +90,11 @@
   .toolbar .search-box { flex: 1; width: auto; min-width: 80px; }
   .toolbar .icon-btn { white-space: nowrap; padding-inline: 10px; min-height: 34px; }
   .toolbar .compact-action { width: 34px; flex-shrink: 0; padding: 4px; font-size: 18px; }
+  .toolbar .first-use-action {
+    flex-shrink: 0; border-color: var(--accent);
+    background: var(--accent-light); color: var(--accent); font-weight: 650;
+  }
+  .toolbar .first-use-action:hover { border-color: var(--accent); color: var(--accent); }
   .language-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
   .language-switch { flex-shrink: 0; }
   .language-switch button { min-height: 28px; padding: 3px 7px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; }
@@ -222,6 +227,13 @@
 
   /* Empty */
   .empty { text-align: center; color: var(--muted); padding: 80px 0; font-size: 15px; }
+  .empty-action-card {
+    max-width: 640px; margin: 28px auto; padding: 24px; text-align: center;
+    border: 1px solid var(--line); background: var(--card); border-radius: 14px;
+  }
+  .empty-action-card strong { display: block; margin-bottom: 6px; color: var(--text); font-size: 16px; }
+  .empty-action-card p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+  .empty-action-card .actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
   .migration-banner { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 14px; border: 1px solid #fbbf24; background: var(--warn-bg); border-radius: 10px; color: var(--text-2); }
   .migration-banner .copy { flex: 1; min-width: 0; font-size: 12px; }
   .migration-banner strong { display: block; color: var(--text); font-size: 13px; }
@@ -232,6 +244,14 @@
   .community-cta-close { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 16px; line-height: 1; padding: 2px 4px; }
   .community-cta-close:hover { color: var(--text); }
   .community-cta-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .first-use-banner {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 18px; padding: 14px 16px; border: 1px solid var(--accent);
+    background: var(--accent-light); border-radius: 12px; color: var(--text-2);
+  }
+  .first-use-banner .copy { flex: 1 1 360px; min-width: 0; font-size: 12px; line-height: 1.55; }
+  .first-use-banner strong { display: block; margin-bottom: 2px; color: var(--text); font-size: 14px; }
+  .first-use-banner .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
   /* Detail Overlay */
   .detail-overlay {
@@ -515,7 +535,7 @@
     </div>
     <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
     <button class="icon-btn compact-action" id="refresh" type="button" title="刷新连接器目录" aria-label="刷新连接器目录">↻</button>
-    <button class="icon-btn compact-action" id="first-use" type="button" title="首次使用" aria-label="首次使用">?</button>
+    <button class="icon-btn first-use-action" id="first-use" type="button" title="快速开始" aria-label="快速开始">▶ 快速开始</button>
     </div>
     <div class="market-nav" id="market-nav" aria-label="市场分类导航"></div>
   </header>
@@ -643,6 +663,23 @@
 "打开新会话失败，请检查工作区后重试": "Failed to open a new session. Check the workspace and retry.",
 "本机连接统计": "Local connection statistics",
 "首次使用": "Getting started",
+"快速开始": "Quick start",
+"▶ 快速开始": "▶ Quick start",
+"第一次使用 MCP连接器？": "New to MCP Connector?",
+"先从推荐连接器开始，查看详情并按服务商要求完成授权；连接成功后即可发现工具并在会话中使用。": "Start with a recommended connector, review its details, and complete provider authorization. Once connected, its tools become available in your sessions.",
+"查看推荐连接器": "View recommended connectors",
+"浏览推荐连接器": "Browse recommended connectors",
+"查看首次使用步骤": "View getting-started steps",
+"还没有连接任何 MCP": "No MCP connections yet",
+"先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具。": "Choose a recommended connector first. After authorization, its tools can be discovered and used in your sessions.",
+"连接流程已完成": "Connection setup completed",
+"下一步确认工具发现结果，再选择一个示例 Prompt。实际业务成功以工具真实返回为准。": "Next, confirm tool discovery and choose an example prompt. Actual business success requires a real tool result.",
+"检查已发现工具": "Check discovered tools",
+"查看示例 Prompt": "View example prompts",
+"本机引导路径（不计算转化率）": "Local guidance path (no conversion rate)",
+"快速开始打开 {count} 次 · 推荐入口打开 {recommended} 次": "Quick start opened {count} times · recommendations opened {recommended} times",
+"本浏览器首次连接 {connected} 张卡片 · 已发现工具 {discovered} 张卡片": "First connection in this browser: {connected} cards · tools discovered: {discovered} cards",
+"入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率。": "Entry counts and deduplicated card counts use different denominators. They are for local troubleshooting only, are not uploaded, and are not used to calculate a conversion rate.",
 "Host 未确认草稿写入": "The Host did not confirm the draft",
 "读取状态失败，请稍后重试；不能据此判断授权或业务调用成功。": "Failed to read status. Retry later; this does not confirm authorization or a successful business call.",
 "当前范围没有连接。请先到市场选择服务，或添加你自己的连接，并按服务商要求完成授权。": "No connections in this scope. Select a service in the market or add your own connection and complete provider authorization.",
@@ -1217,6 +1254,50 @@
     },
   }, null, 2);
 
+  const LOCAL_CONVERSION_STORAGE_KEY = 'mcp-connector.local-conversion-v1';
+  const emptyLocalConversion = () => ({ quickStartOpened: 0, recommendedOpened: 0, connectedConnectorIds: [], discoveredConnectorIds: [] });
+  function readLocalConversion() {
+    try {
+      const raw = JSON.parse(window.localStorage.getItem(LOCAL_CONVERSION_STORAGE_KEY) || '{}');
+      const count = (value) => Number.isSafeInteger(value) && value >= 0 ? Math.min(value, 1_000_000) : 0;
+      const ids = (value) => [...new Set((Array.isArray(value) ? value : [])
+        .filter((id) => typeof id === 'string' && id.length > 0 && id.length <= 256))].slice(0, 256);
+      return {
+        quickStartOpened: count(raw.quickStartOpened),
+        recommendedOpened: count(raw.recommendedOpened),
+        connectedConnectorIds: ids(raw.connectedConnectorIds),
+        discoveredConnectorIds: ids(raw.discoveredConnectorIds),
+      };
+    } catch { return emptyLocalConversion(); }
+  }
+  function writeLocalConversion(value) {
+    try { window.localStorage.setItem(LOCAL_CONVERSION_STORAGE_KEY, JSON.stringify(value)); return true; }
+    catch { return false; }
+  }
+  function recordLocalConversion(stage, connectorId = '') {
+    const value = readLocalConversion();
+    if (stage === 'quickStartOpened') value.quickStartOpened = Math.min(1_000_000, value.quickStartOpened + 1);
+    else if (stage === 'recommendedOpened') value.recommendedOpened = Math.min(1_000_000, value.recommendedOpened + 1);
+    else if (['connectionSucceeded', 'toolDiscoverySucceeded'].includes(stage)) {
+      const id = String(connectorId || '').trim();
+      if (!id || id.length > 256) return false;
+      const field = stage === 'connectionSucceeded' ? 'connectedConnectorIds' : 'discoveredConnectorIds';
+      if (value[field].includes(id)) return false;
+      if (value[field].length >= 256) return false;
+      value[field].push(id);
+    } else return false;
+    return writeLocalConversion(value);
+  }
+  function localConversionSnapshot() {
+    const value = readLocalConversion();
+    return {
+      quickStartOpened: value.quickStartOpened,
+      recommendedOpened: value.recommendedOpened,
+      connectedConnectors: value.connectedConnectorIds.length,
+      discoveredConnectors: value.discoveredConnectorIds.length,
+    };
+  }
+
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
@@ -1642,6 +1723,17 @@
     await refresh();
     if (!reloadOpenDetail || detailLoadId !== openDetailLoadId || !isDetailOpenFor(connectorId)) return;
     await window.__mcp.showDetail(connectorId);
+  }
+
+  function openPostConnectionSuccess(connectorId) {
+    openModal(t('连接流程已完成'), `<p>${t('下一步确认工具发现结果，再选择一个示例 Prompt。实际业务成功以工具真实返回为准。')}</p><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.openConnectedTools(${jsString(connectorId)})">${t('检查已发现工具')}</button><button class="btn" type="button" onclick="window.__mcp.openConnectedPrompts(${jsString(connectorId)})">${t('查看示例 Prompt')}</button></div>`);
+  }
+
+  async function completeCatalogConnection(connectorId, { healthCheck = false } = {}) {
+    const firstLocalSuccess = recordLocalConversion('connectionSucceeded', connectorId);
+    if (healthCheck) await call('healthCheck', { connectorId });
+    await refreshConnectionUi(connectorId);
+    if (firstLocalSuccess) openPostConnectionSuccess(connectorId);
   }
 
   // 详情主按钮：状态未知且已有连接记录时优先提供「重新连接」（Host 侧可能已放弃重连）
@@ -2163,6 +2255,14 @@
     document.querySelector('.community-cta')?.remove();
   }
 
+  function firstUseBannerHtml() {
+    return `<aside class="first-use-banner" aria-label="${t('快速开始')}"><div class="copy"><strong>${t('第一次使用 MCP连接器？')}</strong>${t('先从推荐连接器开始，查看详情并按服务商要求完成授权；连接成功后即可发现工具并在会话中使用。')}</div><div class="actions"><button class="btn" type="button" data-first-use-action="recommended">${t('查看推荐连接器')}</button><button class="btn ghost" type="button" data-first-use-action="guide">${t('查看首次使用步骤')}</button></div></aside>`;
+  }
+
+  function installedEmptyHtml() {
+    return `<section class="empty-action-card"><strong>${t('还没有连接任何 MCP')}</strong><p>${t('先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具。')}</p><div class="actions"><button class="btn" type="button" data-first-use-action="recommended">${t('浏览推荐连接器')}</button><button class="btn ghost" type="button" data-first-use-action="guide">${t('查看首次使用步骤')}</button></div></section>`;
+  }
+
   function marketSectionHtml(value, label, items) {
     if (!items.length) return '';
     const expanded = value === 'recommended' || expandedMarketSections.has(value);
@@ -2212,7 +2312,8 @@
       : filtered.length > 0
         ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
         : `<div class="empty">${t('没有匹配当前筛选条件的连接器')}</div>`;
-    main.innerHTML = resultHtml;
+    const firstUseBanner = status.ok && (status.detail?.items ?? []).length === 0 && !marketCategory && !searchQuery ? firstUseBannerHtml() : '';
+    main.innerHTML = `${firstUseBanner}${resultHtml}`;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
@@ -2380,7 +2481,7 @@
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>${t('发现旧企查查 MCP 授权')}</strong>${t('可安全复制 {count} 组授权到 MCP连接器；不会删除旧插件或原凭据。', { count: pendingMigration })}</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">${t('迁移')}</button></div>` : '';
     if (!items.length) {
-      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('可从旧企查查 OAuth 插件复制已有授权')}</span><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">${t('本机连接统计')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div><div class="empty">${t('还没有连接任何 MCP · 到「市场」里连接一个吧')}</div>`;
+      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('可从旧企查查 OAuth 插件复制已有授权')}</span><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">${t('本机连接统计')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div>${installedEmptyHtml()}`;
       if (preserveScroll) main.scrollTop = previousScrollTop;
       return;
     }
@@ -2714,8 +2815,7 @@
       if (r.ok) {
         markCommunityCtaEligible();
         closeModal();
-        await call('healthCheck', { connectorId });
-        await refreshConnectionUi(connectorId);
+        await completeCatalogConnection(connectorId, { healthCheck: true });
       }
     },
     confirmConnect() {
@@ -2886,11 +2986,29 @@
         openModal(t('本机连接统计'), `<p>${t("统计暂不可用，不影响连接。请检查 Host 日志。")}</p>`);
         return;
       }
+      const local = localConversionSnapshot();
       openModal(t('本机连接统计'), `<div class="form-note">${t('仅统计当前 profile，不是社区总量或独立用户数。数据保存在本机，不向外上传。')}${d.persistent ? '' : t('当前未启用持久化，重启后计数清空。')}</div>
         <p>${t('成功连接过的卡片数')} <strong>${esc(d.cumulativeSuccessfulConnections)}</strong> · ${t('近 30 天首次连接的新卡片')} <strong>${esc(d.newSuccessfulConnections30d)}</strong></p>
         <p>${t('历史已有连接基线：{count} 张卡片，未验证前不计成功，验证后也不计新增。', { count: esc(d.historicalBaseline) })}</p>
         <p>${t("同一卡片只计一次；重启、升级、重新授权和重连不重复增加，断开不扣减。此处成功指连接流程完成，不代表业务调用成功。")}</p>
+        <hr><p><strong>${t('本机引导路径（不计算转化率）')}</strong></p>
+        <p>${t('快速开始打开 {count} 次 · 推荐入口打开 {recommended} 次', { count: esc(local.quickStartOpened), recommended: esc(local.recommendedOpened) })}</p>
+        <p>${t('本浏览器首次连接 {connected} 张卡片 · 已发现工具 {discovered} 张卡片', { connected: esc(local.connectedConnectors), discovered: esc(local.discoveredConnectors) })}</p>
+        <p class="field-help">${t('入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率。')}</p>
         <div>${(d.items || []).map(x => `<p><strong>${esc(x.connectorId)}</strong>：${x.cumulativeSuccessfulConnections ? t('已记录成功') : t('历史配置，待验证')}${x.historicalBaseline ? t(' · 历史基线') : ''}</p>`).join('') || t('尚无统计记录。')}</div>`);
+    },
+    async openConnectedTools(connectorId) {
+      closeModal();
+      await window.__mcp.showDetail(connectorId);
+      const disclosure = $('#tools-disclosure');
+      if (disclosure) { disclosure.open = true; disclosure.scrollIntoView({ block: 'start' }); }
+      $('#tools-search')?.focus();
+    },
+    async openConnectedPrompts(connectorId) {
+      closeModal();
+      await window.__mcp.showDetail(connectorId);
+      $('#detail-prompts')?.scrollIntoView({ block: 'center' });
+      $('#detail-prompts button')?.focus();
     },
     async openConfigBackup() { await openConfigBackup(); },
     async copyBackup() {
@@ -2973,7 +3091,7 @@
         if (!r.ok) { showModalError(r.message); return; }
         closeModal();
         markCommunityCtaEligible();
-        showToast(r.message, true); await refreshConnectionUi(connectorId);
+        showToast(r.message, true); await completeCatalogConnection(connectorId);
         return;
       }
       const name = $('#cfg-name').value.trim();
@@ -3168,6 +3286,7 @@
       $('#detail-try-btn').textContent = detailTryLabel(incomplete ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : t('try'));
       renderPromptPage();
       detailToolServers = toolsResult.detail?.servers || [];
+      if (detailToolServers.some((server) => (server.tools || []).length > 0)) recordLocalConversion('toolDiscoverySucceeded', connectorId);
       updateToolsSummary();
       renderTools();
     },
@@ -3283,8 +3402,7 @@
         showToast(r.message, r.ok);
         if (r.ok) {
           markCommunityCtaEligible();
-          await call('healthCheck', { connectorId: id });
-          await refreshConnectionUi(id);
+          await completeCatalogConnection(id, { healthCheck: true });
         }
         return;
       }
@@ -3294,8 +3412,7 @@
         showToast(r.message, r.ok);
         if (r.ok) {
           markCommunityCtaEligible();
-          await call('healthCheck', { connectorId: id });
-          await refreshConnectionUi(id);
+          await completeCatalogConnection(id, { healthCheck: true });
         }
         return;
       }
@@ -3442,7 +3559,27 @@
     }
   });
   new ResizeObserver(updateCategoryArrows).observe($('#market-nav'));
+  function showRecommendedMarket() {
+    recordLocalConversion('recommendedOpened');
+    view = 'market'; marketCategory = 'recommended';
+    searchQuery = ''; searchInput.value = '';
+    pendingViewScroll = null; main.scrollTop = 0;
+    explorerSequence++; explorerDetailSequence++;
+    syncTabs();
+    loadMarket({ checkHealth: false });
+  }
+
   main.addEventListener('click', (event) => {
+    const firstUseAction = event.target.closest('[data-first-use-action]');
+    if (firstUseAction?.dataset.firstUseAction === 'recommended') {
+      showRecommendedMarket();
+      return;
+    }
+    if (firstUseAction?.dataset.firstUseAction === 'guide') {
+      recordLocalConversion('quickStartOpened');
+      openFirstUse();
+      return;
+    }
     const sectionToggle = event.target.closest('[data-section-toggle]');
     if (sectionToggle) {
       const section = sectionToggle.dataset.sectionToggle;
@@ -3491,8 +3628,9 @@
     setText('#tab-installed', '已安装');
     setText('#tab-tools', '工具');
     setText('#add-connection', '＋ 添加连接');
-    $('#first-use').title = t('首次使用');
-    $('#first-use').setAttribute('aria-label', t('首次使用'));
+    setText('#first-use', '▶ 快速开始');
+    $('#first-use').title = t('快速开始');
+    $('#first-use').setAttribute('aria-label', t('快速开始'));
     setText('#prompt-title', '试试这样用');
     setText('#prompt-next', '换一批');
     setText('#tools-title', '工具详情');
@@ -3532,7 +3670,7 @@
     window.location.assign(url.href);
   });
   syncTabs();
-  $('#first-use').addEventListener('click', openFirstUse);
+  $('#first-use').addEventListener('click', () => { recordLocalConversion('quickStartOpened'); openFirstUse(); });
   if (viewStateReady) restoreViewState();
   requestWorkspaceContext();
   connectStatusEvents();
