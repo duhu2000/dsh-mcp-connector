@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.100
+
+- Publish the npm download trend chart in the package README, sharing the maintained chart with GitHub and the connector registry.
+- Clearly distinguish npm downloads from unique users, successful installations and individual connector connections.
+- Refresh bilingual product screenshots and generated documentation for this release.
+
 ## 0.2.99
 
 - Finish tool discovery when a streamable-HTTP server keeps the SSE response open after initialize or tools/list, instead of waiting for EOF and reporting a timeout (#218).
