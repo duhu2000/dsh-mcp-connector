@@ -475,6 +475,7 @@ test('#218 实时缓存刷新保留连接健康状态，不把工具失败变成
   let connectionState = 'healthy';
   const refresh = new Function('call', '$', 'renderTools', 'workspaceParams', 't', 'detailTryLabel', `
     let detailConnector = { id: 'review', connectionKey: 'custom-review', vendor: 'Example' };
+    const installedItems = [], marketItems = {};
     let detailLoadId = 1;
     let detailToolServers = [];
     let detailFailureState, detailNeedsReconfigure, detailReconnectKey;
@@ -600,6 +601,16 @@ test('连接、配置、导入或 URL 安装成功后显示克制的社区入口
   assert.match(importSource, /call\('importJson'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
   assert.match(installFromUrlSource, /call\('installFromUrl'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
   assert.doesNotMatch(uiSource, /openModal\([^\n]*连接顺利/);
+});
+
+test('迁移旧授权后引导停用旧插件并完整重启 DSH', () => {
+  assert.doesNotMatch(uiSource, /验证新连接后再手动停用旧插件/);
+  assert.match(uiSource, /若旧插件仍启用，复制后需要停用它并完整重启 DSH/);
+  assert.match(uiSource, /function showLegacyDisableGuide\(pending,/);
+  assert.match(uiSource, /r\.detail\?\.pendingLegacyDisable\?\.restartRequired/);
+  assert.match(uiSource, /result\.detail\?\.pendingLegacyDisable\?\.restartRequired/);
+  assert.match(uiSource, /async copyLegacyPluginIds\(index\)/);
+  assert.match(uiSource, /完全退出 DSH 并重新启动；仅刷新页面或重载插件不够。/);
 });
 
 test('关闭社区入口后在本次页面生命周期内保持隐藏', () => {

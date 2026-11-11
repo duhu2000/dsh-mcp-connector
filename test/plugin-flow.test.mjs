@@ -1911,6 +1911,258 @@ test('检测到旧企查查 OAuth 插件仍启用时阻断同名 Server，避免
   assert.equal(extractAuthorizeUrls(logs).length, 0);
 });
 
+test('旧插件条目位于嵌套 include 子树时仍能识别冲突', async () => {
+  const { ctx, tools, loader, disposers } = makePluginContext();
+  // 真实 DSH profile 的条目挂在 include 子树中，根 loader.resolve(plainId) 会抛错。
+  ctx.loader = {
+    ...loader,
+    *entries() {
+      yield { options: { id: 'include', name: 'cordis:include' } };
+      yield { options: { id: 'qcc-mcp-oauth', name: 'qcc-dsh-mcp-oauth', config: {} }, disabled: false };
+    },
+    resolve() { throw new Error('cannot resolve entry'); },
+  };
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const result = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'qcc-company' }, { signal: undefined });
+    assert.equal(result.ok, false);
+    assert.equal(result.detail.kind, 'plugin-conflict');
+    assert.equal(result.detail.pluginId, 'qcc-mcp-oauth');
+  } finally {
+    for (const dispose of disposers) await dispose();
+  }
+});
+
+test('迁移旧授权时明确提示停用旧插件并完整重启 DSH', async () => {
+  const { ctx, tools, tables, loader, disposers } = makePluginContext();
+  const legacyGrants = new Map([['grant:default', {
+    issuer: 'https://agent.qcc.com',
+    clientId: 'legacy-client',
+    scope: 'mcp:tools',
+    accessToken: 'legacy-access-token',
+    accessTokenExpiresAt: Date.now() + 600_000,
+    refreshToken: 'legacy-refresh-token',
+    authorizedResources: ['https://agent.qcc.com/mcp/company/stream'],
+    entryResource: 'https://agent.qcc.com/mcp/company/stream',
+    clientName: 'Legacy QCC',
+    updatedAt: Date.now(),
+  }]]);
+  ctx.storageDomain.get = (name) => name === 'qcc_mcp_oauth'
+    ? { tables: new Map([['grants', { entries: () => legacyGrants.entries() }]]) }
+    : undefined;
+  loader.entries.set('qcc-mcp-oauth', { id: 'qcc-mcp-oauth', disabled: false, options: { config: {} } });
+
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const result = await tools.defs.get('mcp_connector_migrate_legacy').execute({});
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.detail.pendingLegacyDisable, {
+      pluginIds: ['qcc-mcp-oauth'], serverNames: ['qcc-company'], restartRequired: true,
+      persistent: true, reauthRequired: false, conflicts: [{
+        pluginId: 'qcc-mcp-oauth', packageName: 'qcc-dsh-mcp-oauth', kind: 'plugin',
+        entryIds: [], pluginEntryIds: ['qcc-mcp-oauth'], serverNames: ['qcc-company'], legacyServerNames: [], reauthRequired: false,
+      }],
+    });
+    assert.match(result.message, /qcc-mcp-oauth.*完整重启 DSH/);
+    assert.doesNotMatch(result.message, /确认新连接可用/);
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false, '冲突期间不得抢先注册同名 Host 条目');
+    const record = await tables.get('connections').get('qcc-company-company');
+    assert.ok(record, '授权与连接记录必须保留，供重启后恢复');
+    assert.match(record.lastError, /停用旧插件并重启 DSH/);
+    assert.doesNotMatch(JSON.stringify(result), /legacy-access-token|legacy-refresh-token/);
+    const setEnabled = tools.defs.get('mcp_connector_set_enabled');
+    const oldPlugin = loader.entries.get('qcc-mcp-oauth');
+    oldPlugin.disabled = true;
+    loader.entries.set('qcc-legal-mcp-oauth', { options: { id: 'qcc-legal-mcp-oauth' } });
+    const waiting = await tools.defs.get('mcp_connector_status').execute({});
+    const restart = waiting.detail.items.find(item => item.key === record.key).diagnostic.legacyConflict;
+    assert.equal(restart.kind, 'restart');
+    assert.equal(restart.pluginId, 'qcc-mcp-oauth');
+    assert.deepEqual(restart.entryIds, []);
+    const earlyEnable = await setEnabled.execute({ key: record.key, enabled: true });
+    assert.equal(earlyEnable.detail.legacyConflict.kind, 'restart');
+    assert.doesNotMatch(earlyEnable.message, /停用.*插件/);
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false);
+    oldPlugin.disabled = false;
+    const disabled = await setEnabled.execute({ key: record.key, enabled: false });
+    assert.equal(disabled.ok, true);
+    const enable = await setEnabled.execute({ key: record.key, enabled: true });
+    assert.equal(enable.ok, false);
+    assert.equal(enable.detail.legacyConflict.pluginId, 'qcc-mcp-oauth');
+    const restore = await tools.defs.get('mcp_connector_snapshot').execute({ action: 'restore', snapshotId: disabled.detail.snapshotId });
+    assert.equal(restore.ok, false);
+    assert.equal(restore.detail.legacyConflict.pluginId, 'qcc-mcp-oauth');
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false);
+    assert.equal((await tables.get('connections').get(record.key)).enabled, false);
+  } finally {
+    for (const dispose of disposers) await dispose();
+  }
+});
+
+function legacyGrantFixture(paths, clientId) {
+  const resources = paths.map((path) => `https://agent.qcc.com/mcp/${path}/stream`);
+  return { issuer: 'https://agent.qcc.com', clientId, scope: 'mcp:tools', clientName: 'Migration test',
+    accessToken: 'before-handoff', accessTokenExpiresAt: Date.now() - 1000, refreshToken: 'refresh-before-handoff',
+    authorizedResources: resources, entryResource: resources[0], updatedAt: Date.now() - 10000 };
+}
+
+function exposeLegacyGrant(host, grants) {
+  host.ctx.storageDomain.get = (name) => ({ tables: new Map([['grants',
+    new Map(grants[name] ? [['grant:default', grants[name]]] : [])]]) });
+}
+
+test('停用或移除等待交接的法律连接时不更改同 ID 的旧服务', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  t.after(async () => { for (const dispose of host.disposers) await dispose(); });
+  exposeLegacyGrant(host, { qcc_legal_mcp_oauth: legacyGrantFixture(['case'], 'legacy-case') });
+  const key = 'qcc-legal-case';
+  const id = 'mcp-' + key;
+  await host.loader.create({ id, name: '@deepseek-ai/dsh-mcp-client', config: { serverName: 'legal-case' }, disabled: false });
+  const oldEntry = host.loader.resolve(id);
+  const { apply } = await import('../lib/index.js');
+  await apply(host.ctx, baseConfig());
+  const result = await host.webCall('migrateLegacy');
+  assert.equal(result.detail.pendingLegacyDisable.conflicts[0].kind, 'residual');
+  assert.equal((await host.webCall('setEnabled', { key, enabled: false })).ok, true);
+  assert.equal(oldEntry.disabled, false);
+  assert.equal((await host.webCall('disconnect', { key })).ok, true);
+  assert.equal(host.loader.resolve(id), oldEntry);
+  assert.equal(oldEntry.options.config.serverName, 'legal-case');
+});
+
+test('旧插件交接期间不刷新；重启按最后轮换的工商与法律授权接管各自服务', async (t) => {
+  const { apply } = await import('../lib/index.js');
+  let refreshCalls = 0;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (String(url).includes('/.well-known/')) refreshCalls++;
+    throw new Error('offline migration test');
+  });
+  const grants = {
+    qcc_mcp_oauth: legacyGrantFixture(['company', 'risk'], 'same-client'),
+    qcc_legal_mcp_oauth: legacyGrantFixture(['case'], 'same-client'),
+  };
+  const hosts = [];
+  t.after(async () => { for (const host of hosts) for (const dispose of host.disposers) await dispose(); });
+  async function start(shared, active) {
+    const host = makePluginContext({ shared, withWeb: true });
+    hosts.push(host);
+    exposeLegacyGrant(host, grants);
+    if (active) for (const id of ['qcc-mcp-oauth', 'qcc-legal-mcp-oauth']) host.loader.entries.set(id, { options: { id } });
+    else host.loader.entries.set('mcp-qcc-legal-case', { id: 'mcp-qcc-legal-case', name: '@deepseek-ai/dsh-mcp-client',
+      disabled: true, options: { config: { serverName: 'legal-case' } } });
+    await apply(host.ctx, baseConfig());
+    return host;
+  }
+  const first = await start(undefined, true);
+  const migration = await first.webCall('migrateLegacy');
+  assert.deepEqual(migration.detail.pendingLegacyDisable.serverNames, ['qcc-company', 'qcc-risk', 'qcc-case']);
+  const market = await first.webCall('catalog');
+  const company = market.detail.items.find((item) => item.id === 'qcc-company');
+  assert.deepEqual(company.diagnostic.legacyConflict.serverNames, ['qcc-company', 'qcc-risk']);
+  const installed = await first.webCall('status');
+  for (const item of installed.detail.items) assert.deepEqual(item.diagnostic.legacyConflict.serverNames, [item.serverName]);
+  assert.equal(first.loader.entries.size, 2);
+  assert.deepEqual((await first.webCall('migrationPreview', { scanStored: true })).detail.pendingLegacyDisable.pluginIds,
+    ['qcc-mcp-oauth', 'qcc-legal-mcp-oauth']);
+  const stillActive = await start({ tables: first.tables }, true);
+  assert.equal(stillActive.loader.entries.size, 2);
+  assert.equal(refreshCalls, 0);
+  for (const [name, grant] of Object.entries(grants)) Object.assign(grant, {
+    accessToken: 'latest-' + name, refreshToken: 'rotated-' + name,
+    accessTokenExpiresAt: Date.now() + 600000, updatedAt: Date.now(),
+  });
+  const clean = await start({ tables: first.tables }, false);
+  assert.equal(refreshCalls, 0);
+  assert.equal(clean.loader.entries.get('mcp-qcc-company-company').options.config.headers.Authorization, 'Bearer latest-qcc_mcp_oauth');
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').options.config.headers.Authorization, 'Bearer latest-qcc_legal_mcp_oauth');
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').disabled, false);
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').options.config.serverName, 'qcc-case');
+  assert.deepEqual((await clean.webCall('migrationPreview', { scanStored: true })).detail.pendingLegacyDisable.conflicts, []);
+});
+
+test('升级前已停用旧插件时，旧格式连接采用较新授权并保留已轮换的新凭据', async () => {
+  const { apply } = await import('../lib/index.js');
+  for (const sourceIsNewer of [true, false]) {
+    const host = makePluginContext({ withWeb: true });
+    const original = legacyGrantFixture(['company'], 'old-client-id');
+    const stamp = Date.now();
+    const key = 'historical-grant';
+    const connection = { key: 'qcc-company-company', connectorId: 'qcc-company', kind: 'oauth', name: 'QCC',
+      transport: 'streamable-http', serverName: 'qcc-company', url: original.entryResource, auth: { mode: 'oauth', grantKey: key },
+      enabled: true, createdAt: stamp - 5000, updatedAt: stamp - 5000 };
+    const migrated = { ...original, key, account: 'default', connectorIds: ['qcc-company'], accessToken: 'connector-copy',
+      refreshToken: 'connector-refresh', updatedAt: stamp - 1000, accessTokenExpiresAt: stamp + 180000 };
+    const lastLegacy = { ...original, accessToken: 'legacy-copy', refreshToken: 'legacy-refresh', accessTokenExpiresAt: stamp + 180000,
+      updatedAt: sourceIsNewer ? stamp : stamp - 2000 };
+    await host.tables.get('connections').put(connection.key, connection);
+    await host.tables.get('grants').put(key, migrated);
+    exposeLegacyGrant(host, { qcc_mcp_oauth: lastLegacy });
+    await apply(host.ctx, baseConfig());
+    try {
+      const restored = host.loader.entries.get('mcp-qcc-company-company');
+      assert.equal(restored.options.config.headers.Authorization, sourceIsNewer ? 'Bearer legacy-copy' : 'Bearer connector-copy');
+      assert.equal((await host.tables.get('grants').get(key)).legacySource.pending, false);
+    } finally { for (const dispose of host.disposers) await dispose(); }
+  }
+});
+
+test('交接读取到损坏的旧授权时不启动或刷新过时副本', async (t) => {
+  const { apply } = await import('../lib/index.js');
+  const first = makePluginContext({ withWeb: true });
+  first.loader.entries.set('qcc-mcp-oauth', { options: { id: 'qcc-mcp-oauth' } });
+  const grant = legacyGrantFixture(['company'], 'legacy-read-failure');
+  exposeLegacyGrant(first, { qcc_mcp_oauth: grant });
+  await apply(first.ctx, baseConfig());
+  try { assert.equal((await first.webCall('migrateLegacy')).ok, true); }
+  finally { for (const dispose of first.disposers) await dispose(); }
+  const next = makePluginContext({ shared: { tables: first.tables }, withWeb: true });
+  t.after(async () => { for (const dispose of next.disposers) await dispose(); });
+  exposeLegacyGrant(next, { qcc_mcp_oauth: { ...grant, refreshToken: null } });
+  await apply(next.ctx, baseConfig());
+  const row = (await next.webCall('status')).detail.items[0];
+  assert.equal(row.diagnostic.legacyConflict.sourceUnreadable, true);
+  assert.equal(next.loader.entries.has('mcp-qcc-company-company'), false);
+});
+
+test('失效旧授权交接后要求重新授权，内存模式明确提示重启后再次扫描', async () => {
+  const { apply } = await import('../lib/index.js');
+  const grant = { ...legacyGrantFixture(['company'], 'legacy-expired'), refreshToken: '' };
+  for (const persistent of [true, false]) {
+    const first = makePluginContext({ withWeb: true });
+    exposeLegacyGrant(first, { qcc_mcp_oauth: grant });
+    first.loader.entries.set('qcc-mcp-oauth', { options: { id: 'qcc-mcp-oauth' } });
+    const config = baseConfig({ persistSecrets: persistent });
+    await apply(first.ctx, config);
+    try {
+      const migration = await first.webCall('migrateLegacy');
+      assert.equal(migration.detail.pendingLegacyDisable.reauthRequired, true);
+      assert.equal(migration.detail.pendingLegacyDisable.persistent, persistent);
+      if (!persistent) assert.match(migration.message, /内存.*重启.*再次检测/);
+    } finally { for (const dispose of first.disposers) await dispose(); }
+    // The old build disabled the connection and recorded a migration-specific error.
+    if (persistent) {
+      const row = await first.tables.get('connections').get('qcc-company-company');
+      await first.tables.get('connections').put(row.key, { ...row, enabled: false, lastError: '旧授权已失效，请重新连接：invalid_grant' });
+      const stored = await first.tables.get('grants').get(row.auth.grantKey);
+      const { legacySource, ...oldFormat } = stored;
+      await first.tables.get('grants').put(row.auth.grantKey, oldFormat);
+    }
+    const clean = makePluginContext({ shared: { tables: first.tables }, withWeb: true });
+    exposeLegacyGrant(clean, { qcc_mcp_oauth: grant });
+    await apply(clean.ctx, config);
+    try {
+      const { detail } = await clean.webCall('status');
+      if (persistent) {
+        assert.equal(detail.items[0].enabled, false, 'preserve the stored enable/disable choice');
+        assert.equal(detail.items[0].connectionState, 'reauth');
+      } else assert.equal(detail.items.length, 0);
+      assert.equal(clean.loader.entries.size, 0);
+    } finally { for (const dispose of clean.disposers) await dispose(); }
+  }
+});
+
 test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', { timeout: 15000 }, async () => {
   const server = createServer(async (req, res) => {
     for await (const _chunk of req) {}
