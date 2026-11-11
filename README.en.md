@@ -101,7 +101,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - Built-in, remote, and local catalogs with `published` and `featured` controls.
 - A standalone remote Registry, allowing new marketplace cards to appear after refresh without publishing a new npm version.
 - Plugin version and one-click updates: version discovery is independent of the installation source, while an Update Provider adapter layer negotiates safe mutation capabilities. DSH Market API v1 is the first adapter and supports progress, normalized failures, rollback, and capability-gated restart/refresh actions. Without a compatible provider the UI offers update instructions; if Desktop has no plugin-market section, it opens the npm package page instead of leaving the user on generic Settings.
-- Explicit, non-destructive migration from the two earlier Qichacha OAuth plugins, plus active-plugin conflict detection that blocks duplicate server management and credential overwrites.
+- The two legacy Qichacha OAuth plugins support explicit authorization migration. For an affected connection, select **Connection error** in the marketplace or **View recovery steps** under Installed to see which DSH plugin or remaining service entry to disable. After a full DSH restart, MCP Connector takes over the authorization, or prompts for authorization again if it has expired.
 
 <!-- catalog-stats:start -->
 As of 2026-10-24, the public Registry publishes 112 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 116 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
@@ -119,7 +119,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.100 (2026-11-10), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.101 (2026-11-11), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -250,7 +250,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.100`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.100](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.100).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.101`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.101](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.101).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

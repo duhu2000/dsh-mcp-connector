@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.101
+
+- 企查查旧授权迁移后看到红色“连接异常”时，点击市场卡片上的状态，或在 MCP连接器“已安装”中点“查看处理步骤”。已完成迁移的连接也能重新打开指引。
+- 在 **DSH → 插件 → 已安装** 中，按指引停用仍启用的旧插件。工商安装包为 `qcc-dsh-mcp-oauth`（条目 ID `qcc-mcp-oauth`），法律安装包为 `qcc-dsh-mcp-legal-oauth`（条目 ID `qcc-legal-mcp-oauth`）。请使用插件开关。旧插件的“断开授权”会尝试撤销凭据。
+- 若指引列出仍在运行的旧服务，按完整条目 ID 和服务名核对、停用，再完整退出并重启 DSH。回到 **MCP连接器 → 已安装** 检查结果。显示“需重新授权”时，打开对应卡片授权。使用仅内存模式时，重启后再次扫描并复制旧授权。
+- Qichacha migration now identifies active legacy plugins and leftover service entries. Open the red status on the marketplace card or **View recovery steps** under **Installed**, including for connections migrated before this update. Use the DSH plugin switch to disable the named plugin and preserve its OAuth grant. If the guide lists leftover entries, match their full IDs and service names before disabling them. Fully quit and restart DSH, then check **MCP Connector → Installed**. [Customer migration guide](docs/USER-GUIDE.md#企查查旧插件迁移后显示连接异常)
+
 ## 0.2.100
 
 - Publish the npm download trend chart in the package README, sharing the maintained chart with GitHub and the connector registry.
