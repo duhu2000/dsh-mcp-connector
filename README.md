@@ -206,7 +206,11 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 代理变量必须存在于正在运行的 DSH 进程中。修改后请完全退出并重启 DSH Desktop，或从已设置变量的终端启动 `dsh web`；修改 Windows 用户环境变量不会更新已有进程。连接器不会读取系统代理设置，也不会猜测本机代理地址。
 
-`showSidebarEntry` 默认为 `true`。用户可在 DSH 插件配置页覆盖该值；关闭后只隐藏侧边栏快捷入口，不停用连接器、已连接 MCP Server 或工具。
+`entryLocation` 控制入口出现在哪里，取值为 `both`（侧栏图标与设置页的快捷打开按钮都可用）、`sidebar`（默认，只保留侧栏图标，设置页只负责改偏好）或 `settings`（隐藏侧栏图标，只从设置页进入）。三档都至少保留一处入口，避免面板变得无法打开。非法值会被拒绝而不是静默接受；设置读取失败时 fail-open 回退 `sidebar`，入口继续可见。
+
+从旧版升级时，若设置文档里只有 `showSidebarEntry` 而没有 `entryLocation`，插件会把 `false` 翻译成 `settings`、`true` 翻译成 `sidebar`，因此「之前隐藏过侧栏」的用户升级后侧栏不会重新出现。
+
+`showSidebarEntry` 默认为 `true`，为兼容既有配置保留；一旦显式设置 `entryLocation`，它不再影响界面。关闭入口只隐藏快捷方式，不停用连接器、已连接 MCP Server 或工具。
 
 `compactManagementTools` 默认为 `false`，兼容原有对话管理工具。希望降低管理工具上下文开销时，可在插件配置中设为 `true` 并重载插件（必要时重启 DSH），下一次推理使用新工具集：
 

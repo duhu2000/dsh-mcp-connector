@@ -187,6 +187,7 @@ The default bundle configuration is in `cordis.patch.yml`:
     refreshSkewMs: 300000
     openBrowser: true
     showSidebarEntry: true
+    entryLocation: 'sidebar'
     compactManagementTools: false
     locale: 'auto'
     frameAncestors: ['self']
@@ -198,7 +199,11 @@ Remote catalog requests (including the fallback source) honor `HTTP_PROXY`, `HTT
 
 The proxy variables must be present in the running DSH process. After changing them, fully exit and restart DSH Desktop or launch `dsh web` from a shell with those variables set; changing Windows user environment variables does not update an already-running process. The connector does not read OS proxy settings or infer a local proxy address.
 
-`showSidebarEntry` defaults to `true`. Users can override it from the DSH plugin configuration page; turning it off hides only the shortcut and does not disable the connector, connected MCP servers, or tools.
+`entryLocation` controls where the entry appears: `both` (sidebar icon and the Settings quick-open button both work), `sidebar` (default, sidebar icon only and Settings merely changes the preference), or `settings` (hide the sidebar icon and enter from Settings only). Every value keeps at least one entry so the panel never becomes unreachable. Unknown values are rejected rather than silently accepted, and a failed settings read falls back to `sidebar` (fail-open) so the entry stays visible.
+
+When upgrading from a document that still holds only `showSidebarEntry`, `false` maps to `settings` and `true` maps to `sidebar`, so a user who had hidden the sidebar does not see it reappear.
+
+`showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
 
