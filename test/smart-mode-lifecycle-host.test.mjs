@@ -14,6 +14,8 @@ import { enterpriseFixture } from '../scripts/fixtures/smart-mode-enterprise.mjs
 import { createSourceSelector } from '../lib/source-selection.js';
 import { indexRawToolSources, RAW_TOOL_ORIGIN } from '../lib/source-relations.js';
 import { rawDefinition, relationFor } from '../scripts/fixtures/source-selection.mjs';
+import { createSmartModePrepareController } from '../lib/smart-mode-prepare.js';
+import { readOnlyReviewFor } from '../scripts/fixtures/read-only-review.mjs';
 
 // Explicitly selected installed Host code; no profile loader or production data.
 // A selected but incompatible runtime FAILS. No remote/model/MCP client is used.
@@ -445,11 +447,11 @@ contract('a conflicting disk snapshot blocks the losing inference and preserves 
   assert.deepEqual(await store.readSnapshot(agent.id), winner);
 });
 
-async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false, withSources = false } = {}) {
+async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false, withPrepare = false, withSources = withPrepare } = {}) {
   const data = enterpriseFixture({ full });
   const prepared = new Map(), denied = new Set(), hidden = new Set(), bodies = new Map();
-  let controller, sourceSelector, brokenRead = false;
-  const sourceRows = [], sourceRelations = [], sourceIntents = new Map();
+  let controller, sourceSelector, prepareController, brokenRead = false;
+  const sourceRows = [], sourceRelations = [], sourceIntents = new Map(), readOnlyReviews = [];
   const h = await harness(t, { async setup(ctx) {
     let manualController;
     if (legacy) {
@@ -492,11 +494,12 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
     controller = createSmartModeRestrictionController(facade, {
       enabled: true, hostContract: SMART_RESTRICTION_HOST_CONTRACT, scope: data.scope,
       getRecords: () => data.records, getCatalogEntries: () => data.catalog,
-      getPreparedNames: (agent) => prepared.get(agent) ?? [],
+      getPreparedNames: (agent) => withPrepare ? prepareController?.getPreparedNames(agent) ?? [] : prepared.get(agent) ?? [],
       isRecordUsable: () => true, isRecordVisible: (record) => !hidden.has(record.key),
       isToolAllowed: (name) => !denied.has(name),
       isManuallyActive: (name, record, agent) => manualController?.inspect(name, agent)?.active === true,
       sourceSearch: withSources ? (agent, args) => sourceSelector.search(agent, args) : undefined,
+      prepareTools: withPrepare ? (agent, args, exec) => prepareController.prepare(agent, args, exec) : undefined,
     });
     controller.mount(events);
     if (withSources) {
@@ -512,15 +515,22 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
         getUserSourceIntent: (agent) => sourceIntents.get(agent), now: () => 1000,
       });
       sourceSelector.mount(events);
+      if (withPrepare) {
+        readOnlyReviews.push(...sources.map((source) => readOnlyReviewFor(data.scope, source)));
+        prepareController = createSmartModePrepareController({ enabled: true, scope: data.scope,
+          restrictions: controller, selector: sourceSelector, getReadOnlyReviews: () => readOnlyReviews, now: () => 1000 });
+        prepareController.mount(events);
+      }
     }
     return {
       lifecycle: { ...controller.lifecycleBindings(), selectDefault: () => ({
         mode: 'smart', policyVersion: 'fixture-v1', accountRef: data.scope.accountRef, groupId: data.scope.groupId,
       }) },
-      close() { sourceSelector?.dispose(); controller.dispose(); manualController?.dispose(); stopManagement(); },
+      close() { prepareController?.dispose(); sourceSelector?.dispose(); controller.dispose(); manualController?.dispose(); stopManagement(); },
     };
   } });
   return { ...data, ...h, prepared, denied, hidden, bodies, controller, sourceSelector, sourceRows, sourceRelations, sourceIntents,
+    prepareController, readOnlyReviews,
     breakRead(value) { brokenRead = value; },
     async call(agent, name, args = {}) {
       const result = await h.ctx.tools.execute({ agent, signal: new AbortController().signal,
@@ -687,5 +697,88 @@ contract('P1-04 raw definition changes invalidate old selections without alterin
   assert.equal((await h.sourceSelector.select(agent, { capabilityId })).reason, 'SOURCE_DEFINITION_CHANGED');
   assert.equal(await h.sourceSelector.validateSelection(agent, plan), false);
   assert.deepEqual(h.ctx.tools.schemas(agent), before);
+  assert.equal(h.bodies.size, 0);
+});
+
+contract('P1-05 native prepare exposes only the next resolve, preserves compat and performs no business call', async (t) => {
+  const h = await restrictedHarness(t, { withPrepare: true });
+  h.snapshots.set('p105-compat', h.snapshot('p105-compat', 'compat'));
+  const compat = await h.create('p105-compat'), smart = await h.create('p105-smart');
+  await h.drive(smart.agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()], name = sources[0].publicName;
+  const baseline = h.ctx.tools.schemas(compat.agent);
+  const resolve = () => smart.agent.ctx.tools.resolve({ agent: smart.agent,
+    modelSelection: { provider: 'lifecycle-offline', model: 'fixture' }, signal: new AbortController().signal });
+  const old = await resolve();
+  try {
+    assert.equal(h.ctx.tools.get(name, smart.agent, old), undefined);
+    const result = await h.call(smart.agent, 'mcp_connector_discover', {
+      action: 'prepare', capabilityIds: [`relation:${h.sourceRelations[0].id}`],
+    });
+    assert.equal(result.isError, false); assert.match(JSON.stringify(result), new RegExp(name));
+    assert.ok(h.ctx.tools.get(name, smart.agent));
+    assert.equal(h.ctx.tools.get(name, smart.agent, old), undefined, 'already admitted tool set is never widened');
+    const next = await resolve();
+    try { assert.ok(h.ctx.tools.executable(name, smart.agent, next)); } finally { next.dispose(); }
+    await h.drive(smart.agent);
+    assert.ok(h.requests.at(-1).tools.includes(name));
+    assert.ok(!h.requests.at(-1).tools.includes(sources[1].publicName));
+    assert.deepEqual(h.ctx.tools.schemas(compat.agent), baseline);
+    assert.equal(h.bodies.size, 0);
+  } finally { old.dispose(); }
+});
+
+contract('P1-05 read-only revocation denies stale admitted dispatch and requires new prepare after restoration', async (t) => {
+  const h = await restrictedHarness(t, { withPrepare: true }); const { agent } = await h.create('p105-revoked'); await h.drive(agent);
+  const capabilityIds = [`relation:${h.sourceRelations[0].id}`], name = h.sourceRows[0].definition.name;
+  assert.equal((await h.prepareController.prepare(agent, { capabilityIds })).ok, true);
+  const exact = [...indexRawToolSources(h.scope, h.sourceRows).values()][0].publicName;
+  assert.ok(exact.includes(name));
+  const admitted = await agent.ctx.tools.resolve({ agent,
+    modelSelection: { provider: 'lifecycle-offline', model: 'fixture' }, signal: new AbortController().signal });
+  try {
+    h.readOnlyReviews[0].enabled = false;
+    assert.equal((await h.call(agent, exact)).isError, true);
+    h.controller.refresh(); assert.equal(h.ctx.tools.executable(exact, agent, admitted), undefined);
+    h.readOnlyReviews[0].enabled = true; h.controller.refresh();
+    assert.equal(h.ctx.tools.get(exact, agent), undefined);
+    assert.equal((await h.prepareController.prepare(agent, { capabilityIds })).ok, true);
+    assert.ok(h.ctx.tools.get(exact, agent)); assert.equal(h.bodies.size, 0);
+  } finally { admitted.dispose(); }
+});
+
+contract('P1-05 failed comparison audit retains only the original canonical source', async (t) => {
+  const h = await restrictedHarness(t, { withPrepare: true }); const { agent } = await h.create('p105-batch-rollback'); await h.drive(agent);
+  const capabilityId = `relation:${h.sourceRelations[0].id}`, sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  assert.equal((await h.prepareController.prepare(agent, { capabilityIds: [capabilityId] })).ok, true);
+  h.sourceIntents.set(agent, { sessionId: agent.id, accountRef: h.scope.accountRef, groupId: h.scope.groupId,
+    capabilityId, kind: 'compare', sources: sources.map(({ sourceId, definitionFingerprint }) => ({ sourceId, definitionFingerprint })),
+    evidenceHash: 'd'.repeat(64), expiresAt: 9000 });
+  h.readOnlyReviews[1].enabled = false;
+  assert.equal((await h.prepareController.prepare(agent, { capabilityIds: [capabilityId] })).ok, false);
+  assert.ok(h.ctx.tools.get(sources[0].publicName, agent)); assert.equal(h.ctx.tools.get(sources[1].publicName, agent), undefined);
+  assert.equal(h.bodies.size, 0);
+});
+
+contract('P1-05 pending preparation rejects relationship changes before a native loading commit', async (t) => {
+  const h = await restrictedHarness(t, { withPrepare: true }); const { agent } = await h.create('p105-stale'); await h.drive(agent);
+  const select = h.sourceSelector.select;
+  h.sourceSelector.select = async (...input) => { const plan = await select(...input);
+    h.sourceRelations[0] = { ...h.sourceRelations[0], revision: 2 }; return plan; };
+  const result = await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  assert.equal(result.message, 'PREPARE_SELECTION_CHANGED');
+  assert.deepEqual(h.prepareController.getPreparedNames(agent), []); assert.equal(h.bodies.size, 0);
+});
+
+contract('P1-05 resume and subagent start with no inherited preparation', async (t) => {
+  const h = await restrictedHarness(t, { withPrepare: true }); const parent = await h.create('p105-parent'); await h.drive(parent.agent);
+  const capabilityIds = [`relation:${h.sourceRelations[0].id}`], name = [...indexRawToolSources(h.scope, h.sourceRows).values()][0].publicName;
+  assert.equal((await h.prepareController.prepare(parent.agent, { capabilityIds })).ok, true);
+  const child = await h.create('p105-child', { parentAgent: parent.agent,
+    meta: { origin: 'subagent', parentSession: parent.agent.id, delegationDepth: 1 } });
+  await h.drive(child.agent); assert.ok(!h.requests.at(-1).tools.includes(name));
+  await child.dispose(); await parent.dispose();
+  const restored = await h.resume('p105-parent'); await h.drive(restored.agent);
+  assert.ok(!h.requests.at(-1).tools.includes(name)); assert.deepEqual(h.prepareController.getPreparedNames(restored.agent), []);
   assert.equal(h.bodies.size, 0);
 });
