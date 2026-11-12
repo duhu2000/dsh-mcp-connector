@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.2.101
+
+- 企查查旧授权迁移后看到红色“连接异常”时，点击市场卡片上的状态，或在 MCP连接器“已安装”中点“查看处理步骤”。已完成迁移的连接也能重新打开指引。
+- 在 **DSH → 插件 → 已安装** 中，按指引停用仍启用的旧插件。工商安装包为 `qcc-dsh-mcp-oauth`（条目 ID `qcc-mcp-oauth`），法律安装包为 `qcc-dsh-mcp-legal-oauth`（条目 ID `qcc-legal-mcp-oauth`）。请使用插件开关。旧插件的“断开授权”会尝试撤销凭据。
+- 若指引列出仍在运行的旧服务，按完整条目 ID 和服务名核对、停用，再完整退出并重启 DSH。回到 **MCP连接器 → 已安装** 检查结果。显示“需重新授权”时，打开对应卡片授权。使用仅内存模式时，重启后再次扫描并复制旧授权。
+- Qichacha migration now identifies active legacy plugins and leftover service entries. Open the red status on the marketplace card or **View recovery steps** under **Installed**, including for connections migrated before this update. Use the DSH plugin switch to disable the named plugin and preserve its OAuth grant. If the guide lists leftover entries, match their full IDs and service names before disabling them. Fully quit and restart DSH, then check **MCP Connector → Installed**. [Customer migration guide](docs/USER-GUIDE.md#企查查旧插件迁移后显示连接异常)
+
+## 0.2.100
+
+- Publish the npm download trend chart in the package README, sharing the maintained chart with GitHub and the connector registry.
+- Clearly distinguish npm downloads from unique users, successful installations and individual connector connections.
+- Refresh bilingual product screenshots and generated documentation for this release.
+
+## 0.2.99
+
+- Finish tool discovery when a streamable-HTTP server keeps the SSE response open after initialize or tools/list, instead of waiting for EOF and reporting a timeout (#218).
+- Ignore notifications and unrelated request ids while consuming SSE events; preserve authentication error classification.
+- Share a line-based SSE reader between connection validation and tool discovery, including mixed LF/CRLF/CR endings and UTF-8 fragments (#218).
+- Keep handshake health separate from tool-discovery failures. Preserve per-connection checks, show discovery diagnostics independently, and retain real handshake/authentication failures (#218).
+- Maintainer revalidation passed for #218 and the previously released catalog TTL, background refresh and source-isolation fixes for #219. Both issues remain open for tracking.
+
+## 0.2.98
+
+- Replace the hidden first-use question mark with a bilingual Quick start action and a zero-connection guidance card that leads directly to recommended connectors or the existing read-only getting-started flow.
+- Add a first successful connection handoff to discovered tools and example prompts without claiming authorization, tool execution, or business-call success.
+- Add bounded, local-browser guidance counters for Quick start, recommendations, first connector setup and tool discovery. No data is uploaded and the UI explicitly avoids calculating a conversion rate across mixed denominators.
+- Refresh the bilingual credential-free Mock screenshots and GIFs so the storefront matches the current two-column UI and does not display a reauthorization state.
+
+## 0.2.97
+
+- Bind remote catalog caches and ETags to catalogUrl. Changing the source fetches the new catalog immediately, including while the old cache TTL is fresh; failed requests do not expose entries from another source (#219).
+- Refresh legacy caches without a source URL once before reuse. Preserve same-source TTL hits, background refresh, HTTP 304 revalidation, and manual refresh behavior.
+- Add 13 regression cases covering source changes, failure isolation, storage validation, restart reuse, and manual refresh. Real Windows Desktop verification for #218 and #219 remains pending.
+
+## 0.2.96
+
+- Honor catalog TTL on startup; use audited stale cache immediately and refresh in the background, renew freshness on HTTP 304, and cancel superseded/disposed refreshes (#219). First installation without a valid cache still uses the existing foreground fetch path.
+- Expose exact connection keys and Workspace scope to the health-check tool; reject mismatched identifiers and prevent scoped checks from overwriting connector-wide health (#218).
+- Finish initialize validation when the matching SSE response arrives instead of waiting for a persistent stream to close. Handle fragmented/multiline events, ignore unrelated responses, and preserve authentication failures (#218).
+- Local synthetic regression reproduces the persistent-SSE timeout and verifies the fix. This does not establish the original reporter's root cause or replace Windows Desktop / business-call acceptance; #218 and #219 remain open pending review and reporter verification.
+
+## 0.2.95
+
+- Add a standalone Settings → MCP Connector page with the existing sidebar visibility switch and open-panel action, including hosts without a Plugins settings page (#216).
+- Retain the legacy plugin settings card and shared profile preference; hiding the shortcut does not disable connections or tools.
+- Cover delayed settings slots, removal/remount and opening with the sidebar hidden. Windows Desktop and the original reporter environment still require acceptance; this does not close #166 or #216.
+
 ## 0.2.94
 
 - Clarify session activation steps and expose exact preview revision and activation arguments in model-visible text, without inventing user consent (#212).

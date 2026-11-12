@@ -66,6 +66,49 @@ test('initialized 通知被服务端拒绝时停止 tools/list', async () => {
   assert.deepEqual(methods, ['initialize', 'notifications/initialized']);
 });
 
+test('initialize/tools/list 保持 SSE 长连接时工具发现不等待 EOF（#218）', async () => {
+  let cancelled = 0;
+  const encoder = new TextEncoder();
+  const persistent = (events) => new Response(new ReadableStream({
+    start(controller) {
+      for (const event of events) controller.enqueue(encoder.encode(event));
+    },
+    cancel() { cancelled += 1; },
+  }), { headers: { 'Content-Type': 'text/event-stream', 'Mcp-Session-Id': 'persistent-session' } });
+
+  const fetchImpl = async (_url, options) => {
+    if (options.method === 'DELETE') return new Response(undefined, { status: 204 });
+    const body = JSON.parse(options.body);
+    if (body.method === 'initialize') {
+      return persistent([
+        'data: {"jsonrpc":"2.0","method":"notifications/message","params":{}}\n\n',
+        'data: {"jsonrpc":"2.0","id":99,"result":{}}\n\n',
+        'data: {"jsonrpc":"2.0",\ndata: "id":1,"result":{"protocolVersion":"2025-03-26",\ndata: "capabilities":{},"serverInfo":{"name":"persistent"}}}\n\n',
+      ]);
+    }
+    if (body.method === 'notifications/initialized') return new Response(undefined, { status: 202 });
+    return persistent([
+      `data: ${JSON.stringify({ jsonrpc: '2.0', id: body.id, result: { tools: [{ name: 'probe_echo' }] } })}\n\n`,
+    ]);
+  };
+
+  const listed = await listMcpTools(record, { fetchImpl, timeoutMs: 1_000 });
+  assert.deepEqual(listed.tools.map((tool) => tool.name), ['probe_echo']);
+  assert.equal(listed.sessionful, true);
+  assert.equal(cancelled, 2);
+});
+
+test('SSE initialize 返回匹配 id 的错误时保留鉴权失败分类（#218）', async () => {
+  const fetchImpl = async (_url, options) => {
+    const body = JSON.parse(options.body);
+    if (body.method !== 'initialize') return new Response(undefined, { status: 204 });
+    return new Response(`data: ${JSON.stringify({ jsonrpc: '2.0', id: body.id, error: { code: -32000, message: 'unauthorized' } })}\n\n`, {
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  };
+  await assert.rejects(listMcpTools(record, { fetchImpl, retryCount: 0 }), (error) => error.kind === 'auth');
+});
+
 test('tools/list 遇到瞬时网络错误时自动重试一次', async () => {
   let requests = 0;
   const fetchImpl = async (_url, options) => {

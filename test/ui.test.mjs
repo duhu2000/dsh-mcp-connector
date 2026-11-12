@@ -321,7 +321,7 @@ test('连接、健康检查与工具加载均有有限超时和可重试提示',
   assert.match(uiSource, /signal: controller\.signal/);
   assert.match(uiSource, /authMode === 'oauth2-pkce' \? 310_000/);
   assert.match(uiSource, /t\('请求超时（\{seconds\} 秒），请检查服务状态和 Host 日志后重试', \{ seconds: Math\.ceil\(timeoutMs \/ 1000\) \}\)/);
-  assert.match(uiSource, /detailNeedsReconfigure = true/);
+  assert.match(uiSource, /detailNeedsReconfigure = detailFailureState !== 'healthy'/);
   assert.match(uiSource, /重新检查/);
 });
 
@@ -363,7 +363,7 @@ test('详情页的 Bearer/API Key 连接按钮直接打开凭据表单', () => {
   assert.match(trySource, /openAddConnection\('manual', detailConnector\)/);
   assert.ok(trySource.indexOf("openAddConnection('manual', detailConnector)") < trySource.indexOf("call('connect'"));
   assert.match(uiSource, /configureConnect: '🔑 录入凭据并连接'/);
-  assert.match(uiSource, /showToast\(r\.message, true\); await refreshConnectionUi\(connectorId\)/);
+  assert.match(uiSource, /showToast\(r\.message, true\); await completeCatalogConnection\(connectorId\)/);
   assert.match(uiSource, /正在验证凭据与连接…/);
   assert.match(uiSource, /detailNeedsReconfigure[\s\S]*?reconfigureCredential/);
   assert.match(uiSource, /detailConnector\?\.connected\?\.length > 0 && !detailNeedsReconfigure/);
@@ -376,13 +376,15 @@ test('连接成功后原地重载已打开的详情与工具清单', () => {
   const connectSource = uiSource.match(/async connect\(connectorId\) \{[\s\S]*?\n    \},/)?.[0] ?? '';
   const configureSource = uiSource.match(/async submitConfig\(\) \{[\s\S]*?\n    \},\n    async submitImport/)?.[0] ?? '';
   const trySource = uiSource.match(/\$\('#detail-try-btn'\)\.addEventListener\('click', async \(\) => \{[\s\S]*?\n  \}\);/)?.[0] ?? '';
+  const completeSource = uiSource.match(/async function completeCatalogConnection\(connectorId,[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.match(uiSource, /async function refreshConnectionUi\(connectorId\)/);
   assert.match(uiSource, /const reloadOpenDetail = isDetailOpenFor\(connectorId\)/);
   assert.match(uiSource, /detailLoadId !== openDetailLoadId/);
   assert.match(uiSource, /await window\.__mcp\.showDetail\(connectorId\)/);
-  assert.match(connectSource, /await refreshConnectionUi\(connectorId\)/);
-  assert.match(configureSource, /await refreshConnectionUi\(connectorId\)/);
-  assert.match(trySource, /await refreshConnectionUi\(id\)/);
+  assert.match(completeSource, /await refreshConnectionUi\(connectorId\)/);
+  assert.match(connectSource, /await completeCatalogConnection\(connectorId, \{ healthCheck: true \}\)/);
+  assert.match(configureSource, /await completeCatalogConnection\(connectorId\)/);
+  assert.match(trySource, /await completeCatalogConnection\(id, \{ healthCheck: true \}\)/);
   assert.doesNotMatch(configureSource, /configuredFromDetail[\s\S]*?closeDetail\(\)/);
 });
 
@@ -448,6 +450,46 @@ test('已安装列表和详情展示可解释诊断与最近成功时间', () =>
   assert.match(uiSource, /状态尚未确认/);
 });
 
+test('#218 工具页同时展示连接通过与发现失败，且转义服务端消息', () => {
+  const start = uiSource.indexOf('  function explorerDiagnosticsHtml(');
+  const end = uiSource.indexOf('  async function loadToolExplorer(', start);
+  const escapeHtml = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  const render = new Function('t', 'esc', uiSource.slice(start, end) + '; return explorerDiagnosticsHtml;')(tZh, escapeHtml);
+  const html = render({
+    diagnostic: { stageLabel: '可用性确认', message: '连接通过', action: '无需操作' },
+    discoveryDiagnostic: { stageLabel: '工具发现', message: '<script>失败</script>', action: '重新发现工具' },
+  });
+  assert.match(html, /可用性确认：连接通过/);
+  assert.match(html, /工具发现：&lt;script&gt;失败&lt;\/script&gt;/);
+  assert.match(html, /重新发现工具/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test('#218 实时缓存刷新保留连接健康状态，不把工具失败变成连接异常', async () => {
+  const start = uiSource.indexOf('  async function refreshOpenToolDetail()');
+  const end = uiSource.indexOf('  function scheduleStatusRefresh()', start);
+  const nodes = {
+    '#detail-overlay': { classList: { contains: () => true } },
+    '#detail-vendor': {}, '#detail-try-btn': {},
+  };
+  let connectionState = 'healthy';
+  const refresh = new Function('call', '$', 'renderTools', 'workspaceParams', 't', 'detailTryLabel', `
+    let detailConnector = { id: 'review', connectionKey: 'custom-review', vendor: 'Example' };
+    const installedItems = [], marketItems = {};
+    let detailLoadId = 1;
+    let detailToolServers = [];
+    let detailFailureState, detailNeedsReconfigure, detailReconnectKey;
+    ${uiSource.slice(start, end)}
+    return async () => { await refreshOpenToolDetail(); return { detailFailureState, detailNeedsReconfigure }; };
+  `)(async () => ({ ok: false, detail: { connectionState, servers: [{ ok: false, error: 'timeout', cached: true }] } }),
+    (selector) => nodes[selector], () => {}, () => ({}), tZh, (value) => value);
+  assert.deepEqual(await refresh(), { detailFailureState: 'healthy', detailNeedsReconfigure: false });
+  assert.equal(nodes['#detail-vendor'].textContent, 'Example · 已连接');
+  connectionState = 'reauth';
+  assert.deepEqual(await refresh(), { detailFailureState: 'reauth', detailNeedsReconfigure: true });
+  assert.equal(nodes['#detail-vendor'].textContent, 'Example · 凭据已失效');
+});
+
 test('市场只保留推荐与业务分类筛选', () => {
   assert.match(uiSource, /aria-label="\$\{t\('市场分类'\)\}"/);
   assert.match(uiSource, /items\.filter\(matchesMarketFilters\)/);
@@ -469,6 +511,33 @@ test('市场支持分类筛选与推荐位（9 分类 + 推荐）', () => {
   assert.match(uiSource, /data-category-filter=/);
   assert.match(uiSource, /\.category-chips/);
   assert.match(uiSource, /let marketCategory = '';/);
+});
+
+test('新用户在无连接时看到推荐入口与首次使用引导', () => {
+  assert.match(uiSource, /function firstUseBannerHtml\(\)/);
+  assert.match(uiSource, /function installedEmptyHtml\(\)/);
+  assert.match(uiSource, /data-first-use-action="recommended"/);
+  assert.match(uiSource, /data-first-use-action="guide"/);
+  assert.match(uiSource, /status\.ok && \(status\.detail\?\.items \?\? \[\]\)\.length === 0 && !marketCategory && !searchQuery \? firstUseBannerHtml\(\) : ''/);
+  assert.match(uiSource, /先从推荐连接器开始，查看详情并按服务商要求完成授权/);
+  assert.match(uiSource, /先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具/);
+  assert.match(uiSource, /function showRecommendedMarket\(\)/);
+  assert.match(uiSource, /view = 'market'; marketCategory = 'recommended';/);
+  assert.match(uiSource, /syncTabs\(\);\s*loadMarket\(\{ checkHealth: false \}\);/);
+  assert.doesNotMatch(uiSource, /无需授权|免授权/);
+});
+
+test('首次连接后提供下一步，并只记录不上传的本机引导路径', () => {
+  assert.match(uiSource, /const LOCAL_CONVERSION_STORAGE_KEY = 'mcp-connector\.local-conversion-v1'/);
+  assert.match(uiSource, /function recordLocalConversion\(stage, connectorId = ''\)/);
+  assert.match(uiSource, /function localConversionSnapshot\(\)/);
+  assert.match(uiSource, /function openPostConnectionSuccess\(connectorId\)/);
+  assert.match(uiSource, /function completeCatalogConnection\(connectorId, \{ healthCheck = false \} = \{\}\)/);
+  assert.match(uiSource, /检查已发现工具/);
+  assert.match(uiSource, /查看示例 Prompt/);
+  assert.match(uiSource, /入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率/);
+  assert.match(uiSource, /recordLocalConversion\('toolDiscoverySucceeded', connectorId\)/);
+  assert.doesNotMatch(uiSource, /fetch\([^)]*LOCAL_CONVERSION_STORAGE_KEY|sendBeacon\([^)]*LOCAL_CONVERSION_STORAGE_KEY/);
 });
 
 test('全部市场按分类分章节，每章默认展示 4 个并可展开', () => {
@@ -532,6 +601,16 @@ test('连接、配置、导入或 URL 安装成功后显示克制的社区入口
   assert.match(importSource, /call\('importJson'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
   assert.match(installFromUrlSource, /call\('installFromUrl'[\s\S]*?if \(!r\.ok\)[\s\S]*?markCommunityCtaEligible\(\);/);
   assert.doesNotMatch(uiSource, /openModal\([^\n]*连接顺利/);
+});
+
+test('迁移旧授权后引导停用旧插件并完整重启 DSH', () => {
+  assert.doesNotMatch(uiSource, /验证新连接后再手动停用旧插件/);
+  assert.match(uiSource, /若旧插件仍启用，复制后需要停用它并完整重启 DSH/);
+  assert.match(uiSource, /function showLegacyDisableGuide\(pending,/);
+  assert.match(uiSource, /r\.detail\?\.pendingLegacyDisable\?\.restartRequired/);
+  assert.match(uiSource, /result\.detail\?\.pendingLegacyDisable\?\.restartRequired/);
+  assert.match(uiSource, /async copyLegacyPluginIds\(index\)/);
+  assert.match(uiSource, /完全退出 DSH 并重新启动；仅刷新页面或重载插件不够。/);
 });
 
 test('关闭社区入口后在本次页面生命周期内保持隐藏', () => {

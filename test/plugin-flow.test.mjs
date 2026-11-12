@@ -5,6 +5,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMockQccServer } from './mock-oauth-server.mjs';
+import { DEFAULT_CATALOG_URL } from '../lib/constants.js';
+import { catalogRecordSchema } from '../lib/schema.js';
 
 /* ───────────────────────── fake cordis ctx ───────────────────────── */
 
@@ -144,6 +146,321 @@ async function waitFor(fn, { timeout = 5000, interval = 20 } = {}) {
     await new Promise((r) => setTimeout(r, interval));
   }
 }
+
+function catalogDescriptor(id) {
+  return { id, name: id, auth: { mode: 'none' }, servers: [
+    { serverKey: 'main', serverName: id, url: 'https://mcp.example.com/mcp' },
+  ] };
+}
+
+function mockDiscoveryFetch(t, handle) {
+  t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
+    if (options.method === 'DELETE') return new Response(null, { status: 204 });
+    const request = JSON.parse(options.body || '{}');
+    const override = await handle(request, url, options);
+    if (override) return override;
+    if (!request.id) return new Response(null, { status: 202 });
+    return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: request.method === 'initialize'
+      ? { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'review', version: '1' } }
+      : { tools: [{ name: 'probe_echo', inputSchema: { type: 'object' } }] } }), { headers: { 'Content-Type': 'application/json' } });
+  });
+}
+
+test('#218 tool discovery failures retain handshake health and separate diagnostics', async (t) => {
+  let failure;
+  let rejectHandshake = false;
+  let requests = 0;
+  mockDiscoveryFetch(t, (request) => {
+    requests += 1;
+    if (request.method === 'initialize' && rejectHandshake) return new Response(null, { status: 401 });
+    if (request.method !== 'tools/list') return;
+    if (failure === 'timeout') throw new Error('tools/list timeout');
+    if (failure === 'protocol') return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -32601, message: 'tools/list unavailable' } }));
+    if (failure === 'auth') return new Response(null, { status: 403 });
+    if (failure === 'rate-limit') return new Response(null, { status: 429, headers: { 'retry-after': '600' } });
+  });
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  const target = { connectorId: '__custom__', connectionKey: 'custom-review' };
+  try {
+    await apply(host.ctx, baseConfig());
+    assert.equal((await execute('configure', { name: 'review', serverName: 'review', url: 'https://review.example/mcp' })).ok, true);
+    assert.equal((await execute('tools_list', target)).ok, true);
+    for (failure of ['timeout', 'protocol', 'auth', 'rate-limit']) {
+      const listed = await execute('tools_list', target);
+      assert.equal(listed.ok, false, failure);
+      assert.equal(listed.detail.connectionState, 'healthy', failure);
+      assert.equal(listed.detail.diagnostic.code, 'ok', failure);
+      assert.equal(listed.detail.discoveryDiagnostic.stage, 'tool-discovery', failure);
+      assert.equal(listed.detail.discoveryDiagnostic.code, failure);
+      assert.equal(listed.detail.servers[0].cached, true);
+      assert.deepEqual(listed.detail.servers[0].tools.map((tool) => tool.name), ['probe_echo']);
+      // A subsequent connection check must not erase the separate discovery failure.
+      assert.equal((await execute('health_check', target)).detail.items[0].connectionState, 'healthy');
+      assert.equal((await execute('status')).detail.items[0].connectionState, 'healthy');
+      const connection = (await host.webCall('toolExplorer', { connectionKey: target.connectionKey })).detail.selectedConnections[0];
+      assert.equal(connection.status, 'failed');
+      assert.equal(connection.diagnostic.state, 'healthy');
+      assert.equal(connection.discoveryDiagnostic.stage, 'tool-discovery');
+      assert.equal(connection.discoveryDiagnostic.code, failure);
+      const checkpoint = requests;
+      const cached = await host.webCall('toolsList', { ...target, cachedOnly: true });
+      assert.equal(cached.detail.connectionState, 'healthy');
+      assert.equal(cached.detail.discoveryDiagnostic.code, failure);
+      assert.equal(requests, checkpoint, 'cached refresh must not perform network requests');
+    }
+    rejectHandshake = true;
+    const denied = await execute('tools_list', target);
+    assert.equal(denied.detail.connectionState, 'reauth');
+    assert.equal(denied.detail.diagnostic.stage, 'authentication');
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'reauth');
+    rejectHandshake = false;
+    await execute('health_check', target);
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'healthy');
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+test('#218 scoped health checks retain other connections and project visibility', async (t) => {
+  const requests = [];
+  let rejectFirst = false;
+  mockDiscoveryFetch(t, (request, url) => {
+    requests.push(url);
+    if (request.method === 'initialize' && rejectFirst && url.endsWith('/first')) return new Response(null, { status: 401 });
+  });
+  const host = makePluginContext();
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  try {
+    await apply(host.ctx, baseConfig());
+    for (const name of ['first', 'second']) {
+      assert.equal((await execute('configure', { name, serverName: name, url: `https://review.example/${name}`,
+        ...(name === 'first' ? { scope: 'project', workspaceId: 'workspace-1' } : {}) })).ok, true);
+      await execute('tools_list', { connectorId: '__custom__', connectionKey: `custom-${name}`, workspaceId: 'workspace-1' });
+    }
+    rejectFirst = true;
+    await execute('health_check', { connectionKey: 'custom-first', workspaceId: 'workspace-1' });
+    const checkpoint = requests.length;
+    await execute('health_check', { connectionKey: 'custom-second' });
+    assert.ok(requests.slice(checkpoint).every((url) => url.endsWith('/second')));
+    assert.equal((await execute('health_check', { connectionKey: 'custom-first' })).ok, false);
+    const states = Object.fromEntries((await execute('status')).detail.items.map((item) => [item.key, item.connectionState]));
+    assert.deepEqual(states, { 'custom-first': 'reauth', 'custom-second': 'healthy' });
+    const all = await execute('health_check', { connectorId: '__custom__' });
+    assert.equal(all.detail.items[0].configuredServers, 2);
+    assert.equal(all.detail.items[0].connectionState, 'degraded');
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+for (const elapsed of [0, 100]) test(`#218 late discovery completion cannot overwrite a newer handshake failure (${elapsed} ms)`, async (t) => {
+  let clock = Date.now();
+  t.mock.method(Date, 'now', () => clock);
+  let hold = false;
+  let denied = false;
+  let entered;
+  let release;
+  const pending = new Promise((resolve) => { entered = resolve; });
+  mockDiscoveryFetch(t, async (request) => {
+    if (request.method === 'initialize' && denied) return new Response(null, { status: 401 });
+    if (request.method === 'tools/list' && hold) {
+      entered();
+      await new Promise((resolve) => { release = resolve; });
+    }
+  });
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get(`mcp_connector_${name}`).execute(input);
+  const target = { connectorId: '__custom__', connectionKey: 'custom-review' };
+  try {
+    await apply(host.ctx, baseConfig());
+    await execute('configure', { name: 'review', serverName: 'review', url: 'https://review.example/mcp' });
+    await execute('tools_list', target);
+    hold = true;
+    const discovery = execute('tools_list', target);
+    await pending;
+    clock += elapsed;
+    denied = true;
+    await execute('health_check', target);
+    release();
+    assert.equal((await discovery).ok, true);
+    assert.equal((await execute('status')).detail.items[0].connectionState, 'reauth');
+    const connection = (await host.webCall('toolExplorer', { connectionKey: target.connectionKey })).detail.selectedConnections[0];
+    assert.equal(connection.status, 'success');
+    assert.equal(connection.diagnostic.state, 'reauth');
+  } finally { release?.(); for (const dispose of host.disposers) await dispose(); }
+});
+
+for (const [source, previousUrl, catalogUrl] of [
+  ['default to custom', DEFAULT_CATALOG_URL, 'https://new-catalog.example.com/catalog.json'],
+  ['custom to default', 'https://old-catalog.example.com/catalog.json', DEFAULT_CATALOG_URL],
+  ['custom to custom', 'https://old-catalog.example.com/catalog.json', 'https://new-catalog.example.com/catalog.json'],
+  ['legacy to default', undefined, DEFAULT_CATALOG_URL],
+  ['legacy to custom', undefined, 'https://new-catalog.example.com/catalog.json'],
+]) {
+  for (const fresh of [true, false]) {
+    test(`catalogUrl change (${source}, ${fresh ? 'fresh' : 'expired'}) fetches the new source without old entries or ETag (#219)`, async (t) => {
+      const host = makePluginContext();
+      const oldRecord = { key: 'remote', updatedAt: fresh ? Date.now() : 1, etag: 'old-etag', connectors: [catalogDescriptor('old-source')] };
+      if (previousUrl !== undefined) oldRecord.catalogUrl = previousUrl;
+      await host.tables.get('catalog').put('remote', oldRecord);
+      const requests = [];
+      t.mock.method(globalThis, 'fetch', async (url, options) => {
+        requests.push({ url, etag: options.headers['If-None-Match'] });
+        return new Response(JSON.stringify([catalogDescriptor('new-source')]), { headers: { etag: 'new-etag' } });
+      });
+      const { apply } = await import('../lib/index.js');
+      try {
+        await apply(host.ctx, baseConfig({ catalogUrl }));
+        assert.deepEqual(requests, [{ url: catalogUrl, etag: undefined }]);
+        const catalog = await host.tools.defs.get('mcp_connector_catalog').execute({});
+        assert.ok(catalog.detail.items.some(item => item.id === 'new-source'));
+        assert.ok(!catalog.detail.items.some(item => item.id === 'old-source'));
+        const saved = await host.tables.get('catalog').get('remote');
+        assert.equal(saved.catalogUrl, catalogUrl);
+        assert.equal(saved.etag, 'new-etag');
+      } finally { for (const dispose of host.disposers) await dispose(); }
+    });
+  }
+}
+
+for (const fresh of [true, false]) {
+  test(`catalogUrl change does not expose ${fresh ? 'fresh' : 'expired'} old-source entries when the new source fails (#219)`, async (t) => {
+    const host = makePluginContext();
+    const record = { key: 'remote', updatedAt: fresh ? Date.now() : 1, catalogUrl: DEFAULT_CATALOG_URL, etag: 'old-etag', connectors: [catalogDescriptor('old-source')] };
+    await host.tables.get('catalog').put('remote', record);
+    const catalogUrl = 'https://new-catalog.example.com/catalog.json';
+    const requests = [];
+    t.mock.method(globalThis, 'fetch', async (url, options) => {
+      requests.push({ url, etag: options.headers['If-None-Match'] });
+      throw new Error('new source offline');
+    });
+    const { apply } = await import('../lib/index.js');
+    try {
+      await apply(host.ctx, baseConfig({ catalogUrl }));
+      assert.deepEqual(requests, [{ url: catalogUrl, etag: undefined }]);
+      const catalog = await host.tools.defs.get('mcp_connector_catalog').execute({});
+      assert.ok(!catalog.detail.items.some(item => item.id === 'old-source'));
+      assert.ok(catalog.detail.items.some(item => item.id === 'qcc-company'));
+      assert.equal(await host.tables.get('catalog').get('remote'), record, 'failed requests must not relabel the old source cache');
+    } finally { for (const dispose of host.disposers) await dispose(); }
+  });
+}
+
+test('catalog source survives storage validation, restart, and manual refresh (#219)', async (t) => {
+  const host = makePluginContext();
+  const catalogUrl = 'https://catalog.example.com/catalog.json';
+  const table = host.tables.get('catalog');
+  const put = table.put.bind(table);
+  t.mock.method(table, 'put', (key, record) => put(key, catalogRecordSchema.parse(record)));
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, etag: options.headers['If-None-Match'] });
+    return new Response(JSON.stringify([catalogDescriptor(`source-${requests.length}`)]));
+  });
+  const { apply } = await import('../lib/index.js');
+  const hosts = [host];
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl }));
+    assert.equal((await table.get('remote')).catalogUrl, catalogUrl);
+    for (const dispose of host.disposers.splice(0)) await dispose();
+    const restarted = makePluginContext({ shared: host, withWeb: true });
+    hosts.push(restarted);
+    await apply(restarted.ctx, baseConfig({ catalogUrl }));
+    assert.equal(requests.length, 1, 'same-source fresh cache must survive a restart without fetching');
+    const catalog = await restarted.tools.defs.get('mcp_connector_catalog').execute({});
+    assert.ok(catalog.detail.items.some(item => item.id === 'source-1'));
+    assert.equal((await restarted.webCall('refreshCatalog')).ok, true);
+    assert.equal((await table.get('remote')).catalogUrl, catalogUrl);
+    assert.equal(requests.length, 2);
+  } finally { for (const active of hosts) for (const dispose of active.disposers.splice(0)) await dispose(); }
+});
+
+test('fresh remote catalog cache skips startup fetch; manual refresh bypasses TTL (#219)', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => { calls++; return new Response('[]'); });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: Date.now(), connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    assert.equal(calls, 0);
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    assert.equal(calls, 1);
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+test('expired cache starts Host before network completes and 304 renews freshness (#219)', async (t) => {
+  const host = makePluginContext();
+  let release;
+  const response = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    calls++;
+    assert.equal(options.headers['If-None-Match'], 'cached-etag');
+    return response;
+  });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, etag: 'cached-etag', connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    assert.ok(host.tools.defs.has('mcp_connector_health_check'));
+    await waitFor(() => calls === 1);
+    release(new Response(null, { status: 304 }));
+    let saved;
+    await waitFor(() => { host.tables.get('catalog').get('remote').then(value => { saved = value; }); return saved?.updatedAt > 1; });
+    assert.equal(saved.etag, 'cached-etag');
+    assert.equal(saved.catalogUrl, 'https://catalog.example.com/catalog.json');
+  } finally { release(new Response(null, { status: 304 })); for (const dispose of host.disposers) await dispose(); }
+});
+
+test('disposing Host aborts stale catalog refresh without replacing cache (#219)', async (t) => {
+  const host = makePluginContext();
+  let signal;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    signal = options.signal;
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+  });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+  try { await waitFor(() => signal); }
+  finally { for (const dispose of host.disposers) await dispose(); }
+  assert.equal(signal.aborted, true);
+  assert.equal((await host.tables.get('catalog').get('remote')).updatedAt, 1);
+});
+
+test('manual catalog refresh supersedes an older background response (#219)', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  let release;
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    if (++calls === 1) return new Promise(resolve => { release = resolve; });
+    return new Response('[]', { headers: { etag: 'manual' } });
+  });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    await waitFor(() => release);
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    release(new Response('[]', { headers: { etag: 'obsolete' } }));
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal((await host.tables.get('catalog').get('remote')).etag, 'manual');
+  } finally { release?.(new Response('[]')); for (const dispose of host.disposers) await dispose(); }
+});
+
+test('failed stale catalog refresh preserves cached descriptors (#219)', async (t) => {
+  const host = makePluginContext();
+  t.mock.method(globalThis, 'fetch', async () => { throw new Error('offline'); });
+  await host.tables.get('catalog').put('remote', { catalogUrl: 'https://catalog.example.com/catalog.json', updatedAt: 1, connectors: [] });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: 'https://catalog.example.com/catalog.json' }));
+    await waitFor(() => host.logs.some(line => line.includes('catalog background refresh failed')));
+    assert.equal((await host.tables.get('catalog').get('remote')).updatedAt, 1);
+    assert.ok(host.tools.defs.has('mcp_connector_health_check'));
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
 
 test('stdio first discovery becomes ready automatically without a manual recheck (#210)', { timeout: 15000 }, async () => {
   const host = makePluginContext({ withWeb: true });
@@ -679,6 +996,21 @@ test('工具浏览 API：分页与筛选、无 Workspace 仅全局、只读搜�
     const check = await webCall('toolExplorerAction', { connectionKey: 'custom-c', action: 'check' });
     assert.equal(check.ok, true, check.message);
     assert.ok(requests.slice(before).every((request) => request.path === '/c'));
+    // #218: management health checks must honor exact keys and Workspace visibility.
+    const health = tools.defs.get('mcp_connector_health_check');
+    let checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-b' })).ok, true);
+    assert.ok(requests.length > checkpoint);
+    assert.ok(requests.slice(checkpoint).every(request => request.path === '/b'));
+    checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-a' })).ok, false);
+    assert.equal((await health.execute({ connectorId: 'wrong-id', connectionKey: 'custom-b' })).ok, false);
+    assert.equal(requests.length, checkpoint);
+    assert.equal((await health.execute({ workspaceId: 'workspace-other' })).ok, true);
+    assert.ok(requests.slice(checkpoint).every(request => request.path !== '/a'));
+    checkpoint = requests.length;
+    assert.equal((await health.execute({ connectionKey: 'custom-a', workspaceId: 'workspace-1' })).ok, true);
+    assert.ok(requests.slice(checkpoint).every(request => request.path === '/a'));
     limited = true;
     const failed = await tools.defs.get('mcp_connector_tools_list').execute({ connectorId: '__custom__', connectionKey: 'custom-b' });
     assert.equal(failed.ok, false);
@@ -1577,6 +1909,258 @@ test('检测到旧企查查 OAuth 插件仍启用时阻断同名 Server，避免
   assert.match(result.message, /停用旧插件并重启 DSH/);
   assert.ok(logs.some((line) => line.includes('legacy OAuth plugin conflict')));
   assert.equal(extractAuthorizeUrls(logs).length, 0);
+});
+
+test('旧插件条目位于嵌套 include 子树时仍能识别冲突', async () => {
+  const { ctx, tools, loader, disposers } = makePluginContext();
+  // 真实 DSH profile 的条目挂在 include 子树中，根 loader.resolve(plainId) 会抛错。
+  ctx.loader = {
+    ...loader,
+    *entries() {
+      yield { options: { id: 'include', name: 'cordis:include' } };
+      yield { options: { id: 'qcc-mcp-oauth', name: 'qcc-dsh-mcp-oauth', config: {} }, disabled: false };
+    },
+    resolve() { throw new Error('cannot resolve entry'); },
+  };
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const result = await tools.defs.get('mcp_connector_connect').execute({ connectorId: 'qcc-company' }, { signal: undefined });
+    assert.equal(result.ok, false);
+    assert.equal(result.detail.kind, 'plugin-conflict');
+    assert.equal(result.detail.pluginId, 'qcc-mcp-oauth');
+  } finally {
+    for (const dispose of disposers) await dispose();
+  }
+});
+
+test('迁移旧授权时明确提示停用旧插件并完整重启 DSH', async () => {
+  const { ctx, tools, tables, loader, disposers } = makePluginContext();
+  const legacyGrants = new Map([['grant:default', {
+    issuer: 'https://agent.qcc.com',
+    clientId: 'legacy-client',
+    scope: 'mcp:tools',
+    accessToken: 'legacy-access-token',
+    accessTokenExpiresAt: Date.now() + 600_000,
+    refreshToken: 'legacy-refresh-token',
+    authorizedResources: ['https://agent.qcc.com/mcp/company/stream'],
+    entryResource: 'https://agent.qcc.com/mcp/company/stream',
+    clientName: 'Legacy QCC',
+    updatedAt: Date.now(),
+  }]]);
+  ctx.storageDomain.get = (name) => name === 'qcc_mcp_oauth'
+    ? { tables: new Map([['grants', { entries: () => legacyGrants.entries() }]]) }
+    : undefined;
+  loader.entries.set('qcc-mcp-oauth', { id: 'qcc-mcp-oauth', disabled: false, options: { config: {} } });
+
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(ctx, baseConfig());
+    const result = await tools.defs.get('mcp_connector_migrate_legacy').execute({});
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.detail.pendingLegacyDisable, {
+      pluginIds: ['qcc-mcp-oauth'], serverNames: ['qcc-company'], restartRequired: true,
+      persistent: true, reauthRequired: false, conflicts: [{
+        pluginId: 'qcc-mcp-oauth', packageName: 'qcc-dsh-mcp-oauth', kind: 'plugin',
+        entryIds: [], pluginEntryIds: ['qcc-mcp-oauth'], serverNames: ['qcc-company'], legacyServerNames: [], reauthRequired: false,
+      }],
+    });
+    assert.match(result.message, /qcc-mcp-oauth.*完整重启 DSH/);
+    assert.doesNotMatch(result.message, /确认新连接可用/);
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false, '冲突期间不得抢先注册同名 Host 条目');
+    const record = await tables.get('connections').get('qcc-company-company');
+    assert.ok(record, '授权与连接记录必须保留，供重启后恢复');
+    assert.match(record.lastError, /停用旧插件并重启 DSH/);
+    assert.doesNotMatch(JSON.stringify(result), /legacy-access-token|legacy-refresh-token/);
+    const setEnabled = tools.defs.get('mcp_connector_set_enabled');
+    const oldPlugin = loader.entries.get('qcc-mcp-oauth');
+    oldPlugin.disabled = true;
+    loader.entries.set('qcc-legal-mcp-oauth', { options: { id: 'qcc-legal-mcp-oauth' } });
+    const waiting = await tools.defs.get('mcp_connector_status').execute({});
+    const restart = waiting.detail.items.find(item => item.key === record.key).diagnostic.legacyConflict;
+    assert.equal(restart.kind, 'restart');
+    assert.equal(restart.pluginId, 'qcc-mcp-oauth');
+    assert.deepEqual(restart.entryIds, []);
+    const earlyEnable = await setEnabled.execute({ key: record.key, enabled: true });
+    assert.equal(earlyEnable.detail.legacyConflict.kind, 'restart');
+    assert.doesNotMatch(earlyEnable.message, /停用.*插件/);
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false);
+    oldPlugin.disabled = false;
+    const disabled = await setEnabled.execute({ key: record.key, enabled: false });
+    assert.equal(disabled.ok, true);
+    const enable = await setEnabled.execute({ key: record.key, enabled: true });
+    assert.equal(enable.ok, false);
+    assert.equal(enable.detail.legacyConflict.pluginId, 'qcc-mcp-oauth');
+    const restore = await tools.defs.get('mcp_connector_snapshot').execute({ action: 'restore', snapshotId: disabled.detail.snapshotId });
+    assert.equal(restore.ok, false);
+    assert.equal(restore.detail.legacyConflict.pluginId, 'qcc-mcp-oauth');
+    assert.equal(loader.entries.has('mcp-qcc-company-company'), false);
+    assert.equal((await tables.get('connections').get(record.key)).enabled, false);
+  } finally {
+    for (const dispose of disposers) await dispose();
+  }
+});
+
+function legacyGrantFixture(paths, clientId) {
+  const resources = paths.map((path) => `https://agent.qcc.com/mcp/${path}/stream`);
+  return { issuer: 'https://agent.qcc.com', clientId, scope: 'mcp:tools', clientName: 'Migration test',
+    accessToken: 'before-handoff', accessTokenExpiresAt: Date.now() - 1000, refreshToken: 'refresh-before-handoff',
+    authorizedResources: resources, entryResource: resources[0], updatedAt: Date.now() - 10000 };
+}
+
+function exposeLegacyGrant(host, grants) {
+  host.ctx.storageDomain.get = (name) => ({ tables: new Map([['grants',
+    new Map(grants[name] ? [['grant:default', grants[name]]] : [])]]) });
+}
+
+test('停用或移除等待交接的法律连接时不更改同 ID 的旧服务', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  t.after(async () => { for (const dispose of host.disposers) await dispose(); });
+  exposeLegacyGrant(host, { qcc_legal_mcp_oauth: legacyGrantFixture(['case'], 'legacy-case') });
+  const key = 'qcc-legal-case';
+  const id = 'mcp-' + key;
+  await host.loader.create({ id, name: '@deepseek-ai/dsh-mcp-client', config: { serverName: 'legal-case' }, disabled: false });
+  const oldEntry = host.loader.resolve(id);
+  const { apply } = await import('../lib/index.js');
+  await apply(host.ctx, baseConfig());
+  const result = await host.webCall('migrateLegacy');
+  assert.equal(result.detail.pendingLegacyDisable.conflicts[0].kind, 'residual');
+  assert.equal((await host.webCall('setEnabled', { key, enabled: false })).ok, true);
+  assert.equal(oldEntry.disabled, false);
+  assert.equal((await host.webCall('disconnect', { key })).ok, true);
+  assert.equal(host.loader.resolve(id), oldEntry);
+  assert.equal(oldEntry.options.config.serverName, 'legal-case');
+});
+
+test('旧插件交接期间不刷新；重启按最后轮换的工商与法律授权接管各自服务', async (t) => {
+  const { apply } = await import('../lib/index.js');
+  let refreshCalls = 0;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (String(url).includes('/.well-known/')) refreshCalls++;
+    throw new Error('offline migration test');
+  });
+  const grants = {
+    qcc_mcp_oauth: legacyGrantFixture(['company', 'risk'], 'same-client'),
+    qcc_legal_mcp_oauth: legacyGrantFixture(['case'], 'same-client'),
+  };
+  const hosts = [];
+  t.after(async () => { for (const host of hosts) for (const dispose of host.disposers) await dispose(); });
+  async function start(shared, active) {
+    const host = makePluginContext({ shared, withWeb: true });
+    hosts.push(host);
+    exposeLegacyGrant(host, grants);
+    if (active) for (const id of ['qcc-mcp-oauth', 'qcc-legal-mcp-oauth']) host.loader.entries.set(id, { options: { id } });
+    else host.loader.entries.set('mcp-qcc-legal-case', { id: 'mcp-qcc-legal-case', name: '@deepseek-ai/dsh-mcp-client',
+      disabled: true, options: { config: { serverName: 'legal-case' } } });
+    await apply(host.ctx, baseConfig());
+    return host;
+  }
+  const first = await start(undefined, true);
+  const migration = await first.webCall('migrateLegacy');
+  assert.deepEqual(migration.detail.pendingLegacyDisable.serverNames, ['qcc-company', 'qcc-risk', 'qcc-case']);
+  const market = await first.webCall('catalog');
+  const company = market.detail.items.find((item) => item.id === 'qcc-company');
+  assert.deepEqual(company.diagnostic.legacyConflict.serverNames, ['qcc-company', 'qcc-risk']);
+  const installed = await first.webCall('status');
+  for (const item of installed.detail.items) assert.deepEqual(item.diagnostic.legacyConflict.serverNames, [item.serverName]);
+  assert.equal(first.loader.entries.size, 2);
+  assert.deepEqual((await first.webCall('migrationPreview', { scanStored: true })).detail.pendingLegacyDisable.pluginIds,
+    ['qcc-mcp-oauth', 'qcc-legal-mcp-oauth']);
+  const stillActive = await start({ tables: first.tables }, true);
+  assert.equal(stillActive.loader.entries.size, 2);
+  assert.equal(refreshCalls, 0);
+  for (const [name, grant] of Object.entries(grants)) Object.assign(grant, {
+    accessToken: 'latest-' + name, refreshToken: 'rotated-' + name,
+    accessTokenExpiresAt: Date.now() + 600000, updatedAt: Date.now(),
+  });
+  const clean = await start({ tables: first.tables }, false);
+  assert.equal(refreshCalls, 0);
+  assert.equal(clean.loader.entries.get('mcp-qcc-company-company').options.config.headers.Authorization, 'Bearer latest-qcc_mcp_oauth');
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').options.config.headers.Authorization, 'Bearer latest-qcc_legal_mcp_oauth');
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').disabled, false);
+  assert.equal(clean.loader.entries.get('mcp-qcc-legal-case').options.config.serverName, 'qcc-case');
+  assert.deepEqual((await clean.webCall('migrationPreview', { scanStored: true })).detail.pendingLegacyDisable.conflicts, []);
+});
+
+test('升级前已停用旧插件时，旧格式连接采用较新授权并保留已轮换的新凭据', async () => {
+  const { apply } = await import('../lib/index.js');
+  for (const sourceIsNewer of [true, false]) {
+    const host = makePluginContext({ withWeb: true });
+    const original = legacyGrantFixture(['company'], 'old-client-id');
+    const stamp = Date.now();
+    const key = 'historical-grant';
+    const connection = { key: 'qcc-company-company', connectorId: 'qcc-company', kind: 'oauth', name: 'QCC',
+      transport: 'streamable-http', serverName: 'qcc-company', url: original.entryResource, auth: { mode: 'oauth', grantKey: key },
+      enabled: true, createdAt: stamp - 5000, updatedAt: stamp - 5000 };
+    const migrated = { ...original, key, account: 'default', connectorIds: ['qcc-company'], accessToken: 'connector-copy',
+      refreshToken: 'connector-refresh', updatedAt: stamp - 1000, accessTokenExpiresAt: stamp + 180000 };
+    const lastLegacy = { ...original, accessToken: 'legacy-copy', refreshToken: 'legacy-refresh', accessTokenExpiresAt: stamp + 180000,
+      updatedAt: sourceIsNewer ? stamp : stamp - 2000 };
+    await host.tables.get('connections').put(connection.key, connection);
+    await host.tables.get('grants').put(key, migrated);
+    exposeLegacyGrant(host, { qcc_mcp_oauth: lastLegacy });
+    await apply(host.ctx, baseConfig());
+    try {
+      const restored = host.loader.entries.get('mcp-qcc-company-company');
+      assert.equal(restored.options.config.headers.Authorization, sourceIsNewer ? 'Bearer legacy-copy' : 'Bearer connector-copy');
+      assert.equal((await host.tables.get('grants').get(key)).legacySource.pending, false);
+    } finally { for (const dispose of host.disposers) await dispose(); }
+  }
+});
+
+test('交接读取到损坏的旧授权时不启动或刷新过时副本', async (t) => {
+  const { apply } = await import('../lib/index.js');
+  const first = makePluginContext({ withWeb: true });
+  first.loader.entries.set('qcc-mcp-oauth', { options: { id: 'qcc-mcp-oauth' } });
+  const grant = legacyGrantFixture(['company'], 'legacy-read-failure');
+  exposeLegacyGrant(first, { qcc_mcp_oauth: grant });
+  await apply(first.ctx, baseConfig());
+  try { assert.equal((await first.webCall('migrateLegacy')).ok, true); }
+  finally { for (const dispose of first.disposers) await dispose(); }
+  const next = makePluginContext({ shared: { tables: first.tables }, withWeb: true });
+  t.after(async () => { for (const dispose of next.disposers) await dispose(); });
+  exposeLegacyGrant(next, { qcc_mcp_oauth: { ...grant, refreshToken: null } });
+  await apply(next.ctx, baseConfig());
+  const row = (await next.webCall('status')).detail.items[0];
+  assert.equal(row.diagnostic.legacyConflict.sourceUnreadable, true);
+  assert.equal(next.loader.entries.has('mcp-qcc-company-company'), false);
+});
+
+test('失效旧授权交接后要求重新授权，内存模式明确提示重启后再次扫描', async () => {
+  const { apply } = await import('../lib/index.js');
+  const grant = { ...legacyGrantFixture(['company'], 'legacy-expired'), refreshToken: '' };
+  for (const persistent of [true, false]) {
+    const first = makePluginContext({ withWeb: true });
+    exposeLegacyGrant(first, { qcc_mcp_oauth: grant });
+    first.loader.entries.set('qcc-mcp-oauth', { options: { id: 'qcc-mcp-oauth' } });
+    const config = baseConfig({ persistSecrets: persistent });
+    await apply(first.ctx, config);
+    try {
+      const migration = await first.webCall('migrateLegacy');
+      assert.equal(migration.detail.pendingLegacyDisable.reauthRequired, true);
+      assert.equal(migration.detail.pendingLegacyDisable.persistent, persistent);
+      if (!persistent) assert.match(migration.message, /内存.*重启.*再次检测/);
+    } finally { for (const dispose of first.disposers) await dispose(); }
+    // The old build disabled the connection and recorded a migration-specific error.
+    if (persistent) {
+      const row = await first.tables.get('connections').get('qcc-company-company');
+      await first.tables.get('connections').put(row.key, { ...row, enabled: false, lastError: '旧授权已失效，请重新连接：invalid_grant' });
+      const stored = await first.tables.get('grants').get(row.auth.grantKey);
+      const { legacySource, ...oldFormat } = stored;
+      await first.tables.get('grants').put(row.auth.grantKey, oldFormat);
+    }
+    const clean = makePluginContext({ shared: { tables: first.tables }, withWeb: true });
+    exposeLegacyGrant(clean, { qcc_mcp_oauth: grant });
+    await apply(clean.ctx, config);
+    try {
+      const { detail } = await clean.webCall('status');
+      if (persistent) {
+        assert.equal(detail.items[0].enabled, false, 'preserve the stored enable/disable choice');
+        assert.equal(detail.items[0].connectionState, 'reauth');
+      } else assert.equal(detail.items.length, 0);
+      assert.equal(clean.loader.entries.size, 0);
+    } finally { for (const dispose of clean.disposers) await dispose(); }
+  }
 });
 
 test('无鉴权 / api-key 连接器：none 直连、api-key 引导 configure', { timeout: 15000 }, async () => {

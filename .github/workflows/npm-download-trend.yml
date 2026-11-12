@@ -1,0 +1,32 @@
+name: Refresh npm download trend
+on:
+  schedule:
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: npm-download-trend
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test scripts/build-download-trend.test.mjs
+      - run: node scripts/build-download-trend.mjs
+      - name: Render PNG
+        run: |
+          npm install --prefix "$RUNNER_TEMP/trend-render" --ignore-scripts --no-audit --no-fund @resvg/resvg-js@2.6.2
+          RENDER_MODULE="$RUNNER_TEMP/trend-render/node_modules/@resvg/resvg-js" node -e 'const fs=require("node:fs");const {Resvg}=require(process.env.RENDER_MODULE);fs.writeFileSync("docs/metrics/npm-downloads.png",new Resvg(fs.readFileSync("docs/metrics/npm-downloads.svg")).render().asPng())'
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/npm-download-trend
+          commit-message: 'QMCP-2014 refresh npm download trend'
+          title: 'QMCP-2014 refresh npm download trend'
+          body: 'Refresh public npm download data and charts. Downloads are not unique users or successful installs. Review data cutoff and changes before merging.'
+          add-paths: docs/metrics/

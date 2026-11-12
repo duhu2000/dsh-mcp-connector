@@ -90,3 +90,13 @@ test('多 Server 有成功也有失败时摘要为 degraded', () => {
   assert.equal(summary.lastSuccessfulAt, 300);
   assert.equal(summary.diagnostic.code, 'dns');
 });
+
+test('#218 tools/list 协议错误使用工具发现阶段和对应建议', () => {
+  const summary = buildHealthSummary({
+    connectorId: 'demo', records: [record],
+    results: [{ ok: false, kind: 'protocol', stage: 'tool-discovery', serverKey: 'main' }],
+  });
+  assert.equal(summary.diagnostic.code, 'protocol');
+  assert.equal(summary.diagnostic.stage, 'tool-discovery');
+  assert.match(summary.diagnostic.action, /工具权限/);
+});

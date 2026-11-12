@@ -90,6 +90,11 @@
   .toolbar .search-box { flex: 1; width: auto; min-width: 80px; }
   .toolbar .icon-btn { white-space: nowrap; padding-inline: 10px; min-height: 34px; }
   .toolbar .compact-action { width: 34px; flex-shrink: 0; padding: 4px; font-size: 18px; }
+  .toolbar .first-use-action {
+    flex-shrink: 0; border-color: var(--accent);
+    background: var(--accent-light); color: var(--accent); font-weight: 650;
+  }
+  .toolbar .first-use-action:hover { border-color: var(--accent); color: var(--accent); }
   .language-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
   .language-switch { flex-shrink: 0; }
   .language-switch button { min-height: 28px; padding: 3px 7px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer; }
@@ -222,6 +227,13 @@
 
   /* Empty */
   .empty { text-align: center; color: var(--muted); padding: 80px 0; font-size: 15px; }
+  .empty-action-card {
+    max-width: 640px; margin: 28px auto; padding: 24px; text-align: center;
+    border: 1px solid var(--line); background: var(--card); border-radius: 14px;
+  }
+  .empty-action-card strong { display: block; margin-bottom: 6px; color: var(--text); font-size: 16px; }
+  .empty-action-card p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+  .empty-action-card .actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
   .migration-banner { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 14px; border: 1px solid #fbbf24; background: var(--warn-bg); border-radius: 10px; color: var(--text-2); }
   .migration-banner .copy { flex: 1; min-width: 0; font-size: 12px; }
   .migration-banner strong { display: block; color: var(--text); font-size: 13px; }
@@ -232,6 +244,14 @@
   .community-cta-close { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 16px; line-height: 1; padding: 2px 4px; }
   .community-cta-close:hover { color: var(--text); }
   .community-cta-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .first-use-banner {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 18px; padding: 14px 16px; border: 1px solid var(--accent);
+    background: var(--accent-light); border-radius: 12px; color: var(--text-2);
+  }
+  .first-use-banner .copy { flex: 1 1 360px; min-width: 0; font-size: 12px; line-height: 1.55; }
+  .first-use-banner strong { display: block; margin-bottom: 2px; color: var(--text); font-size: 14px; }
+  .first-use-banner .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
   /* Detail Overlay */
   .detail-overlay {
@@ -515,7 +535,7 @@
     </div>
     <button class="icon-btn primary" id="add-connection" type="button">＋ 添加连接</button>
     <button class="icon-btn compact-action" id="refresh" type="button" title="刷新连接器目录" aria-label="刷新连接器目录">↻</button>
-    <button class="icon-btn compact-action" id="first-use" type="button" title="首次使用" aria-label="首次使用">?</button>
+    <button class="icon-btn first-use-action" id="first-use" type="button" title="快速开始" aria-label="快速开始">▶ 快速开始</button>
     </div>
     <div class="market-nav" id="market-nav" aria-label="市场分类导航"></div>
   </header>
@@ -643,6 +663,23 @@
 "打开新会话失败，请检查工作区后重试": "Failed to open a new session. Check the workspace and retry.",
 "本机连接统计": "Local connection statistics",
 "首次使用": "Getting started",
+"快速开始": "Quick start",
+"▶ 快速开始": "▶ Quick start",
+"第一次使用 MCP连接器？": "New to MCP Connector?",
+"先从推荐连接器开始，查看详情并按服务商要求完成授权；连接成功后即可发现工具并在会话中使用。": "Start with a recommended connector, review its details, and complete provider authorization. Once connected, its tools become available in your sessions.",
+"查看推荐连接器": "View recommended connectors",
+"浏览推荐连接器": "Browse recommended connectors",
+"查看首次使用步骤": "View getting-started steps",
+"还没有连接任何 MCP": "No MCP connections yet",
+"先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具。": "Choose a recommended connector first. After authorization, its tools can be discovered and used in your sessions.",
+"连接流程已完成": "Connection setup completed",
+"下一步确认工具发现结果，再选择一个示例 Prompt。实际业务成功以工具真实返回为准。": "Next, confirm tool discovery and choose an example prompt. Actual business success requires a real tool result.",
+"检查已发现工具": "Check discovered tools",
+"查看示例 Prompt": "View example prompts",
+"本机引导路径（不计算转化率）": "Local guidance path (no conversion rate)",
+"快速开始打开 {count} 次 · 推荐入口打开 {recommended} 次": "Quick start opened {count} times · recommendations opened {recommended} times",
+"本浏览器首次连接 {connected} 张卡片 · 已发现工具 {discovered} 张卡片": "First connection in this browser: {connected} cards · tools discovered: {discovered} cards",
+"入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率。": "Entry counts and deduplicated card counts use different denominators. They are for local troubleshooting only, are not uploaded, and are not used to calculate a conversion rate.",
 "Host 未确认草稿写入": "The Host did not confirm the draft",
 "读取状态失败，请稍后重试；不能据此判断授权或业务调用成功。": "Failed to read status. Retry later; this does not confirm authorization or a successful business call.",
 "当前范围没有连接。请先到市场选择服务，或添加你自己的连接，并按服务商要求完成授权。": "No connections in this scope. Select a service in the market or add your own connection and complete provider authorization.",
@@ -1074,8 +1111,33 @@
       "MCP JSON 不合法: {error}": "MCP JSON is invalid: {error}",
       "连接器描述 URL 必填": "Connector descriptor URL is required",
       "迁移旧授权": "Migrate legacy authorization",
-      "确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。": "Copy the legacy Qichacha OAuth authorization to the MCP connector? The original plugin and credentials are kept; disable the old plugin manually after verifying the new connection.",
-      "检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。": "Found {count} migratable authorizations. Copy them to the MCP connector? The original plugin and credentials are kept.",
+      "确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；若旧插件仍启用，复制后需要停用它并完整重启 DSH。": "Copy the legacy Qichacha OAuth authorization to the MCP connector? The old plugin and its credentials are preserved. If the old plugin is still active, you must disable it and fully restart DSH after copying.",
+      "检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留；若旧插件仍启用，复制后需要停用并完整重启 DSH。": "Found {count} migratable authorizations. Copy them to the MCP connector? The old plugin and its credentials are preserved. If the old plugin is still active, disable it and fully restart DSH after copying.",
+      "处理企查查旧插件冲突": "Resolve a legacy Qichacha plugin conflict",
+      "旧插件已停用，以下服务正在等待 DSH 重启。": "The legacy plugin is disabled. These services are waiting for a DSH restart.",
+      "旧服务名称": "Legacy server names",
+      "未能读取最后一次旧授权。请管理员检查当前 DSH profile 的旧授权存储权限与格式，然后完整重启 DSH。": "The final legacy authorization could not be read. Ask your administrator to check the legacy storage permissions and format in this DSH profile, then fully restart DSH.",
+      "查看处理步骤": "View recovery steps",
+      "已复制旧授权。": "The legacy authorization has been copied.",
+      "企查查企业数据 OAuth 插件": "Qichacha enterprise data OAuth plugin",
+      "企查查法律数据 OAuth 插件": "Qichacha legal data OAuth plugin",
+      "插件 ID": "Plugin ID",
+      "安装包": "Package",
+      "受影响的服务": "Affected services",
+      "在 DSH 的「插件 → 已安装」里找到以下旧插件并关闭开关。旧版宿主可从「设置 → 插件市场 → 已安装」进入。": "In DSH, open Plugins → Installed and switch off the legacy plugins listed below. On older hosts, open Settings → Plugin Market → Installed.",
+      "请保留连接器里的连接。旧插件的「断开」会撤销授权。": "Keep the connection in MCP Connector. Disconnect in the legacy plugin revokes the authorization.",
+      "旧插件本体已停用或移除，以下旧 MCP 服务条目仍在运行。在 DSH 条目管理中按 ID 停用这些旧条目。如果界面没有条目管理，请复制 ID 交给 DSH 管理员在当前 profile 处理。": "The legacy plugin is disabled or removed, but its MCP service entries are still running. Disable the listed IDs in DSH entry management. If your interface has no entry manager, copy the IDs and ask your DSH administrator to disable them in this profile.",
+      "残留条目 ID": "Remaining entry IDs",
+      "旧服务条目 ID": "Legacy service entry IDs",
+      "复制条目 ID": "Copy entry IDs",
+      "重启后打开「MCP连接器 → 已安装」，找到受影响的服务并确认显示「已连接」。若仍提示旧插件冲突，点击「查看处理步骤」检查剩余条目。": "After restart, open MCP Connector → Installed and confirm that the affected services show Connected. If a legacy plugin conflict remains, select View recovery steps to check the remaining entries.",
+      "旧授权已失效。处理冲突后，在连接器市场打开对应的企查查卡片并重新授权。": "The legacy authorization has expired. After resolving the conflict, open the matching Qichacha card in the connector market and authorize it again.",
+      "当前使用内存授权。重启后请再次检测并复制旧授权，或在连接器市场重新授权。": "Credentials are kept in memory. After restart, scan and copy the legacy authorization again, or authorize the connection in the marketplace.",
+      "已复制 ID": "Copied the IDs",
+      "复制失败，请手动选中 ID": "Copy failed. Select the IDs manually.",
+      "完全退出 DSH 并重新启动；仅刷新页面或重载插件不够。": "Fully quit and restart DSH; refreshing the page or reloading the plugin is not enough.",
+      "复制插件 ID": "Copy plugin ID",
+      "知道了": "Got it",
       "本机连接的工具发现与参数详情；不会执行工具。": "Tool discovery and parameter details for this local connection; tools are not executed.",
       "待补充 {count} 个服务": "{count} servers pending setup",
       "{count} 个服务": "{count} servers",
@@ -1217,6 +1279,50 @@
     },
   }, null, 2);
 
+  const LOCAL_CONVERSION_STORAGE_KEY = 'mcp-connector.local-conversion-v1';
+  const emptyLocalConversion = () => ({ quickStartOpened: 0, recommendedOpened: 0, connectedConnectorIds: [], discoveredConnectorIds: [] });
+  function readLocalConversion() {
+    try {
+      const raw = JSON.parse(window.localStorage.getItem(LOCAL_CONVERSION_STORAGE_KEY) || '{}');
+      const count = (value) => Number.isSafeInteger(value) && value >= 0 ? Math.min(value, 1_000_000) : 0;
+      const ids = (value) => [...new Set((Array.isArray(value) ? value : [])
+        .filter((id) => typeof id === 'string' && id.length > 0 && id.length <= 256))].slice(0, 256);
+      return {
+        quickStartOpened: count(raw.quickStartOpened),
+        recommendedOpened: count(raw.recommendedOpened),
+        connectedConnectorIds: ids(raw.connectedConnectorIds),
+        discoveredConnectorIds: ids(raw.discoveredConnectorIds),
+      };
+    } catch { return emptyLocalConversion(); }
+  }
+  function writeLocalConversion(value) {
+    try { window.localStorage.setItem(LOCAL_CONVERSION_STORAGE_KEY, JSON.stringify(value)); return true; }
+    catch { return false; }
+  }
+  function recordLocalConversion(stage, connectorId = '') {
+    const value = readLocalConversion();
+    if (stage === 'quickStartOpened') value.quickStartOpened = Math.min(1_000_000, value.quickStartOpened + 1);
+    else if (stage === 'recommendedOpened') value.recommendedOpened = Math.min(1_000_000, value.recommendedOpened + 1);
+    else if (['connectionSucceeded', 'toolDiscoverySucceeded'].includes(stage)) {
+      const id = String(connectorId || '').trim();
+      if (!id || id.length > 256) return false;
+      const field = stage === 'connectionSucceeded' ? 'connectedConnectorIds' : 'discoveredConnectorIds';
+      if (value[field].includes(id)) return false;
+      if (value[field].length >= 256) return false;
+      value[field].push(id);
+    } else return false;
+    return writeLocalConversion(value);
+  }
+  function localConversionSnapshot() {
+    const value = readLocalConversion();
+    return {
+      quickStartOpened: value.quickStartOpened,
+      recommendedOpened: value.recommendedOpened,
+      connectedConnectors: value.connectedConnectorIds.length,
+      discoveredConnectors: value.discoveredConnectorIds.length,
+    };
+  }
+
   let view = 'market';
   let marketItems = {};
   let searchQuery = '';
@@ -1244,6 +1350,7 @@
   const expandedMarketSections = new Set();
   let lastModalFocus = null;
   let pendingPrompt = null;
+  let legacyGuidePluginIds = [];
   const PROMPT_REQUEST_TYPE = 'mcp-connector:start-session';
   const PROMPT_RESULT_TYPE = 'mcp-connector:start-session-result';
   const WORKSPACE_CONTEXT_REQUEST_TYPE = 'mcp-connector:workspace-context-request';
@@ -1644,6 +1751,17 @@
     await window.__mcp.showDetail(connectorId);
   }
 
+  function openPostConnectionSuccess(connectorId) {
+    openModal(t('连接流程已完成'), `<p>${t('下一步确认工具发现结果，再选择一个示例 Prompt。实际业务成功以工具真实返回为准。')}</p><div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.openConnectedTools(${jsString(connectorId)})">${t('检查已发现工具')}</button><button class="btn" type="button" onclick="window.__mcp.openConnectedPrompts(${jsString(connectorId)})">${t('查看示例 Prompt')}</button></div>`);
+  }
+
+  async function completeCatalogConnection(connectorId, { healthCheck = false } = {}) {
+    const firstLocalSuccess = recordLocalConversion('connectionSucceeded', connectorId);
+    if (healthCheck) await call('healthCheck', { connectorId });
+    await refreshConnectionUi(connectorId);
+    if (firstLocalSuccess) openPostConnectionSuccess(connectorId);
+  }
+
   // 详情主按钮：状态未知且已有连接记录时优先提供「重新连接」（Host 侧可能已放弃重连）
   function detailTryLabel(fallback) {
     return detailReconnectKey ? t('🔄 重新连接') : fallback;
@@ -1946,6 +2064,43 @@
       <details><summary>${t('原始 Schema（安全缓存）')}</summary><pre class="tool-schema">${esc(schema)}</pre></details>
       <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('关闭')}</button></div>`);
   }
+  function showLegacyDisableGuide(pending, { copied = false } = {}) {
+    const conflicts = pending.conflicts?.length ? pending.conflicts : (pending.pluginIds || []).map((pluginId) => ({ pluginId, kind: 'plugin' }));
+    if (!conflicts.length) return;
+    if ($('#detail-overlay').classList.contains('active')) closeDetail();
+    legacyGuidePluginIds = [];
+    function conflictHtml(conflict) {
+      const residual = conflict.kind === 'residual';
+      const entries = conflict.entryIds || [];
+      const ids = residual ? entries : [conflict.pluginId];
+      const index = legacyGuidePluginIds.push(ids.join('\n')) - 1;
+      const name = conflict.pluginId === 'qcc-legal-mcp-oauth' ? t('企查查法律数据 OAuth 插件') : t('企查查企业数据 OAuth 插件');
+      const packageName = conflict.packageName || (conflict.pluginId === 'qcc-legal-mcp-oauth' ? 'qcc-dsh-mcp-legal-oauth' : 'qcc-dsh-mcp-oauth');
+      const codes = (values) => values.map((value) => `<code>${esc(value)}</code>`).join(', ');
+      return `<div class="form-note"><strong>${esc(name)}</strong>
+        ${t('插件 ID')} ${codes([conflict.pluginId])}<br>${t('安装包')} ${codes([packageName])}
+        ${entries.length ? `<br>${residual ? t('残留条目 ID') : t('旧服务条目 ID')} ${codes(entries)}` : ''}
+        ${residual && conflict.legacyServerNames?.length ? `<br>${t('旧服务名称')} ${codes(conflict.legacyServerNames)}` : ''}
+        ${conflict.serverNames?.length ? `<br>${t('受影响的服务')} ${codes(conflict.serverNames)}` : ''}
+        ${conflict.kind === 'restart' ? '' : `<br><button class="btn ghost" type="button" onclick="window.__mcp.copyLegacyPluginIds(${jsString(index)})">${residual ? t('复制条目 ID') : t('复制插件 ID')}</button>`}</div>`;
+    }
+    const plugins = conflicts.filter((item) => item.kind === 'plugin');
+    const residuals = conflicts.filter((item) => item.kind === 'residual');
+    const restarting = conflicts.filter((item) => item.kind === 'restart');
+    const memoryOnly = pending.persistent === false || conflicts.some((item) => item.persistent === false);
+    const reauth = pending.reauthRequired || conflicts.some((item) => item.reauthRequired);
+    openModal(t('处理企查查旧插件冲突'), `
+      ${copied ? `<p>${t('已复制旧授权。')}</p>` : ''}
+      <ol>
+        ${conflicts.some((item) => item.sourceUnreadable) ? `<li>${t('未能读取最后一次旧授权。请管理员检查当前 DSH profile 的旧授权存储权限与格式，然后完整重启 DSH。')}</li>` : ''}
+        ${plugins.length ? `<li>${t('在 DSH 的「插件 → 已安装」里找到以下旧插件并关闭开关。旧版宿主可从「设置 → 插件市场 → 已安装」进入。')}${plugins.map(conflictHtml).join('')}${t('请保留连接器里的连接。旧插件的「断开」会撤销授权。')}</li>` : ''}
+        ${residuals.length ? `<li>${t('旧插件本体已停用或移除，以下旧 MCP 服务条目仍在运行。在 DSH 条目管理中按 ID 停用这些旧条目。如果界面没有条目管理，请复制 ID 交给 DSH 管理员在当前 profile 处理。')}${residuals.map(conflictHtml).join('')}</li>` : ''}
+        <li>${restarting.length ? t('旧插件已停用，以下服务正在等待 DSH 重启。') + restarting.map(conflictHtml).join('') : ''}${t('完全退出 DSH 并重新启动；仅刷新页面或重载插件不够。')}</li>
+        ${memoryOnly ? `<li>${t('当前使用内存授权。重启后请再次检测并复制旧授权，或在连接器市场重新授权。')}</li>` : reauth ? `<li>${t('旧授权已失效。处理冲突后，在连接器市场打开对应的企查查卡片并重新授权。')}</li>` : ''}
+        <li>${t('重启后打开「MCP连接器 → 已安装」，找到受影响的服务并确认显示「已连接」。若仍提示旧插件冲突，点击「查看处理步骤」检查剩余条目。')}</li>
+      </ol>
+      <div class="m-actions"><button class="btn" type="button" onclick="window.__mcp.closeModal()">${t('知道了')}</button></div>`);
+  }
   function closeModal() {
     sharingSequence++;
     if (sharingDispose) { sharingDispose(); sharingDispose = null; }
@@ -2163,6 +2318,14 @@
     document.querySelector('.community-cta')?.remove();
   }
 
+  function firstUseBannerHtml() {
+    return `<aside class="first-use-banner" aria-label="${t('快速开始')}"><div class="copy"><strong>${t('第一次使用 MCP连接器？')}</strong>${t('先从推荐连接器开始，查看详情并按服务商要求完成授权；连接成功后即可发现工具并在会话中使用。')}</div><div class="actions"><button class="btn" type="button" data-first-use-action="recommended">${t('查看推荐连接器')}</button><button class="btn ghost" type="button" data-first-use-action="guide">${t('查看首次使用步骤')}</button></div></aside>`;
+  }
+
+  function installedEmptyHtml() {
+    return `<section class="empty-action-card"><strong>${t('还没有连接任何 MCP')}</strong><p>${t('先选择一个推荐连接器，完成授权后即可在会话中发现并使用工具。')}</p><div class="actions"><button class="btn" type="button" data-first-use-action="recommended">${t('浏览推荐连接器')}</button><button class="btn ghost" type="button" data-first-use-action="guide">${t('查看首次使用步骤')}</button></div></section>`;
+  }
+
   function marketSectionHtml(value, label, items) {
     if (!items.length) return '';
     const expanded = value === 'recommended' || expandedMarketSections.has(value);
@@ -2212,7 +2375,8 @@
       : filtered.length > 0
         ? `<div class="grid">${filtered.map(cardHtml).join('')}</div>`
         : `<div class="empty">${t('没有匹配当前筛选条件的连接器')}</div>`;
-    main.innerHTML = resultHtml;
+    const firstUseBanner = status.ok && (status.detail?.items ?? []).length === 0 && !marketCategory && !searchQuery ? firstUseBannerHtml() : '';
+    main.innerHTML = `${firstUseBanner}${resultHtml}`;
     if (preserveScroll) main.scrollTop = previousScrollTop;
     if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
@@ -2256,6 +2420,12 @@
     const configured = d.connected?.length > 0;
     const incomplete = configured && d.connectionComplete === false;
     const state = d.connectionState || (configured ? 'configured' : 'disconnected');
+    if (d.diagnostic?.legacyConflict) {
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail(${idJs})">${t('details')}</button><button class="btn status-bad" type="button" title="${t('查看处理步骤')}" onclick="event.stopPropagation();window.__mcp.showDetail(${idJs})">${t('connectionError')}</button>`;
+    }
+    if (state === 'reauth' && d.authMode === 'oauth2-pkce') {
+      return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail(${idJs})">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.reauthorize(${idJs})">${t('reauthorize')}</button>`;
+    }
     if (incomplete && ['bearer', 'api-key'].includes(d.authMode)) {
       return `<button class="btn ghost" type="button" onclick="event.stopPropagation();window.__mcp.showDetail(${idJs})">${t('details')}</button><button class="btn status-warning" type="button" onclick="event.stopPropagation();window.__mcp.openConfig(${idJs})">${t('completeSetup')}</button>`;
     }
@@ -2290,6 +2460,11 @@
   const explorerStatusLabel = (status) => t(EXPLORER_STATUS[status] || status);
   const formatObserved = (value) => value ? new Date(value).toLocaleString(t.locale, { hour12: false }) : t('尚无记录');
 
+  function explorerDiagnosticsHtml(connection) {
+    return [connection.diagnostic, connection.discoveryDiagnostic].filter(Boolean).map((diagnostic) =>
+      `<div>${t('{stage}：{message}', { stage: esc(diagnostic.stageLabel), message: esc(diagnostic.message) })}<br>${t('建议：{action}', { action: esc(diagnostic.action) })}</div>`).join('');
+  }
+
   async function loadToolExplorer() {
     const render = beginViewRender();
     try {
@@ -2312,7 +2487,7 @@
     $('#explorer-server').value = explorerFilter.serverName;
     $('#explorer-status').value = explorerFilter.status;
     $('#explorer-summary').textContent = t('{scope} · {connections} 条连接 · 匹配 {tools} 个工具 · 显示 {shown} 个', { scope: explorerData.scopeLabel, connections: connections.length, tools: total, shown: items.length });
-    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${c.diagnostic ? `<div>${t('{stage}：{message}', { stage: esc(c.diagnostic.stageLabel), message: esc(c.diagnostic.message) })}<br>${t('建议：{action}', { action: esc(c.diagnostic.action) })}</div>` : ''}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
+    $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${explorerDiagnosticsHtml(c)}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
     $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || t('暂无描述'))}</p><div class="hint">${t('来源：{connector} / {connection} / {server}', { connector: esc(item.connection.connectorName), connection: esc(item.connection.connectionName), server: esc(item.serverName) })}<br>${esc(explorerStatusLabel(item.connection.status))} · ${t('最后成功缓存 {at}', { at: esc(formatObserved(item.observedAt)) })}${item.stale ? t(' · 已超过 24 小时') : ''}</div><button class="btn ghost" data-explorer-detail="${index}">${t('参数详情')}</button></article>`).join('') || `<p class="empty">${t(connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。')}</p>`;
     $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>${t('上一页')}</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>${t('下一页')}</button>`;
     } finally { finishViewRender(render); }
@@ -2375,7 +2550,7 @@
     const pendingMigration = migration.ok ? migration.detail?.pendingCount || 0 : 0;
     const migrationHtml = pendingMigration > 0 ? `<div class="migration-banner"><div class="copy"><strong>${t('发现旧企查查 MCP 授权')}</strong>${t('可安全复制 {count} 组授权到 MCP连接器；不会删除旧插件或原凭据。', { count: pendingMigration })}</div><button class="btn" type="button" onclick="window.__mcp.migrateLegacy()">${t('迁移')}</button></div>` : '';
     if (!items.length) {
-      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('可从旧企查查 OAuth 插件复制已有授权')}</span><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">${t('本机连接统计')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div><div class="empty">${t('还没有连接任何 MCP · 到「市场」里连接一个吧')}</div>`;
+      main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('可从旧企查查 OAuth 插件复制已有授权')}</span><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">${t('本机连接统计')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div>${installedEmptyHtml()}`;
       if (preserveScroll) main.scrollTop = previousScrollTop;
       return;
     }
@@ -2421,7 +2596,9 @@
       ${r.canEditLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.openLocalEditor(${keyJs})">${t('本地参数')}</button>` : r.hasLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${keyJs}, true)">${t('清除本地参数')}</button>` : ''}
       ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename(${keyJs})">${t('重命名')}</button>` : ''}
       ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">${t('工具')}</button>` : ''}
-      ${enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="${t('重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式')}" onclick="window.__mcp.reconnect(${keyJs})">${t('重新连接')}</button>` : ''}
+      ${r.diagnostic?.legacyConflict ? `<button class="btn status-bad" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">${t('查看处理步骤')}</button>`
+        : r.connectionState === 'reauth' && r.authMode === 'oauth' ? `<button class="btn" type="button" onclick="window.__mcp.reauthorize(${jsString(r.connectorId)})">${t('reauthorize')}</button>`
+        : enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="${t('重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式')}" onclick="window.__mcp.reconnect(${keyJs})">${t('重新连接')}</button>` : ''}
       <button class="btn ghost" type="button" onclick="window.__mcp.openScope(${keyJs})">${t('范围')}</button>
       <button class="btn danger" onclick="window.__mcp.disconnect(${keyJs})">${t('断开')}</button>
     </div>`;
@@ -2704,18 +2881,27 @@
       setModalBusy(true, t('正在连接…'));
       const r = await call('connect', { connectorId, ...scopeParams, ...(localOverrides ? { localOverrides } : {}) }, { timeoutMs });
       setModalBusy(false);
+      if (r.detail?.legacyConflict) { showLegacyDisableGuide({ conflicts: [r.detail.legacyConflict] }); return; }
       showToast(r.message, r.ok);
       if (!r.ok) showModalError(r.message);
       if (r.ok) {
         markCommunityCtaEligible();
         closeModal();
-        await call('healthCheck', { connectorId });
-        await refreshConnectionUi(connectorId);
+        await completeCatalogConnection(connectorId, { healthCheck: true });
       }
     },
     confirmConnect() {
       const connectorId = $('#scope-connector-id')?.value;
       if (connectorId) return window.__mcp.connect(connectorId);
+    },
+    async reauthorize(connectorId) {
+      const result = await call('connect', { connectorId }, { timeoutMs: 310_000 });
+      if (result.detail?.legacyConflict) { showLegacyDisableGuide({ conflicts: [result.detail.legacyConflict] }); return; }
+      showToast(result.message, result.ok);
+      if (result.ok) {
+        markCommunityCtaEligible();
+        await completeCatalogConnection(connectorId, { healthCheck: true });
+      }
     },
     openScope(key) { openScopeManager(key); },
     openRename(key) { openRenameConnection(key); },
@@ -2881,11 +3067,29 @@
         openModal(t('本机连接统计'), `<p>${t("统计暂不可用，不影响连接。请检查 Host 日志。")}</p>`);
         return;
       }
+      const local = localConversionSnapshot();
       openModal(t('本机连接统计'), `<div class="form-note">${t('仅统计当前 profile，不是社区总量或独立用户数。数据保存在本机，不向外上传。')}${d.persistent ? '' : t('当前未启用持久化，重启后计数清空。')}</div>
         <p>${t('成功连接过的卡片数')} <strong>${esc(d.cumulativeSuccessfulConnections)}</strong> · ${t('近 30 天首次连接的新卡片')} <strong>${esc(d.newSuccessfulConnections30d)}</strong></p>
         <p>${t('历史已有连接基线：{count} 张卡片，未验证前不计成功，验证后也不计新增。', { count: esc(d.historicalBaseline) })}</p>
         <p>${t("同一卡片只计一次；重启、升级、重新授权和重连不重复增加，断开不扣减。此处成功指连接流程完成，不代表业务调用成功。")}</p>
+        <hr><p><strong>${t('本机引导路径（不计算转化率）')}</strong></p>
+        <p>${t('快速开始打开 {count} 次 · 推荐入口打开 {recommended} 次', { count: esc(local.quickStartOpened), recommended: esc(local.recommendedOpened) })}</p>
+        <p>${t('本浏览器首次连接 {connected} 张卡片 · 已发现工具 {discovered} 张卡片', { connected: esc(local.connectedConnectors), discovered: esc(local.discoveredConnectors) })}</p>
+        <p class="field-help">${t('入口次数与卡片去重数口径不同，只用于本机排查，不上传且不计算转化率。')}</p>
         <div>${(d.items || []).map(x => `<p><strong>${esc(x.connectorId)}</strong>：${x.cumulativeSuccessfulConnections ? t('已记录成功') : t('历史配置，待验证')}${x.historicalBaseline ? t(' · 历史基线') : ''}</p>`).join('') || t('尚无统计记录。')}</div>`);
+    },
+    async openConnectedTools(connectorId) {
+      closeModal();
+      await window.__mcp.showDetail(connectorId);
+      const disclosure = $('#tools-disclosure');
+      if (disclosure) { disclosure.open = true; disclosure.scrollIntoView({ block: 'start' }); }
+      $('#tools-search')?.focus();
+    },
+    async openConnectedPrompts(connectorId) {
+      closeModal();
+      await window.__mcp.showDetail(connectorId);
+      $('#detail-prompts')?.scrollIntoView({ block: 'center' });
+      $('#detail-prompts button')?.focus();
     },
     async openConfigBackup() { await openConfigBackup(); },
     async copyBackup() {
@@ -2943,6 +3147,12 @@
       window.__mcp.syncAuthFields();
     },
     closeModal() { closeModal(); },
+    async copyLegacyPluginIds(index) {
+      const text = legacyGuidePluginIds[index];
+      if (!text) return;
+      try { await navigator.clipboard.writeText(text); showToast(t('已复制 ID'), true); }
+      catch { showToast(t('复制失败，请手动选中 ID'), false); }
+    },
     async submitConfig() {
       const connectorId = $('#cfg-connector-id')?.value.trim();
       const authMode = $('#cfg-auth').value;
@@ -2968,7 +3178,7 @@
         if (!r.ok) { showModalError(r.message); return; }
         closeModal();
         markCommunityCtaEligible();
-        showToast(r.message, true); await refreshConnectionUi(connectorId);
+        showToast(r.message, true); await completeCatalogConnection(connectorId);
         return;
       }
       const name = $('#cfg-name').value.trim();
@@ -3042,35 +3252,41 @@
     async migrateLegacy() {
       if (!await confirmDialog({
         title: t('迁移旧授权'),
-        message: t('确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；验证新连接后再手动停用旧插件。'),
+        message: t('确认把旧企查查 OAuth 授权复制到 MCP连接器？原插件与原凭据会保留；若旧插件仍启用，复制后需要停用它并完整重启 DSH。'),
         confirmLabel: t('迁移'),
       })) return;
       const r = await call('migrateLegacy', { candidateIds: [] });
-      showToast(r.message, r.ok);
       await loadInstalled();
+      if (r.ok && r.detail?.pendingLegacyDisable?.restartRequired) showLegacyDisableGuide(r.detail.pendingLegacyDisable, { copied: !!r.detail.migrated?.length });
+      else showToast(r.message, r.ok);
     },
     async scanLegacy() {
       const preview = await call('migrationPreview', { scanStored: true });
       if (!preview.ok || !preview.detail?.pendingCount) {
+        if (preview.ok && preview.detail?.pendingLegacyDisable?.restartRequired) {
+          showLegacyDisableGuide(preview.detail.pendingLegacyDisable);
+          return;
+        }
         showToast(preview.message, preview.ok);
         return;
       }
       const ids = (preview.detail.items || []).filter((item) => item.migratable && !item.alreadyMigrated).map((item) => item.id);
       if (!await confirmDialog({
         title: t('迁移旧授权'),
-        message: t('检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留。', { count: ids.length }),
+        message: t('检测到 {count} 组可迁移授权。确认复制到 MCP连接器？原插件与原凭据会保留；若旧插件仍启用，复制后需要停用并完整重启 DSH。', { count: ids.length }),
         confirmLabel: t('迁移'),
       })) return;
       const result = await call('migrateLegacy', { candidateIds: ids });
-      showToast(result.message, result.ok);
       await loadInstalled();
+      if (result.ok && result.detail?.pendingLegacyDisable?.restartRequired) showLegacyDisableGuide(result.detail.pendingLegacyDisable, { copied: !!result.detail.migrated?.length });
+      else showToast(result.message, result.ok);
     },
     async showConnectionTools(key) {
       const record = installedItems.find((item) => item.key === key);
       if (!record) return;
       await window.__mcp.showDetail(record.connectorId, {
         id: record.connectorId, connectionKey: key, name: record.name, icon: '🔌',
-        authMode: record.authMode, connected: [record], connectionState: record.connectionState,
+        authMode: record.authMode, connected: [record], connectionState: record.connectionState, diagnostic: record.diagnostic,
         servers: [{ transport: record.transport }],
         description: t('本机连接的工具发现与参数详情；不会执行工具。'),
       });
@@ -3078,8 +3294,10 @@
     async showDetail(connectorId, connectionDescriptor) {
       const d = connectionDescriptor || marketItems[connectorId];
       if (!d) return;
+      if (d.diagnostic?.legacyConflict) { showLegacyDisableGuide({ conflicts: [d.diagnostic.legacyConflict] }); return; }
       detailConnector = d;
-      const incomplete = d.connected?.length > 0 && d.connectionComplete === false;
+      const oauthReauth = d.connectionState === 'reauth' && d.authMode === 'oauth2-pkce';
+      const incomplete = !oauthReauth && d.connected?.length > 0 && d.connectionComplete === false;
       detailFailureState = incomplete ? 'incomplete' : (d.connectionState || '');
       detailNeedsReconfigure = incomplete || ['reauth', 'recovering', 'unavailable'].includes(detailFailureState);
       detailReconnectKey = !incomplete && detailFailureState === 'unknown' && d.connected?.length > 0 ? d.connected[0] : '';
@@ -3113,6 +3331,11 @@
       $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure
         ? detailFailureState === 'incomplete' ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth' ? t('🔐 重新授权') : needsCredential && detailFailureState === 'reauth' ? t('reconfigureCredential') : t('🔄 重新检查')
         : d.connected?.length > 0 ? t('try') : needsCredential ? t('configureConnect') : t('connectTry'));
+      if (oauthReauth) {
+        $('#tools-summary').textContent = t('授权已失效');
+        $('#detail-tools').textContent = t('需重新授权');
+        return;
+      }
       if (!d.connected?.length && !d.toolsSnapshot?.length) {
         $('#tools-summary').textContent = t('连接后查看工具');
         $('#detail-tools').innerHTML = `<div class="tools-empty">${t('连接后可读取服务端工具清单')}</div>`;
@@ -3124,6 +3347,8 @@
         call('governance', {}),
       ]);
       if (loadId !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
+      const legacyConflict = toolsResult.detail?.diagnostic?.legacyConflict || marketItems[connectorId]?.diagnostic?.legacyConflict;
+      if (legacyConflict) { showLegacyDisableGuide({ conflicts: [legacyConflict] }); return; }
       detailGovernance = governanceResult.ok ? governanceResult.detail : null;
       if (detailGovernance && toolsResult.detail?.governance) {
         Object.assign(detailGovernance, toolsResult.detail.governance);
@@ -3131,9 +3356,9 @@
       syncGovernanceBar();
       if (!toolsResult.ok) {
         detailFailureState = toolsResult.detail?.connectionState || detailFailureState || 'unavailable';
-        detailNeedsReconfigure = true;
+        detailNeedsReconfigure = detailFailureState !== 'healthy';
         detailReconnectKey = detailFailureState === 'unknown' && d.connected?.length > 0 ? d.connected[0] : '';
-        const diagnostic = toolsResult.detail?.diagnostic;
+        const diagnostic = toolsResult.detail?.discoveryDiagnostic || toolsResult.detail?.diagnostic;
         $('#tools-summary').textContent = t(detailFailureState === 'unknown' ? '工具状态未知' : '工具加载失败');
         const failureHtml = `<div class="tools-error">${esc(toolsResult.message)}${diagnostic ? `<br><br>${esc(t('{stage} · {code}：{message}', { stage: diagnostic.stageLabel || diagnostic.stage, code: diagnostic.code, message: diagnostic.message }))}<br>${esc(t('建议：{action}', { action: diagnostic.action }))}${diagnostic.lastSuccessfulAt ? `<br>${esc(t('最近成功：{at}', { at: new Date(diagnostic.lastSuccessfulAt).toLocaleString(t.locale, { hour12: false }) }))}` : ''}` : ''}</div>`;
         detailToolServers = toolsResult.detail?.servers || [];
@@ -3145,7 +3370,7 @@
         }
         const failureLabel = detailFailureState === 'reauth'
           ? t(d.authMode === 'oauth2-pkce' ? '授权已失效' : '凭据已失效')
-          : t(detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常');
+          : t(detailFailureState === 'healthy' ? '已连接' : detailFailureState === 'unknown' ? '状态尚未确认' : '当前连接异常');
         $('#detail-vendor').textContent = d.vendor ? `${d.vendor} · ${failureLabel}` : failureLabel;
         $('#detail-try-btn').textContent = detailTryLabel(d.authMode === 'oauth2-pkce' && detailFailureState === 'reauth'
           ? t('🔐 重新授权')
@@ -3163,6 +3388,7 @@
       $('#detail-try-btn').textContent = detailTryLabel(incomplete ? (d.authMode === 'oauth2-pkce' ? t('upgradeOauth') : t('completeSetup')) : t('try'));
       renderPromptPage();
       detailToolServers = toolsResult.detail?.servers || [];
+      if (detailToolServers.some((server) => (server.tools || []).length > 0)) recordLocalConversion('toolDiscoverySucceeded', connectorId);
       updateToolsSummary();
       renderTools();
     },
@@ -3278,20 +3504,12 @@
         showToast(r.message, r.ok);
         if (r.ok) {
           markCommunityCtaEligible();
-          await call('healthCheck', { connectorId: id });
-          await refreshConnectionUi(id);
+          await completeCatalogConnection(id, { healthCheck: true });
         }
         return;
       }
       if (detailFailureState === 'reauth' && detailConnector?.authMode === 'oauth2-pkce') {
-        const id = detailConnector.id;
-        const r = await call('connect', { connectorId: id }, { timeoutMs: 310_000 });
-        showToast(r.message, r.ok);
-        if (r.ok) {
-          markCommunityCtaEligible();
-          await call('healthCheck', { connectorId: id });
-          await refreshConnectionUi(id);
-        }
+        await window.__mcp.reauthorize(detailConnector.id);
         return;
       }
       const id = detailConnector?.id;
@@ -3342,6 +3560,13 @@
     const id = detailLoadId;
     const result = await call('toolsList', { connectorId: detailConnector.id, connectionKey: detailConnector.connectionKey, ...workspaceParams(), cachedOnly: true });
     if (id !== detailLoadId || !$('#detail-overlay').classList.contains('active')) return;
+    const current = detailConnector.connectionKey ? installedItems.find((item) => item.key === detailConnector.connectionKey) : marketItems[detailConnector.id];
+    const conflict = result.detail?.diagnostic?.legacyConflict || current?.diagnostic?.legacyConflict;
+    if (conflict) { showLegacyDisableGuide({ conflicts: [conflict] }); return; }
+    if (detailConnector.authMode === 'oauth2-pkce' && (current?.connectionState || result.detail?.connectionState) === 'reauth') {
+      if (detailFailureState !== 'reauth') await window.__mcp.showDetail(detailConnector.id, { ...detailConnector, connectionState: 'reauth' });
+      return;
+    }
     if (!result.detail?.servers) {
       detailToolServers = [];
       renderTools();
@@ -3352,13 +3577,10 @@
       detailToolServers = result.detail.servers;
       renderTools();
       const pending = detailToolServers.some((server) => server.pending);
-      const unknown = detailToolServers.some((server) => server.unknown);
-      const available = detailToolServers.filter((server) => server.ok).length;
-      const label = t(pending ? '正在后台发现工具' : unknown && available === 0 ? '工具状态尚未确认'
-        : available === detailToolServers.length ? '已连接'
-        : available > 0 ? '部分服务可用' : '当前连接异常');
-      detailFailureState = pending ? 'unknown' : available > 0 ? 'healthy' : 'unavailable';
-      detailNeedsReconfigure = !pending && available === 0;
+      detailFailureState = result.detail.connectionState || 'unknown';
+      const label = t(detailFailureState === 'healthy' ? '已连接' : detailFailureState === 'reauth' ? '凭据已失效'
+        : detailFailureState === 'unknown' ? '状态尚未确认' : detailFailureState === 'degraded' ? '部分服务可用' : '当前连接异常');
+      detailNeedsReconfigure = !pending && detailFailureState !== 'healthy';
       detailReconnectKey = '';
       $('#detail-vendor').textContent = detailConnector.vendor ? `${detailConnector.vendor} · ${label}` : label;
       $('#detail-try-btn').textContent = detailTryLabel(detailNeedsReconfigure ? t('🔄 重新检查') : t('try'));
@@ -3440,7 +3662,27 @@
     }
   });
   new ResizeObserver(updateCategoryArrows).observe($('#market-nav'));
+  function showRecommendedMarket() {
+    recordLocalConversion('recommendedOpened');
+    view = 'market'; marketCategory = 'recommended';
+    searchQuery = ''; searchInput.value = '';
+    pendingViewScroll = null; main.scrollTop = 0;
+    explorerSequence++; explorerDetailSequence++;
+    syncTabs();
+    loadMarket({ checkHealth: false });
+  }
+
   main.addEventListener('click', (event) => {
+    const firstUseAction = event.target.closest('[data-first-use-action]');
+    if (firstUseAction?.dataset.firstUseAction === 'recommended') {
+      showRecommendedMarket();
+      return;
+    }
+    if (firstUseAction?.dataset.firstUseAction === 'guide') {
+      recordLocalConversion('quickStartOpened');
+      openFirstUse();
+      return;
+    }
     const sectionToggle = event.target.closest('[data-section-toggle]');
     if (sectionToggle) {
       const section = sectionToggle.dataset.sectionToggle;
@@ -3489,8 +3731,9 @@
     setText('#tab-installed', '已安装');
     setText('#tab-tools', '工具');
     setText('#add-connection', '＋ 添加连接');
-    $('#first-use').title = t('首次使用');
-    $('#first-use').setAttribute('aria-label', t('首次使用'));
+    setText('#first-use', '▶ 快速开始');
+    $('#first-use').title = t('快速开始');
+    $('#first-use').setAttribute('aria-label', t('快速开始'));
     setText('#prompt-title', '试试这样用');
     setText('#prompt-next', '换一批');
     setText('#tools-title', '工具详情');
@@ -3530,7 +3773,7 @@
     window.location.assign(url.href);
   });
   syncTabs();
-  $('#first-use').addEventListener('click', openFirstUse);
+  $('#first-use').addEventListener('click', () => { recordLocalConversion('quickStartOpened'); openFirstUse(); });
   if (viewStateReady) restoreViewState();
   requestWorkspaceContext();
   connectStatusEvents();
