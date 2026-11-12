@@ -72,7 +72,8 @@ function rankReport(ok) {
 }
 
 function reconciliationScript() {
-  const workflow = readFileSync(new URL('../.github/workflows/market-search-rank.yml', import.meta.url), 'utf8');
+  const workflow = readFileSync(new URL('../.github/workflows/market-search-rank.yml', import.meta.url), 'utf8')
+    .replaceAll('\r\n', '\n');
   const match = workflow.match(/uses: actions\/github-script@v7[\s\S]*?script: \|\n([\s\S]*?)\n      - name: Preserve failing status/);
   assert.ok(match, 'github-script reconciliation body should be extractable');
   return match[1].split('\n').map((line) => line.replace(/^ {12}/, '')).join('\n');
