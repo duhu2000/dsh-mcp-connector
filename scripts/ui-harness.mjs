@@ -149,14 +149,30 @@ function captureShell() {
   .capture-version, .capture-state { padding: 2px 8px; border-radius: 999px; background: #f3f4f6; color: #6b7280; font-size: 12px; font-weight: 600; }
   .capture-state { margin-left: auto; color: #047857; background: #ecfdf5; }
   iframe { flex: 1; width: 100%; min-height: 0; border: 0; background: transparent; }
+  [hidden] { display: none !important; }
+  .mock-session { flex: 1; padding: 24px; overflow: auto; }
+  .mock-session textarea { width: 100%; min-height: 180px; padding: 12px; font: inherit; }
 </style>
 </head>
 <body>
   <section class="capture-panel" aria-label="MCP连接器产品面板">
     <header class="capture-header"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M6 2V4.5" stroke="currentColor" stroke-linecap="round"/><path d="M10 2V4.5" stroke="currentColor" stroke-linecap="round"/><path d="M3.5 4.5H12.5V8.25C12.5 10.7353 10.4853 12.75 8 12.75C5.51472 12.75 3.5 10.7353 3.5 8.25V4.5Z" stroke="currentColor" stroke-linejoin="round"/><path d="M8 12.75V14.5" stroke="currentColor" stroke-linecap="round"/></svg><span class="capture-title">MCP连接器</span><span class="capture-version">v${packageJson.version}</span><span class="capture-state">无凭据 Mock</span></header>
     <iframe src="/mcp-connector/ui/" title="MCP连接器"></iframe>
+    <section id="mock-session" class="mock-session" aria-label="${english ? 'Mock conversation draft' : '模拟会话草稿'}" hidden>
+      <h2>${english ? 'Draft prepared' : '已带入会话草稿'}</h2>
+      <p>${english ? 'Credential-free UI simulation. No message was submitted or tool called.' : '无凭据 UI 模拟：尚未提交消息或调用工具。'}</p>
+      <p id="mock-session-target"></p>
+      <label for="mock-draft">${english ? 'Review draft' : '核对草稿'}</label>
+      <textarea id="mock-draft" readonly></textarea>
+      <button id="mock-return" type="button">${english ? 'Back to MCP Connector' : '返回 MCP连接器'}</button>
+    </section>
   </section>
   <script>
+    let mockSessionSequence = 0;
+    document.querySelector('#mock-return').addEventListener('click', () => {
+      document.querySelector('#mock-session').hidden = true;
+      document.querySelector('iframe').hidden = false;
+    });
     window.addEventListener('message', (event) => {
       const frame = document.querySelector('iframe');
       if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
@@ -166,6 +182,22 @@ function captureShell() {
           workspace: ${JSON.stringify(mockWorkspace)},
           workspaces: ${JSON.stringify(mockWorkspaces)}
         }, window.location.origin);
+      }
+      if (event.data?.type === 'mcp-connector:start-session') {
+        const { requestId, prompt } = event.data;
+        const ok = typeof requestId === 'string' && requestId !== '' && typeof prompt === 'string' && prompt.trim() !== '';
+        if (ok) {
+          document.querySelector('#mock-draft').value = prompt;
+          document.querySelector('#mock-session-target').textContent = ${JSON.stringify(mockWorkspace.title)} + ' · mock-session-' + (++mockSessionSequence);
+        }
+        frame.contentWindow.postMessage({
+          type: 'mcp-connector:start-session-result', requestId, ok,
+          message: ok ? ${JSON.stringify(english ? 'Added to a new session' : '已带入新会话')} : ${JSON.stringify(english ? 'Invalid prompt request' : '无效的 Prompt 请求')}
+        }, window.location.origin);
+        if (ok) requestAnimationFrame(() => {
+          frame.hidden = true;
+          document.querySelector('#mock-session').hidden = false;
+        });
       }
     });
   </script>

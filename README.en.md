@@ -141,7 +141,7 @@ Run the same command again to upgrade. Fully quit and restart DeepSeek Harness D
 
 1. Select **MCP Connector** in the primary sidebar, or choose **Open MCP Connector** from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 2. Choose a connector, confirm **Current project** or **All projects (global)**, and complete authorization or configuration.
-3. Open its details to inspect tools or send an example prompt to a new conversation draft.
+3. Open its details to inspect tools or send an example prompt to a conversation draft in the current workspace. Only an empty draft is reused; existing text or attachments are preserved and the example goes into a separate conversation. Review the draft before submitting it yourself.
 4. Use Installed or the conversation tools to enable, disable, inspect, or disconnect a connection.
 5. After connecting, open **Tools** to search by tool name or description and filter by connection or service. Provider authorization, fees, and actual execution remain under the provider and DSH Host.
 
