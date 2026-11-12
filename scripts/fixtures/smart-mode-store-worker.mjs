@@ -22,6 +22,7 @@ process.on('message', async (message) => {
     store = await SmartModeStore.open({ profileDir, io });
     const result = operation === 'snapshot' ? await store.writeSnapshot(value)
       : operation === 'default' ? await store.setDefaultPolicy(value, { expectedRevision })
+        : operation === 'relation' ? await store.setSourceRelation(value, { expectedRevision })
         : await store.readSnapshot(value);
     await store.close();
     process.send({ type: 'result', ok: true, result });

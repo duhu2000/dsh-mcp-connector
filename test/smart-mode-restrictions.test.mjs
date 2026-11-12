@@ -257,3 +257,11 @@ test('smart local descriptions and rendered cache results follow the injected Ho
   for (const def of agent.locals.values()) assert.doesNotMatch(JSON.stringify({ description: def.description, parameters: def.parameters }), /\p{Script=Han}/u);
   assert.doesNotMatch(JSON.stringify(discover.output.render({}, result)), /\p{Script=Han}/u);
 });
+
+test('canonical source search preserves the restriction layer preparation state', async () => {
+  const data = enterpriseFixture(); const name = data.businessNames[0];
+  const f = fixture({ controller: { sourceSearch: async () => ({ items: [{ publicName: name, serverName: data.records[0].serverName, prepared: false }] }) } });
+  const { agent } = f.make('source-prepared'); f.prepared.set(agent, [name]); f.controller.refresh();
+  const result = await agent.locals.get('mcp_connector_discover').execute({ action: 'search', query: 'fixture' }, { agent });
+  assert.equal(result.detail.items[0].prepared, true);
+});

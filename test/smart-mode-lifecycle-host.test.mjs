@@ -11,6 +11,9 @@ import { registerTools } from '../lib/tools.js';
 import { createSmartModeRestrictionController, SMART_RESTRICTION_HOST_CONTRACT } from '../lib/smart-mode-restrictions.js';
 import { createSessionToolInjectionController } from '../lib/session-injection.js';
 import { enterpriseFixture } from '../scripts/fixtures/smart-mode-enterprise.mjs';
+import { createSourceSelector } from '../lib/source-selection.js';
+import { indexRawToolSources, RAW_TOOL_ORIGIN } from '../lib/source-relations.js';
+import { rawDefinition, relationFor } from '../scripts/fixtures/source-selection.mjs';
 
 // Explicitly selected installed Host code; no profile loader or production data.
 // A selected but incompatible runtime FAILS. No remote/model/MCP client is used.
@@ -442,10 +445,11 @@ contract('a conflicting disk snapshot blocks the losing inference and preserves 
   assert.deepEqual(await store.readSnapshot(agent.id), winner);
 });
 
-async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false } = {}) {
+async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false, withSources = false } = {}) {
   const data = enterpriseFixture({ full });
   const prepared = new Map(), denied = new Set(), hidden = new Set(), bodies = new Map();
-  let controller, brokenRead = false;
+  let controller, sourceSelector, brokenRead = false;
+  const sourceRows = [], sourceRelations = [], sourceIntents = new Map();
   const h = await harness(t, { async setup(ctx) {
     let manualController;
     if (legacy) {
@@ -492,16 +496,31 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
       isRecordUsable: () => true, isRecordVisible: (record) => !hidden.has(record.key),
       isToolAllowed: (name) => !denied.has(name),
       isManuallyActive: (name, record, agent) => manualController?.inspect(name, agent)?.active === true,
+      sourceSearch: withSources ? (agent, args) => sourceSelector.search(agent, args) : undefined,
     });
     controller.mount(events);
+    if (withSources) {
+      for (const [i, name] of [[0, 'fixture_read_0'], [1, 'read/long fixture name '.repeat(4)]]) {
+        sourceRows.push({ origin: RAW_TOOL_ORIGIN, accountRef: data.scope.accountRef, groupId: data.scope.groupId,
+          connectionKey: data.scope.connections[i].connectionKey, serverName: data.scope.connections[i].serverName, definition: rawDefinition(name) });
+      }
+      const sources = [...indexRawToolSources(data.scope, sourceRows).values()];
+      sourceRelations.push(relationFor(data.scope, 'synthetic-native-equivalence', sources));
+      sourceSelector = createSourceSelector({ enabled: true, scope: data.scope,
+        getSessionSnapshot: controller.sessionSnapshot, getRawSources: () => sourceRows,
+        getRelations: () => sourceRelations, inspectSource: controller.inspectSource,
+        getUserSourceIntent: (agent) => sourceIntents.get(agent), now: () => 1000,
+      });
+      sourceSelector.mount(events);
+    }
     return {
       lifecycle: { ...controller.lifecycleBindings(), selectDefault: () => ({
         mode: 'smart', policyVersion: 'fixture-v1', accountRef: data.scope.accountRef, groupId: data.scope.groupId,
       }) },
-      close() { controller.dispose(); manualController?.dispose(); stopManagement(); },
+      close() { sourceSelector?.dispose(); controller.dispose(); manualController?.dispose(); stopManagement(); },
     };
   } });
-  return { ...data, ...h, prepared, denied, hidden, bodies, controller,
+  return { ...data, ...h, prepared, denied, hidden, bodies, controller, sourceSelector, sourceRows, sourceRelations, sourceIntents,
     breakRead(value) { brokenRead = value; },
     async call(agent, name, args = {}) {
       const result = await h.ctx.tools.execute({ agent, signal: new AbortController().signal,
@@ -627,4 +646,46 @@ contract('P1-03 subagent and same-SessionId resume explicitly reinstall masks wi
   assert.equal(h.ctx.tools.get(name, resumed.agent), undefined);
   await h.drive(resumed.agent);
   assert.equal(h.requests.at(-1).tools.includes(name), false);
+});
+
+contract('P1-04 native discovery returns canonical plus aliases without loading or executing a business tool', async (t) => {
+  const h = await restrictedHarness(t, { withSources: true }); const { agent } = await h.create('source-discovery'); await h.drive(agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  const result = await h.call(agent, 'mcp_connector_discover', { action: 'search', query: sources[1].publicName });
+  assert.equal(result.isError, false);
+  assert.match(JSON.stringify(result), new RegExp(sources[0].publicName));
+  assert.match(JSON.stringify(result), new RegExp(sources[1].publicName));
+  assert.equal(h.ctx.tools.get(sources[0].publicName, agent), undefined);
+  assert.equal(h.bodies.size, 0); assert.equal(h.prepared.size, 0);
+  assert.equal(h.controller.inspectSource(agent, sources[0]).available, true, 'own mask does not hide discovery eligibility');
+});
+
+contract('P1-04 current Host permissions filter sources and explicit denial never changes to a peer', async (t) => {
+  const h = await restrictedHarness(t, { withSources: true }); const { agent } = await h.create('source-permissions'); await h.drive(agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  const capabilityId = `relation:${h.sourceRelations[0].id}`;
+  h.denied.add(sources[0].publicName);
+  assert.equal((await h.sourceSelector.select(agent, { capabilityId })).selected[0].sourceId, sources[1].sourceId);
+  h.sourceIntents.set(agent, { sessionId: agent.id, accountRef: h.scope.accountRef, groupId: h.scope.groupId,
+    capabilityId, kind: 'source', sources: [sources[0]], evidenceHash: 'a'.repeat(64), expiresAt: 9000 });
+  // Receipt contains only the exact fingerprint binding, never model claims.
+  h.sourceIntents.get(agent).sources = [{ sourceId: sources[0].sourceId, definitionFingerprint: sources[0].definitionFingerprint }];
+  const blocked = await h.sourceSelector.select(agent, { capabilityId });
+  assert.equal(blocked.reason, 'EXPLICIT_SOURCE_DENIED'); assert.deepEqual(blocked.selected, []);
+  h.denied.clear(); const intent = h.sourceIntents.get(agent); intent.kind = 'compare';
+  intent.sources = sources.map(({ sourceId, definitionFingerprint }) => ({ sourceId, definitionFingerprint }));
+  assert.equal((await h.sourceSelector.select(agent, { capabilityId })).budgetException, true);
+  assert.equal(h.bodies.size, 0);
+});
+
+contract('P1-04 raw definition changes invalidate old selections without altering native registrations', async (t) => {
+  const h = await restrictedHarness(t, { withSources: true }); const { agent } = await h.create('source-change'); await h.drive(agent);
+  const capabilityId = `relation:${h.sourceRelations[0].id}`;
+  const plan = await h.sourceSelector.select(agent, { capabilityId });
+  const before = h.ctx.tools.schemas(agent);
+  h.sourceRows[0].definition.outputSchema = { type: 'array', items: { type: 'string' } };
+  assert.equal((await h.sourceSelector.select(agent, { capabilityId })).reason, 'SOURCE_DEFINITION_CHANGED');
+  assert.equal(await h.sourceSelector.validateSelection(agent, plan), false);
+  assert.deepEqual(h.ctx.tools.schemas(agent), before);
+  assert.equal(h.bodies.size, 0);
 });
