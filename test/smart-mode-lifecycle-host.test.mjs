@@ -2,7 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import * as fs from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { createSmartModeLifecycleAdapter, SMART_MODE_HOST_CONTRACT } from '../lib/smart-mode-lifecycle.js';
+import { SmartModeStore } from '../lib/smart-mode-store.js';
 
 // Explicitly selected installed Host code; no profile loader or production data.
 // A selected but incompatible runtime FAILS. No remote/model/MCP client is used.
@@ -140,14 +144,18 @@ async function harness(t, options = {}) {
     return message;
   };
   const drive = async (agent, message = input()) => { agent.followup(message); await bounded(agent.whenIdle()); };
-  t.after(async () => {
-    for (const handle of handles.reverse()) await handle.dispose();
+  let closed = false;
+  const close = async () => {
+    if (closed) return;
+    closed = true;
+    for (const handle of handles.splice(0).reverse()) await handle.dispose();
     adapter.dispose();
     await root.fiber.dispose();
     assert.equal(bodyCalls, 0, 'no business or synthetic tool body was invoked');
-  });
+  };
+  t.after(close);
   return {
-    ctx, create, resume, input, drive, requests, events, snapshots, errors, tables, installCalls,
+    ctx, create, resume, input, drive, close, requests, events, snapshots, errors, tables, installCalls,
     get adapter() { return adapter; },
     async remount() { adapter.dispose(); adapter = createSmartModeLifecycleAdapter(integration); await adapter.mount(ctx); },
   };
@@ -323,4 +331,105 @@ contract('disabled adapter leaves the real Host tool set and inference behavior 
   assert.equal(h.requests[0].tools.includes(publicTool), true);
   assert.equal(h.adapter.status(agent).phase, 'disabled');
   assert.equal(h.snapshots.size, 0);
+});
+
+async function diskStoreFixture(t, options = {}) {
+  const profileDir = await fs.mkdtemp(join(tmpdir(), 'mcp-smart-host-disk-'));
+  const stores = [];
+  const open = async (more = {}) => {
+    const store = await SmartModeStore.open({ profileDir, ...options, ...more });
+    stores.push(store); return store;
+  };
+  // Register cleanup before the harness so Host teardown happens first.
+  t.after(async () => {
+    for (const store of stores) await store.close();
+    await fs.rm(profileDir, { recursive: true, force: true });
+  });
+  return { open, store: await open(), profileDir };
+}
+
+const diskGroup = { accountRef: policy.accountRef, groupId: policy.groupId };
+const defaultPolicy = { ...diskGroup, mode: 'smart', policyVersion: 'disk-fixture-v1' };
+
+contract('real disk + new Context restores locked policy and starts without the old prepared set', async (t) => {
+  const { store, open } = await diskStoreFixture(t);
+  await store.setDefaultPolicy(defaultPolicy, { expectedRevision: 0 });
+  const first = await harness(t, await store.lifecycleBindings(diskGroup));
+  const old = await first.create('disk-restored');
+  await first.drive(old.agent);
+  const saved = await store.readSnapshot(old.agent.id);
+  assert.equal(saved.policyRevision, 1);
+  old.agent.ctx.tools.register({
+    name: 'fixture_prepared_only', description: 'Ephemeral prepared-set sentinel',
+    parameters: { type: 'object', properties: {} },
+    output: { schema: { type: 'object' }, render: () => [] },
+    execute: async () => assert.fail('must never execute'),
+  });
+  assert.ok(old.agent.ctx.tools.get('fixture_prepared_only', old.agent));
+  await first.close(); await store.close();
+  const freshStore = await open();
+  await freshStore.setDefaultPolicy({ ...defaultPolicy, mode: 'compat' }, { expectedRevision: 1 });
+  const second = await harness(t, await freshStore.lifecycleBindings(diskGroup));
+  const restored = await second.create('disk-restored');
+  assert.equal(second.adapter.status(restored.agent).mode, 'smart');
+  assert.equal(restored.agent.ctx.tools.get('fixture_prepared_only', restored.agent), undefined);
+  await second.drive(restored.agent);
+  assert.equal(second.requests.at(-1).tools.includes(privateTool), false);
+  const unlocked = await second.create('disk-new'); await second.drive(unlocked.agent);
+  assert.equal(second.adapter.status(unlocked.agent).mode, 'compat');
+  assert.equal(second.requests.at(-1).tools.includes(privateTool), true);
+  assert.deepEqual(await freshStore.readSnapshot('disk-restored'), saved);
+});
+
+contract('disk write failure blocks inference, restores input and recovers through the same transaction', async (t) => {
+  let failWrite = false;
+  const { store, open } = await diskStoreFixture(t, { io: { ...fs, async link(from, to) {
+    if (failWrite && String(to).includes('sessions')) throw Object.assign(new Error('synthetic disk full'), { code: 'ENOSPC' });
+    await fs.link(from, to);
+  } } });
+  await store.setDefaultPolicy(defaultPolicy, { expectedRevision: 0 });
+  const h = await harness(t, await store.lifecycleBindings(diskGroup));
+  const { agent } = await h.create('disk-failure'); const input = h.input();
+  failWrite = true; await h.drive(agent, input);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.adapter.status(agent).committed, false);
+  assert.equal(agent.ctx.tools.get(privateTool, agent), undefined);
+  assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
+  assert.equal(await (await open()).readSnapshot(agent.id), undefined);
+  failWrite = false; assert.equal((await h.adapter.retry(agent)).committed, true);
+  await h.drive(agent);
+  const userInputs = agent.session.snapshotEvents().filter((e) => e.type === 'user/message' && e.data.source.kind === 'user');
+  assert.equal(userInputs.filter((e) => e.data.id === input.id).length, 1);
+  assert.ok(h.requests.every((r) => !r.tools.includes(privateTool)));
+  assert.equal((await store.readSnapshot(agent.id)).mode, 'smart');
+});
+
+contract('another process policy change cannot silently change an already assembled schema', async (t) => {
+  const { store, open } = await diskStoreFixture(t);
+  await store.setDefaultPolicy(defaultPolicy, { expectedRevision: 0 });
+  const bindings = await store.lifecycleBindings(diskGroup);
+  const peer = await open();
+  await peer.setDefaultPolicy({ ...defaultPolicy, mode: 'compat' }, { expectedRevision: 1 });
+  const h = await harness(t, bindings); const { agent } = await h.create('stale-default');
+  const input = h.input(); await h.drive(agent, input);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.adapter.status(agent).committed, false);
+  assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
+  assert.equal(await store.readSnapshot(agent.id), undefined);
+  assert.equal(agent.ctx.tools.get(privateTool, agent), undefined);
+});
+
+contract('a conflicting disk snapshot blocks the losing inference and preserves its input', async (t) => {
+  const { store, open } = await diskStoreFixture(t);
+  await store.setDefaultPolicy(defaultPolicy, { expectedRevision: 0 });
+  const h = await harness(t, await store.lifecycleBindings(diskGroup));
+  const { agent } = await h.create('snapshot-conflict');
+  const peer = await open();
+  const winner = { version: 1, sessionId: agent.id, mode: 'compat', policyVersion: 'explicit-fixture', selection: 'user-confirmed' };
+  await peer.writeSnapshot(winner);
+  const input = h.input(); await h.drive(agent, input);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.adapter.status(agent).committed, false);
+  assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
+  assert.deepEqual(await store.readSnapshot(agent.id), winner);
 });
