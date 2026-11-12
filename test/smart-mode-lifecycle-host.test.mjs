@@ -16,6 +16,7 @@ import { indexRawToolSources, RAW_TOOL_ORIGIN } from '../lib/source-relations.js
 import { rawDefinition, relationFor } from '../scripts/fixtures/source-selection.mjs';
 import { createSmartModePrepareController } from '../lib/smart-mode-prepare.js';
 import { readOnlyReviewFor } from '../scripts/fixtures/read-only-review.mjs';
+import { SMART_RESOURCE_HOST_CONTRACT, estimateSmartToolTokens } from '../lib/smart-mode-resources.js';
 
 // Explicitly selected installed Host code; no profile loader or production data.
 // A selected but incompatible runtime FAILS. No remote/model/MCP client is used.
@@ -51,7 +52,7 @@ const privateTool = 'mcp__lifecycle_fixture__private';
 const publicTool = 'lifecycle_fixture_public';
 
 async function harness(t, options = {}) {
-  const { setup, ...lifecycleOptions } = options;
+  const { setup, reply, ...lifecycleOptions } = options;
   const tables = new Map(), snapshots = new Map(), requests = [], events = [], errors = [], handles = [];
   const trustedInputIds = new Set();
   let bodyCalls = 0;
@@ -92,11 +93,15 @@ async function harness(t, options = {}) {
     async resolveModel(provider, id) { return { provider, id, name: id, contextWindow: 65536, inputModalities: ['text'] }; }
     async *stream(input) {
       requests.push({ tools: input.tools.map((tool) => tool.name), input });
-      yield { type: 'block-start', index: 0, blockType: 'text' };
-      yield { type: 'text-delta', index: 0, text: 'offline' };
-      yield { type: 'block-end', index: 0, block: { type: 'text', text: 'offline' } };
+      const blocks = reply?.(input) ?? [{ type: 'text', text: 'offline' }];
+      for (const [index, block] of blocks.entries()) {
+        yield { type: 'block-start', index, blockType: block.type };
+        if (block.type === 'tool-call') yield { type: 'tool-call-delta', index, id: block.id, name: block.name, argumentsDelta: block.arguments };
+        else yield { type: 'text-delta', index, text: block.text };
+        yield { type: 'block-end', index, block };
+      }
       yield { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } };
-      yield { type: 'finish', reason: { kind: 'stop' } };
+      yield { type: 'finish', reason: { kind: blocks.some((block) => block.type === 'tool-call') ? 'tool-calls' : 'stop' } };
     }
   }
   const root = new host.Context();
@@ -447,12 +452,14 @@ contract('a conflicting disk snapshot blocks the losing inference and preserves 
   assert.deepEqual(await store.readSnapshot(agent.id), winner);
 });
 
-async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false, withPrepare = false, withSources = withPrepare } = {}) {
+async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false, withResources = false,
+  resourcePolicy = {}, businessBody, parallelBusiness = false, withPrepare = withResources, withSources = withPrepare } = {}) {
   const data = enterpriseFixture({ full });
   const prepared = new Map(), denied = new Set(), hidden = new Set(), bodies = new Map();
-  let controller, sourceSelector, prepareController, brokenRead = false;
+  let controller, sourceSelector, prepareController, brokenRead = false, at = 1000;
   const sourceRows = [], sourceRelations = [], sourceIntents = new Map(), readOnlyReviews = [];
-  const h = await harness(t, { async setup(ctx) {
+  const scripts = [];
+  const h = await harness(t, { reply: () => scripts.shift(), async setup(ctx) {
     let manualController;
     if (legacy) {
       manualController = createSessionToolInjectionController(ctx, {
@@ -474,7 +481,8 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
       name, description: 'Synthetic offline tool, no MCP client or external provider',
       parameters: { type: 'object', properties: {} },
       output: { schema: { type: 'object' }, render: () => [] },
-      async execute() { bodies.set(name, (bodies.get(name) ?? 0) + 1); return { ok: true }; },
+      ...(parallelBusiness ? { isConcurrencySafe: typeof parallelBusiness === 'function' ? parallelBusiness : () => true } : {}),
+      async execute(args, exec) { bodies.set(name, (bodies.get(name) ?? 0) + 1); return businessBody ? businessBody(name, args, exec) : { ok: true }; },
     });
     const facade = { tools: {
       get: (...args) => ctx.tools.get(...args),
@@ -500,6 +508,9 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
       isManuallyActive: (name, record, agent) => manualController?.inspect(name, agent)?.active === true,
       sourceSearch: withSources ? (agent, args) => sourceSelector.search(agent, args) : undefined,
       prepareTools: withPrepare ? (agent, args, exec) => prepareController.prepare(agent, args, exec) : undefined,
+      releaseTools: withResources ? (agent, args, exec) => prepareController.release(agent, args, exec) : undefined,
+      assertPreparedReady: withResources ? (agent) => prepareController?.assertResourceReady(agent) : undefined,
+      getResourceStatus: withResources ? (agent) => prepareController.resourceStatus(agent) : undefined,
     });
     controller.mount(events);
     if (withSources) {
@@ -509,16 +520,24 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
       }
       const sources = [...indexRawToolSources(data.scope, sourceRows).values()];
       sourceRelations.push(relationFor(data.scope, 'synthetic-native-equivalence', sources));
+      if (withResources) sourceRows.push({ origin: RAW_TOOL_ORIGIN, accountRef: data.scope.accountRef, groupId: data.scope.groupId,
+        connectionKey: data.scope.connections[2].connectionKey, serverName: data.scope.connections[2].serverName,
+        definition: rawDefinition('read/long fixture name '.repeat(4)) });
       sourceSelector = createSourceSelector({ enabled: true, scope: data.scope,
         getSessionSnapshot: controller.sessionSnapshot, getRawSources: () => sourceRows,
         getRelations: () => sourceRelations, inspectSource: controller.inspectSource,
-        getUserSourceIntent: (agent) => sourceIntents.get(agent), now: () => 1000,
+        getUserSourceIntent: (agent) => sourceIntents.get(agent), now: () => at,
       });
       sourceSelector.mount(events);
       if (withPrepare) {
-        readOnlyReviews.push(...sources.map((source) => readOnlyReviewFor(data.scope, source)));
+        readOnlyReviews.push(...[...indexRawToolSources(data.scope, sourceRows).values()].map((source) => readOnlyReviewFor(data.scope, source)));
+        const nativeExecutor = ctx.tools.selectExecutor();
         prepareController = createSmartModePrepareController({ enabled: true, scope: data.scope,
-          restrictions: controller, selector: sourceSelector, getReadOnlyReviews: () => readOnlyReviews, now: () => 1000 });
+          restrictions: controller, selector: sourceSelector, getReadOnlyReviews: () => readOnlyReviews, now: () => at,
+          resources: withResources ? { enabled: true, hostContract: SMART_RESOURCE_HOST_CONTRACT, ttlMs: 100, ...resourcePolicy } : undefined,
+          isNativeExecutor: (agent) => ctx.tools.selectExecutor(agent) === nativeExecutor,
+          getBudgetSchemas: (agent, names) => names.map((name) => JSON.parse(JSON.stringify(host.projectToolSchema(agent.ctx.tools.get(name, agent) ?? ctx.tools.get(name), true)))),
+        });
         prepareController.mount(events);
       }
     }
@@ -531,6 +550,8 @@ async function restrictedHarness(t, { full = false, delivery = 'native', legacy 
   } });
   return { ...data, ...h, prepared, denied, hidden, bodies, controller, sourceSelector, sourceRows, sourceRelations, sourceIntents,
     prepareController, readOnlyReviews,
+    get at() { return at; }, set at(value) { at = value; },
+    queueCalls(calls) { scripts.push(calls.map((call, i) => ({ type: 'tool-call', id: call.id ?? `model-${Math.random()}-${i}`, name: call.name, arguments: JSON.stringify(call.args ?? {}) }))); },
     breakRead(value) { brokenRead = value; },
     async call(agent, name, args = {}) {
       const result = await h.ctx.tools.execute({ agent, signal: new AbortController().signal,
@@ -781,4 +802,152 @@ contract('P1-05 resume and subagent start with no inherited preparation', async 
   const restored = await h.resume('p105-parent'); await h.drive(restored.agent);
   assert.ok(!h.requests.at(-1).tools.includes(name)); assert.deepEqual(h.prepareController.getPreparedNames(restored.agent), []);
   assert.equal(h.bodies.size, 0);
+});
+
+contract('P1-06 model-driven first prepare bootstraps mid-step and canonical request budget includes exactly two management entries', async (t) => {
+  const h = await restrictedHarness(t, { withResources: true });
+  h.snapshots.set('p106-compat', h.snapshot('p106-compat', 'compat'));
+  const compat = await h.create('p106-compat'), { agent } = await h.create('p106-first');
+  const before = h.ctx.tools.schemas(compat.agent);
+  h.queueCalls([{ name: 'mcp_connector_discover', args: { action: 'prepare', capabilityIds: [`relation:${h.sourceRelations[0].id}`] } }]);
+  await h.drive(agent); await tick();
+  const names = new Set([...h.businessNames, 'mcp_connector_discover', 'mcp_connector_session_tools']);
+  const projected = h.requests.at(-1).input.tools.filter((tool) => names.has(tool.name));
+  const resources = h.prepareController.resourceStatus(agent);
+  assert.equal(projected.length, 3); assert.equal(resources.errorCode, null);
+  assert.equal(resources.estimatedTokens, estimateSmartToolTokens(projected));
+  assert.ok(resources.estimatedTokens <= 5000); assert.deepEqual(h.ctx.tools.schemas(compat.agent), before);
+  assert.equal(h.bodies.size, 0); assert.deepEqual(h.errors, []);
+});
+
+contract('P1-06 real parallel bodies, ordered results and a queued exclusive sibling stay pinned until the Host step drains', async (t) => {
+  const slow = deferred(), entered = deferred(), fast = deferred(); let first = true;
+  const h = await restrictedHarness(t, { withResources: true, resourcePolicy: { ttlMode: 'fixed' },
+    parallelBusiness: (args) => args.serial !== true,
+    async businessBody(name, args) {
+      if (args.slow && first) { first = false; entered.resolve(); await slow.promise; }
+      if (args.fast) fast.resolve();
+      return { ok: true };
+    },
+  }); const { agent } = await h.create('p106-parallel'); await h.drive(agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  const capabilityIds = [`relation:${h.sourceRelations[0].id}`, `source:${sources[2].sourceId}`];
+  assert.equal((await h.prepareController.prepare(agent, { capabilityIds })).ok, true);
+  h.queueCalls([{ id: 'slow', name: sources[0].publicName, args: { slow: true } },
+    { id: 'fast', name: sources[2].publicName, args: { fast: true } },
+    { id: 'queued', name: sources[0].publicName, args: { serial: true } }]);
+  const driving = h.drive(agent); await bounded(entered.promise); await bounded(fast.promise); await tick();
+  assert.equal(h.prepareController.resourceStatus(agent).inFlight, 2, 'fast body result still awaits model-order commit');
+  h.at = 1200;
+  const release = await h.prepareController.release(agent, { publicNames: [sources[0].publicName, sources[2].publicName] });
+  assert.equal(release.detail.pending.length, 2);
+  assert.equal((await h.prepareController.collect(agent)).ok, true);
+  assert.equal(h.prepareController.getPreparedNames(agent).length, 2);
+  slow.resolve(); await bounded(driving); await h.prepareController.collect(agent);
+  assert.equal(h.bodies.get(sources[0].publicName), 2, JSON.stringify({ status: h.prepareController.resourceStatus(agent),
+    events: h.events.filter((item) => item.id === agent.id).map((item) => ({ type: item.event.type, data: item.event.type === 'tool/result' ? item.event.data : undefined })) }));
+  assert.equal(h.bodies.get(sources[2].publicName), 1);
+  assert.deepEqual(h.prepareController.getPreparedNames(agent), []);
+  assert.equal(h.prepareController.resourceStatus(agent).activeSteps, 0);
+  const events = h.events.filter((item) => item.id === agent.id).map((item) => item.event);
+  const results = events.filter((event) => event.type === 'tool/result').map((event) => event.data.message.toolCallId);
+  assert.deepEqual(results, ['slow', 'fast', 'queued']);
+  const stepEnd = events.findLastIndex((event) => event.type === 'step/end');
+  assert.ok(events.findIndex((event) => event.type === 'tool/result' && event.data.message.toolCallId === 'queued') < stepEnd);
+  assert.deepEqual(h.errors, []);
+});
+
+contract('P1-06 cancellation drains a started body, emits recovery results for queued calls and does not renew TTL', async (t) => {
+  const gate = deferred(), entered = deferred();
+  const h = await restrictedHarness(t, { withResources: true,
+    async businessBody() { entered.resolve(); await gate.promise; return { ok: true }; },
+  }); const { agent } = await h.create('p106-cancel'); await h.drive(agent);
+  const source = [...indexRawToolSources(h.scope, h.sourceRows).values()][0];
+  await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  h.queueCalls([{ id: 'started', name: source.publicName }, { id: 'skipped', name: source.publicName }]);
+  const driving = h.drive(agent); await bounded(entered.promise);
+  const releasing = await h.prepareController.release(agent, { publicNames: [source.publicName] });
+  assert.deepEqual(releasing.detail.pending, [source.publicName]);
+  h.at = 1200; agent.cancel({ kind: 'user' }); await tick();
+  assert.equal(h.prepareController.resourceStatus(agent).inFlight, 1);
+  gate.resolve(); await bounded(driving); await h.prepareController.collect(agent);
+  assert.equal(h.bodies.get(source.publicName), 1);
+  assert.deepEqual(h.prepareController.getPreparedNames(agent), [], JSON.stringify(h.prepareController.resourceStatus(agent)));
+  const events = h.events.filter((item) => item.id === agent.id).map((item) => item.event);
+  assert.deepEqual(events.filter((event) => event.type === 'tool/result').map((event) => event.data.message.toolCallId), ['started', 'skipped']);
+  assert.equal(h.prepareController.resourceStatus(agent).errorCode, null); assert.deepEqual(h.errors, []);
+});
+
+contract('P1-06 final Host success renews sliding TTL; failures leave its last successful expiry unchanged', async (t) => {
+  const h = await restrictedHarness(t, { withResources: true, businessBody(name, args) {
+    if (args.fail) throw new Error('Synthetic business failure, no MCP'); return { ok: true };
+  } }); const { agent } = await h.create('p106-sliding'); await h.drive(agent);
+  const source = [...indexRawToolSources(h.scope, h.sourceRows).values()][0];
+  await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  h.at = 1050; assert.equal((await h.call(agent, source.publicName)).isError, false);
+  assert.equal(h.prepareController.resourceStatus(agent).entries[0].expiresAt, 1150);
+  h.at = 1060; assert.equal((await h.call(agent, source.publicName, { fail: true })).isError, true);
+  assert.equal(h.prepareController.resourceStatus(agent).entries[0].expiresAt, 1150);
+  h.at = 1150; await h.prepareController.collect(agent);
+  assert.equal(h.ctx.tools.get(source.publicName, agent), undefined);
+});
+
+contract('P1-06 LRU pressure cannot evict a live direct Host invocation and later reclaim succeeds', async (t) => {
+  const gate = deferred(), entered = deferred();
+  const h = await restrictedHarness(t, { withResources: true, resourcePolicy: { maxPrepared: 1 },
+    async businessBody() { entered.resolve(); await gate.promise; return { ok: true }; },
+  }); const { agent } = await h.create('p106-lru'); await h.drive(agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  const calling = h.call(agent, sources[0].publicName); await bounded(entered.promise);
+  assert.equal((await h.prepareController.prepare(agent, { capabilityIds: [`source:${sources[2].sourceId}`] })).message, 'SMART_RESOURCE_CAPACITY');
+  assert.ok(h.ctx.tools.get(sources[0].publicName, agent));
+  gate.resolve(); await bounded(calling); await tick();
+  const result = await h.prepareController.prepare(agent, { capabilityIds: [`source:${sources[2].sourceId}`] });
+  assert.equal(result.ok, true); assert.deepEqual(result.detail.evicted, [sources[0].publicName]);
+  assert.equal(h.ctx.tools.get(sources[0].publicName, agent), undefined); assert.ok(h.ctx.tools.get(sources[2].publicName, agent));
+});
+
+contract('P1-06 model prepare can evict an unreferenced LRU definition within the active step', async (t) => {
+  const h = await restrictedHarness(t, { withResources: true, resourcePolicy: { maxPrepared: 1, ttlMs: 1000 } });
+  const { agent } = await h.create('p106-model-lru'); await h.drive(agent);
+  const sources = [...indexRawToolSources(h.scope, h.sourceRows).values()];
+  await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  h.queueCalls([{ id: 'model-prepare', name: 'mcp_connector_discover', args: { action: 'prepare', capabilityIds: [`source:${sources[2].sourceId}`] } }]);
+  await h.drive(agent); await tick();
+  assert.deepEqual(h.prepareController.getPreparedNames(agent), [sources[2].publicName]);
+  assert.ok(h.requests.at(-1).tools.includes(sources[2].publicName));
+  assert.ok(!h.requests.at(-1).tools.includes(sources[0].publicName));
+  assert.equal(h.prepareController.resourceStatus(agent).errorCode, null); assert.deepEqual(h.errors, []);
+});
+
+contract('P1-06 revoked read-only evidence still blocks subsequent dispatch while an earlier body is pinned', async (t) => {
+  const gate = deferred(), entered = deferred();
+  const h = await restrictedHarness(t, { withResources: true,
+    async businessBody() { entered.resolve(); await gate.promise; return { ok: true }; },
+  }); const { agent } = await h.create('p106-revoke'); await h.drive(agent);
+  const source = [...indexRawToolSources(h.scope, h.sourceRows).values()][0];
+  await h.prepareController.prepare(agent, { capabilityIds: [`relation:${h.sourceRelations[0].id}`] });
+  const calling = h.call(agent, source.publicName); await bounded(entered.promise);
+  h.readOnlyReviews[0].enabled = false;
+  assert.equal((await h.call(agent, source.publicName)).isError, true); assert.equal(h.bodies.get(source.publicName), 1);
+  h.controller.refresh(); assert.equal(h.ctx.tools.get(source.publicName, agent), undefined);
+  gate.resolve(); await bounded(calling); await h.prepareController.collect(agent);
+  assert.deepEqual(h.prepareController.getPreparedNames(agent), []); assert.equal(h.prepareController.resourceStatus(agent).retainedCount, 0);
+});
+
+contract('P1-06 release remains Agent-local and recovery or subagent never inherits tokens, timers or loaded definitions', async (t) => {
+  const h = await restrictedHarness(t, { withResources: true }); const a = await h.create('p106-a'), b = await h.create('p106-b');
+  await h.drive(a.agent); await h.drive(b.agent);
+  const capabilityIds = [`relation:${h.sourceRelations[0].id}`], source = [...indexRawToolSources(h.scope, h.sourceRows).values()][0];
+  await h.prepareController.prepare(a.agent, { capabilityIds }); await h.prepareController.prepare(b.agent, { capabilityIds });
+  const release = await h.call(a.agent, 'mcp_connector_discover', { action: 'release', publicNames: [source.publicName] });
+  assert.equal(release.isError, false); assert.ok(h.ctx.tools.get(source.publicName, b.agent));
+  const child = await h.create('p106-child', { parentAgent: b.agent,
+    meta: { origin: 'subagent', parentSession: b.agent.id, delegationDepth: 1 } });
+  await h.drive(child.agent); assert.deepEqual(h.prepareController.getPreparedNames(child.agent), []);
+  await child.dispose(); await b.dispose(); const resumed = await h.resume('p106-b'); await h.drive(resumed.agent);
+  const current = h.prepareController.resourceStatus(resumed.agent);
+  assert.equal(current.retainedCount, 0); assert.equal(current.inFlight, 0); assert.equal(current.activeSteps, 0);
+  assert.ok(!h.requests.at(-1).tools.includes(source.publicName));
 });
