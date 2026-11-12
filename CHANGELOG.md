@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.102
+
+- 修复新版 DSH 中「试试这样用」发送失败的问题，按当前工作区准备会话草稿并跳转（#231，#232）。
+- 复用可用的空白会话；已有文字或附件时另建会话，保留原草稿内容。用户核对后自行提交查询。
+- 发送失败或取消时保留详情页并恢复操作，保留旧版 DSH 兼容路径。
+- Fix sample prompt draft handoff on modern DSH, preserve existing text and attachments, and retain legacy host compatibility (#231, #232).
+
 ## 0.2.101
 
 - 企查查旧授权迁移后看到红色“连接异常”时，点击市场卡片上的状态，或在 MCP连接器“已安装”中点“查看处理步骤”。已完成迁移的连接也能重新打开指引。
