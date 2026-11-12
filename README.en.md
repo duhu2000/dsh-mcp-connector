@@ -250,7 +250,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.101`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.101](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.101).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.102`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.102](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.102).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
