@@ -270,3 +270,15 @@ test('another Host middleware rejection keeps its original semantics', async () 
   await Promise.resolve();
   assert.deepEqual(agent.inbox.nextTurn, []);
 });
+
+test('mode readiness is checked after middleware before releasing recoverable input', async () => {
+  let ready = true;
+  const f = fixture({ assertModeReady() { if (!ready) throw Object.assign(new Error('synthetic mode gate'), { code: 'MODE_NOT_READY' }); } });
+  await f.adapter.mount(f.ctx); const agent = f.make('mode-gate');
+  await f.serial('agent/created', { agent, source: 'startup' });
+  const input = human('preserved'); f.queue(agent, input); f.claim(agent);
+  await assert.rejects(f.step(agent, async () => { ready = false; return { kind: 'enter', messages: [input] }; }), { code: 'MODE_NOT_READY' });
+  f.emit('session/event', agent.session, { type: 'turn/end', data: { reason: { kind: 'error' } } });
+  await Promise.resolve();
+  assert.deepEqual(agent.inbox.nextTurn, [input]);
+});

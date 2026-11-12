@@ -7,6 +7,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createSmartModeLifecycleAdapter, SMART_MODE_HOST_CONTRACT } from '../lib/smart-mode-lifecycle.js';
 import { SmartModeStore } from '../lib/smart-mode-store.js';
+import { registerTools } from '../lib/tools.js';
+import { createSmartModeRestrictionController, SMART_RESTRICTION_HOST_CONTRACT } from '../lib/smart-mode-restrictions.js';
+import { createSessionToolInjectionController } from '../lib/session-injection.js';
+import { enterpriseFixture } from '../scripts/fixtures/smart-mode-enterprise.mjs';
 
 // Explicitly selected installed Host code; no profile loader or production data.
 // A selected but incompatible runtime FAILS. No remote/model/MCP client is used.
@@ -42,6 +46,7 @@ const privateTool = 'mcp__lifecycle_fixture__private';
 const publicTool = 'lifecycle_fixture_public';
 
 async function harness(t, options = {}) {
+  const { setup, ...lifecycleOptions } = options;
   const tables = new Map(), snapshots = new Map(), requests = [], events = [], errors = [], handles = [];
   const trustedInputIds = new Set();
   let bodyCalls = 0;
@@ -113,6 +118,7 @@ async function harness(t, options = {}) {
     output: { schema: { type: 'object' }, render: () => [] },
     execute: async () => { bodyCalls++; throw new Error('No tool call is allowed in this fixture'); },
   });
+  const configured = await setup?.(ctx);
   const installCalls = [];
   const integration = {
     enabled: true, hostContract: SMART_MODE_HOST_CONTRACT,
@@ -125,7 +131,8 @@ async function harness(t, options = {}) {
     // Test-only provenance allowlist, not a claim that source.kind=user is proof.
     classifyInput: (message) => trustedInputIds.has(message.id) ? 'interactive' : 'background',
     selectDefault: () => policy,
-    ...options,
+    ...configured?.lifecycle,
+    ...lifecycleOptions,
   };
   let adapter = createSmartModeLifecycleAdapter(integration);
   await adapter.mount(ctx);
@@ -150,6 +157,7 @@ async function harness(t, options = {}) {
     closed = true;
     for (const handle of handles.splice(0).reverse()) await handle.dispose();
     adapter.dispose();
+    await configured?.close?.();
     await root.fiber.dispose();
     assert.equal(bodyCalls, 0, 'no business or synthetic tool body was invoked');
   };
@@ -432,4 +440,191 @@ contract('a conflicting disk snapshot blocks the losing inference and preserves 
   assert.equal(h.adapter.status(agent).committed, false);
   assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
   assert.deepEqual(await store.readSnapshot(agent.id), winner);
+});
+
+async function restrictedHarness(t, { full = false, delivery = 'native', legacy = false } = {}) {
+  const data = enterpriseFixture({ full });
+  const prepared = new Map(), denied = new Set(), hidden = new Set(), bodies = new Map();
+  let controller, brokenRead = false;
+  const h = await harness(t, { async setup(ctx) {
+    let manualController;
+    if (legacy) {
+      manualController = createSessionToolInjectionController(ctx, {
+        getRecords: () => data.records, isRecordVisible: () => true, isToolAllowed: () => true,
+      });
+      manualController.mountAgents(ctx);
+    }
+    const stopManagement = registerTools(ctx, { async sessionTools(args, exec) {
+      if (!manualController) return { ok: true, message: 'synthetic legacy status', detail: {} };
+      try {
+        const detail = args.action === 'status' ? manualController.status(exec.agent)
+          : args.action === 'preview-activate' ? manualController.previewActivation(exec.agent, args)
+            : args.action === 'activate' ? manualController.activate(exec.agent, args)
+              : manualController.deactivate(exec.agent, args);
+        return { ok: true, message: 'synthetic legacy operation', detail };
+      } catch (e) { return { ok: false, message: e.message }; }
+    } });
+    for (const name of [...data.businessNames, ...data.outsideNames]) ctx.tools.register({
+      name, description: 'Synthetic offline tool, no MCP client or external provider',
+      parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'object' }, render: () => [] },
+      async execute() { bodies.set(name, (bodies.get(name) ?? 0) + 1); return { ok: true }; },
+    });
+    const facade = { tools: {
+      get: (...args) => ctx.tools.get(...args),
+      guard: (...args) => ctx.tools.guard(...args),
+      view: (...args) => { if (brokenRead) throw new Error('synthetic view failure'); return ctx.tools.view(...args); },
+      schemas() { assert.fail('new controller must not deep materialize schemas'); },
+    } };
+    const events = { on(type, listener) {
+      let active = true;
+      const stop = ctx.on(type, (...args) => {
+        if (type !== 'tools/change' || delivery === 'native') return listener(...args);
+        const schedule = delivery === 'microtask' ? queueMicrotask : setImmediate;
+        schedule(() => { if (active) listener(...args); });
+      });
+      return () => { active = false; stop(); };
+    } };
+    controller = createSmartModeRestrictionController(facade, {
+      enabled: true, hostContract: SMART_RESTRICTION_HOST_CONTRACT, scope: data.scope,
+      getRecords: () => data.records, getCatalogEntries: () => data.catalog,
+      getPreparedNames: (agent) => prepared.get(agent) ?? [],
+      isRecordUsable: () => true, isRecordVisible: (record) => !hidden.has(record.key),
+      isToolAllowed: (name) => !denied.has(name),
+      isManuallyActive: (name, record, agent) => manualController?.inspect(name, agent)?.active === true,
+    });
+    controller.mount(events);
+    return {
+      lifecycle: { ...controller.lifecycleBindings(), selectDefault: () => ({
+        mode: 'smart', policyVersion: 'fixture-v1', accountRef: data.scope.accountRef, groupId: data.scope.groupId,
+      }) },
+      close() { controller.dispose(); manualController?.dispose(); stopManagement(); },
+    };
+  } });
+  return { ...data, ...h, prepared, denied, hidden, bodies, controller,
+    breakRead(value) { brokenRead = value; },
+    async call(agent, name, args = {}) {
+      const result = await h.ctx.tools.execute({ agent, signal: new AbortController().signal,
+        calls: [{ type: 'tool-call', id: `synthetic-${Math.random()}`, name, arguments: JSON.stringify(args) }] });
+      return result.results[0].result;
+    },
+  };
+}
+
+contract('P1-03 first real request has two entries, no 356 enterprise schemas, and unchanged outside definitions', async (t) => {
+  const h = await restrictedHarness(t, { full: true });
+  h.snapshots.set('compat', h.snapshot('compat', 'compat'));
+  const compat = await h.create('compat');
+  const before = h.ctx.tools.schemas(compat.agent);
+  const smart = await h.create('smart'); await h.drive(smart.agent);
+  const names = h.requests.at(-1).tools;
+  assert.ok(h.businessNames.every((name) => !names.includes(name)));
+  assert.deepEqual(names.filter((name) => name.startsWith('mcp_connector_')).sort(), ['mcp_connector_discover', 'mcp_connector_session_tools']);
+  assert.deepEqual(h.ctx.tools.schemas(compat.agent), before);
+  const outside = (schemas) => schemas.filter((def) => h.outsideNames.includes(def.name));
+  assert.equal(outside(before).length, 57);
+  assert.deepEqual(outside(h.ctx.tools.schemas(smart.agent)), outside(before));
+  assert.ok(h.businessNames.every((name) => h.ctx.tools.get(name, smart.agent) === undefined));
+  assert.equal(h.ctx.tools.get('mcp_connector_discover', compat.agent), undefined);
+  await h.drive(compat.agent);
+  assert.equal(h.requests.at(-1).tools.filter((name) => name.startsWith('mcp_connector_')).length, 25);
+});
+
+contract('P1-03 native dispatch and lookup enforce prepared membership per Agent and after current-policy denial', async (t) => {
+  const h = await restrictedHarness(t);
+  const a = await h.create('a'), b = await h.create('b'); await h.drive(a.agent); await h.drive(b.agent);
+  const name = h.businessNames[0];
+  assert.equal((await h.call(a.agent, name)).isError, true);
+  assert.equal(h.bodies.get(name), undefined);
+  h.prepared.set(a.agent, [name]); h.controller.refresh();
+  assert.equal((await h.call(a.agent, name)).isError, false);
+  assert.equal(h.bodies.get(name), 1);
+  assert.equal((await h.call(b.agent, name)).isError, true);
+  const admitted = await a.agent.ctx.tools.resolve({ agent: a.agent, modelSelection: { provider: 'lifecycle-offline', model: 'fixture' }, signal: new AbortController().signal });
+  h.denied.add(name); // Guard sees permission changes even before visibility refresh.
+  assert.equal((await h.call(a.agent, name)).isError, true);
+  h.controller.refresh();
+  assert.equal(a.agent.ctx.tools.executable(name, a.agent, admitted), undefined);
+  admitted.dispose(); assert.equal(h.bodies.get(name), 1);
+  assert.equal((await h.call(a.agent, h.outsideNames[0])).isError, false);
+});
+
+contract('P1-03 local business shadow blocks inference and native body even if marked prepared', async (t) => {
+  const h = await restrictedHarness(t); const { agent } = await h.create('shadow'); await h.drive(agent);
+  const name = h.businessNames[0]; h.prepared.set(agent, [name]); h.controller.refresh();
+  let shadowCalls = 0;
+  const stop = agent.ctx.tools.register({ name, description: 'Synthetic forbidden shadow', parameters: { type: 'object', properties: {} },
+    output: { schema: { type: 'object' }, render: () => [] }, execute: async () => { shadowCalls++; return {}; } });
+  const before = h.requests.length; const input = h.input(); await h.drive(agent, input);
+  assert.equal(h.requests.length, before);
+  assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
+  assert.equal((await h.call(agent, name)).isError, true); assert.equal(shadowCalls, 0);
+  stop(); h.controller.assertReady(agent);
+});
+
+contract('P1-03 cache discovery and legacy manual entry retain trusted Agent and confirmation rules', async (t) => {
+  const h = await restrictedHarness(t, { legacy: true }); const name = h.businessNames[0];
+  h.records[0].injectionMode = 'session';
+  const { agent } = await h.create('manual'); await h.drive(agent);
+  const discovery = h.ctx.tools.get('mcp_connector_discover', agent);
+  const result = await discovery.execute({ action: 'search', query: 'fixture' }, { agent });
+  assert.ok(result.detail.items.some((row) => row.publicName === name && row.manual));
+  const nativeSearch = await h.call(agent, 'mcp_connector_discover', { action: 'search', query: 'fixture' });
+  assert.equal(nativeSearch.isError, false);
+  assert.match(JSON.stringify(nativeSearch), new RegExp(name));
+  const session = h.ctx.tools.get('mcp_connector_session_tools', agent);
+  const preview = await session.execute({ action: 'preview-activate', connectionKey: h.records[0].key, publicNames: [name] }, { agent });
+  const args = { action: 'activate', connectionKey: h.records[0].key, publicNames: [name], expectedRevision: preview.detail.baseRevision };
+  assert.equal((await session.execute({ ...args, confirmed: false }, { agent })).ok, false);
+  assert.equal((await session.execute({ ...args, confirmed: true }, { agent })).ok, true);
+  assert.equal(h.ctx.tools.get(name, agent), undefined, 'legacy activation does not open the separate prepared layer');
+  h.prepared.set(agent, [name]); h.controller.refresh();
+  assert.equal((await h.call(agent, name)).isError, false);
+});
+
+for (const delivery of ['native', 'microtask', 'immediate']) {
+  contract(`P1-03 ${delivery} tools/change converges and rolls back only owned resources`, async (t) => {
+    const h = await restrictedHarness(t, { delivery }); const handle = await h.create('events'); await h.drive(handle.agent);
+    const name = 'mcp__qcc-company__new_fixture';
+    const stop = h.ctx.tools.register({ name, description: 'Synthetic new registration', parameters: { type: 'object', properties: {} },
+      output: { schema: { type: 'object' }, render: () => [] }, execute: async () => assert.fail('unprepared call') });
+    await tick(); await tick();
+    assert.equal(h.ctx.tools.get(name, handle.agent), undefined);
+    const otherDeny = handle.agent.ctx.tools.restrict({ deny: [h.outsideNames[0]] });
+    h.controller.dispose();
+    assert.ok(h.ctx.tools.get(name, handle.agent));
+    assert.equal(h.ctx.tools.get(h.outsideNames[0], handle.agent), undefined);
+    assert.equal(h.ctx.tools.get('mcp_connector_discover', handle.agent), undefined);
+    assert.equal(h.ctx.tools.schemas(handle.agent).filter((def) => def.name.startsWith('mcp_connector_')).length, 25);
+    await h.drive(handle.agent);
+    assert.ok(h.businessNames.every((entry) => h.requests.at(-1).tools.includes(entry)), 'rollback admits legacy inference again');
+    otherDeny(); stop();
+  });
+}
+
+contract('P1-03 failed name view blocks requests with recoverable input and keeps the old mask', async (t) => {
+  const h = await restrictedHarness(t); const { agent } = await h.create('failed-view'); await h.drive(agent);
+  const before = h.requests.length; h.breakRead(true);
+  const input = h.input(); await h.drive(agent, input);
+  assert.equal(h.requests.length, before);
+  assert.equal(h.ctx.tools.get(h.businessNames[0], agent), undefined);
+  assert.deepEqual(agent.inbox.nextTurn.map((m) => m.id), [input.id]);
+  h.breakRead(false); h.controller.assertReady(agent);
+});
+
+contract('P1-03 subagent and same-SessionId resume explicitly reinstall masks without parent preparation', async (t) => {
+  const h = await restrictedHarness(t); const parent = await h.create('restricted-parent'); await h.drive(parent.agent);
+  const name = h.businessNames[0]; h.prepared.set(parent.agent, [name]); h.controller.refresh();
+  const child = await h.create('restricted-child', { parentAgent: parent.agent,
+    meta: { origin: 'subagent', parentSession: parent.agent.id, delegationDepth: 1 } });
+  await h.drive(child.agent);
+  assert.equal(h.requests.at(-1).tools.includes(name), false);
+  assert.deepEqual(h.requests.at(-1).tools.filter((n) => n.startsWith('mcp_connector_')).sort(), ['mcp_connector_discover', 'mcp_connector_session_tools']);
+  await child.dispose(); await parent.dispose();
+  assert.equal(h.controller.status(parent.agent).mode, 'unattached');
+  const resumed = await h.resume('restricted-parent');
+  assert.notEqual(resumed.agent, parent.agent);
+  assert.equal(h.ctx.tools.get(name, resumed.agent), undefined);
+  await h.drive(resumed.agent);
+  assert.equal(h.requests.at(-1).tools.includes(name), false);
 });
