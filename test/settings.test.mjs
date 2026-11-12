@@ -207,3 +207,18 @@ test('omitting entryLocation keeps the legacy-derived base instead of a synthesi
   installConnectorSettings(ctx, { showSidebarEntry: false });
   assert.equal(registration.options.base[ENTRY_LOCATION_FIELD], 'settings', '旧 false → settings');
 });
+
+test('merged value layer still honours the legacy boolean', () => {
+  // 精简快照没有 user/base 分层时，value 兜底也不能只认新字段，
+  // 否则「只有旧布尔」会错误回退到默认档位。
+  assert.equal(resolveLocationFromLayers({ value: { showSidebarEntry: false } }), 'settings');
+  assert.equal(resolveLocationFromLayers({ value: { showSidebarEntry: true } }), 'both');
+  assert.equal(resolveLocationFromLayers({ value: { entryLocation: 'sidebar' } }), 'sidebar');
+  // 新字段优先于同一层的旧布尔。
+  assert.equal(
+    resolveLocationFromLayers({ value: { entryLocation: 'settings', showSidebarEntry: true } }),
+    'settings',
+  );
+  // 全空才用默认。
+  assert.equal(resolveLocationFromLayers({ value: {} }), DEFAULT_ENTRY_LOCATION);
+});
