@@ -1947,12 +1947,8 @@ test('legacy scope without mutate resets a legacy-only override', async () => {
 
   await reset.props.onClick();
 
-  // 不能抛 mutate is not a function，也不能零写入。
-  assert.ok(settings.writes.length >= 1, "老 scope 上重置必须真的写入");
-  assert.ok(
-    settings.writes.every(([kind]) => kind === 'unset'),
-    "老 scope 只能走 unset",
-  );
+  // 只有 showSidebarEntry 一个覆盖：必须恰好写一次，且不能顺手多清 entryLocation。
+  assert.deepEqual(settings.writes, [["unset", "showSidebarEntry"]], "只清实际存在的那个键");
 
   // 覆盖清空，解析回到部署基线（base.showSidebarEntry=true → both）。
   const after = settings.scope.getSnapshot();
