@@ -1472,7 +1472,6 @@ test('legacy showSidebarEntry:true keeps the sidebar visible after upgrade', asy
 });
 
 test('placement helpers keep the three placements distinct', async () => {
-  // 从编译产物里取出三个纯函数求值：它们不依赖 React 或 DOM。
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
 
   const grab = (name) => {
@@ -1491,10 +1490,13 @@ test('placement helpers keep the three placements distinct', async () => {
 
   const factory = new Function([
     'const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);',
+    'const DEFAULT_ENTRY_LOCATION = "both";',
     'const ENTRY_LOCATION_FIELD = "entryLocation";',
     'const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";',
     grab('normalizeEntryLocation'),
     grab('entryLocationFromLegacyFlag'),
+    grab('readLegacyFlag'),
+    grab('readEntryLocation'),
     grab('resolveEntryLocation'),
     grab('resolveSidebarVisible'),
     grab('resolveSettingsQuickOpen'),
@@ -1502,24 +1504,111 @@ test('placement helpers keep the three placements distinct', async () => {
   ].join('\n'));
   const helpers = factory();
 
-  const snapshot = (value) => ({ status: 'ready', value });
+  const layers = (value, base, user) => ({ status: 'ready', value, base, user });
 
-  // both：侧栏可见 + 设置页快捷按钮可用
-  const both = snapshot({ entryLocation: 'both' });
+  // ── 三档本身的差异 ──
+  const both = layers({ entryLocation: 'both' }, { entryLocation: 'both' }, {});
   assert.equal(helpers.resolveSidebarVisible(both), true, 'both 档侧栏可见');
   assert.equal(helpers.resolveSettingsQuickOpen('both'), true, 'both 档设置页可快捷打开');
 
-  // sidebar：侧栏可见 + 设置页不提供第二个打开入口
-  const sidebar = snapshot({ entryLocation: 'sidebar' });
-  assert.equal(helpers.resolveSidebarVisible(sidebar), true, 'sidebar 档侧栏可见');
+  const sidebarOnly = layers({ entryLocation: 'sidebar' }, { entryLocation: 'sidebar' }, {});
+  assert.equal(helpers.resolveSidebarVisible(sidebarOnly), true, 'sidebar 档侧栏可见');
   assert.equal(helpers.resolveSettingsQuickOpen('sidebar'), false, 'sidebar 档设置页不得提供快捷入口');
 
-  // settings：侧栏隐藏 + 设置页是唯一入口
-  const settings = snapshot({ entryLocation: 'settings' });
-  assert.equal(helpers.resolveSidebarVisible(settings), false, 'settings 档侧栏隐藏');
+  const settingsOnly = layers({ entryLocation: 'settings' }, { entryLocation: 'settings' }, {});
+  assert.equal(helpers.resolveSidebarVisible(settingsOnly), false, 'settings 档侧栏隐藏');
   assert.equal(helpers.resolveSettingsQuickOpen('settings'), true, 'settings 档必须能从设置页打开');
 
-  // 关键：both 与 sidebar 的侧栏行为相同，但设置页入口不同。
-  assert.equal(helpers.resolveSidebarVisible(both), helpers.resolveSidebarVisible(sidebar));
+  // both 与 sidebar 侧栏一致，但设置页入口不同 —— 这是维护者要求的差异。
+  assert.equal(helpers.resolveSidebarVisible(both), helpers.resolveSidebarVisible(sidebarOnly));
   assert.notEqual(helpers.resolveSettingsQuickOpen('both'), helpers.resolveSettingsQuickOpen('sidebar'));
+});
+
+test('layered resolution keeps legacy user overrides winning over synthesized base', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const grab = (name) => {
+    const start = source.indexOf(`function ${name}(`);
+    let depth = 0;
+    for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+      if (source[i] === '{') depth += 1;
+      else if (source[i] === '}') { depth -= 1; if (depth === 0) return source.slice(start, i + 1); }
+    }
+    throw new Error(`unbalanced ${name}`);
+  };
+  const factory = new Function([
+    'const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);',
+    'const DEFAULT_ENTRY_LOCATION = "both";',
+    'const ENTRY_LOCATION_FIELD = "entryLocation";',
+    'const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";',
+    grab('normalizeEntryLocation'),
+    grab('entryLocationFromLegacyFlag'),
+    grab('readLegacyFlag'),
+    grab('readEntryLocation'),
+    grab('resolveEntryLocation'),
+    'return { resolveEntryLocation };',
+  ].join('\n'));
+  const { resolveEntryLocation } = factory();
+
+  // 维护者复现 (1)：config true + 用户旧覆盖 false → 侧栏必须保持隐藏。
+  // base 已被合成为 both，但用户显式选过 false，旧覆盖优先。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { showSidebarEntry: false, entryLocation: 'both' },
+      base: { showSidebarEntry: true, entryLocation: 'both' },
+      user: { showSidebarEntry: false },
+    }),
+    'settings',
+    '用户旧覆盖 false 必须压过基线合成的 both',
+  );
+
+  // 维护者复现 (2)：config false + 用户旧覆盖 true → 侧栏必须可见。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { showSidebarEntry: true, entryLocation: 'settings' },
+      base: { showSidebarEntry: false, entryLocation: 'settings' },
+      user: { showSidebarEntry: true },
+    }),
+    'both',
+    '用户旧覆盖 true 必须压过基线合成的 settings',
+  );
+
+  // 用户显式选了新字段 → 新字段优先，旧布尔不再参与。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { entryLocation: 'sidebar' },
+      base: { entryLocation: 'both' },
+      user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    }),
+    'sidebar',
+    '用户显式新选择优先级最高',
+  );
+
+  // 只有基线信息（新装/未覆盖）→ 用基线档位。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { entryLocation: 'sidebar' }, base: { entryLocation: 'sidebar' }, user: {} }),
+    'sidebar',
+  );
+
+  // 基线只有旧布尔 → 翻译成等价档位（true→both，false→settings）。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { showSidebarEntry: true }, base: { showSidebarEntry: true }, user: {} }),
+    'both',
+  );
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { showSidebarEntry: false }, base: { showSidebarEntry: false }, user: {} }),
+    'settings',
+  );
+
+  // 全新安装（三层都没有该字段）→ 默认 both。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: {}, base: {}, user: {} }),
+    'both',
+    '全新安装默认 both，与旧 showSidebarEntry=true 行为一致',
+  );
+
+  // 设置不可用 → fail-open。
+  assert.equal(resolveEntryLocation({ status: 'loading' }), 'both', '未就绪时 fail-open');
 });
