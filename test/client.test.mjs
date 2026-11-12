@@ -224,6 +224,51 @@ function mutableSettingsScope(initial) {
   return { scope, writes, state };
 }
 
+/**
+ * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1。
+ * 没有 mutate —— 直接调 mutate 会抛 "settingsScope.mutate is not a function"。
+ */
+function mutableLegacySettingsScope(initial) {
+  let snapshot = initial;
+  const listeners = new Set();
+  const writes = [];
+  const state = { failOn: null };
+  const write = (field) => {
+    if (state.failOn === field) {
+      state.failOn = null;
+      throw new Error(`simulated failure on ${field}`);
+    }
+  };
+  const scope = {
+    getSnapshot: () => snapshot,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async set(field, value) {
+      writes.push(['set', field, value]);
+      write(field);
+      snapshot = {
+        ...snapshot,
+        status: 'ready',
+        value: { ...snapshot.value, [field]: value },
+        user: { ...snapshot.user, [field]: value },
+      };
+      for (const listener of listeners) listener();
+    },
+    async unset(field) {
+      writes.push(['unset', field]);
+      write(field);
+      const { [field]: _removed, ...user } = snapshot.user ?? {};
+      const nextValue = { ...snapshot.value };
+      if (snapshot.base?.[field] === undefined) delete nextValue[field];
+      else nextValue[field] = snapshot.base[field];
+      snapshot = { ...snapshot, status: 'ready', value: nextValue, user };
+      for (const listener of listeners) listener();
+    },
+  };
+  return { scope, writes, state };
+}
 test('客户端声明新会话所需服务', async () => {
   const plugin = await loadClient();
   assert.deepEqual(plugin.inject, ['slots', 'sessions', 'workspaces', 'conversation']);
@@ -1837,4 +1882,134 @@ test('Restore defaults leaves both keys untouched when the atomic write fails', 
   const after = settings.scope.getSnapshot();
   assert.equal(after.user?.entryLocation, "sidebar", "失败时 entryLocation 保持不变");
   assert.equal(after.user?.showSidebarEntry, false, "失败时 showSidebarEntry 保持不变");
+});
+
+/**
+ * 渲染设置卡片并返回可搜索的节点平面表。
+ * 用 useState 让第一个状态（卡片 open 开关）恒为 true，避免依赖点击展开。
+ */
+async function renderSettingsCard(settings) {
+  let openCalls = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    clientDocument: {
+      documentElement: { lang: 'zh-CN' },
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    reactApi: {
+      useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot(); },
+      useState(initial, init) {
+        openCalls += 1;
+        if (openCalls % 3 === 1) return [true, () => {}];
+        return [typeof init === "function" ? init() : initial, () => {}];
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const registration = registrations.get('settings.plugin.item');
+  const flat = [];
+  const visit = (node) => {
+    if (node == null || typeof node !== "object") return;
+    flat.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    return flat;
+  };
+  visit(registration.component({ ...registration.options.inject(), actions: { open() {} } }));
+  return flat;
+}
+
+test('legacy scope without mutate resets a legacy-only override', async () => {
+  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1：只有 set/unset。
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: false },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+  assert.ok(reset, "应有「恢复默认」按钮");
+
+  await reset.props.onClick();
+
+  // 不能抛 mutate is not a function，也不能零写入。
+  assert.ok(settings.writes.length >= 1, "老 scope 上重置必须真的写入");
+  assert.ok(
+    settings.writes.every(([kind]) => kind === 'unset'),
+    "老 scope 只能走 unset",
+  );
+
+  // 覆盖清空，解析回到部署基线（base.showSidebarEntry=true → both）。
+  const after = settings.scope.getSnapshot();
+  assert.equal(Object.hasOwn(after.user ?? {}, "showSidebarEntry"), false, "旧布尔覆盖应被清掉");
+});
+
+test('legacy scope without mutate clears both keys and restores the deployment base', async () => {
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+  await reset.props.onClick();
+
+  const unsettled = settings.writes.filter(([k]) => k === "unset").map(([, f]) => f);
+  assert.deepEqual(
+    [...unsettled].sort(),
+    ["entryLocation", "showSidebarEntry"],
+    "两个键都要清",
+  );
+
+  // 顺序：先清旧布尔，再清新字段 —— 避免中间态让旧值重新生效。
+  assert.equal(unsettled[0], "showSidebarEntry", "应先清 showSidebarEntry");
+  assert.equal(unsettled[1], "entryLocation", "再清 entryLocation");
+
+  const after = settings.scope.getSnapshot();
+  assert.equal(Object.hasOwn(after.user ?? {}, "entryLocation"), false);
+  assert.equal(Object.hasOwn(after.user ?? {}, "showSidebarEntry"), false);
+});
+
+test('legacy scope keeps the original placement when a reset write fails', async () => {
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+
+  // 让第一次 unset（showSidebarEntry）失败。
+  settings.state.failOn = "showSidebarEntry";
+  await reset.props.onClick();
+
+  // 失败发生在第一笔，用户文档应原样保留。
+  const after = settings.scope.getSnapshot();
+  assert.equal(after.user?.entryLocation, "sidebar", "失败时 entryLocation 不变");
+  assert.equal(after.user?.showSidebarEntry, false, "失败时 showSidebarEntry 不变");
 });
