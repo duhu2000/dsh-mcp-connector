@@ -79,7 +79,7 @@ function clientContext({
       calls.push(['open', id]);
     },
   };
-  if (workspaceNavigation === 'sessions') {
+  if (workspaceNavigation !== 'none') {
     sessions.create = async (options) => {
       calls.push(['create', options]);
       return 'session-new';
@@ -716,7 +716,327 @@ test('侧栏样式不改写宿主 footer 槽位或其它插件的 flex 布局（
   assert.doesNotMatch(fallbackRule, /!important/);
 });
 
-test('示例 Prompt 写入新会话草稿后再导航', async () => {
+// 新版契约独立建模：没有 current/recentWorkspaceId、sessions.open 或 input.shell。
+async function modernPromptFixture() {
+  const plugin = await loadClient();
+  const fixture = clientContext();
+  const { ctx, calls, registrations } = fixture;
+  const workspace = {
+    phase: 'ready',
+    items: [
+      { workspaceId: 'workspace-a', title: '项目 A', sessionIds: ['session-a', 'blank-a'] },
+      { workspaceId: 'workspace-b', title: '项目 B', sessionIds: ['session-b', 'blank-b'] },
+    ],
+  };
+  const snapshot = {
+    phase: 'ready', ids: ['session-a', 'blank-a', 'session-b', 'blank-b'],
+    byId: {
+      'session-a': { id: 'session-a', retainedBy: { mainView: 1 }, blank: false },
+      'session-b': { id: 'session-b', retainedBy: {}, blank: false },
+    },
+  };
+  const drafts = new Map([
+    ['blank-a', { text: '', attachments: [] }],
+    ['blank-b', { text: '', attachments: [] }],
+  ]);
+  const references = [];
+  let nextId = 0;
+  ctx.workspaces = { list: { getSnapshot: () => workspace } };
+  ctx.sessions = {
+    list: { getSnapshot: () => snapshot },
+    async create(options) {
+      assert.deepEqual(Object.keys(options), ['workspaceId'], '不得指定需要复用的身份');
+      calls.push(['create', options.workspaceId]);
+      const id = `fresh-${++nextId}`;
+      drafts.set(id, { text: '', attachments: [] });
+      return id;
+    },
+    retain(id, options) {
+      calls.push(['retain', id, options.source]);
+      const reference = {
+        binding: { sessionId: id }, released: false,
+        release() {
+          assert.equal(this.released, false, '每个临时引用只能释放一次');
+          this.released = true;
+          calls.push(['release', id]);
+        },
+      };
+      reference.ready = Promise.resolve(reference.binding);
+      references.push(reference);
+      return reference;
+    },
+  };
+  const input = {
+    requestDraftInitialization(binding, options) {
+      assert.ok(references.some((ref) => ref.binding === binding && !ref.released), '必须持有精确 binding');
+      assert.equal(options.whenDraftExists, 'keep');
+      calls.push(['initialize', binding.sessionId]);
+      const draft = drafts.get(binding.sessionId);
+      if (draft.text || draft.attachments.length) return 'preserved';
+      draft.text = options.prompt;
+      return 'applied';
+    },
+  };
+  let navigation;
+  const layout = {
+    beginNavigation() {
+      navigation?.abort();
+      navigation = new AbortController();
+      return navigation.signal;
+    },
+  };
+  const uiWorkspace = {
+    async connectWorkspace(id) {
+      calls.push(['connect', id]);
+      return id === 'workspace-a' ? 'blank-a' : 'blank-b';
+    },
+    openSession(id) {
+      assert.ok(references.some((ref) => ref.binding.sessionId === id && !ref.released));
+      calls.push(['openSession', id]);
+      // 真实 openSession 的 selectPanel 也会使本次导航 signal 失效。
+      navigation.abort();
+    },
+  };
+  ctx.get = (service) => ({ uiWorkspace, layout, conversation: { input } })[service];
+  plugin.apply(ctx);
+  const props = registrations.get('shell.overlay').options.inject();
+  return { ctx, calls, workspace, snapshot, drafts, references, input, uiWorkspace, layout, ...props };
+}
+
+test('新版主视图会话决定工作区，空白草稿在导航前初始化并释放临时引用', async () => {
+  const f = await modernPromptFixture();
+  assert.deepEqual(f.workspaceContext(), { workspaceId: 'workspace-a', title: '项目 A' });
+  assert.equal(await f.startPromptSession('示例文本'), 'blank-a');
+  assert.equal(f.drafts.get('blank-a').text, '示例文本');
+  assert.deepEqual(f.calls, [
+    ['connect', 'workspace-a'], ['retain', 'blank-a', 'controllerOperation'],
+    ['initialize', 'blank-a'], ['openSession', 'blank-a'], ['release', 'blank-a'],
+  ]);
+  assert.ok(f.references.every((ref) => ref.released));
+});
+
+test('新版点击时重新读取工作区，异步创建期间固定目标工作区', async () => {
+  const f = await modernPromptFixture();
+  f.snapshot.byId['session-a'].retainedBy = {};
+  f.snapshot.byId['session-b'].retainedBy = { mainView: 1 };
+  assert.equal(f.workspaceContext().workspaceId, 'workspace-b');
+  f.drafts.get('blank-b').text = '保留内容';
+  const connect = f.uiWorkspace.connectWorkspace;
+  f.uiWorkspace.connectWorkspace = async (id) => {
+    const result = await connect(id);
+    f.snapshot.byId['session-a'].retainedBy = { mainView: 1 };
+    f.snapshot.byId['session-b'].retainedBy = {};
+    return result;
+  };
+  assert.equal(await f.startPromptSession('示例'), 'fresh-1');
+  assert.ok(f.calls.some((call) => call[0] === 'create' && call[1] === 'workspace-b'));
+  assert.equal(f.drafts.get('blank-b').text, '保留内容');
+});
+
+test('新版不覆盖已有文字或仅有附件的草稿，而是在同工作区另建会话', async (t) => {
+  for (const draft of [{ text: '尚未发送的文字', attachments: [] }, { text: '', attachments: ['file-1'] }]) {
+    await t.test(JSON.stringify(draft), async () => {
+      const f = await modernPromptFixture();
+      f.drafts.set('blank-a', structuredClone(draft));
+      assert.equal(await f.startPromptSession('示例'), 'fresh-1');
+      assert.deepEqual(f.drafts.get('blank-a'), draft);
+      assert.equal(f.drafts.get('fresh-1').text, '示例');
+      assert.deepEqual(f.calls.filter((call) => call[0] === 'openSession'), [['openSession', 'fresh-1']]);
+      assert.ok(f.calls.findIndex((call) => call[0] === 'release') < f.calls.findIndex((call) => call[0] === 'create'));
+      assert.ok(f.references.every((ref) => ref.released));
+    });
+  }
+});
+
+test('新版没有 connectWorkspace 时可用 create 新建草稿会话', async () => {
+  const f = await modernPromptFixture();
+  delete f.uiWorkspace.connectWorkspace;
+  assert.equal(await f.startPromptSession('示例'), 'fresh-1');
+  assert.deepEqual(f.calls[0], ['create', 'workspace-a']);
+});
+
+test('新版未选择、加载中或无有效归属时不猜测工作区且不创建会话', async (t) => {
+  for (const state of ['no-selection', 'workspace-pending', 'session-pending', 'stale-workspace', 'no-snapshot']) {
+    await t.test(state, async () => {
+      const f = await modernPromptFixture();
+      if (state === 'no-selection') f.snapshot.byId['session-a'].retainedBy = {};
+      if (state === 'workspace-pending') f.workspace.phase = 'pending';
+      if (state === 'session-pending') f.snapshot.phase = 'pending';
+      if (state === 'stale-workspace') f.workspace.items = [];
+      if (state === 'no-snapshot') f.ctx.workspaces.list.getSnapshot = () => undefined;
+      assert.equal(f.workspaceContext(), null);
+      await assert.rejects(() => f.startPromptSession('示例'), /请先选择一个工作空间/);
+      assert.deepEqual(f.calls, []);
+    });
+  }
+});
+
+test('旧版选择字段只允许引用仍存在的工作区', async () => {
+  const plugin = await loadClient();
+  const { ctx, registrations } = clientContext({ workspaceId: null, recentWorkspaceId: 'deleted' });
+  plugin.apply(ctx);
+  assert.equal(registrations.get('shell.overlay').options.inject().workspaceContext(), null);
+});
+
+test('新版缺少完整能力时在创建前报错，不回退到部分旧接口', async (t) => {
+  for (const service of ['create', 'retain', 'openSession', 'input']) {
+    await t.test(service, async () => {
+      const f = await modernPromptFixture();
+      if (service === 'create' || service === 'retain') delete f.ctx.sessions[service];
+      if (service === 'openSession') delete f.uiWorkspace.openSession;
+      if (service === 'input') f.ctx.get = () => undefined;
+      await assert.rejects(() => f.startPromptSession('示例'), /能力|尚未就绪/);
+      assert.deepEqual(f.calls, []);
+    });
+  }
+});
+
+test('新版各阶段失败不返回成功或创建重复会话，并释放已取得的引用', async (t) => {
+  for (const stage of ['connect', 'create', 'retain', 'ready', 'blocked', 'initialize', 'open', 'fresh-conflict']) {
+    await t.test(stage, async () => {
+      const f = await modernPromptFixture();
+      const fail = () => { throw new Error(`failure:${stage}`); };
+      if (stage === 'connect') f.uiWorkspace.connectWorkspace = fail;
+      if (stage === 'create') {
+        f.drafts.get('blank-a').text = '保留文字';
+        f.ctx.sessions.create = fail;
+      }
+      if (stage === 'retain') f.ctx.sessions.retain = fail;
+      if (stage === 'ready') {
+        const retain = f.ctx.sessions.retain;
+        f.ctx.sessions.retain = (...args) => {
+          const ref = retain(...args);
+          ref.ready = Promise.reject(new Error('failure:ready'));
+          return ref;
+        };
+      }
+      if (stage === 'blocked') f.input.requestDraftInitialization = () => 'blocked';
+      if (stage === 'initialize') f.input.requestDraftInitialization = fail;
+      if (stage === 'open') f.uiWorkspace.openSession = fail;
+      if (stage === 'fresh-conflict') f.input.requestDraftInitialization = () => 'preserved';
+      await assert.rejects(() => f.startPromptSession('示例'), /failure:|草稿暂时无法写入/);
+      assert.ok(f.references.every((ref) => ref.released));
+      assert.equal(f.calls.some((call) => call[0] === 'openSession'), false);
+      assert.ok(f.calls.filter((call) => call[0] === 'create').length <= 1);
+      if (stage === 'blocked') assert.equal(f.drafts.get('blank-a').text, '');
+    });
+  }
+});
+
+test('导航取消发生在创建、引用就绪或写入后时，不抢回用户页面', async (t) => {
+  for (const stage of ['connect', 'ready', 'initialize']) {
+    await t.test(stage, async () => {
+      const f = await modernPromptFixture();
+      if (stage === 'connect') {
+        let complete;
+        f.uiWorkspace.connectWorkspace = () => new Promise((resolve) => { complete = resolve; });
+        const pending = f.startPromptSession('示例');
+        f.layout.beginNavigation();
+        complete('blank-a');
+        await assert.rejects(() => pending, /已取消/);
+      } else {
+        if (stage === 'ready') {
+          const retain = f.ctx.sessions.retain;
+          f.ctx.sessions.retain = (...args) => {
+            const ref = retain(...args);
+            ref.ready = ref.ready.then(() => { f.layout.beginNavigation(); return ref.binding; });
+            return ref;
+          };
+        } else {
+          const initialize = f.input.requestDraftInitialization;
+          f.input.requestDraftInitialization = (...args) => {
+            const result = initialize(...args);
+            f.layout.beginNavigation();
+            return result;
+          };
+        }
+        await assert.rejects(() => f.startPromptSession('示例'), /已取消/);
+      }
+      assert.equal(f.calls.some((call) => call[0] === 'openSession'), false);
+      if (stage !== 'initialize') assert.equal(f.drafts.get('blank-a').text, '');
+      assert.ok(f.references.every((ref) => ref.released));
+    });
+  }
+});
+
+async function hostPromptBridge(launch) {
+  const effects = [];
+  const refs = [];
+  const listeners = new Map();
+  const replies = [];
+  const closes = [];
+  const origin = 'http://127.0.0.1:3080';
+  const frame = { postMessage: (data, target) => replies.push({ data, target }) };
+  const plugin = await loadClient({
+    jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+    reactApi: {
+      useState: (initial) => [initial, () => {}],
+      useRef(initial) { const ref = { current: initial }; refs.push(ref); return ref; },
+      useEffect: (start) => effects.push(start),
+    },
+    windowExtras: {
+      location: { origin },
+      addEventListener: (name, fn) => listeners.set(name, fn),
+      removeEventListener: (name) => listeners.delete(name),
+      requestAnimationFrame: (fn) => fn(),
+    },
+  });
+  const { ctx, registrations } = clientContext();
+  plugin.apply(ctx);
+  registrations.get('shell.overlay').component({
+    wide: true, useStore: (select) => select({ open: true, detailOpen: true }),
+    actions: { close: () => closes.push('close'), detailOpened() {}, detailClosed() {} },
+    startPromptSession: launch,
+    workspaceContext: () => null, workspaceOptions: () => [],
+  });
+  refs[0].current = { contentWindow: frame };
+  const dispose = effects[0]();
+  const dispatch = (data, extras = {}) => listeners.get('message')({ origin, source: frame, data, ...extras });
+  return { dispatch, replies, closes, dispose, origin };
+}
+
+test('Host 仅接收同源指定 iframe 请求，草稿跳转完成后才回执并关闭', async () => {
+  const launched = [];
+  let complete;
+  const bridge = await hostPromptBridge((prompt) => {
+    launched.push(prompt);
+    return new Promise((resolve) => { complete = resolve; });
+  });
+  const request = { type: 'mcp-connector:start-session', requestId: 'request-1', prompt: '示例' };
+  bridge.dispatch(request, { origin: 'https://other.example' });
+  bridge.dispatch(request, { source: {} });
+  await new Promise(setImmediate);
+  assert.deepEqual(launched, []);
+  bridge.dispatch(request);
+  await new Promise(setImmediate);
+  assert.deepEqual(launched, ['示例']);
+  assert.deepEqual(bridge.replies, []);
+  assert.deepEqual(bridge.closes, []);
+  complete('new-session');
+  await new Promise(setImmediate);
+  assert.deepEqual(bridge.replies, [{
+    data: { type: 'mcp-connector:start-session-result', requestId: 'request-1', ok: true, message: '已带入新会话' },
+    target: bridge.origin,
+  }]);
+  assert.deepEqual(bridge.closes, ['close']);
+  bridge.dispose();
+});
+
+test('Host 同步抛错或异步失败时均返回失败并保留详情页', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  for (const launch of [() => { throw new Error('draft failed'); }, async () => { throw new Error('draft failed'); }]) {
+    const bridge = await hostPromptBridge(launch);
+    bridge.dispatch({ type: 'mcp-connector:start-session', requestId: 'failed', prompt: '示例' });
+    await new Promise(setImmediate);
+    assert.equal(bridge.replies[0].data.ok, false);
+    assert.equal(bridge.replies[0].data.requestId, 'failed');
+    assert.equal(bridge.replies[0].data.message, 'draft failed');
+    assert.deepEqual(bridge.closes, []);
+    bridge.dispose();
+  }
+});
+
+test('旧版示例 Prompt 写入独立新会话草稿后再导航', async () => {
   const plugin = await loadClient();
   const { ctx, registrations, calls } = clientContext();
   plugin.apply(ctx);
@@ -725,20 +1045,20 @@ test('示例 Prompt 写入新会话草稿后再导航', async () => {
   const props = overlay.options.inject();
   await props.startPromptSession('查询企查查的对外投资布局');
   assert.deepEqual(calls, [
-    ['connectWorkspace', 'workspace-1'],
+    ['create', { workspaceId: 'workspace-1' }],
     ['setDraft', '查询企查查的对外投资布局'],
     ['open', 'session-new'],
   ]);
 });
 
-test('DSH 0.1.2 仅提供 uiWorkspace 时可创建 Prompt 会话', async () => {
+test('旧输入机即使提供 uiWorkspace 也不复用可能已有草稿的会话', async () => {
   const plugin = await loadClient();
   const { ctx, registrations, calls } = clientContext({ workspaceNavigation: 'ui' });
   plugin.apply(ctx);
   const props = registrations.get('shell.overlay').options.inject();
   await props.startPromptSession('查询 SHOPLINE 商品创建接口');
   assert.deepEqual(calls, [
-    ['uiConnectWorkspace', 'workspace-1'],
+    ['create', { workspaceId: 'workspace-1' }],
     ['setDraft', '查询 SHOPLINE 商品创建接口'],
     ['open', 'session-new'],
   ]);
