@@ -55,6 +55,64 @@ function catalog(plugins = [connector, windows]) {
   };
 }
 
+function rankReport(ok) {
+  return {
+    ok,
+    registryUrl: 'https://awesome-dsh-plugin.com/plugins.json',
+    catalogUpdated: '2026-11-12',
+    marketVersion: '1.73.11',
+    locale: 'zh',
+    category: 'all',
+    sort: 'downloads-desc',
+    algorithm: 'test algorithm',
+    algorithmContract: 'test contract',
+    checkedAt: '2026-11-12T02:00:00.000Z',
+    queries: [],
+  };
+}
+
+function reconciliationScript() {
+  const workflow = readFileSync(new URL('../.github/workflows/market-search-rank.yml', import.meta.url), 'utf8');
+  const match = workflow.match(/uses: actions\/github-script@v7[\s\S]*?script: \|\n([\s\S]*?)\n      - name: Preserve failing status/);
+  assert.ok(match, 'github-script reconciliation body should be extractable');
+  return match[1].split('\n').map((line) => line.replace(/^ {12}/, '')).join('\n');
+}
+
+async function runReconciliation({ report, issues }) {
+  const calls = { paginate: [], update: [], create: [], createComment: [], warnings: [] };
+  const listForRepo = async () => {
+    throw new Error('listForRepo must be called through github.paginate');
+  };
+  const github = {
+    paginate: async (method, params) => {
+      assert.equal(method, listForRepo);
+      calls.paginate.push({ method, params });
+      return issues;
+    },
+    rest: {
+      issues: {
+        listForRepo,
+        update: async (params) => { calls.update.push(params); },
+        create: async (params) => { calls.create.push(params); },
+        createComment: async (params) => { calls.createComment.push(params); },
+      },
+    },
+  };
+  const fakeRequire = (specifier) => {
+    assert.equal(specifier, 'node:fs');
+    return {
+      existsSync: () => true,
+      readFileSync: () => JSON.stringify(report),
+    };
+  };
+  const AsyncFunction = Object.getPrototypeOf(async function noop() {}).constructor;
+  const execute = new AsyncFunction('require', 'github', 'context', 'core', reconciliationScript());
+  await execute(fakeRequire, github, { repo: { owner: 'duhu2000', repo: 'dsh-mcp-connector' } }, {
+    warning: (message) => calls.warnings.push(message),
+  });
+  return calls;
+}
+
 test('normalizes mixed Han and Latin search terms like dsh-market', () => {
   assert.equal(searchText('  MCP连接器 / OAuth2授权  '), 'mcp 连接器 oauth2 授权');
 });
@@ -83,6 +141,28 @@ test('connector intent queries outrank a Windows MCP bridge', () => {
     assert.equal(result.rank, 1, query);
     assert.equal(result.passed, true, query);
   }
+});
+
+test('same bare name from another npm owner is not treated as the connector', () => {
+  const impostor = {
+    ...connector,
+    npm: '@other-owner/dsh-mcp-connector',
+    url: 'https://github.com/other-owner/dsh-mcp-connector',
+    downloads: 50_000,
+  };
+  const result = assessQuery(catalog([impostor, connector]), {
+    id: 'mcp', query: 'mcp', maxRank: 1, required: true,
+  });
+  assert.equal(result.rank, 2);
+  assert.equal(result.connector.npm, 'dsh-mcp-connector');
+});
+
+test('a bare display name without npm or repository identity is not the connector', () => {
+  const ambiguous = { ...connector, npm: undefined, url: undefined, downloads: 50_000 };
+  const result = assessQuery(catalog([ambiguous]), {
+    id: 'mcp', query: 'mcp', maxRank: 1, required: true,
+  });
+  assert.equal(result.rank, null);
 });
 
 test('optimized catalog copy covers adjacent marketplace discovery intents', () => {
@@ -144,4 +224,62 @@ test('workflow schedules the monitor and maintains one issue', () => {
   assert.match(workflow, /<!-- market-search-rank-monitor -->/);
   assert.match(workflow, /MARKET_RANK_REPORT_PATH: market-search-rank-report\.json/);
   assert.match(workflow, /steps\.rank\.outcome == 'failure'/);
+});
+
+test('reconciliation excludes pull requests even when their body contains the marker', async () => {
+  const marker = '<!-- market-search-rank-monitor -->';
+  const calls = await runReconciliation({
+    report: rankReport(false),
+    issues: [{
+      number: 215,
+      title: 'DSH Market MCP search rank is below target',
+      body: marker,
+      user: { login: 'github-actions[bot]' },
+      pull_request: { url: 'https://api.github.com/pulls/215' },
+    }],
+  });
+  assert.equal(calls.paginate.length, 1);
+  assert.equal(calls.create.length, 1);
+  assert.equal(calls.update.length, 0);
+});
+
+test('failure reconciliation finds the single alert after the first API page', async () => {
+  const unrelated = Array.from({ length: 100 }, (_, index) => ({
+    number: index + 1,
+    title: `Unrelated issue ${index + 1}`,
+    body: '',
+    user: { login: 'someone' },
+  }));
+  const existing = {
+    number: 212,
+    title: 'DSH Market MCP search rank is below target',
+    body: '<!-- market-search-rank-monitor -->',
+    user: { login: 'github-actions[bot]' },
+  };
+  const calls = await runReconciliation({ report: rankReport(false), issues: [...unrelated, existing] });
+  assert.equal(calls.paginate[0].params.per_page, 100);
+  assert.equal(calls.create.length, 0);
+  assert.equal(calls.update.length, 1);
+  assert.equal(calls.update[0].issue_number, 212);
+});
+
+test('recovery reconciliation finds a later-page alert, comments, and closes it', async () => {
+  const unrelated = Array.from({ length: 100 }, (_, index) => ({
+    number: index + 1,
+    title: `Unrelated issue ${index + 1}`,
+    body: '',
+    user: { login: 'someone' },
+  }));
+  const existing = {
+    number: 212,
+    title: 'DSH Market MCP search rank is below target',
+    body: '<!-- market-search-rank-monitor -->',
+    user: { login: 'github-actions[bot]' },
+  };
+  const calls = await runReconciliation({ report: rankReport(true), issues: [...unrelated, existing] });
+  assert.equal(calls.create.length, 0);
+  assert.equal(calls.createComment.length, 1);
+  assert.equal(calls.createComment[0].issue_number, 212);
+  assert.equal(calls.update.length, 1);
+  assert.equal(calls.update[0].state, 'closed');
 });

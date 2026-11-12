@@ -102,9 +102,22 @@ function normalizeRepository(value) {
 }
 
 function isConnector(plugin) {
-  return plugin?.name === PACKAGE_NAME
-    || plugin?.npm === PACKAGE_NAME
-    || normalizeRepository(plugin?.url ?? plugin?.repository) === normalizeRepository(REPOSITORY_URL);
+  const npmIdentity = String(plugin?.npm ?? '').trim().toLowerCase();
+  const repository = plugin?.repository && typeof plugin.repository === 'object'
+    ? plugin.repository.url
+    : plugin?.repository ?? plugin?.url;
+  const repositoryIdentity = normalizeRepository(repository);
+  const expectedRepository = normalizeRepository(REPOSITORY_URL);
+  const hasNpmIdentity = npmIdentity !== '';
+  const hasRepositoryIdentity = repositoryIdentity !== '';
+  const npmMatches = npmIdentity === PACKAGE_NAME;
+  const repositoryMatches = repositoryIdentity === expectedRepository;
+
+  // A display name is not an identity: another publisher may legitimately use
+  // the same bare name. Also reject records whose declared npm/repository
+  // identity contradicts the connector, even if another field happens to match.
+  if ((hasNpmIdentity && !npmMatches) || (hasRepositoryIdentity && !repositoryMatches)) return false;
+  return npmMatches || repositoryMatches;
 }
 
 function compactPlugin(row) {

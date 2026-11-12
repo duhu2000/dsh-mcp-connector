@@ -48,6 +48,8 @@ jobs:
           script: |
             const fs = require('node:fs')
             const marker = '<!-- market-search-rank-monitor -->'
+            const alertTitle = 'DSH Market MCP search rank is below target'
+            const alertCreator = 'github-actions[bot]'
             const reportPath = 'market-search-rank-report.json'
             if (!fs.existsSync(reportPath)) {
               core.warning('No market rank report was produced; leaving any existing rank issue unchanged.')
@@ -78,13 +80,16 @@ jobs:
               'This issue is maintained automatically and will close after every required core query meets its target.',
               'Ranking is catalog discoverability under fixed conditions. It is not installation conversion, a unique-user count, or business-call acceptance.',
             ].join('\n')
-            const { data: issues } = await github.rest.issues.listForRepo({
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               per_page: 100,
             })
-            const existing = issues.find((issue) => issue.body?.includes(marker))
+            const existing = issues.find((issue) => !issue.pull_request
+              && issue.title === alertTitle
+              && issue.user?.login === alertCreator
+              && issue.body?.includes(marker))
             if (!report.ok) {
               if (existing) {
                 await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body })
@@ -92,7 +97,7 @@ jobs:
                 await github.rest.issues.create({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  title: 'DSH Market MCP search rank is below target',
+                  title: alertTitle,
                   body,
                   labels: [],
                 })
