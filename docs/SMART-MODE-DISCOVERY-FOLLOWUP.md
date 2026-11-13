@@ -6,6 +6,8 @@
 
 English: This follow-up adds an opt-in, atomic raw discovery publisher and fail-closed view invalidation. Installed/development baselines are recorded separately. Live metadata acquisition failed at initialization with HTTP 401; real-account preparation and provider benefit acceptance remain unverified.
 
+后续状态：同日授权可用后完成六路真实目录补采，新增历史绑定和扩展字段候选边界，见 [授权排查与真实元数据补验](./SMART-MODE-REAL-METADATA-ACCEPTANCE.md)。本报告保留原时点失败记录，不追溯改写成成功。
+
 ## 版本边界
 
 | 验证对象 | 固定结果 | 边界 |
