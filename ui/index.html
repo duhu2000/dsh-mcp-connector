@@ -336,6 +336,9 @@
   .tools-summary { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: auto; }
   .tools-panel { background: var(--bg); padding: 12px; }
   .tools-toolbar { margin-bottom: 10px; }
+  .tools-entry-row, .tool-source-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-2); margin: 6px 0; }
+  .tools-entry-row select, .tool-source-row select { width: auto; max-width: min(100%, 22em); }
+  .tools-entry-hint { margin: 6px 0 10px; color: var(--text-2); font-size: 12px; }
   .governance-bar {
     display: flex; align-items: center; gap: 8px; padding: 9px 10px; margin-bottom: 10px;
     border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 12px;
@@ -365,7 +368,7 @@
   .tool-item { padding: 10px 12px; border-top: 1px solid #f0f1f3; }
   .tool-item:first-child { border-top: 0; }
   .tool-item:hover { background: var(--accent-light); }
-  .tool-name-row { display: flex; align-items: center; gap: 7px; }
+  .tool-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
   .tool-detail-btn { margin-left: auto; border: 0; background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; padding: 2px 4px; }
   .tool-schema { margin: 10px 0 0; padding: 10px; border-radius: 8px; background: var(--bg); max-height: 320px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
   .tool-name { color: var(--text); font: 600 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-wrap: anywhere; }
@@ -572,6 +575,8 @@
               <button class="text-btn" id="policy-rollback" type="button" hidden>撤销最近变更</button>
             </div>
             <div class="tools-toolbar">
+              <p class="tools-entry-hint" id="tools-entry-hint" hidden></p>
+              <label class="tools-entry-row" id="tools-entry-row" hidden><span id="tools-entry-label">查看范围</span><select class="policy-select" id="tools-entry"></select></label>
               <input class="tools-search" id="tools-search" type="search" placeholder="搜索工具名称或描述…" autocomplete="off" />
             </div>
             <div class="tools-list" id="detail-tools">
@@ -786,7 +791,20 @@
       "请输入{name}": "Enter {name}",
       "· 精选 {visible} / 共 {total} 条": "· {visible} of {total} curated",
       "暂无预设 Prompt": "No preset prompts",
-      "{servers} 个服务 · {tools} 个工具": "{servers} servers · {tools} tools",
+      "{tools} 个工具 · {servers} 个服务入口": "{tools} tools · {servers} service endpoints",
+      "查看范围": "View",
+      "所有工具": "All tools",
+      "{entry}（{count} 个工具）": "{entry} ({count} tools)",
+      "全部工具入口包含 {tools} 个工具，另外 {entries} 个入口按业务分类提供其中的工具。": "The full endpoint includes all {tools} tools. The other {entries} endpoints offer subsets by category.",
+      "可用入口": "Available endpoints",
+      "当前入口": "Selected endpoint",
+      "全部工具（{entry}）": "Full catalog ({entry})",
+      "风险（{entry}）": "Risk ({entry})",
+      "知识产权（{entry}）": "Intellectual property ({entry})",
+      "经营（{entry}）": "Operations ({entry})",
+      "历史（{entry}）": "History ({entry})",
+      "人员（{entry}）": "Executives ({entry})",
+      "正在后台发现工具，请稍候": "Tool discovery is in progress. Please wait.",
       "搜索 {count} 个工具的名称或描述…": "Search {count} tools by name or description…",
       "搜索工具名称或描述…": "Search tool names or descriptions…",
       "搜索连接器…": "Search connectors…",
@@ -1339,6 +1357,7 @@
   let promptPage = 0;
   let detailConnector = null;
   let detailToolServers = [];
+  const detailToolSources = new Map();
   let detailGovernance = null;
   let detailNeedsReconfigure = false;
   let detailFailureState = '';
@@ -1816,12 +1835,15 @@
       : `<div style="color:var(--muted);font-size:13px;">${t('暂无预设 Prompt')}</div>`;
   }
 
-  function updateToolsSummary() {
-    const totalTools = detailToolServers.reduce((sum, server) => sum + (server.tools?.length || 0), 0);
-    $('#tools-summary').textContent = t('{servers} 个服务 · {tools} 个工具', { servers: detailToolServers.length, tools: totalTools });
-    $('#tools-search').placeholder = totalTools > 0
-      ? t('搜索 {count} 个工具的名称或描述…', { count: totalTools })
-      : t('搜索工具名称或描述…');
+  function resetDetailTools() {
+    detailToolServers = [];
+    detailToolSources.clear();
+    toolRenderLimit = 50;
+    $('#tools-entry').value = '';
+    $('#tools-entry-row').hidden = true;
+    $('#tools-entry-hint').hidden = true;
+    $('#tools-search').value = '';
+    $('#tools-search').placeholder = t('搜索工具名称或描述…');
   }
 
   function isDeprecatedTool(tool) {
@@ -1950,60 +1972,135 @@
     return score;
   }
 
+  function toolEntryName(server) {
+    return server.serverName || server.serverKey || '';
+  }
+
+  function toolEntryLabel(server) {
+    const entry = toolEntryName(server);
+    if (detailConnector?.id !== 'qcc-company') return entry;
+    switch (entry) {
+      case 'qcc-company': return t('全部工具（{entry}）', { entry });
+      case 'qcc-risk': return t('风险（{entry}）', { entry });
+      case 'qcc-ipr': return t('知识产权（{entry}）', { entry });
+      case 'qcc-operation': return t('经营（{entry}）', { entry });
+      case 'qcc-history': return t('历史（{entry}）', { entry });
+      case 'qcc-executive': return t('人员（{entry}）', { entry });
+      default: return entry;
+    }
+  }
+
+  function groupDetailTools(servers) {
+    const groups = new Map();
+    const counts = new Map();
+    for (const server of servers) {
+      const names = new Set();
+      for (const tool of server.tools || []) {
+        if (typeof tool?.name !== 'string' || !tool.name.trim() || names.has(tool.name)) continue;
+        names.add(tool.name);
+        if (!groups.has(tool.name)) groups.set(tool.name, []);
+        groups.get(tool.name).push({ server, tool });
+      }
+      counts.set(server, names.size);
+    }
+    return { groups, counts };
+  }
+
+  function updateToolsToolbar(groups, counts) {
+    const entrySelect = $('#tools-entry');
+    const selected = detailToolServers.find((server) => toolEntryName(server) === entrySelect.value);
+    const options = detailToolServers.map((server) => {
+      const entry = toolEntryName(server);
+      return `<option value="${esc(entry)}" ${server === selected ? 'selected' : ''}>${esc(t('{entry}（{count} 个工具）', { entry: toolEntryLabel(server), count: counts.get(server) }))}</option>`;
+    });
+    entrySelect.innerHTML = `<option value="">${t('所有工具')}</option>${options.join('')}`;
+    $('#tools-entry-row').hidden = detailToolServers.length < 2;
+    const full = detailToolServers.find((server) => server.serverKey === 'company' || server.serverName === 'qcc-company');
+    const hint = $('#tools-entry-hint');
+    const complete = detailConnector?.id === 'qcc-company' && detailToolServers.length > 1 && full
+      && counts.get(full) === groups.size && detailToolServers.every((server) => counts.get(server) > 0
+        && server.ok && !server.error && !server.pending && !server.stale && !server.preview && !server.cacheTruncated);
+    hint.hidden = !complete;
+    hint.textContent = complete ? t('全部工具入口包含 {tools} 个工具，另外 {entries} 个入口按业务分类提供其中的工具。', {
+      tools: groups.size, entries: detailToolServers.length - 1,
+    }) : '';
+    const count = selected ? counts.get(selected) : groups.size;
+    $('#tools-search').placeholder = count ? t('搜索 {count} 个工具的名称或描述…', { count }) : t('搜索工具名称或描述…');
+    $('#tools-summary').textContent = t('{tools} 个工具 · {servers} 个服务入口', { tools: groups.size, servers: detailToolServers.length });
+    return selected;
+  }
+
+  function cacheLabel(server) {
+    if (!server.cached) return '';
+    return t(' · 最后成功缓存 {at}{stale}', {
+      at: server.cacheObservedAt ? new Date(server.cacheObservedAt).toLocaleString(t.locale, { hour12: false }) : '',
+      stale: server.stale ? t(' · 已超过 24 小时') : '',
+    });
+  }
+
+  function renderEntryStatus(server, showHeader) {
+    if (!showHeader && !server.error && (server.ok || server.cached)) return '';
+    const label = toolEntryLabel(server);
+    const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', t('{label} Server 策略', { label }));
+    const status = server.ok || server.cached ? cacheLabel(server) : t(server.pending ? '正在发现' : '加载失败');
+    let message = server.error;
+    if (message && server.cached) message = t('实时读取失败：{error}；以下为最后成功缓存。', { error: message });
+    if (!message && !server.ok && !server.cached) message = t(server.pending ? '正在后台发现工具，请稍候' : '未知错误');
+    if (!message && server.managed && !server.tools?.length) message = t('Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。');
+    return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">${esc(status)}</span></span>${serverSelect}</div>${message ? `<div class="tools-error">${esc(message)}</div>` : ''}</div>`;
+  }
+
+  function matchedDetailTools(groups, entry, query) {
+    const rows = [];
+    for (const [name, allSources] of groups) {
+      const sources = entry ? allSources.filter((source) => source.server === entry) : allSources;
+      if (!sources.length) continue;
+      let best = sources[0];
+      let score = -1;
+      if (query) {
+        for (const source of sources) {
+          const candidate = toolSearchScore(source.tool, query);
+          if (candidate > score) { score = candidate; best = source; }
+        }
+        if (score < 0) continue;
+      }
+      const preferred = detailToolSources.get(name);
+      const selected = sources.find((source) => toolEntryName(source.server) === preferred) || best;
+      rows.push({ name, sources, selected, score });
+    }
+    return rows.sort((a, b) => query ? b.score - a.score || a.name.localeCompare(b.name)
+      : Number(isDeprecatedTool(a.selected.tool)) - Number(isDeprecatedTool(b.selected.tool)));
+  }
+
+  function renderDetailTool({ name, sources, selected }) {
+    const { server, tool } = selected;
+    const entry = toolEntryName(server);
+    const sourceLabels = sources.map((source) => toolEntryLabel(source.server));
+    const sourceOptions = sources.length > 1 ? `<label class="tool-source-row">${t('当前入口')}<select class="policy-select" data-tool-source data-tool-name="${esc(name)}">${sources.map((source) =>
+      `<option value="${esc(toolEntryName(source.server))}" ${source === selected ? 'selected' : ''}>${esc(toolEntryLabel(source.server))}</option>`).join('')}</select></label>` : '';
+    const description = tool.description || (tool.title && tool.title !== name ? tool.title : '');
+    const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, name, tool.publicName, t('{name} Tool 策略', { name: `${entry} / ${name}` }));
+    const detailButton = server.preview ? '' : `<button class="tool-detail-btn" type="button" data-tool-detail="true" data-server-name="${esc(server.serverName || '')}" data-tool-name="${esc(name)}">${t('参数详情')}</button>`;
+    return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(name)}</div>${isDeprecatedTool(tool) ? `<span class="tool-deprecated">${t('已弃用')}</span>` : ''}${policyBadge(tool.policy)}</div>
+      <div class="tool-source-row">${t('可用入口')} · ${esc(sourceLabels.join(' / '))}</div>
+      <div class="tool-name-row">${sourceOptions}${esc(cacheLabel(server))}${detailButton}${toolSelect}</div>
+      <div class="tool-description${description ? '' : ' empty'}">${esc(description || t('暂无描述'))}</div></div>`;
+  }
+
   function renderTools() {
     const query = normalizeToolSearchText($('#tools-search').value);
-    if (detailToolServers.length === 0) {
-      updateToolsSummary();
-      $('#detail-tools').innerHTML = `<div class="tools-empty">${t('暂无可用工具')}</div>`;
-      return;
-    }
-    let matchedTools = 0;
-    let renderedTools = 0;
-    let remaining = toolRenderLimit;
-    const rankedServers = query ? [...detailToolServers].sort((a, b) =>
-      Math.max(-1, ...(b.tools || []).map((tool) => toolSearchScore(tool, query)))
-      - Math.max(-1, ...(a.tools || []).map((tool) => toolSearchScore(tool, query)))) : detailToolServers;
-    const groups = rankedServers.map((server) => {
-      const label = server.serverName || server.serverKey || 'MCP Server';
-      const serverSelect = policySelect('server', server.policy?.configuredEffect, server.serverName, '', '', t('{label} Server 策略', { label }));
-      if (!server.ok && !server.cached) {
-        if (query) return '';
-        return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">· ${esc(t(server.pending ? '正在发现' : '加载失败'))}</span></span>${serverSelect}</div><div class="tools-error">${esc(server.error || t('未知错误'))}</div></div>`;
-      }
-      const matched = (server.tools || []).filter((tool) => {
-        if (!query) return true;
-        return toolSearchScore(tool, query) >= 0;
-      }).sort((left, right) => query
-        ? toolSearchScore(right, query) - toolSearchScore(left, query) || left.name.localeCompare(right.name)
-        : Number(isDeprecatedTool(left)) - Number(isDeprecatedTool(right)));
-      if (query && matched.length === 0) return '';
-      matchedTools += matched.length;
-      const tools = matched.slice(0, Math.max(0, remaining));
-      remaining -= tools.length;
-      renderedTools += tools.length;
-      if (tools.length === 0 && matched.length > 0) return '';
-      const items = tools.length > 0
-        ? tools.map((tool) => {
-          const description = tool.description || (tool.title && tool.title !== tool.name ? tool.title : '');
-          const deprecated = isDeprecatedTool(tool);
-          const toolSelect = policySelect('tool', tool.policy?.configuredEffect, server.serverName, tool.name, tool.publicName, t('{name} Tool 策略', { name: tool.name }));
-          const detailButton = server.preview ? '' : `<button class="tool-detail-btn" type="button" data-tool-detail="true" data-server-name="${esc(server.serverName || '')}" data-tool-name="${esc(tool.name || '')}">${t('参数详情')}</button>`;
-          return `<div class="tool-item"><div class="tool-name-row"><div class="tool-name">${esc(tool.name || tool.title || t('未命名工具'))}</div>${deprecated ? `<span class="tool-deprecated">${t('已弃用')}</span>` : ''}${policyBadge(tool.policy)}${detailButton}${toolSelect}</div><div class="tool-description${description ? '' : ' empty'}">${esc(description || t('暂无描述'))}</div></div>`;
-        }).join('')
-        : server.managed
-          ? `<div class="tools-loading">${t('Host 已完成 stdio 初始化，但该 Server 当前没有可展示的工具。')}</div>`
-          : `<div class="tools-loading">${t('暂无工具')}</div>`;
-      const cacheLabel = server.cached
-        ? t(' · 最后成功缓存 {at}{stale}', { at: server.cacheObservedAt ? esc(new Date(server.cacheObservedAt).toLocaleString(t.locale, { hour12: false })) : '', stale: server.stale ? t(' · 已超过 24 小时') : '' })
-        : '';
-      const cacheError = server.cached && server.error ? `<div class="tools-error">${t('实时读取失败：{error}；以下为最后成功缓存。', { error: esc(server.error) })}</div>` : '';
-      return `<div class="tools-server"><div class="tools-server-header"><span class="tools-server-copy">${esc(label)} <span class="count">${t('· 显示 {shown} / {matched} 个', { shown: tools.length, matched: matched.length })}${cacheLabel}</span></span>${serverSelect}</div>${cacheError}${items}</div>`;
-    }).filter(Boolean);
-    $('#detail-tools').innerHTML = groups.length > 0
-      ? `${groups.join('')}${renderedTools < matchedTools ? `<button class="tools-more" id="tools-more" type="button">${t('再显示 {step} 个（剩余 {remaining}）', { step: Math.min(50, matchedTools - renderedTools), remaining: matchedTools - renderedTools })}</button>` : ''}`
-      : `<div class="tools-empty">${t('没有匹配“{query}”的工具', { query: esc($('#tools-search').value.trim()) })}</div>`;
-    if (query) $('#tools-summary').textContent = t('匹配 {matched} 个工具 · 已渲染 {shown}', { matched: matchedTools, shown: renderedTools });
-    else updateToolsSummary();
+    const { groups, counts } = groupDetailTools(detailToolServers);
+    const entry = updateToolsToolbar(groups, counts);
+    const servers = entry ? [entry] : detailToolServers;
+    const status = servers.map((server) => renderEntryStatus(server, servers.length === 1)).join('');
+    const matched = matchedDetailTools(groups, entry, query);
+    const visible = matched.slice(0, toolRenderLimit);
+    const remaining = matched.length - visible.length;
+    const more = remaining ? `<button class="tools-more" id="tools-more" type="button">${t('再显示 {step} 个（剩余 {remaining}）', { step: Math.min(50, remaining), remaining })}</button>` : '';
+    const empty = query ? t('没有匹配“{query}”的工具', { query: $('#tools-search').value.trim() }) : t('暂无可用工具');
+    const items = visible.length ? `<div class="tools-server">${visible.map(renderDetailTool).join('')}</div>` : `<div class="tools-empty">${esc(empty)}</div>`;
+    $('#detail-tools').innerHTML = status + items + more;
+    if (query) $('#tools-summary').textContent = t('匹配 {matched} 个工具 · 已渲染 {shown}', { matched: matched.length, shown: visible.length });
   }
 
   function openModal(title, bodyHtml) {
@@ -3315,10 +3412,8 @@
       detailPrompts = (d.prompts || []).filter((prompt) => prompt?.text || prompt?.title);
       promptPage = 0;
       renderPromptPage();
-      detailToolServers = [];
+      resetDetailTools();
       detailGovernance = null;
-      toolRenderLimit = 50;
-      $('#tools-search').value = '';
       $('#tools-disclosure').open = false;
       $('#tools-summary').textContent = t('加载中…');
       $('#detail-tools').innerHTML = `<div class="tools-loading">${t('正在读取可用工具及描述…')}</div>`;
@@ -3389,7 +3484,6 @@
       renderPromptPage();
       detailToolServers = toolsResult.detail?.servers || [];
       if (detailToolServers.some((server) => (server.tools || []).length > 0)) recordLocalConversion('toolDiscoverySucceeded', connectorId);
-      updateToolsSummary();
       renderTools();
     },
     submitPromptVariables() {
@@ -3465,9 +3559,18 @@
     if (prompt && detailConnector?.connected?.length && !detailNeedsReconfigure) openPromptForm(prompt);
   });
   $('#tools-search').addEventListener('input', () => { toolRenderLimit = 50; renderTools(); });
+  $('#tools-entry').addEventListener('change', () => { toolRenderLimit = 50; renderTools(); });
   $('#connection-policy').addEventListener('change', (event) => applyPolicySelection(event.target));
   $('#policy-rollback').addEventListener('click', rollbackLatestPolicy);
   $('#detail-tools').addEventListener('change', (event) => {
+    const source = event.target.closest('select[data-tool-source]');
+    if (source) {
+      detailToolSources.set(source.dataset.toolName, source.value);
+      renderTools();
+      const selects = $('#detail-tools').querySelectorAll('select[data-tool-source]');
+      Array.from(selects).find((select) => select.dataset.toolName === source.dataset.toolName)?.focus();
+      return;
+    }
     const select = event.target.closest('select[data-policy-scope]');
     if (select) applyPolicySelection(select);
   });
@@ -3737,6 +3840,7 @@
     setText('#prompt-title', '试试这样用');
     setText('#prompt-next', '换一批');
     setText('#tools-title', '工具详情');
+    setText('#tools-entry-label', '查看范围');
     setText('#governance-title', '连接策略');
     setText('#policy-rollback', '撤销最近变更');
     setText('#tools-loading', '加载中...');
