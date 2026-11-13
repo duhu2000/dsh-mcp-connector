@@ -36,7 +36,7 @@ export async function temporaryProfile(t) {
   const path = await fs.mkdtemp(join(parent, 'qmcp-p107-'));
   profileClosers.set(path, []);
   await fs.writeFile(join(path, 'validation-profile.json'), JSON.stringify({ version: 1, id: randomUUID(),
-    purpose: 'QMCP-4963 P1-07 synthetic offline validation', providerCredentials: false }));
+    purpose: 'QMCP-4963 isolated offline Host validation', providerCredentials: false }));
   t.after(async () => {
     for (const close of [...profileClosers.get(path)].reverse()) await close();
     profileClosers.delete(path);
@@ -49,12 +49,13 @@ export async function temporaryProfile(t) {
 
 /** Real Host JSONL backend; never loads a DSH config or a remote adapter. */
 export async function profileHarness(t, profileDir, options = {}) {
-  const data = sourceFixture({ full: options.full });
+  if (options.data && (options.relation || options.syntheticOutcomes)) throw new Error('External metadata cannot use synthetic approvals or execution');
+  const data = options.data ?? sourceFixture({ full: options.full });
   const outside = enterpriseFixture({ full: options.full }).outsideNames;
   const sources = [...data.index.values()], handles = [], requests = [], errors = [], events = [];
   const trustedIds = new Set(), intents = new Map(), scripts = [];
   let at = Date.now(), integration, closed = false, registrationStops = new Map(), bodyCalls = 0;
-  const reviews = sources.map((source) => readOnlyReviewFor(data.scope, source, { validFrom: 0, expiresAt: at + 86400000 }));
+  const reviews = options.reviews ?? (options.data ? [] : sources.map((source) => readOnlyReviewFor(data.scope, source, { validFrom: 0, expiresAt: at + 86400000 })));
   if (options.relation) {
     const store = await SmartModeStore.open({ profileDir,
       approveSourceRelation: (value) => value.accountRef === 'synthetic-grant-a' });
