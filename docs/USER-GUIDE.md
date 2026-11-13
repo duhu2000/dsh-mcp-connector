@@ -17,11 +17,21 @@
 
 要求：DSH Desktop 或 `web` profile，Node.js 20 或更高版本。
 
+Desktop：启动应用完成初始化，通过应用菜单“管理 dsh 命令…”注册或修复配套 CLI，再完全退出应用，在新终端执行：
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+默认 Web：
+
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-也可以运行一键安装脚本：
+自定义部署以宿主实际加载的 profile 为准；设置了 `DSH_HOME` 时，终端须沿用相同值。npm 安装的 CLI 可能拒绝管理 `desktop`，此时请使用 Desktop 配套 CLI，不要改用 `web`。
+
+默认 Web 也可以运行一键安装脚本（其他 profile 需设置 `DSH_PROFILE`）：
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)

@@ -47,11 +47,19 @@ npm downloads include upgrades, repeat installs and automation; they are not uni
 
 ## Get started
 
-Search for **`dsh-mcp-connector`** in your plugin marketplace, or run the command below. Default Desktop and Web installations both use the `web` profile; custom deployments should use the profile actually loaded by their host.
+Search for **`dsh-mcp-connector`** in your plugin marketplace, or install into the profile actually loaded by your host. For Desktop, launch the app once to initialize it, register or repair its CLI through the app menu's **Manage dsh Command…**, then fully quit the app and run in a new terminal:
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+For default Web:
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+For custom deployments, replace the profile name and use the same `DSH_HOME` as the host. The npm-installed CLI may reject management of `desktop`; use the Desktop-provided CLI in that case.
 
 Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 
@@ -121,17 +129,22 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.103 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.104 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
 Requirements: DeepSeek Harness Desktop or web profile, and Node.js 20 or later.
 
+Desktop requires its own CLI and must be initialized and fully quit before installation. Default Web uses `web`:
+
 ```bash
+# Desktop-provided CLI
+dsh plugin --profile desktop add dsh-mcp-connector
+# Default Web
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-Or use the installer:
+For custom deployments, use the actual profile name and the host's `DSH_HOME`. Default Web can also use the installer (set `DSH_PROFILE` for other profiles):
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
@@ -204,6 +217,8 @@ The proxy variables must be present in the running DSH process. After changing t
 
 When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
 
+Open **Settings → MCP Connector** to change the entry location or restore the default. Current Desktop hosts save the preference to the active profile through `configForms`. Older hosts use `settingsScope`. If neither service is available, or Settings has nowhere to display the card, use the sidebar to open the connector. To change the entry location, open the same profile with a host that provides the settings service and page.
+
 `showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
@@ -256,7 +271,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.103`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.103](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.103).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.104`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.104](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.104).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

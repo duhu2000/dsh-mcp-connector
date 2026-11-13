@@ -206,6 +206,46 @@ test('toolsList counts distinct raw names across endpoints in preview, live disc
   } finally { for (const dispose of host.disposers) await dispose(); }
 });
 
+test('versionStatus reads profile diagnostics once per request, including with cached version results', async (t) => {
+  const { apply } = await import('../lib/index.js');
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ version: '0.2.102', tag_name: 'v0.2.102' })));
+  const host = makePluginContext({ withWeb: true });
+  let profile = { name: 'desktop', dir: 'private-directory', home: 'private-home' };
+  let reads = 0;
+  host.ctx.get = (key) => {
+    if (key !== 'profileContext') return undefined;
+    reads += 1;
+    return profile;
+  };
+  await apply(host.ctx, baseConfig());
+  try {
+    for (const name of ['desktop', 'web', 'team-dev_2.1', null, 'custom name', 'node_modules', '']) {
+      profile = name === null ? undefined : { name, dir: 'private-directory', home: 'private-home' };
+      const previousReads = reads;
+      const response = await host.webCall('versionStatus');
+      assert.equal(response.ok, true);
+      const status = name === null ? 'unavailable' : name === '' ? 'invalid-value'
+        : ['custom name', 'node_modules'].includes(name) ? 'unsupported-name' : 'ready';
+      assert.equal(response.detail.profileName, status === 'ready' ? name : null);
+      assert.deepEqual(response.detail.profileInfo, { detectedName: name, status });
+      assert.equal(reads, previousReads + 1);
+      assert.equal(typeof response.detail.installedVersion, 'string');
+      assert.doesNotMatch(JSON.stringify(response), /private-directory|private-home/);
+    }
+    host.ctx.get = () => { throw new Error('private-context-error'); };
+    const failed = await host.webCall('versionStatus', { force: true });
+    assert.equal(failed.detail.profileName, null);
+    assert.deepEqual(failed.detail.profileInfo, { detectedName: null, status: 'read-error' });
+    assert.doesNotMatch(JSON.stringify(failed), /private-context-error/);
+    delete host.ctx.get;
+    const missing = await host.webCall('versionStatus');
+    assert.equal(missing.detail.profileName, null);
+    assert.deepEqual(missing.detail.profileInfo, { detectedName: null, status: 'unavailable' });
+  } finally {
+    for (const dispose of host.disposers.reverse()) await dispose();
+  }
+});
+
 test('#218 tool discovery failures retain handshake health and separate diagnostics', async (t) => {
   let failure;
   let rejectHandshake = false;

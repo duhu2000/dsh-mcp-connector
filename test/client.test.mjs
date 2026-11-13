@@ -39,6 +39,7 @@ function clientContext({
   workspaceItems,
   recentWorkspaceId = workspaceId ?? undefined,
   settingsScope,
+  configForms,
   workspaceNavigation = 'legacy',
   nativeSidebar = false,
   layout,
@@ -136,10 +137,17 @@ function clientContext({
     },
   };
   if (layout !== undefined) ctx.layout = layout;
+  const providers = { settingsScope, configForms };
+  const providerCleanup = new Map();
   ctx.inject = (services, callback) => {
-    if (services.includes('settingsScope') && settingsScope !== undefined) {
-      callback({ ...ctx, settingsScope });
-    }
+    const name = services[0];
+    if (providers[name] === undefined) return;
+    const cleanups = [];
+    callback({
+      ...ctx, [name]: providers[name],
+      effect(start) { cleanups.push(start()); },
+    });
+    providerCleanup.set(name, () => cleanups.reverse().forEach(dispose => dispose?.()));
   };
   const slotControls = {
     declare(name) {
@@ -155,7 +163,7 @@ function clientContext({
       }
     },
   };
-  return { ctx, registrations, registrationOrder, calls, slotControls };
+  return { ctx, registrations, registrationOrder, calls, slotControls, providerCleanup };
 }
 
 function mutableSettingsScope(initial) {
@@ -225,7 +233,7 @@ function mutableSettingsScope(initial) {
 }
 
 /**
- * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1。
+ * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.1-rc.2。
  * 没有 mutate —— 直接调 mutate 会抛 "settingsScope.mutate is not a function"。
  */
 function mutableLegacySettingsScope(initial) {
@@ -314,6 +322,111 @@ test('partial optional settings services do not block the connector UI', async (
     assert.ok(overlay, 'connector overlay must remain available');
     assert.equal(overlay.options.store.create().getSnapshot().sidebarVisible, true);
     assert.equal(registrations.has('settings.plugin.item'), false);
+  }
+});
+
+test('configForms follows namespace availability, slot lifetime, and the legacy provider', async () => {
+  const plugin = await loadClient();
+  const modern = mutableSettingsScope({ status: 'loading', writable: false });
+  const legacy = mutableSettingsScope({ status: 'ready', value: { entryLocation: 'sidebar' }, writable: true });
+  const { ctx, registrations, slotControls, providerCleanup } = clientContext({
+    configForms: { get(entryId) { assert.equal(entryId, 'mcp-connector'); return modern.scope; } },
+    settingsScope: { bind: () => legacy.scope },
+    nativeSidebar: true,
+  });
+  slotControls.remove('settings.plugin.item');
+  slotControls.declare('settings.section');
+  plugin.apply(ctx);
+  const section = () => registrations.get('settings.section')?.options.inject().settingsScope;
+  const visible = () => registrations.has('sidebar.panellist');
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+
+  const hidden = { status: 'ready', writable: true, base: { entryLocation: 'both' },
+    user: { showSidebarEntry: false }, value: { entryLocation: 'both', showSidebarEntry: false } };
+  modern.scope.publish(hidden);
+  assert.equal(section(), modern.scope);
+  assert.equal(visible(), false);
+  slotControls.remove('settings.section');
+  assert.equal(visible(), true, 'hiding the final settings surface keeps the sidebar reachable');
+  slotControls.declare('settings.section');
+  assert.equal(section(), modern.scope);
+  assert.equal(visible(), false);
+
+  modern.scope.publish({ ...hidden, status: 'unavailable' });
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+  modern.scope.publish(hidden);
+  providerCleanup.get('configForms')();
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+  modern.scope.publish(hidden);
+  assert.equal(section(), legacy.scope, 'a detached provider cannot change the current registration');
+  providerCleanup.get('settingsScope')();
+  assert.equal(section(), undefined);
+  assert.equal(visible(), true);
+});
+
+test('configForms honours explicit write refusals and resets retained inherited fields', async () => {
+  const current = { status: 'ready', writable: true, value: { entryLocation: 'settings' },
+    user: { entryLocation: 'settings' }, base: { showSidebarEntry: true } };
+  const inherited = { ...current, value: current.base, user: current.base };
+  const settings = mutableSettingsScope(current);
+  const states = [true, false, false];
+  let cursor = 0;
+  const jsx = (type, props) => ({ type, props });
+  const plugin = await loadClient({
+    jsxRuntime: { jsx, jsxs: jsx },
+    reactApi: {
+      useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
+      useState() {
+        const i = cursor++;
+        return [states[i], value => { states[i] = value; }];
+      },
+    },
+  });
+  const { ctx, registrations, slotControls } = clientContext({ configForms: { get: () => settings.scope } });
+  slotControls.remove('settings.plugin.item');
+  slotControls.declare('settings.section');
+  plugin.apply(ctx);
+  const section = registrations.get('settings.section');
+  function renderButtons() {
+    cursor = 0;
+    const card = section.component({ ...section.options.inject(), actions: {} }).props.children;
+    const buttons = [];
+    function visit(node) {
+      if (Array.isArray(node)) return node.forEach(visit);
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'button') buttons.push(node.props);
+      visit(node.props.children);
+    }
+    visit(card.type(card.props));
+    return buttons;
+  }
+  async function click(label) {
+    const button = renderButtons().find(button => button.children === label);
+    assert.equal(button.disabled, false);
+    button.onClick();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+
+  // On conflict the recovery read may already include the requested placement.
+  settings.scope.set = async (field, value) => {
+    assert.deepEqual([field, value], ['entryLocation', 'both']);
+    settings.scope.publish(inherited);
+    return false;
+  };
+  await click('两边显示');
+  assert.equal(states[2], true);
+  for (const accepted of [false, true]) {
+    settings.scope.publish(current);
+    settings.scope.mutate = async ops => {
+      assert.deepEqual(ops.map(op => [op.op, ...op.path]), [['unset', 'entryLocation'], ['unset', 'showSidebarEntry']]);
+      settings.scope.publish(inherited);
+      return accepted;
+    };
+    await click('恢复默认');
+    assert.equal(states[2], !accepted);
   }
 });
 
@@ -1696,6 +1809,7 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
       return new Response(JSON.stringify({
         ok: true,
         detail: {
+          profileName: 'web',
           installedVersion: '0.2.24',
           latestVersion: '0.2.25',
           updateAvailable: true,
@@ -1780,6 +1894,300 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   assert.ok(descendants(tree).some((node) => node.type === 'button'
     && node.props?.children === '已复制'));
   assert.equal(requests.some((url) => url.startsWith('https://evil.example/')), false);
+});
+
+async function upgradeHarness({ profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', writeText } = {}) {
+  const hooks = [], effects = [], opened = [], copied = [];
+  let cursor = 0, dirty = true, tree, modalOpen = true;
+  let detail = {
+    profileName, profileInfo, installedVersion: '0.2.24', latestVersion, updateAvailable: true,
+    checking: false, sources: { npm: { ok: true } }, nextCheckAt: new Date(Date.now() + 60_000).toISOString(),
+  };
+  const plugin = await loadClient({
+    jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+    reactApi: {
+      useState(initial) {
+        const index = cursor++;
+        if (!(index in hooks)) hooks[index] = initial;
+        return [hooks[index], (value) => {
+          const next = typeof value === 'function' ? value(hooks[index]) : value;
+          if (!Object.is(next, hooks[index])) { hooks[index] = next; dirty = true; }
+        }];
+      },
+      useRef(initial) { return hooks[cursor++] ??= { current: initial }; },
+      useEffect(start, deps) {
+        const index = cursor++, previous = hooks[index];
+        if (previous && deps?.every((value, i) => Object.is(value, previous.deps?.[i]))) return;
+        const hook = hooks[index] = { deps };
+        effects.push(() => { previous?.cleanup?.(); hook.cleanup = start(); });
+      },
+    },
+    windowExtras: {
+      fetch: async (url) => url === '/mcp-connector/api'
+        ? new Response(JSON.stringify({ ok: true, detail })) : new Response('', { status: 404 }),
+      location: { origin: 'http://127.0.0.1:3080' },
+      addEventListener() {}, removeEventListener() {}, setTimeout() { return 1; }, clearTimeout() {},
+      open(...args) { opened.push(args); },
+      navigator: { clipboard: { async writeText(value) { copied.push(value); await writeText?.(value); } } },
+    },
+  });
+  const { ctx, registrations } = clientContext({ locale });
+  plugin.apply(ctx);
+  const props = {
+    wide: true, useStore: (select) => select({ open: modalOpen, detailOpen: false }),
+    actions: { close() {}, detailOpened() {}, detailClosed() {} }, startPromptSession() {},
+  };
+  const nodes = () => {
+    const result = [];
+    const visit = (node) => {
+      if (!node || typeof node !== 'object') return;
+      result.push(node);
+      const children = node.props?.children;
+      for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    };
+    visit(tree);
+    return result;
+  };
+  async function settle() {
+    for (let i = 0; i < 20; i += 1) {
+      if (dirty) {
+        dirty = false; cursor = 0;
+        tree = registrations.get('shell.overlay').component(props);
+      }
+      for (const effect of effects.splice(0)) effect();
+      await new Promise((resolve) => setImmediate(resolve));
+      if (!dirty && effects.length === 0) return;
+    }
+    throw new Error('upgrade UI did not settle');
+  }
+  const button = (text) => nodes().find((node) => node.type === 'button' && node.props?.children === text);
+  await settle();
+  return {
+    nodes, button, opened, copied, settle,
+    async selectProfile(value) {
+      nodes().find((node) => node.type === 'select').props.onChange({ target: { value } });
+      await settle();
+    },
+    async setOpen(value) {
+      modalOpen = value;
+      dirty = true;
+      await settle();
+    },
+    async refresh(patch) {
+      detail = { ...detail, ...patch };
+      button(locale === 'en' ? 'Check for updates' : '检查更新').props.onClick();
+      await settle();
+    },
+  };
+}
+
+test('manual upgrade UI targets and copies Desktop, Web and custom profiles with old and new APIs', async () => {
+  for (const profileName of ['desktop', 'web', 'team-dev_2.1']) {
+    for (const profileInfo of [undefined, { detectedName: profileName, status: 'ready' }]) {
+      const ui = await upgradeHarness({ profileName, profileInfo });
+      const command = `dsh plugin --profile ${profileName} add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25`;
+      assert.ok(ui.nodes().some((node) => node.type === 'code' && node.props.children === command));
+      const hint = ui.nodes().some((node) => String(node.props?.children).includes('Desktop 配套 CLI'));
+      assert.equal(hint, false, 'valid profiles show the command without Desktop CLI guidance');
+      assert.equal(ui.nodes().some((node) => node.type === 'select' || node.props?.className === 'mcpConnectorUpdateHint'), false);
+      ui.button('复制升级命令').props.onClick();
+      await ui.settle();
+      assert.deepEqual(ui.copied, [command]);
+      assert.ok(ui.button('已复制'));
+    }
+  }
+});
+
+test('unknown profiles explain the cause and require an explicit default installation choice', async () => {
+  for (const [profileName, profileInfo, reason] of [
+    [undefined, undefined, '宿主未提供 profile 信息'],
+    [null, undefined, '宿主未提供 profile 信息'],
+    [42, undefined, '宿主未返回有效的 profile 名称'],
+    ['', undefined, '宿主未返回有效的 profile 名称'],
+    [null, { detectedName: null, status: 'unavailable' }, '宿主未提供 profile 信息'],
+    [null, { detectedName: null, status: 'read-error' }, '读取当前 profile 失败'],
+    [null, { detectedName: '', status: 'invalid-value' }, '宿主未返回有效的 profile 名称'],
+  ]) {
+    const ui = await upgradeHarness({ profileName, profileInfo });
+    assert.equal(ui.nodes().find((node) => node.type === 'select').props.value, '');
+    assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
+    assert.equal(ui.button('复制升级命令'), undefined);
+    assert.ok(ui.nodes().some((node) => node.props?.children === reason));
+    ui.button('查看更新说明').props.onClick();
+    ui.button('查看 npm').props.onClick();
+    assert.deepEqual(ui.opened, [
+      ['https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/PLUGIN-UPDATE.md', '_blank', 'noopener,noreferrer'],
+      ['https://www.npmjs.com/package/dsh-mcp-connector', '_blank', 'noopener,noreferrer'],
+    ]);
+    for (const candidate of ['web', 'desktop']) {
+      await ui.selectProfile(candidate);
+      const command = `dsh plugin --profile ${candidate} add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25`;
+      assert.deepEqual(ui.nodes().filter((node) => node.type === 'code').map((node) => node.props.children), [command]);
+      assert.ok(ui.nodes().some((node) => node.props?.children === '仅适用于默认安装；自定义部署请使用实际 profile'));
+      assert.equal(ui.button('已复制'), undefined);
+      ui.button('复制升级命令').props.onClick();
+      await ui.settle();
+      assert.equal(ui.copied.at(-1), command);
+      assert.ok(ui.button('已复制'));
+    }
+    await ui.selectProfile('web;whoami');
+    assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
+    assert.equal(ui.nodes().find((node) => node.type === 'select').props.value, '');
+  }
+});
+
+test('known unsafe profile names are shown as text without default choices or commands', async () => {
+  for (const profileName of ['node_modules', '--help', '.', '..', 'a/b', 'a\\b',
+    'web;whoami', 'web&whoami', '$(whoami)', '`whoami`', '%DSH_HOME%', 'web\n', 'web\r\n', '自定义']) {
+    for (const profileInfo of [undefined, { detectedName: profileName, status: 'unsupported-name' },
+      { detectedName: profileName, status: 'ready' }]) {
+      const ui = await upgradeHarness({ profileName, profileInfo });
+      assert.equal(ui.nodes().some((node) => node.type === 'code'), false, String(profileName));
+      assert.equal(ui.nodes().some((node) => node.type === 'select'), false);
+      assert.equal(ui.button('复制升级命令'), undefined);
+      assert.ok(ui.nodes().some((node) => String(node.props?.children).startsWith('已读取的 profile：')));
+      assert.ok(ui.button('查看更新说明'));
+    }
+  }
+  for (const [name, displayed, reason] of [
+    ['node_modules', '"node_modules"', '该 profile 名称为保留名称，不能自动生成升级命令'],
+    [' web ', '"\\u0020web\\u0020"', '该 profile 名称含首尾空白，不能自动生成升级命令'],
+    ['web\n\t', '"web\\n\\t"', '该 profile 名称含首尾空白，不能自动生成升级命令'],
+    ['web\0\x7f', '"web\\u0000\\u007f"', null],
+    ['<img src=x onerror=alert(1)>', '"<img\\u0020src=x\\u0020onerror=alert(1)>"', null],
+  ]) {
+    const ui = await upgradeHarness({ profileName: null, profileInfo: { detectedName: name, status: 'unsupported-name' } });
+    assert.ok(ui.nodes().some((node) => node.type === 'span' && node.props?.children === `已读取的 profile：${displayed}`));
+    if (reason) assert.ok(ui.nodes().some((node) => node.props?.children === reason));
+    assert.equal(ui.nodes().some((node) => ['code', 'select', 'img'].includes(node.type) || node.props?.dangerouslySetInnerHTML), false);
+  }
+});
+
+test('manual update controls render in English without Desktop CLI guidance', async () => {
+  const desktop = await upgradeHarness({ profileName: 'desktop', locale: 'en' });
+  assert.equal(desktop.nodes().some((node) => String(node.props?.children).includes('Manage dsh Command')), false);
+  assert.ok(desktop.button('Copy upgrade command'));
+  const unknown = await upgradeHarness({ locale: 'en' });
+  assert.ok(unknown.nodes().some((node) => node.props?.children === 'The host did not provide profile information.'));
+  assert.ok(unknown.nodes().some((node) => node.type === 'option' && node.props?.children === 'Default Desktop (desktop)'));
+  assert.equal(unknown.button('Copy upgrade command'), undefined);
+  await unknown.selectProfile('desktop');
+  assert.ok(unknown.button('Copy upgrade command'));
+  assert.ok(unknown.nodes().some((node) => node.props?.children === 'For default installations only; custom deployments must use their actual profile.'));
+  assert.ok(unknown.button('View update instructions'));
+  assert.ok(unknown.button('View on npm'));
+  const failed = await upgradeHarness({ locale: 'en', profileInfo: { detectedName: null, status: 'read-error' } });
+  assert.ok(failed.nodes().some((node) => node.props?.children === 'Could not read the current profile.'));
+  const unsupported = await upgradeHarness({ locale: 'en', profileInfo: { detectedName: 'node_modules', status: 'unsupported-name' } });
+  assert.ok(unsupported.nodes().some((node) => node.props?.children === 'Detected profile: "node_modules"'));
+  assert.ok(unsupported.nodes().some((node) => node.props?.children === 'This profile name is reserved, so an upgrade command cannot be generated automatically.'));
+});
+
+test('invalid target versions explain the version problem without commands or profile choices', async () => {
+  for (const latestVersion of [null, '', 'latest', '0.2.25;whoami', 42]) {
+    for (const profileName of [undefined, 'desktop', 'unsafe name']) {
+      const ui = await upgradeHarness({ profileName, latestVersion });
+      assert.ok(ui.nodes().some((node) => node.props?.children === '未取得有效的目标版本，请点击“检查更新”后重试'));
+      assert.equal(ui.nodes().some((node) => ['code', 'select'].includes(node.type)), false);
+      assert.equal(ui.nodes().some((node) => String(node.props?.children).includes('宿主未提供')
+        || String(node.props?.children).includes('该 profile 名称')), false);
+      assert.equal(ui.button('复制升级命令'), undefined);
+      assert.ok(ui.button('检查更新'));
+    }
+  }
+  const english = await upgradeHarness({ locale: 'en', latestVersion: null });
+  assert.ok(english.nodes().some((node) => node.props?.children === 'No valid target version was received. Click Check for updates and try again.'));
+});
+
+test('default installation choices reset on version, diagnosis and panel changes', async () => {
+  let clipboardFailure = false;
+  const ui = await upgradeHarness({ writeText: async () => {
+    if (clipboardFailure) throw new Error('clipboard unavailable');
+  } });
+  const hasCommand = () => ui.nodes().some((node) => node.type === 'code');
+  const hasFailure = () => ui.nodes().some((node) => node.props?.children === '无法写入剪贴板，请点击上方命令全选后手动复制');
+  await ui.selectProfile('web');
+  clipboardFailure = true;
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  assert.equal(hasFailure(), true);
+  await ui.selectProfile('desktop');
+  assert.equal(hasFailure(), false);
+  await ui.refresh({ latestVersion: '0.2.26' });
+  assert.equal(hasCommand(), false);
+  assert.equal(ui.nodes().find((node) => node.type === 'select').props.value, '');
+  await ui.selectProfile('web');
+  await ui.refresh({ profileInfo: { detectedName: null, status: 'read-error' } });
+  assert.equal(hasCommand(), false);
+  await ui.selectProfile('desktop');
+  await ui.refresh({ profileInfo: { detectedName: 'unsafe name', status: 'unsupported-name' } });
+  assert.equal(hasCommand(), false);
+  assert.equal(ui.nodes().some((node) => node.type === 'select'), false);
+  await ui.refresh({ profileInfo: { detectedName: null, status: 'unavailable' } });
+  await ui.selectProfile('web');
+  await ui.setOpen(false);
+  await ui.setOpen(true);
+  assert.equal(hasCommand(), false);
+  assert.equal(ui.nodes().find((node) => node.type === 'select').props.value, '');
+});
+
+test('late clipboard results cannot mark a reselected candidate or reopened panel copied', async () => {
+  let completeCopy;
+  const ui = await upgradeHarness({ writeText: () => new Promise((resolve) => { completeCopy = resolve; }) });
+  await ui.selectProfile('web');
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  await ui.selectProfile('desktop');
+  await ui.selectProfile('web');
+  completeCopy();
+  await ui.settle();
+  assert.equal(ui.button('已复制'), undefined);
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  await ui.setOpen(false);
+  await ui.setOpen(true);
+  await ui.selectProfile('web');
+  completeCopy();
+  await ui.settle();
+  assert.equal(ui.button('已复制'), undefined);
+});
+
+test('profile and target changes reset copy success, clipboard failure and late copy results', async () => {
+  let clipboardFailure = false, completeCopy;
+  const ui = await upgradeHarness({ profileName: 'desktop', writeText: async () => {
+    if (clipboardFailure) throw new Error('clipboard unavailable');
+    if (completeCopy === null) await new Promise((resolve) => { completeCopy = resolve; });
+  } });
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  assert.ok(ui.button('已复制'));
+  await ui.refresh({ profileName: 'web' });
+  assert.equal(ui.button('已复制'), undefined);
+  clipboardFailure = true;
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  const hasFailure = () => ui.nodes().some((node) => node.props?.children === '无法写入剪贴板，请点击上方命令全选后手动复制');
+  assert.equal(hasFailure(), true);
+  await ui.refresh({ profileName: 'team-dev' });
+  assert.equal(hasFailure(), false);
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  assert.equal(hasFailure(), true);
+  await ui.refresh({ latestVersion: '0.2.26' });
+  assert.equal(hasFailure(), false);
+  clipboardFailure = false;
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  assert.ok(ui.button('已复制'));
+  await ui.refresh({ latestVersion: '0.2.27' });
+  assert.equal(ui.button('已复制'), undefined);
+  completeCopy = null;
+  ui.button('复制升级命令').props.onClick();
+  await ui.settle();
+  await ui.refresh({ profileName: 'desktop' });
+  completeCopy();
+  await ui.settle();
+  assert.equal(ui.button('已复制'), undefined, 'old profile copy must not mark the new command copied');
 });
 
 test('用户选了英文时，侧边栏文案为英文', async () => {
@@ -2250,7 +2658,7 @@ async function renderSettingsCard(settings) {
 }
 
 test('legacy scope without mutate resets a legacy-only override', async () => {
-  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1：只有 set/unset。
+  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.1-rc.2：只有 set/unset。
   const settings = mutableLegacySettingsScope({
     status: 'ready',
     value: { showSidebarEntry: false },
