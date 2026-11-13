@@ -155,7 +155,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 1. 点击左侧“MCP连接器”，或从“设置 → 插件 → 插件配置 → MCP连接器”点击“打开 MCP连接器”。
 2. 在市场中选择连接器，确认“当前项目”或“所有项目（全局）”，再完成授权或配置。
-3. 打开卡片详情，可点击示例 Prompt 的发送按钮，在当前工作区创建/复用空白会话并写入草稿。
+3. 打开卡片详情，可点击示例 Prompt 的发送按钮，在当前工作区创建/复用空白会话并写入草稿。已有文字或附件时会保留原草稿并另建会话；核对后再自行发送。
 4. 在“已安装”或对话工具中查看、停用、恢复或断开连接。
 5. 连接后打开“工具”页，按工具名或描述查找能力，使用连接/服务筛选定位来源；授权、费用及正式调用仍由相应服务与 DSH Host 管理。
 
@@ -257,7 +257,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.101`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.101](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.101)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.102`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.102](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.102)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
