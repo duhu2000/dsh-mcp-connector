@@ -23,11 +23,21 @@
 
 ## 1. 安装并重启正确的 profile
 
-当前默认安装布局中，DSH Desktop 和 `dsh web` 都从本机 `web` profile 加载插件，因此两种宿主都使用同一条安装命令；不要因为使用 Desktop 就把命令改成 `--profile desktop`。
+使用宿主实际加载的 profile。当前 Desktop 配套 CLI 使用 `desktop`，默认 `dsh web` 使用 `web`；自定义部署以宿主配置为准。
+
+Desktop：先启动应用完成初始化，通过应用菜单“管理 dsh 命令…”注册或修复 Desktop 配套 CLI，再完全退出应用，在新终端执行：
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+默认 Web：
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+自定义 profile 请替换命令中的名称。设置了 `DSH_HOME` 时，终端须沿用与宿主相同的值。npm 安装的 CLI 可能拒绝管理 `desktop`，此时应使用 Desktop 配套 CLI；不要改用其他 profile。
 
 安装或升级后，只重启你正在使用的宿主：DSH Desktop 需完全退出应用后重新打开；`dsh web` 需停止原进程后重新启动。打开左侧“MCP连接器”；若侧边栏入口已隐藏，从“设置 → 插件 → 插件配置 → MCP连接器”点击“打开 MCP连接器”。自定义过 profile 布局的部署应以其宿主配置为准。
 
