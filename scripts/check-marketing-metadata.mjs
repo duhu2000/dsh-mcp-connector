@@ -108,7 +108,7 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   for (const phrase of ['MCP连接器', '连接管理', 'MCP Server', 'MCP 管理面板', 'MCP 市场', '数据市场', 'Model Context Protocol', '授权配置', 'OAuth']) {
     contains(metadata.externalListing.zh, phrase, `external Chinese listing is missing search phrase ${phrase}`);
   }
-  for (const phrase of ['MCP marketplace', 'Model Context Protocol', 'manager panel']) {
+  for (const phrase of ['MCP marketplace', 'Model Context Protocol', 'MCP manager']) {
     contains(metadata.externalListing.en, phrase, `external English listing is missing search phrase ${phrase}`);
   }
 

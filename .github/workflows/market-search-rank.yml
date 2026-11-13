@@ -87,7 +87,6 @@ jobs:
               per_page: 100,
             })
             const existing = issues.find((issue) => !issue.pull_request
-              && issue.title === alertTitle
               && issue.user?.login === alertCreator
               && issue.body?.includes(marker))
             if (!report.ok) {

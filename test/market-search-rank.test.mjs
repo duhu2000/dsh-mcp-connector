@@ -43,7 +43,7 @@ const searchOptimizedConnector = {
   ...connector,
   description: {
     zh: 'MCP连接器：DeepSeek Harness 的专业 MCP 市场、数据市场与 MCP 管理面板，汇聚企业、金融、法律、专利、科研和地理等 Model Context Protocol（MCP）数据源。',
-    en: 'MCP Connector for DeepSeek Harness: a specialist MCP marketplace and manager panel for Model Context Protocol data sources.',
+    en: 'MCP Connector for DeepSeek Harness: a specialist MCP marketplace and MCP manager panel for Model Context Protocol data sources.',
   },
 };
 
@@ -242,6 +242,21 @@ test('reconciliation excludes pull requests even when their body contains the ma
   assert.equal(calls.paginate.length, 1);
   assert.equal(calls.create.length, 1);
   assert.equal(calls.update.length, 0);
+});
+
+test('reconciliation keeps tracking the bot alert after a user renames it', async () => {
+  const calls = await runReconciliation({
+    report: rankReport(false),
+    issues: [{
+      number: 212,
+      title: 'Investigate current MCP ranking drift',
+      body: '<!-- market-search-rank-monitor -->',
+      user: { login: 'github-actions[bot]' },
+    }],
+  });
+  assert.equal(calls.create.length, 0);
+  assert.equal(calls.update.length, 1);
+  assert.equal(calls.update[0].issue_number, 212);
 });
 
 test('failure reconciliation finds the single alert after the first API page', async () => {
