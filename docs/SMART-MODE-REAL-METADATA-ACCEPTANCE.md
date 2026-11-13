@@ -6,6 +6,8 @@
 
 English: All six live metadata listings succeeded with the account's existing renewed authorization. All 356 raw input schemas match the archived real request. Isolated compatibility/smart headers and unreviewed-prepare rejection passed using a catalog-verified temporary binding view. Original historical records omit serverKey and remain rejected by the strict adapter; no production enablement or equivalence approval occurred.
 
+后续修订：历史只读绑定与注册字段候选分层已在独立分支修复，并以未手工补 serverKey 的真实记录完成回归，见 [两处修订与回归报告](./SMART-MODE-BINDING-CANDIDATE-FIXES.md)。本报告保留修订前的发现记录。
+
 ## 1. 授权与 401 排查
 
 - 内置浏览器打开用户提供的本机 DSH，连接器页面显示 0.2.102，六个企业 Server 均已连接，可用性检查通过。没有点击更新、注入模式、停用、断开、授权或发送消息按钮。

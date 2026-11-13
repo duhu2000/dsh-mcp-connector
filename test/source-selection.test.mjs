@@ -74,6 +74,74 @@ test('356 definitions form 186 candidate identities with 170 duplicate observati
   assert.ok((await f.selector.candidates(agent)).every((r) => r.status === 'candidate'));
 });
 
+test('registration differences are versioned unapproved observations; full and strict hashes retain the extension', async () => {
+  const f = fixture();
+  f.holder.relations = [];
+  f.rows[0].definition._registration_tool = 'synthetic-registration-a';
+  f.rows[1].definition._registration_tool = 'synthetic-registration-b';
+  const a = fingerprintRawTool(f.rows[0].definition), b = fingerprintRawTool(f.rows[1].definition);
+  assert.notEqual(a.definitionFingerprint, b.definitionFingerprint);
+  assert.notEqual(a.candidateFingerprint, b.candidateFingerprint);
+  assert.equal(a.registrationCandidateFingerprint, b.registrationCandidateFingerprint);
+  const agent = f.agent('extension-observer'), observations = await f.selector.candidates(agent);
+  assert.equal(observations.length, 1);
+  const group = observations[0];
+  assert.equal(group.version, 2); assert.equal(group.status, 'candidate');
+  assert.equal(group.match, 'registration-extension-difference');
+  assert.deepEqual(group.differingContractFields, ['_registration_tool']);
+  assert.equal(group.requiresVerification, true); assert.equal(group.mergeApproved, false);
+  assert.equal(new Set(group.members.map((member) => member.definitionFingerprint)).size, 2);
+  assert.equal((await f.selector.search(agent, { query: 'fixture', limit: 100 })).total, 4);
+  const selected = await f.selector.select(agent, { capabilityId: `source:${f.pair[0].sourceId}` });
+  assert.equal(selected.selected.length, 1); assert.deepEqual(selected.aliases, []);
+  f.denied.add(`${agent.id}:${f.pair[1].sourceId}`);
+  assert.deepEqual(await f.selector.candidates(agent), [], 'forbidden sources are not exposed as candidates');
+});
+
+test('relaxed candidates still distinguish unknown extensions, nested registration fields and schemas', () => {
+  for (const change of [
+    (d) => { d._meta = { _registration_tool: 'different' }; },
+    (d) => { d.unknownExtension = true; },
+    (d) => { d.inputSchema.properties.query.type = 'number'; },
+    (d) => { d.outputSchema.properties.result.type = 'number'; },
+    (d) => { d.annotations.readOnlyHint = false; },
+    (d) => { d.execution.taskSupport = 'required'; },
+    (d) => { d.name = 'different-name'; },
+  ]) {
+    const data = sourceFixture();
+    data.rows[0].definition._registration_tool = 1; data.rows[1].definition._registration_tool = 2;
+    change(data.rows[1].definition);
+    assert.deepEqual(identifySourceCandidates(indexRawToolSources(data.scope, data.rows)), []);
+  }
+});
+
+test('expanded observations do not overlap strict subgroups or cross account/group boundaries', () => {
+  const data = sourceFixture();
+  const third = data.scope.connections[2];
+  data.rows.push({ ...structuredClone(data.rows[0]), connectionKey: third.connectionKey, serverName: third.serverName });
+  data.rows.at(-1).definition._registration_tool = { source: 'synthetic-extension' };
+  let index = indexRawToolSources(data.scope, data.rows);
+  const groups = identifySourceCandidates(index);
+  assert.equal(groups.length, 1); assert.equal(groups[0].members.length, 3);
+  assert.throws(() => groups[0].members.push({}), TypeError);
+  const others = indexRawToolSources({ ...data.scope, accountRef: 'b' }, data.rows.map((row) => ({ ...row, accountRef: 'b' })));
+  assert.equal(identifySourceCandidates(new Map([...index, ...others])).length, 2);
+  const first = [...index][0], otherFirst = [...others][0];
+  assert.deepEqual(identifySourceCandidates(new Map([first, otherFirst])), []);
+  const otherGroup = indexRawToolSources({ ...data.scope, groupId: 'b' }, data.rows.map((row) => ({ ...row, groupId: 'b' })));
+  assert.equal(identifySourceCandidates(new Map([...index, ...otherGroup])).length, 2);
+});
+
+test('a registration-only change invalidates an approved fingerprint even when it remains a candidate', async () => {
+  const f = fixture(), agent = f.agent('registration-change');
+  assert.equal((await f.selector.select(agent, { capabilityId: f.capabilityId })).status, 'selected');
+  f.rows[0].definition._registration_tool = 'changed';
+  const observations = await f.selector.candidates(agent);
+  assert.equal(observations[0].match, 'registration-extension-difference');
+  const result = await f.selector.select(agent, { capabilityId: f.capabilityId });
+  assert.equal(result.status, 'blocked'); assert.equal(result.reason, 'SOURCE_DEFINITION_CHANGED');
+});
+
 test('old-name discovery returns canonical plus aliases; it never implicitly selects the old source', async () => {
   const f = fixture(); const agent = f.agent('aliases');
   const result = await f.selector.search(agent, { query: f.pair[1].publicName });

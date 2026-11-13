@@ -96,3 +96,34 @@ test('newer view publication and dispose defeat a delayed producer; a failed att
   await assert.rejects(delayed, { code: 'DISCOVERY_CLOSED' });
   await assert.rejects(f.publisher.refresh(), { code: 'DISCOVERY_CLOSED' }); assert.equal(f.blocked, true);
 });
+
+test('standalone publisher resolves historical records from exact catalog evidence and rejects coordinated endpoint changes in flight', async () => {
+  const f = fixture(); f.publisher.dispose();
+  const servers = f.records.slice(0, 6).map((record) => {
+    record.transport = 'streamable-http'; record.url = `https://fixture.invalid/${record.serverKey}`;
+    const server = { serverName: record.serverName, serverKey: record.serverKey, url: record.url, transport: record.transport };
+    delete record.serverKey; return server;
+  });
+  let changeEndpoint = false, lists = 0;
+  const p = createSmartModeDiscoveryPublisher({ enabled: true, scope: f.scope, integration: f.integration,
+    getRecords: () => f.records, getConnectorDescriptors: () => [{ id: 'qcc-company', servers }], isRecordUsable: () => true,
+    listTools: async (record) => {
+      lists++; assert.equal(record.serverKey, record.serverName.slice(4));
+      if (changeEndpoint) { f.records[0].url += '/new'; servers[0].url = f.records[0].url; }
+      return { tools: [] };
+    },
+  });
+  await p.refresh(); assert.equal(lists, 6);
+  assert.equal(Object.hasOwn(f.records[0], 'serverKey'), false);
+  changeEndpoint = true;
+  await assert.rejects(p.refresh(), { code: 'RAW_DISCOVERY_FAILED' });
+  assert.equal(lists, 7); assert.equal(f.blocked, true);
+});
+
+test('a shared record view from another group is rejected before any discovery request', () => {
+  const f = fixture();
+  assert.throws(() => createSmartModeDiscoveryPublisher({ enabled: true, scope: f.scope,
+    getRecords: () => f.records, isRecordUsable: () => true, listTools: () => assert.fail('unexpected request'),
+    integration: { ...f.integration, recordView: { scope: { ...f.scope, groupId: 'another-group' }, records: () => f.records } },
+  }), { code: 'RECORD_VIEW_SCOPE_MISMATCH' });
+});

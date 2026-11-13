@@ -117,6 +117,7 @@ export async function profileHarness(t, profileDir, options = {}) {
     integration = await createSmartModeIntegration(ctx, { enabled: true,
       hostContract: SMART_INTEGRATION_HOST_CONTRACT, profileDir, getHostProfileDir: () => profileDir,
       scope: data.scope, getRecords: () => data.records, isRecordUsable: () => true,
+      getConnectorDescriptors: options.getConnectorDescriptors,
       isRecordVisible: () => true, isToolAllowed: (name) => !denied.has(name),
       classifyInput: (message) => trustedIds.has(message.id) ? 'interactive' : 'background',
       getUserSourceIntent: options.getUserSourceIntent ?? ((agent) => intents.get(agent)),
