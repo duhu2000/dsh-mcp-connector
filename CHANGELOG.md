@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.105 - 2026-11-13
+
+- 修复使用 configForms 的 DSH Desktop 上的连接器入口设置，支持切换入口位置和恢复默认设置（#236）。
+- 工具详情按当前连接器内的原始工具名去重。企查查的全量入口与分类入口共用的工具只显示一次，搜索和分页使用相同计数。可切换服务入口查看参数或调整策略（#242）。
+- Desktop hosts using configForms can save and reset the connector entry location. Tool details count each name once across a connector’s endpoints, and parameter views and policy changes use the selected endpoint.
+
 ## 0.2.104 - 2026-11-13
 
 - 升级命令使用宿主提供的实际 profile，支持 Desktop、Web 和自定义名称；无法确认时显示更新指引，不再默认使用 `web`。
