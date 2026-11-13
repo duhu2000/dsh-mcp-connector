@@ -86,6 +86,23 @@ contract('real JSONL profile keeps historical and pre-enablement blank sessions 
   assert.equal((await h.integration.readSnapshot(previous.agent.id)).mode, 'compat'); assert.deepEqual(h.errors, []);
 });
 
+contract('new sessions with an unsupported executor retain compatibility without downgrading an established smart snapshot', async (t) => {
+  let supported = false;
+  const path = await temporaryProfile(t), h = await profileHarness(t, path, { isNativeExecutor: () => supported });
+  await h.integration.setDefaultMode({ mode: 'smart', expectedRevision: 0 });
+  const legacy = await h.create('unsupported-new'); await h.drive(legacy.agent);
+  assert.equal(h.integration.status(legacy.agent).lifecycle.mode, 'compat');
+  assert.ok(h.sources.every((source) => visible(h, legacy.agent).includes(source.publicName)));
+  supported = true;
+  const smart = await h.create('verified-native'); await h.drive(smart.agent);
+  assert.equal(h.integration.status(smart.agent).lifecycle.mode, 'smart');
+  supported = false;
+  assert.equal((await h.integration.prepare(smart.agent, { capabilityIds: [capability(h)] })).ok, false);
+  assert.equal(h.integration.status(smart.agent).lifecycle.mode, 'smart');
+  assert.ok(h.sources.every((source) => !visible(h, smart.agent).includes(source.publicName)));
+  assert.deepEqual(h.errors, []);
+});
+
 contract('full 356-source profile uses candidate observations without approvals and prepares only one read-only source', async (t) => {
   const path = await temporaryProfile(t), h = await profileHarness(t, path, { full: true });
   await h.integration.setDefaultMode({ mode: 'smart', expectedRevision: 0 });

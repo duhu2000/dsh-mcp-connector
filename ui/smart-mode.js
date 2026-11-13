@@ -23,14 +23,24 @@ async function rpc(method, params = {}) {
 const message = (text, error = false) => { $('notice').textContent = text; $('notice').dataset.error = String(error); };
 const errors = { NATIVE_COMPACT_FAILED: '压缩未完成，结果已记录在会话日志中。请检查当前上下文后重试。',
   CONTROL_PREVIEW_EXPIRED: '预览已过期或已使用，请重新预览。', CONTROL_PREVIEW_STALE: '定义或会话已变化，请重新核对。',
+  CONTROL_WORKSPACE_REQUIRED: '请选择工作区',
   READ_ONLY_APPROVAL_REQUIRED: '未通过服务端独立只读核验，记录未启用。', CONTROL_REQUIRES_IDLE_AGENT: '会话正在处理任务，请等待结束后重试。' };
 const run = (fn) => async () => { try { await fn(); } catch (error) { message(t(errors[error.message] ?? error.message), true); } };
 const selected = () => ({ sessionId: $('session').value });
 async function refresh() {
   const previous = $('session').value;
   state = await rpc('state'); $('scope').textContent = t(state.scopeLabel);
+  const previousWorkspace = $('workspace').value;
+  $('workspace-label').hidden = !Array.isArray(state.workspaces);
+  $('workspace').replaceChildren(...[{ id: '', title: t('请选择工作区') }, ...state.workspaces ?? []].map((entry) => {
+    const option = document.createElement('option'); option.value = entry.id; option.textContent = entry.title; return option;
+  }));
+  const workspaceId = previousWorkspace || new URLSearchParams(location.search).get('workspaceId')
+    || (state.workspaces?.length === 1 ? state.workspaces[0].id : '');
+  if (state.workspaces?.some((entry) => entry.id === workspaceId)) $('workspace').value = workspaceId;
   $('mode').textContent = t('当前默认：{mode} · 智能层{status}', { mode: t(state.defaultMode === 'smart' ? '智能模式' : '兼容模式'), status: t(state.mounted ? '已启用' : '已停用') });
   $('layer').textContent = t(state.mounted ? '停用智能层' : '恢复智能层');
+  for (const id of ['clear', 'compact', 'search']) $(id).disabled = !state.mounted;
   $('session').replaceChildren(...state.sessions.map((entry) => {
     const option = document.createElement('option'); option.value = entry.sessionId;
     option.textContent = `${entry.title} · ${entry.mode} · ${t('已准备 {count}', { count: entry.preparedCount })}`; return option;
@@ -49,7 +59,8 @@ $('confirm').onclick = run(async () => { const value = pending; pending = undefi
 $('cancel').onclick = () => { pending = undefined; $('preview').close(); };
 $('layer').onclick = run(async () => { await rpc('layer', { enabled: !state.mounted }); message(t('智能层状态已更新')); await refresh(); });
 for (const method of ['create', 'resume', 'compact']) $(method).onclick = run(async () => {
-  const result = await rpc(method, method === 'create' ? {} : selected()); await refresh();
+  if (method === 'create' && state.workspaces && !$('workspace').value) throw new Error('CONTROL_WORKSPACE_REQUIRED');
+  const result = await rpc(method, method === 'create' ? (state.workspaces ? { workspaceId: $('workspace').value } : {}) : selected()); await refresh();
   if (result?.sessionId) $('session').value = result.sessionId; message(t('会话操作已完成'));
 });
 $('clear').onclick = run(async () => { if (!window.confirm(t('清空可见上下文并释放已准备工具？历史日志仍保留。'))) return;
@@ -85,4 +96,10 @@ for (const [id, enabled] of [['review', true], ['revoke', false]]) $(id).onclick
   evidenceHash: enabled ? $('evidence').value : inspected.persistedReview?.review.review.evidenceHash ?? $('evidence').value,
   validForMs: Number($('hours').value) * 3600000, expectedRevision: inspected.persistedReview?.revision ?? 0,
 }));
+window.addEventListener('message', (event) => {
+  if (event.origin !== location.origin || event.source !== window.parent || event.data?.type !== 'mcp-connector:workspace-context') return;
+  const id = event.data.workspace?.workspaceId;
+  if (state?.workspaces?.some((entry) => entry.id === id)) $('workspace').value = id;
+});
 await run(refresh)();
+if (window.parent !== window) window.parent.postMessage({ type: 'mcp-connector:workspace-context-request' }, location.origin);

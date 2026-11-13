@@ -101,7 +101,7 @@ export async function profileHarness(t, profileDir, options = {}) {
       ...(options.humanCommands ? ['commands'] : [])], apply: done,
   })));
   ctx.llm.registerAdapter(['offline-validation'], new OfflineAdapter());
-  const managementStop = registerTools(ctx, { sessionTools: async () => ({ ok: true, message: 'synthetic legacy entry' }) });
+  const managementStop = options.management === false ? () => {} : registerTools(ctx, { sessionTools: async () => ({ ok: true, message: 'synthetic legacy entry' }) });
   const businessDefinition = (source) => ({ name: source.publicName, description: source.description,
     parameters: data.rows.find((row) => row.connectionKey === source.connectionKey && row.definition.name === source.rawName).definition.inputSchema,
     output: { schema: { type: 'object' }, render: () => [] },
@@ -127,7 +127,7 @@ export async function profileHarness(t, profileDir, options = {}) {
       isRecordVisible: () => true, isToolAllowed: (name) => !denied.has(name),
       classifyInput: (message) => trustedIds.has(message.id) ? 'interactive' : 'background',
       getUserSourceIntent: options.getUserSourceIntent ?? ((agent) => intents.get(agent)),
-      isNativeExecutor: (agent) => ctx.tools.selectExecutor(agent) === native,
+      isNativeExecutor: options.isNativeExecutor ?? ((agent) => ctx.tools.selectExecutor(agent) === native),
       projectToolSchema: (definition) => JSON.parse(JSON.stringify(host.projectToolSchema(definition, true))),
       initialViews: { rawSources: data.rows, readOnlyReviews: reviews },
       storeOptions: options.storeOptions, now: () => at,
@@ -145,6 +145,7 @@ export async function profileHarness(t, profileDir, options = {}) {
   const drive = async (agent, message = input()) => { agent.followup(message); await bounded(agent.whenIdle()); await tick(); };
   const close = async () => {
     if (closed) return; closed = true;
+    await options.beforeClose?.();
     for (const handle of handles.splice(0).reverse()) await handle.dispose();
     await tick(); await integration?.dispose();
     await ctx.sessionPersistence.flush();

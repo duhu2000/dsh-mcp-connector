@@ -40,6 +40,12 @@ Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN*
 
 详见[工具工作台教程](docs/USER-GUIDE.md#51-工具工作台统一查找工具)。工具页用于发现与诊断，不执行目标工具；参数摘要与原始安全缓存均有裁剪边界。
 
+### 企查查智能按需模式（开发分支预览，尚未发布）
+
+在已验证的 Native Host `0.2.2-rc.1` 上，正常插件启动可自动提供“智能工具”入口。首期只识别当前配置账号、单个明确授权下的企业数据六个服务；默认保持兼容模式，一次预览确认即可为新会话启用按需模式，已有会话保留原模式。无需逐服务修改注入配置。
+
+真实工具仍须完整定义指纹绑定的独立只读核验，来源合并仍须独立等价核验；本分支不自动生成这些批准，未核验时 prepare 会拒绝。生产安装与真实收益尚待验收。支持边界、恢复和回退见[按会话工具注入说明](docs/SESSION-TOOL-INJECTION.md#企查查企业数据智能按需模式开发分支预览)。
+
 [用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [首次贡献](docs/FIRST-CONTRIBUTION.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
 [![CI](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/duhu2000/dsh-mcp-connector/actions/workflows/ci.yml)

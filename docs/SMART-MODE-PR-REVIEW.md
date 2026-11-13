@@ -1,6 +1,6 @@
 # QMCP-4963 · PR 范围与验收入口
 
-本文件是本次 PR 的统一审阅入口。其他 `SMART-MODE-*.md` 保留各轮实施时的版本、结果和未完成项，属于历史证据；当前完成状态以本文件为准。冻结新增功能，首次收口完成 main 对齐，后续仅修复审阅发现的问题并补齐回归。
+本文件记录 PR #243 在 `b63c265` 的收口基线。后续经用户单独授权的生产接入在独立分支 `codex/qmcp-4963-production-wiring` 实施，当前进度与补验见 [生产接入报告](SMART-MODE-PRODUCTION-WIRING.md)；下文“未完成”及测试数量属于 PR #243 的冻结时点，不代表后续分支状态。PR #243 本身未因此合并或发布。
 
 English: This PR delivers default-off smart-mode components and controlled, isolated validation for one account's six QCC enterprise servers. Production composition, real read-only/source approvals, actual provider benefit measurements and rollout are not delivered. Historical phase reports remain evidence rather than the current completion checklist. Ready for review means ready for code review, not production deployment or merge approval.
 
