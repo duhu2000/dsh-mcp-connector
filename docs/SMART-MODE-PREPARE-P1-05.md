@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-05 prepare 按需加载
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。独立分支 `codex/qmcp-4963-p1-05-prepare`，基于 P1-04 `97b5056`。
 
 本期实现受控的单次 prepare：独立只读审核、加载前同步复核、当前 Agent 内存加载集和限制层提交/回滚。生产 `apply()` 未挂载这些组件；当前 DSH 配置和业务执行路径不变。

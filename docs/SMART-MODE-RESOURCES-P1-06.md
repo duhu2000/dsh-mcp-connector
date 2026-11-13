@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-06 预算、TTL、安全释放与在途保护
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。独立分支 `codex/qmcp-4963-p1-06-resources`，基于 P1-05 `47b11e5`。
 
 本期在 P1-05 prepare 事务上增加显式启用的资源层，并完成已安装 Native Host 的能力门验证。生产 `apply()`、当前 DSH 配置和真实来源批准流程均未接入或修改。

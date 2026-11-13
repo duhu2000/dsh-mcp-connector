@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-01 生命周期适配器交付说明
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。独立分支：`codex/qmcp-4963-p1-01-lifecycle`。
 
 P1-01 的生命周期基础可以进入 P1-02 开发。生产智能模式仍未挂载或启用；磁盘事务、完整智能工具限制层和按需发现尚未实现。

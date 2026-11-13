@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-03 智能限制层与两个管理入口
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。分支：`codex/qmcp-4963-p1-03-restrictions`，基于 P1-02 提交 `a5e239c`。
 
 本期实现每 Agent 的智能工具限制与原生执行 guard，以及两个局部管理入口。默认关闭，生产 `apply()` 保持原样，模块仅增加工厂导出；不创建控制器、不注册入口、不改变当前配置或连接状态。

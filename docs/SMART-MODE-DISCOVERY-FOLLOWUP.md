@@ -1,5 +1,7 @@
 # QMCP-4963 · 版本基线与原始发现接入补验
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-13，Asia/Shanghai。分支 `codex/qmcp-4963-real-discovery`，基于 P1-07 `2cc78fd`。
 
 本轮推进版本对照、六 Server 原始发现发布适配器及隔离契约验证。**阶段 1 完整验收仍未闭合：真实工具目录读取在第一个 Server 的 initialize 阶段返回 HTTP 401，没有取得本轮真实 raw 定义。** 没有以缓存或上轮模型请求头替代原始定义，没有执行 OAuth 刷新或重新授权。

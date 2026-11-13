@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-02 独立存储与模式事务
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。分支：`codex/qmcp-4963-p1-02-storage`，基于 P1-01 提交 `2bc8a29`。
 
 P1-02 实现独立磁盘存储、会话首次锁定事务、账号组默认策略的 revision 条件更新，以及隔离恢复验证。生产插件仍不打开此存储、不挂载智能生命周期适配器，不迁移当前 DSH 数据。

@@ -1,5 +1,7 @@
 # QMCP-4963 · P1-04 等价候选与来源选择
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-12，Asia/Shanghai。分支：`codex/qmcp-4963-p1-04-sources`，基于 P1-03 提交 `7e2a41e`。
 
 本期实现完整原始定义指纹、候选识别、版本化来源关系及每 Agent 的来源选择。生产 `apply()` 保持原样，只导出新的选择器工厂；没有批准真实来源关系，没有启用智能模式、准备工具或执行业务调用。

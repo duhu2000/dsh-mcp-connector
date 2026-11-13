@@ -1,5 +1,7 @@
 # QMCP-4963 · 授权排查与六 Server 真实元数据补验
 
+> 历史阶段记录 / Historical evidence. 当前 PR 完成范围与剩余验收统一见 [PR 审阅入口](SMART-MODE-PR-REVIEW.md)。
+
 2026-11-13，Asia/Shanghai。独立分支 `codex/qmcp-4963-real-metadata-baseline`，代码基线 `ba03f9d`，安装连接器 0.2.102，隔离运行时使用已安装 Host 0.2.2-rc.1。本轮只推进授权排查/恢复检查、真实目录采集及隔离验证，不实施新的产品功能。
 
 **结论：先前的 401 当前已解除，六路真实 tools/list、完整指纹及原请求输入比对完成；历史连接缺少 serverKey 的直接接入仍被开发适配器拒绝，阶段 1 完整验收不能关闭。** 规范化映射只用于独立临时 profile，不能冒称当前原始记录已经兼容。
