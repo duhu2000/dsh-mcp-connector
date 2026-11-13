@@ -198,7 +198,11 @@ Remote catalog requests (including the fallback source) honor `HTTP_PROXY`, `HTT
 
 The proxy variables must be present in the running DSH process. After changing them, fully exit and restart DSH Desktop or launch `dsh web` from a shell with those variables set; changing Windows user environment variables does not update an already-running process. The connector does not read OS proxy settings or infer a local proxy address.
 
-`showSidebarEntry` defaults to `true`. Users can override it from the DSH plugin configuration page; turning it off hides only the shortcut and does not disable the connector, connected MCP servers, or tools.
+`entryLocation` controls where the entry appears: `both` (default — the sidebar icon and the Settings quick-open button both work), `sidebar` (sidebar icon only; Settings does not offer an open button), or `settings` (hide the sidebar icon and enter from Settings only). Every value keeps at least one entry so the panel never becomes unreachable. Invalid values passed to the plugin configuration are rejected by the schema rather than silently accepted.
+
+When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
+
+`showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
 

@@ -52,3 +52,25 @@ test('client bundle is self-contained across Host store/runtime module layouts',
     '^0.1.1-rc.2 || >=0.2.0-rc.1 <0.3.0-0',
   );
 });
+
+test('entryLocation is declared in the Host Config contract and validates its values', () => {
+  // 维护者第 3 点：Config 不声明该字段时，schemastery 会保留未知键，
+  // 非法值能一路传到归一化逻辑里被静默改写成默认档位。
+  for (const location of ['both', 'sidebar', 'settings']) {
+    assert.equal(Config({ entryLocation: location }).entryLocation, location);
+  }
+  assert.throws(() => Config({ entryLocation: 'not-a-location' }), /entryLocation/);
+});
+
+test('omitting entryLocation leaves it undefined so legacy config is not overwritten', () => {
+  // 关键：Config 不能给 entryLocation 默认值。一旦有默认，该值会提前注入
+  // settings base，把「用户旧的 showSidebarEntry 覆盖」盖掉。
+  assert.equal(Config({}).entryLocation, undefined);
+  assert.equal(Config({ showSidebarEntry: false }).entryLocation, undefined);
+});
+
+test('the shipped bundle patch does not pin entryLocation', () => {
+  const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8');
+  // 省略是刻意的：由 installConnectorSettings() 按旧布尔推导 base。
+  assert.doesNotMatch(patch, /entryLocation:/);
+});
