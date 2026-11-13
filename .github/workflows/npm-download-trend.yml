@@ -19,6 +19,8 @@ jobs:
           node-version: 24
       - run: node --test scripts/build-download-trend.test.mjs
       - run: node scripts/build-download-trend.mjs
+      - name: Install Chinese chart font
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
       - name: Render PNG
         run: |
           npm install --prefix "$RUNNER_TEMP/trend-render" --ignore-scripts --no-audit --no-fund @resvg/resvg-js@2.6.2

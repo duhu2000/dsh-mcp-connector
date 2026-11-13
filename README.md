@@ -1,9 +1,6 @@
 # MCP连接器：DeepSeek Harness 的专业数据源市场
 
-<!-- npm-download-trend:start -->
-[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
-npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
-<!-- npm-download-trend:end -->
+
 
 > DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
@@ -54,6 +51,11 @@ Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN*
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+<!-- npm-download-trend:start -->
+[![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
 
 ## 开始使用
 
