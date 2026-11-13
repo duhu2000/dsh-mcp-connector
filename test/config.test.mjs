@@ -1,9 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import z from '@deepseek-ai/schemastery';
 
 import { DEFAULT_CATALOG_FALLBACK_URLS, DEFAULT_CATALOG_URL, DEFAULT_STARTUP_TIMEOUT_MS } from '../lib/constants.js';
 import { Config } from '../lib/index.js';
+
+function fieldValue(field) {
+  return typeof field?.get === 'function' ? field.get() : field;
+}
 
 test('default config uses the independent public registry', () => {
   assert.equal(
@@ -15,7 +20,7 @@ test('default config uses the independent public registry', () => {
   ]);
   assert.equal(Config({}).catalogUrl, DEFAULT_CATALOG_URL);
   assert.equal(Config({}).startupTimeoutMs, DEFAULT_STARTUP_TIMEOUT_MS);
-  assert.equal(Config({}).showSidebarEntry, true);
+  assert.equal(fieldValue(Config({}).showSidebarEntry), true);
 });
 
 test('an explicit empty catalogUrl keeps bundled-only mode available', () => {
@@ -57,7 +62,7 @@ test('entryLocation is declared in the Host Config contract and validates its va
   // 维护者第 3 点：Config 不声明该字段时，schemastery 会保留未知键，
   // 非法值能一路传到归一化逻辑里被静默改写成默认档位。
   for (const location of ['both', 'sidebar', 'settings']) {
-    assert.equal(Config({ entryLocation: location }).entryLocation, location);
+    assert.equal(fieldValue(Config({ entryLocation: location }).entryLocation), location);
   }
   assert.throws(() => Config({ entryLocation: 'not-a-location' }), /entryLocation/);
 });
@@ -65,8 +70,16 @@ test('entryLocation is declared in the Host Config contract and validates its va
 test('omitting entryLocation leaves it undefined so legacy config is not overwritten', () => {
   // 关键：Config 不能给 entryLocation 默认值。一旦有默认，该值会提前注入
   // settings base，把「用户旧的 showSidebarEntry 覆盖」盖掉。
-  assert.equal(Config({}).entryLocation, undefined);
-  assert.equal(Config({ showSidebarEntry: false }).entryLocation, undefined);
+  assert.equal(fieldValue(Config({}).entryLocation), undefined);
+  assert.equal(fieldValue(Config({ showSidebarEntry: false }).entryLocation), undefined);
+});
+
+test('config forms can edit only the two entry preference fields', {
+  skip: typeof z.boolean().volatile !== 'function',
+}, () => {
+  assert.deepEqual(Object.keys(Config.dict).filter(key => Config.dict[key].meta.volatile).sort(), [
+    'entryLocation', 'showSidebarEntry',
+  ]);
 });
 
 test('the shipped bundle patch does not pin entryLocation', () => {
