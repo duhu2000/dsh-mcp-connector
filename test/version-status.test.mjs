@@ -6,11 +6,63 @@ import {
   compareVersions,
   createVersionStatusService,
   isVersionNewer,
+  readHostProfileInfo,
+  readHostProfileName,
 } from '../lib/version-status.js';
 
 function jsonResponse(value, { ok = true, status = 200 } = {}) {
   return { ok, status, async json() { return value; } };
 }
+
+test('profile comes only from the optional launcher context and is safe as a CLI argument', () => {
+  for (const name of ['desktop', 'web', 'team-dev_2.1', 'Desktop']) {
+    const ctx = { get(key) {
+      assert.equal(key, 'profileContext');
+      return { name, dir: 'private-directory', home: 'private-home' };
+    } };
+    assert.equal(readHostProfileName(ctx), name);
+  }
+  for (const name of [undefined, null, 42, {}, '', ' web', 'web ', '.', '..', 'node_modules',
+    '--help', 'a/b', 'a\\b', 'web;echo secret', 'web&whoami', 'web\n', 'web\r', 'web\0',
+    '$(whoami)', '`whoami`', '%DSH_HOME%', '自定义']) {
+    assert.equal(readHostProfileName({ get: () => ({ name }) }), null, String(name));
+  }
+  assert.equal(readHostProfileName({}), null);
+  assert.equal(readHostProfileName({ get: () => undefined }), null);
+  assert.equal(readHostProfileName({ get() { throw new Error('unavailable service'); } }), null);
+  assert.equal(readHostProfileName({ profileContext: { name: 'desktop' } }), null, 'no guessed fallback');
+});
+
+test('profile diagnostics distinguish missing, failed, invalid and unsupported names without leaking host data', () => {
+  for (const name of ['desktop', 'web', 'team-dev_2.1']) {
+    let reads = 0;
+    const info = readHostProfileInfo({ get(key) {
+      assert.equal(key, 'profileContext');
+      reads += 1;
+      return { name, dir: 'private-directory', home: 'private-home', env: { secret: 'private-env' } };
+    } });
+    assert.deepEqual(info, { detectedName: name, status: 'ready' });
+    assert.equal(reads, 1);
+  }
+  for (const ctx of [{}, { get: null }, { get: () => undefined }, { get: () => null },
+    { profileContext: { name: 'web' } }]) {
+    assert.deepEqual(readHostProfileInfo(ctx), { detectedName: null, status: 'unavailable' });
+  }
+  for (const name of [undefined, null, 42, {}, '']) {
+    assert.deepEqual(readHostProfileInfo({ get: () => ({ name }) }), {
+      detectedName: name === '' ? '' : null, status: 'invalid-value',
+    });
+  }
+  for (const name of ['node_modules', ' web', 'web ', 'web\n', 'web\t', 'a/b', 'web;whoami', '自定义']) {
+    assert.deepEqual(readHostProfileInfo({ get: () => ({ name }) }), { detectedName: name, status: 'unsupported-name' });
+  }
+  for (const ctx of [
+    { get() { throw new Error('private-context-error'); } },
+    { get: () => ({ get name() { throw new Error('private-name-error'); } }) },
+  ]) {
+    assert.deepEqual(readHostProfileInfo(ctx), { detectedName: null, status: 'read-error' });
+  }
+});
 
 test('语义版本比较支持 v 前缀、预发布版和构建元数据', () => {
   assert.ok(compareVersions('v0.2.24', '0.2.23') > 0);

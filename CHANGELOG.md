@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- 升级命令使用宿主提供的实际 profile，支持 Desktop、Web 和自定义名称；无法确认时显示更新指引，不再默认使用 `web`。
+- 同步中英文升级提示和安装文档；手动升级命令旁不常驻展示 Desktop 专用长说明。
+- 未取得 profile 名称时显示具体原因，客户选择默认 Web 或 Desktop 后才展示一条候选命令；已读取但不受支持的名称仅作文本展示，目标版本无效时单独说明版本问题。
+- Manual upgrade commands now target the host's actual profile. When the name is unavailable, explain the cause and show one default candidate only after the user chooses Web or Desktop. Display unsupported names as text, diagnose invalid target versions separately, and reset choices and copy feedback as the context changes.
+
 ## 0.2.103
 
 - npm 简介中的下载趋势图移到产品介绍之后；图表改为中文累计下载次数，保留真实统计区间和口径说明。

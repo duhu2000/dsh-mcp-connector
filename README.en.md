@@ -47,11 +47,19 @@ npm downloads include upgrades, repeat installs and automation; they are not uni
 
 ## Get started
 
-Search for **`dsh-mcp-connector`** in your plugin marketplace, or run the command below. Default Desktop and Web installations both use the `web` profile; custom deployments should use the profile actually loaded by their host.
+Search for **`dsh-mcp-connector`** in your plugin marketplace, or install into the profile actually loaded by your host. For Desktop, launch the app once to initialize it, register or repair its CLI through the app menu's **Manage dsh Command…**, then fully quit the app and run in a new terminal:
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+For default Web:
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+For custom deployments, replace the profile name and use the same `DSH_HOME` as the host. The npm-installed CLI may reject management of `desktop`; use the Desktop-provided CLI in that case.
 
 Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 
@@ -127,11 +135,16 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 
 Requirements: DeepSeek Harness Desktop or web profile, and Node.js 20 or later.
 
+Desktop requires its own CLI and must be initialized and fully quit before installation. Default Web uses `web`:
+
 ```bash
+# Desktop-provided CLI
+dsh plugin --profile desktop add dsh-mcp-connector
+# Default Web
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-Or use the installer:
+For custom deployments, use the actual profile name and the host's `DSH_HOME`. Default Web can also use the installer (set `DSH_PROFILE` for other profiles):
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)

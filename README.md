@@ -16,7 +16,7 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 
 **MCP Connector for DeepSeek Harness** is a specialist data marketplace connecting data providers and open data sources, with authorization, cross-connection tool search and troubleshooting in one panel. Browse a continuously updated catalog of 100+ connectors; connect through OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio or `mcpServers` JSON import.
 
-Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
+Install into the profile loaded by your host: use `--profile desktop` with the Desktop-provided CLI, or `--profile web` for default Web. See [installation](#安装), then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
 
 ![MCP Connector — English interface](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/01-market-overview.jpg)
 
@@ -59,11 +59,19 @@ npm 下载次数包含升级、重复安装及自动化下载，不等于独立�
 
 ## 开始使用
 
-在插件市场搜索完整包名 **`dsh-mcp-connector`**，或在本机终端运行下方命令。当前默认 Desktop 和 Web 都使用 `web` profile；自定义部署请以宿主实际加载的 profile 为准。
+在插件市场搜索完整包名 **`dsh-mcp-connector`**，或按当前宿主实际加载的 profile 安装。Desktop 先启动应用完成初始化，通过应用菜单“管理 dsh 命令…”注册或修复配套 CLI，完全退出应用后在新终端执行：
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+默认 Web 使用：
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+自定义部署请替换 profile 名称；设置了 `DSH_HOME` 时，终端须沿用与宿主相同的值。npm 安装的 CLI 可能拒绝管理 `desktop`，此时应使用 Desktop 配套 CLI。
 
 安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
 
@@ -141,11 +149,16 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 
 要求：DeepSeek Harness Desktop/web profile，Node.js 20 或更高版本。
 
+Desktop 使用配套 CLI，初始化后完全退出应用再安装；默认 Web 使用 `web`：
+
 ```bash
+# Desktop 配套 CLI
+dsh plugin --profile desktop add dsh-mcp-connector
+# 默认 Web
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-也可使用安装脚本：
+自定义部署以实际 profile 为准，并在终端沿用宿主的 `DSH_HOME`。默认 Web 也可使用安装脚本（其他 profile 需设置 `DSH_PROFILE`）：
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
