@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="control-nonce" content="CONTROL_NONCE_PLACEHOLDER"><title>智能工具管理</title>
+<style>
+body{font:15px/1.6 system-ui,sans-serif;background:#f5f7fb;color:#172033;margin:0}main{max-width:1000px;margin:36px auto;padding:0 24px}h1{font-size:27px;margin:0}h2{font-size:18px}section{background:white;border:1px solid #dae1ed;border-radius:12px;padding:22px;margin:18px 0}p{color:#526179}button,input,select{font:inherit;border:1px solid #c5cfe0;border-radius:7px;padding:8px 12px;margin:4px 8px 4px 0}button{background:#edf2ff;color:#25488d;cursor:pointer}button:disabled{opacity:.45;cursor:default}input[type=text]{width:min(100%,400px)}label{display:block;margin:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8fc;padding:14px;border-radius:8px;max-height:280px;overflow:auto}#notice{padding:12px 0;min-height:24px}#notice[data-error=true]{color:#a32232}.row{border-top:1px solid #e1e7f0;padding:10px 0}.muted{color:#637188}dialog{max-width:600px;border:1px solid #c5cfe0;border-radius:12px;padding:24px}dialog::backdrop{background:#17203355}a{color:#315aa3}
+</style></head><body><main>
+<a href="/mcp-connector/ui/">返回连接器</a><h1>智能工具管理</h1><p id="scope">正在读取范围…</p>
+<div id="notice" role="status" aria-live="polite"></div>
+<section><h2>新会话默认模式</h2><p id="mode"></p><button id="enable">为新会话启用智能模式</button><button id="disable">新会话使用兼容模式</button><button id="layer">停用智能层</button><p>模式切换只影响新会话，已有会话保留原模式。停用智能层会恢复原有工具视图。</p></section>
+<section><h2>会话</h2><label>当前会话 <select id="session"></select></label><button id="create">新建会话</button><button id="resume">恢复所选会话</button><button id="clear">清空可见上下文</button><button id="compact">压缩上下文</button><p>清空保留历史日志和模式记录，并释放本会话已准备的工具；压缩保留现有权限和模式。</p></section>
+<section><h2>查找与选择来源</h2><label>搜索工具 <input id="query" type="text" placeholder="输入工具名称或关键词"></label><button id="search">查找</button><div id="sources"></div>
+<div id="inspection" hidden><h2 id="tool-name"></h2><p id="fingerprint"></p><details><summary>查看当前完整工具定义</summary><pre id="definition"></pre></details>
+<button id="source">本会话明确使用此来源</button><p>选择来源不会自动加载工具，也不会批准来源等价关系。</p>
+<h2>只读核验记录</h2><label>独立核验证据的 SHA-256 <input id="evidence" type="text" maxlength="64" placeholder="64 位十六进制哈希"></label>
+<label>有效小时数 <input id="hours" type="number" min="1" max="720" value="24"></label>
+<p>工具名称和只读提示不能代替核验。保存启用记录还须通过服务端独立核验策略。</p><button id="review">预览并保存只读核验</button><button id="revoke">撤回当前只读核验</button><p id="review-state"></p></div></section>
+<dialog id="preview"><h2>确认变更</h2><pre id="preview-text"></pre><button id="confirm">确认</button><button id="cancel">取消</button></dialog>
+</main><script type="module" src="./smart-mode.js"></script></body></html>

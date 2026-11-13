@@ -31,6 +31,7 @@ const WHITELIST = [
   /^docs\/screenshots\/(?:README\.md|assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^docs\/screenshots\/en\/(?:assets\.json|[^/]+\.(?:gif|jpe?g|png|svg|webp))$/,
   /^ui\/index\.html$/,
+  /^ui\/smart-mode\.(?:html|js)$/,
   /^ui\/sharing-experience\.js$/,
   /^ui\/locale\.js$/,
   /^ui\/connection-template-sharing\.js$/,

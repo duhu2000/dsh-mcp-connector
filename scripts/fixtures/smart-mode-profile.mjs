@@ -91,8 +91,14 @@ export async function profileHarness(t, profileDir, options = {}) {
   root.plugin(host.AgentLoop, { agents: [], maxParallelToolCalls: 2 });
   root.plugin(host.TokenMeter);
   root.plugin(host.BasicCompactionEngine, { auto: false, retainTokens: 0, headroomTokens: 1000, maxTokens: 200 });
+  if (options.humanCommands) {
+    const require = createRequire(createRequire(anchor).resolve('@deepseek-ai/dsh-agent-loop'));
+    root.plugin((await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-commands')).href)).CommandRuntime);
+    root.plugin(await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-command-compact')).href));
+  }
   const ctx = await bounded(new Promise((done) => root.plugin({
-    inject: ['agents', 'sessions', 'sessionPersistence', 'sessionProjections', 'tools', 'llm', 'systemPrompt', 'tokenMeter', 'compaction'], apply: done,
+    inject: ['agents', 'sessions', 'sessionPersistence', 'sessionProjections', 'tools', 'llm', 'systemPrompt', 'tokenMeter', 'compaction',
+      ...(options.humanCommands ? ['commands'] : [])], apply: done,
   })));
   ctx.llm.registerAdapter(['offline-validation'], new OfflineAdapter());
   const managementStop = registerTools(ctx, { sessionTools: async () => ({ ok: true, message: 'synthetic legacy entry' }) });

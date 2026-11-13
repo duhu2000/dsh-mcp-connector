@@ -6,6 +6,8 @@
 
 English: A shared in-memory binding view resolves historical records without serverKey using unique exact catalog evidence, without rewriting the backing records. Versioned candidate observations distinguish registration-extension differences while retaining full approval fingerprints. All 911 checks finish with 906 passes, zero failures and five existing skips; live metadata-only regression recognizes 170 unapproved groups across 356 tools.
 
+后续状态：已在独立分支对齐 0.2.102 客户端基线并完成受控页、持久化审核与会话路径补验，见 [客户端与审核维护报告](./SMART-MODE-CLIENT-CONTROL.md)。本报告保留此前两处修订时点的数据。
+
 ## 变更范围
 
 | 文件 | 修改 |
