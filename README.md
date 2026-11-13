@@ -1,9 +1,6 @@
 # MCP连接器：DeepSeek Harness 的专业数据源市场
 
-<!-- npm-download-trend:start -->
-[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
-npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
-<!-- npm-download-trend:end -->
+
 
 > DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
@@ -54,6 +51,11 @@ Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN*
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+<!-- npm-download-trend:start -->
+[![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
 
 ## 开始使用
 
@@ -133,7 +135,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.101（2026-11-11）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.103（2026-11-13）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -206,7 +208,11 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 代理变量必须存在于正在运行的 DSH 进程中。修改后请完全退出并重启 DSH Desktop，或从已设置变量的终端启动 `dsh web`；修改 Windows 用户环境变量不会更新已有进程。连接器不会读取系统代理设置，也不会猜测本机代理地址。
 
-`showSidebarEntry` 默认为 `true`。用户可在 DSH 插件配置页覆盖该值；关闭后只隐藏侧边栏快捷入口，不停用连接器、已连接 MCP Server 或工具。
+`entryLocation` 控制入口出现在哪里，取值为 `both`（默认：侧栏图标与设置页的快捷打开按钮都可用）、`sidebar`（只保留侧栏图标，设置页不提供打开按钮）、或 `settings`（隐藏侧栏图标，只从设置页进入）。三档都至少保留一处入口，避免面板变得无法打开。传给插件配置的非法值会被 schema 拒绝，而不是静默接受。
+
+从旧版升级时，若设置文档里只有 `showSidebarEntry` 而没有 `entryLocation`，插件按旧字段的实际行为翻译：`true` → `both`（旧版侧栏可见、设置页也有打开按钮），`false` → `settings`。这样升级既不会悄悄删掉既有入口，也不会让隐藏过的侧栏重新出现。分层解析中用户自己的覆盖优先于部署基线；「恢复默认」会同时清掉新字段与旧的布尔覆盖。
+
+`showSidebarEntry` 默认为 `true`，为兼容既有配置保留；一旦显式设置 `entryLocation`，它不再影响界面。关闭入口只隐藏快捷方式，不停用连接器、已连接 MCP Server 或工具。
 
 `compactManagementTools` 默认为 `false`，兼容原有对话管理工具。希望降低管理工具上下文开销时，可在插件配置中设为 `true` 并重载插件（必要时重启 DSH），下一次推理使用新工具集：
 
@@ -257,7 +263,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.102`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.102](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.102)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.103`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.103](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.103)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

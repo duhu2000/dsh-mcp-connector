@@ -13,3 +13,8 @@ test('seven-day periods do not overlap',()=>{
  const rows=Array.from({length:90},(_,i)=>({day:new Date(Date.UTC(2026,0,i+1)).toISOString().slice(0,10),downloads:1}));
  const s=summarize(rows);assert.equal(s.total,90);assert.equal(s.last30,30);assert.equal(s.weeks.length,12);assert.ok(s.weeks.every(w=>w.value===7));
 });
+test('chart shows Chinese cumulative totals and the real cutoff without a recent-period panel',()=>{
+ const svg=render([{day:'2026-01-01',downloads:2},{day:'2026-01-02',downloads:3}]);
+ assert.match(svg,/累计下载 5 次/);assert.match(svg,/2026-01-02/);
+ assert.match(svg,/不等于独立用户数/);assert.doesNotMatch(svg,/Recent downloads|Last 30 days|近期下载/);
+});

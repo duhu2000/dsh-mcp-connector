@@ -189,14 +189,86 @@ function mutableSettingsScope(initial) {
       };
       for (const listener of listeners) listener();
     },
+    // 与真实 settingsScope 同形：一次原子变更，全部成功或全部不生效。
+    async mutate(ops) {
+      writes.push(['mutate', ops]);
+      if (state.failNextMutate) {
+        state.failNextMutate = false;
+        throw new Error('simulated persistence failure');
+      }
+      const nextUser = { ...snapshot.user };
+      const nextValue = { ...snapshot.value };
+      for (const op of ops) {
+        const [field] = op.path;
+        if (op.op === "unset") {
+          delete nextUser[field];
+          nextValue[field] = snapshot.base?.[field];
+          if (nextValue[field] === undefined) delete nextValue[field];
+        } else {
+          nextUser[field] = op.value;
+          nextValue[field] = op.value;
+        }
+      }
+      snapshot = { ...snapshot, status: "ready", value: nextValue, user: nextUser };
+      for (const listener of listeners) listener();
+    },
     publish(next) {
       snapshot = next;
       for (const listener of listeners) listener();
     },
   };
-  return { scope, writes };
+  const state = {
+    failNextMutate: false,
+    failNextWrite() { this.failNextMutate = true; },
+  };
+  return { scope, writes, state };
 }
 
+/**
+ * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1。
+ * 没有 mutate —— 直接调 mutate 会抛 "settingsScope.mutate is not a function"。
+ */
+function mutableLegacySettingsScope(initial) {
+  let snapshot = initial;
+  const listeners = new Set();
+  const writes = [];
+  const state = { failOn: null };
+  const write = (field) => {
+    if (state.failOn === field) {
+      state.failOn = null;
+      throw new Error(`simulated failure on ${field}`);
+    }
+  };
+  const scope = {
+    getSnapshot: () => snapshot,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async set(field, value) {
+      writes.push(['set', field, value]);
+      write(field);
+      snapshot = {
+        ...snapshot,
+        status: 'ready',
+        value: { ...snapshot.value, [field]: value },
+        user: { ...snapshot.user, [field]: value },
+      };
+      for (const listener of listeners) listener();
+    },
+    async unset(field) {
+      writes.push(['unset', field]);
+      write(field);
+      const { [field]: _removed, ...user } = snapshot.user ?? {};
+      const nextValue = { ...snapshot.value };
+      if (snapshot.base?.[field] === undefined) delete nextValue[field];
+      else nextValue[field] = snapshot.base[field];
+      snapshot = { ...snapshot, status: 'ready', value: nextValue, user };
+      for (const listener of listeners) listener();
+    },
+  };
+  return { scope, writes, state };
+}
 test('客户端声明新会话所需服务', async () => {
   const plugin = await loadClient();
   assert.deepEqual(plugin.inject, ['slots', 'sessions', 'workspaces', 'conversation']);
@@ -250,8 +322,8 @@ test('independent settings section works without a Plugins page and survives slo
     jsxRuntime: { jsx: (type, props) => ({ type, props }) },
   });
   const settings = mutableSettingsScope({
-    status: 'ready', value: { showSidebarEntry: false },
-    writable: true, user: { showSidebarEntry: false },
+    status: 'ready', value: { entryLocation: 'settings' },
+    writable: true, user: { entryLocation: 'settings' },
   });
   const { ctx, registrations, slotControls } = clientContext({
     settingsScope: { bind: () => settings.scope },
@@ -284,9 +356,9 @@ test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口'
   const plugin = await loadClient();
   const settings = mutableSettingsScope({
     status: 'ready',
-    value: { showSidebarEntry: false },
-    base: { showSidebarEntry: true },
-    user: { showSidebarEntry: false },
+    value: { entryLocation: 'settings' },
+    base: { entryLocation: 'sidebar' },
+    user: { entryLocation: 'settings' },
     writable: true,
     mode: 'host',
     revision: 1,
@@ -304,7 +376,7 @@ test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口'
   plugin.apply(ctx);
 
   assert.equal(bindSpec.namespace, 'mcp-connector');
-  assert.deepEqual(bindSpec.decode({ showSidebarEntry: false }), { showSidebarEntry: false });
+  assert.deepEqual(bindSpec.decode({ entryLocation: 'settings' }), { entryLocation: 'settings' });
   assert.equal(bindSpec.decode({}), undefined);
   const overlay = registrations.get('shell.overlay');
   const settingsCard = registrations.get('settings.plugin.item');
@@ -313,14 +385,14 @@ test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口'
   assert.equal(settingsCard.options.store, overlay.options.store, '快捷按钮必须复用现有弹框 Store');
 
   const store = overlay.options.store.create();
-  assert.equal(store.getSnapshot().sidebarVisible, false);
+  assert.equal(store.getSnapshot().sidebarVisible, false, '仅设置档应隐藏侧栏图标');
   settings.scope.publish({
     ...settings.scope.getSnapshot(),
-    value: { showSidebarEntry: true },
-    user: { showSidebarEntry: true },
+    value: { entryLocation: 'both' },
+    user: { entryLocation: 'both' },
     revision: 2,
   });
-  assert.equal(store.getSnapshot().sidebarVisible, true);
+  assert.equal(store.getSnapshot().sidebarVisible, true, '两边显示档应恢复侧栏图标');
   settings.scope.publish({ status: 'unavailable', writable: false, mode: 'memory' });
   assert.equal(store.getSnapshot().sidebarVisible, true, '不可用时应 fail-open');
 });
@@ -328,9 +400,9 @@ test('设置 scope 控制侧边栏可见性并注册同一弹框的快捷入口'
 test('设置卡片可隐藏入口、恢复默认并直接打开现有弹框', async () => {
   const settings = mutableSettingsScope({
     status: 'ready',
-    value: { showSidebarEntry: true },
-    base: { showSidebarEntry: true },
-    user: { showSidebarEntry: true },
+    value: { entryLocation: 'both' },
+    base: { entryLocation: 'both' },
+    user: { entryLocation: 'both' },
     writable: true,
     mode: 'host',
     revision: 1,
@@ -374,20 +446,28 @@ test('设置卡片可隐藏入口、恢复默认并直接打开现有弹框', as
   };
   visit(tree);
 
-  const toggle = descendants.find((node) => node.type === 'input' && node.props?.role === 'switch');
+  const segments = descendants.filter((node) => node.type === 'button' && node.props?.role === 'radio');
   const reset = descendants.find((node) => node.type === 'button' && node.props?.children === '恢复默认');
   const open = descendants.find((node) => node.type === 'button' && node.props?.children === '打开 MCP连接器');
-  assert.ok(toggle);
+  assert.equal(segments.length, 3, '应渲染三个入口位置档位');
   assert.ok(reset);
-  assert.ok(open);
+  assert.ok(open, 'both 档应提供设置页快捷打开按钮');
 
-  toggle.props.onChange({ target: { checked: false } });
+  const sidebarOnly = segments.find((node) => node.props?.children === '仅侧边栏');
+  assert.ok(sidebarOnly, '应有三档中的「仅侧边栏」');
+  sidebarOnly.props.onClick();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(settings.writes[0], ['set', 'showSidebarEntry', false]);
+  assert.deepEqual(settings.writes[0], ['set', 'entryLocation', 'sidebar']);
 
   reset.props.onClick();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(settings.writes[1], ['unset', 'showSidebarEntry']);
+  // 恢复默认现在是一次原子 mutate：同时清掉新字段与旧的布尔覆盖。
+  assert.equal(settings.writes[1][0], 'mutate');
+  const cleared = settings.writes[1][1]
+    .filter((op) => op.op === 'unset')
+    .map((op) => op.path[0])
+    .sort();
+  assert.deepEqual(cleared, ['entryLocation', 'showSidebarEntry']);
 
   open.props.onClick();
   assert.equal(opens, 1);
@@ -596,9 +676,9 @@ test('原生 main 直接渲染共享市场主体，不创建模态 Portal', asyn
 test('原生入口隐藏时先退回会话并注销行，重新开启后恢复', async () => {
   const settings = mutableSettingsScope({
     status: 'ready',
-    value: { showSidebarEntry: true },
-    base: { showSidebarEntry: true },
-    user: { showSidebarEntry: true },
+    value: { entryLocation: 'both' },
+    base: { entryLocation: 'both' },
+    user: { entryLocation: 'both' },
     writable: true,
     mode: 'host',
     revision: 1,
@@ -623,8 +703,8 @@ test('原生入口隐藏时先退回会话并注销行，重新开启后恢复',
 
   settings.scope.publish({
     ...settings.scope.getSnapshot(),
-    value: { showSidebarEntry: false },
-    user: { showSidebarEntry: false },
+    value: { entryLocation: 'settings' },
+    user: { entryLocation: 'settings' },
     revision: 2,
   });
   assert.deepEqual(selections, [null], '隐藏当前面板前应退回会话');
@@ -633,8 +713,8 @@ test('原生入口隐藏时先退回会话并注销行，重新开启后恢复',
 
   settings.scope.publish({
     ...settings.scope.getSnapshot(),
-    value: { showSidebarEntry: true },
-    user: { showSidebarEntry: true },
+    value: { entryLocation: 'sidebar' },
+    user: { entryLocation: 'sidebar' },
     revision: 3,
   });
   assert.ok(registrations.has('sidebar.panellist'), '重新开启后应恢复原生行');
@@ -1736,4 +1816,516 @@ test('用户选了英文时，侧边栏文案为英文', async () => {
   });
   plugin.apply(bare.ctx);
   assert.equal(bare.registrations.get('sidebar.panellist').options.label(), 'MCP连接器');
+});
+
+test('legacy showSidebarEntry:false keeps the sidebar hidden after upgrade', async () => {
+  // 升级场景：设置文档里只有旧的布尔开关，没有 entryLocation。
+  // 若只认新字段，这里会回退到 sidebar 并让侧栏重新出现。
+  const plugin = await loadClient();
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: false },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const store = registrations.get('shell.overlay').options.store.create();
+  assert.equal(store.getSnapshot().sidebarVisible, false, '旧偏好隐藏时侧栏必须保持隐藏');
+
+  // 切到新字段后行为仍由新字段主导。
+  settings.scope.publish({
+    ...settings.scope.getSnapshot(),
+    value: { showSidebarEntry: false, entryLocation: 'both' },
+    user: { showSidebarEntry: false, entryLocation: 'both' },
+    revision: 2,
+  });
+  assert.equal(store.getSnapshot().sidebarVisible, true, '显式选择 both 后应显示侧栏');
+});
+
+test('legacy showSidebarEntry:true keeps the sidebar visible after upgrade', async () => {
+  const plugin = await loadClient();
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: true },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: true },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const store = registrations.get('shell.overlay').options.store.create();
+  assert.equal(store.getSnapshot().sidebarVisible, true, '旧偏好显示时侧栏应保留');
+});
+
+test('placement helpers keep the three placements distinct', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+
+  const grab = (name) => {
+    const start = source.indexOf(`function ${name}(`);
+    if (start < 0) throw new Error(`missing ${name}`);
+    let depth = 0;
+    for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+      if (source[i] === '{') depth += 1;
+      else if (source[i] === '}') {
+        depth -= 1;
+        if (depth === 0) return source.slice(start, i + 1);
+      }
+    }
+    throw new Error(`unbalanced ${name}`);
+  };
+
+  const factory = new Function([
+    'const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);',
+    'const DEFAULT_ENTRY_LOCATION = "both";',
+    'const ENTRY_LOCATION_FIELD = "entryLocation";',
+    'const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";',
+    grab('normalizeEntryLocation'),
+    grab('entryLocationFromLegacyFlag'),
+    grab('readLegacyFlag'),
+    grab('readEntryLocation'),
+    grab('resolveEntryLocation'),
+    grab('resolveSidebarVisible'),
+    grab('resolveSettingsQuickOpen'),
+    'return { resolveEntryLocation, resolveSidebarVisible, resolveSettingsQuickOpen };',
+  ].join('\n'));
+  const helpers = factory();
+
+  const layers = (value, base, user) => ({ status: 'ready', value, base, user });
+
+  // ── 三档本身的差异 ──
+  const both = layers({ entryLocation: 'both' }, { entryLocation: 'both' }, {});
+  assert.equal(helpers.resolveSidebarVisible(both), true, 'both 档侧栏可见');
+  assert.equal(helpers.resolveSettingsQuickOpen('both'), true, 'both 档设置页可快捷打开');
+
+  const sidebarOnly = layers({ entryLocation: 'sidebar' }, { entryLocation: 'sidebar' }, {});
+  assert.equal(helpers.resolveSidebarVisible(sidebarOnly), true, 'sidebar 档侧栏可见');
+  assert.equal(helpers.resolveSettingsQuickOpen('sidebar'), false, 'sidebar 档设置页不得提供快捷入口');
+
+  const settingsOnly = layers({ entryLocation: 'settings' }, { entryLocation: 'settings' }, {});
+  assert.equal(helpers.resolveSidebarVisible(settingsOnly), false, 'settings 档侧栏隐藏');
+  assert.equal(helpers.resolveSettingsQuickOpen('settings'), true, 'settings 档必须能从设置页打开');
+
+  // both 与 sidebar 侧栏一致，但设置页入口不同 —— 这是维护者要求的差异。
+  assert.equal(helpers.resolveSidebarVisible(both), helpers.resolveSidebarVisible(sidebarOnly));
+  assert.notEqual(helpers.resolveSettingsQuickOpen('both'), helpers.resolveSettingsQuickOpen('sidebar'));
+});
+
+test('layered resolution keeps legacy user overrides winning over synthesized base', async () => {
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const grab = (name) => {
+    const start = source.indexOf(`function ${name}(`);
+    let depth = 0;
+    for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+      if (source[i] === '{') depth += 1;
+      else if (source[i] === '}') { depth -= 1; if (depth === 0) return source.slice(start, i + 1); }
+    }
+    throw new Error(`unbalanced ${name}`);
+  };
+  const factory = new Function([
+    'const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);',
+    'const DEFAULT_ENTRY_LOCATION = "both";',
+    'const ENTRY_LOCATION_FIELD = "entryLocation";',
+    'const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";',
+    grab('normalizeEntryLocation'),
+    grab('entryLocationFromLegacyFlag'),
+    grab('readLegacyFlag'),
+    grab('readEntryLocation'),
+    grab('resolveEntryLocation'),
+    'return { resolveEntryLocation };',
+  ].join('\n'));
+  const { resolveEntryLocation } = factory();
+
+  // 维护者复现 (1)：config true + 用户旧覆盖 false → 侧栏必须保持隐藏。
+  // base 已被合成为 both，但用户显式选过 false，旧覆盖优先。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { showSidebarEntry: false, entryLocation: 'both' },
+      base: { showSidebarEntry: true, entryLocation: 'both' },
+      user: { showSidebarEntry: false },
+    }),
+    'settings',
+    '用户旧覆盖 false 必须压过基线合成的 both',
+  );
+
+  // 维护者复现 (2)：config false + 用户旧覆盖 true → 侧栏必须可见。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { showSidebarEntry: true, entryLocation: 'settings' },
+      base: { showSidebarEntry: false, entryLocation: 'settings' },
+      user: { showSidebarEntry: true },
+    }),
+    'both',
+    '用户旧覆盖 true 必须压过基线合成的 settings',
+  );
+
+  // 用户显式选了新字段 → 新字段优先，旧布尔不再参与。
+  assert.equal(
+    resolveEntryLocation({
+      status: 'ready',
+      value: { entryLocation: 'sidebar' },
+      base: { entryLocation: 'both' },
+      user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    }),
+    'sidebar',
+    '用户显式新选择优先级最高',
+  );
+
+  // 只有基线信息（新装/未覆盖）→ 用基线档位。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { entryLocation: 'sidebar' }, base: { entryLocation: 'sidebar' }, user: {} }),
+    'sidebar',
+  );
+
+  // 基线只有旧布尔 → 翻译成等价档位（true→both，false→settings）。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { showSidebarEntry: true }, base: { showSidebarEntry: true }, user: {} }),
+    'both',
+  );
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: { showSidebarEntry: false }, base: { showSidebarEntry: false }, user: {} }),
+    'settings',
+  );
+
+  // 全新安装（三层都没有该字段）→ 默认 both。
+  assert.equal(
+    resolveEntryLocation({ status: 'ready', value: {}, base: {}, user: {} }),
+    'both',
+    '全新安装默认 both，与旧 showSidebarEntry=true 行为一致',
+  );
+
+  // 设置不可用 → fail-open。
+  assert.equal(resolveEntryLocation({ status: 'loading' }), 'both', '未就绪时 fail-open');
+});
+test('ready snapshot with only the legacy boolean keeps the sidebar hidden', async () => {
+  // 维护者复现：{ status:"ready", value:{ showSidebarEntry:false } } 且无 user/base。
+  // 旧实现的 value 兜底只找 entryLocation，找不到就回退 both，侧栏错误显示。
+  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
+  const grab = (name) => {
+    const start = source.indexOf(`function ${name}(`);
+    let depth = 0;
+    for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+      if (source[i] === '{') depth += 1;
+      else if (source[i] === '}') { depth -= 1; if (depth === 0) return source.slice(start, i + 1); }
+    }
+    throw new Error(`unbalanced ${name}`);
+  };
+  const helpers = new Function([
+    'const ENTRY_LOCATIONS = Object.freeze(["both", "sidebar", "settings"]);',
+    'const DEFAULT_ENTRY_LOCATION = "both";',
+    'const ENTRY_LOCATION_FIELD = "entryLocation";',
+    'const SHOW_SIDEBAR_ENTRY_FIELD = "showSidebarEntry";',
+    grab('normalizeEntryLocation'),
+    grab('entryLocationFromLegacyFlag'),
+    grab('readLegacyFlag'),
+    grab('readEntryLocation'),
+    grab('resolveEntryLocation'),
+    grab('resolveSidebarVisible'),
+    grab('resolveSettingsQuickOpen'),
+    'return { resolveEntryLocation, resolveSidebarVisible, resolveSettingsQuickOpen };',
+  ].join('\n'))();
+
+  // 只有 value 里的旧 false，没有任何分层信息。
+  const legacyHidden = { status: 'ready', value: { showSidebarEntry: false } };
+  assert.equal(helpers.resolveEntryLocation(legacyHidden), 'settings', '旧 false 应翻译成 settings');
+  assert.equal(helpers.resolveSidebarVisible(legacyHidden), false, '侧栏必须保持隐藏');
+  assert.equal(helpers.resolveSettingsQuickOpen('settings'), true, '设置页仍要能打开');
+
+  // 旧 true → both，两个入口都在。
+  const legacyVisible = { status: 'ready', value: { showSidebarEntry: true } };
+  assert.equal(helpers.resolveEntryLocation(legacyVisible), 'both');
+  assert.equal(helpers.resolveSidebarVisible(legacyVisible), true);
+
+  // 完全空的 ready 快照才用默认档位。
+  assert.equal(helpers.resolveEntryLocation({ status: 'ready', value: {} }), 'both');
+  // 不可用快照仍 fail-open。
+  assert.equal(helpers.resolveEntryLocation({ status: 'loading' }), 'both');
+});
+
+test('Restore defaults clears both preference keys in one atomic write', async () => {
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  let openCalls = 0;
+
+  const plugin = await loadClient({
+    jsxRuntime,
+    clientDocument: {
+      documentElement: { lang: 'zh-CN' },
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    reactApi: {
+      useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot(); },
+      // 每次渲染都让第一个 useState（卡片 open 开关）返回 true，
+      // 保证多次渲染后卡片始终是展开态；其余状态用初始值。
+      useState(initial, init) {
+        openCalls += 1;
+        if (openCalls % 3 === 1) return [true, () => {}];
+        return [typeof init === "function" ? init() : initial, () => {}];
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const registration = registrations.get('settings.plugin.item');
+  // 卡片默认折叠，先展开再取内部控件。
+  const renderExpanded = () => {
+    const props = { ...registration.options.inject(), actions: { open() {} } };
+    const root = registration.component(props);
+    const flat = [];
+    const visit = (node) => {
+      if (node == null || typeof node !== "object") return;
+      flat.push(node);
+      const children = node.props?.children;
+      for (const child of Array.isArray(children) ? children : [children]) visit(child);
+      return flat;
+    };
+    visit(root);
+    return flat;
+  };
+
+  const expanded = renderExpanded();
+  const reset = expanded.find((node) => node.type === "button" && node.props?.children === "恢复默认");
+  assert.ok(reset, "展开后应有「恢复默认」按钮");
+
+  await reset.props.onClick();
+
+  // 必须是一次原子写，而不是两次 unset。
+  const mutations = settings.writes.filter(([kind]) => kind === "mutate");
+  assert.equal(mutations.length, 1, "应只发生一次 mutate");
+  const ops = mutations[0][1];
+  assert.equal(ops.length, 2, "一次 mutate 里应清两个键");
+  const cleared = ops.filter((op) => op.op === "unset").map((op) => op.path[0]).sort();
+  assert.deepEqual(cleared, ["entryLocation", "showSidebarEntry"], "两个键都要清");
+
+  // 成功后两个覆盖都消失，回到部署基线 both。
+  const after = settings.scope.getSnapshot();
+  assert.equal(Object.hasOwn(after.user ?? {}, "entryLocation"), false);
+  assert.equal(Object.hasOwn(after.user ?? {}, "showSidebarEntry"), false);
+
+  const flatAfter = renderExpanded();
+  const seg = flatAfter.filter((node) => node.type === "button" && node.props?.role === "radio");
+  assert.equal(seg.length, 3);
+});
+
+test('Restore defaults leaves both keys untouched when the atomic write fails', async () => {
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+
+  const settings = mutableSettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+  let openCalls = 0;
+
+  const plugin = await loadClient({
+    jsxRuntime,
+    clientDocument: {
+      documentElement: { lang: 'zh-CN' },
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    reactApi: {
+      useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot(); },
+      // 每次渲染都让第一个 useState（卡片 open 开关）返回 true，
+      // 保证多次渲染后卡片始终是展开态；其余状态用初始值。
+      useState(initial, init) {
+        openCalls += 1;
+        if (openCalls % 3 === 1) return [true, () => {}];
+        return [typeof init === "function" ? init() : initial, () => {}];
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const registration = registrations.get('settings.plugin.item');
+  const flat = [];
+  const visit = (node) => {
+    if (node == null || typeof node !== "object") return;
+    flat.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    return flat;
+  };
+  const render = () => {
+    flat.length = 0;
+    visit(registration.component({ ...registration.options.inject(), actions: { open() {} } }));
+    return flat;
+  };
+
+  // 让下一次原子写失败。
+  settings.state.failNextWrite();
+  const reset = render().find((n) => n.type === "button" && n.props?.children === "恢复默认");
+  await reset.props.onClick();
+
+  // 两个键都还在 —— 不能出现「清掉一个、另一个残留」的半成品状态。
+  const after = settings.scope.getSnapshot();
+  assert.equal(after.user?.entryLocation, "sidebar", "失败时 entryLocation 保持不变");
+  assert.equal(after.user?.showSidebarEntry, false, "失败时 showSidebarEntry 保持不变");
+});
+
+/**
+ * 渲染设置卡片并返回可搜索的节点平面表。
+ * 用 useState 让第一个状态（卡片 open 开关）恒为 true，避免依赖点击展开。
+ */
+async function renderSettingsCard(settings) {
+  let openCalls = 0;
+  const jsxRuntime = {
+    jsx(type, props) { return { type, props }; },
+    jsxs(type, props) { return { type, props }; },
+  };
+  const plugin = await loadClient({
+    jsxRuntime,
+    clientDocument: {
+      documentElement: { lang: 'zh-CN' },
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, remove() {} }),
+      head: { append() {} },
+    },
+    reactApi: {
+      useSyncExternalStore(_subscribe, getSnapshot) { return getSnapshot(); },
+      useState(initial, init) {
+        openCalls += 1;
+        if (openCalls % 3 === 1) return [true, () => {}];
+        return [typeof init === "function" ? init() : initial, () => {}];
+      },
+    },
+  });
+  const { ctx, registrations } = clientContext({
+    settingsScope: { bind: () => settings.scope },
+  });
+  plugin.apply(ctx);
+
+  const registration = registrations.get('settings.plugin.item');
+  const flat = [];
+  const visit = (node) => {
+    if (node == null || typeof node !== "object") return;
+    flat.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) visit(child);
+    return flat;
+  };
+  visit(registration.component({ ...registration.options.inject(), actions: { open() {} } }));
+  return flat;
+}
+
+test('legacy scope without mutate resets a legacy-only override', async () => {
+  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1：只有 set/unset。
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { showSidebarEntry: false },
+    base: { showSidebarEntry: true },
+    user: { showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+  assert.ok(reset, "应有「恢复默认」按钮");
+
+  await reset.props.onClick();
+
+  // 只有 showSidebarEntry 一个覆盖：必须恰好写一次，且不能顺手多清 entryLocation。
+  assert.deepEqual(settings.writes, [["unset", "showSidebarEntry"]], "只清实际存在的那个键");
+
+  // 覆盖清空，解析回到部署基线（base.showSidebarEntry=true → both）。
+  const after = settings.scope.getSnapshot();
+  assert.equal(Object.hasOwn(after.user ?? {}, "showSidebarEntry"), false, "旧布尔覆盖应被清掉");
+});
+
+test('legacy scope without mutate clears both keys and restores the deployment base', async () => {
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+  await reset.props.onClick();
+
+  const unsettled = settings.writes.filter(([k]) => k === "unset").map(([, f]) => f);
+  assert.deepEqual(
+    [...unsettled].sort(),
+    ["entryLocation", "showSidebarEntry"],
+    "两个键都要清",
+  );
+
+  // 顺序：先清旧布尔，再清新字段 —— 避免中间态让旧值重新生效。
+  assert.equal(unsettled[0], "showSidebarEntry", "应先清 showSidebarEntry");
+  assert.equal(unsettled[1], "entryLocation", "再清 entryLocation");
+
+  const after = settings.scope.getSnapshot();
+  assert.equal(Object.hasOwn(after.user ?? {}, "entryLocation"), false);
+  assert.equal(Object.hasOwn(after.user ?? {}, "showSidebarEntry"), false);
+});
+
+test('legacy scope keeps the original placement when a reset write fails', async () => {
+  const settings = mutableLegacySettingsScope({
+    status: 'ready',
+    value: { entryLocation: 'sidebar', showSidebarEntry: false },
+    base: { entryLocation: 'both', showSidebarEntry: true },
+    user: { entryLocation: 'sidebar', showSidebarEntry: false },
+    writable: true,
+    mode: 'host',
+    revision: 1,
+  });
+
+  const nodes = await renderSettingsCard(settings);
+  const reset = nodes.find((n) => n.type === "button" && n.props?.children === "恢复默认");
+
+  // 让第一次 unset（showSidebarEntry）失败。
+  settings.state.failOn = "showSidebarEntry";
+  await reset.props.onClick();
+
+  // 失败发生在第一笔，用户文档应原样保留。
+  const after = settings.scope.getSnapshot();
+  assert.equal(after.user?.entryLocation, "sidebar", "失败时 entryLocation 不变");
+  assert.equal(after.user?.showSidebarEntry, false, "失败时 showSidebarEntry 不变");
 });

@@ -1,9 +1,6 @@
 # MCP Connector: a Specialist Data Marketplace for DeepSeek Harness
 
-<!-- npm-download-trend:start -->
-[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
-npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
-<!-- npm-download-trend:end -->
+
 
 > MCP Connector for DeepSeek Harness: a data marketplace connecting specialist providers and open data sources. Browse 100+ connectors, manage authorization, search tools and troubleshoot MCP connections.
 
@@ -42,6 +39,11 @@ Tool browsing does not execute target tools. Parameter summaries may omit comple
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+<!-- npm-download-trend:start -->
+[![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
 
 ## Get started
 
@@ -119,7 +121,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.101 (2026-11-11), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.103 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -198,7 +200,11 @@ Remote catalog requests (including the fallback source) honor `HTTP_PROXY`, `HTT
 
 The proxy variables must be present in the running DSH process. After changing them, fully exit and restart DSH Desktop or launch `dsh web` from a shell with those variables set; changing Windows user environment variables does not update an already-running process. The connector does not read OS proxy settings or infer a local proxy address.
 
-`showSidebarEntry` defaults to `true`. Users can override it from the DSH plugin configuration page; turning it off hides only the shortcut and does not disable the connector, connected MCP servers, or tools.
+`entryLocation` controls where the entry appears: `both` (default — the sidebar icon and the Settings quick-open button both work), `sidebar` (sidebar icon only; Settings does not offer an open button), or `settings` (hide the sidebar icon and enter from Settings only). Every value keeps at least one entry so the panel never becomes unreachable. Invalid values passed to the plugin configuration are rejected by the schema rather than silently accepted.
+
+When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
+
+`showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
 
@@ -250,7 +256,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.102`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.102](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.102).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.103`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.103](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.103).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
