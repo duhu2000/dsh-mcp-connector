@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.106 - 2026-11-13
+
+- 修复 Node 26 下配置 HTTP/HTTPS 代理后远程目录刷新失败、市场仅显示内置连接器的问题：请求自有代理 dispatcher 与同一 Undici 包提供的 fetch 配套使用（#246，#247）。
+- 无代理时继续使用宿主 fetch；保留 NO_PROXY、TLS 校验、ETag/304、备用目录、超时和失败后不静默直连的行为，并补充冷启动回归测试。
+- 更新 npm 累计下载趋势至 2026-11-12（UTC），85 天累计 76,701 次下载；下载次数不等于独立用户数或成功安装数（#235）。
+- 重新采集 0.2.106 中英文无凭据 Mock 截图与 GIF，并同步生成的版本文档。
+- Fix remote catalog refresh through environment proxies on Node 26 by pairing request-owned dispatchers with fetch from the same Undici package. Preserve the host fetch when no proxy is configured and cover cold starts (#246, #247).
+- Refresh the npm download chart through 2026-11-12 (UTC): 76,701 downloads across 85 days, not unique users or successful installs (#235). Refresh bilingual credential-free Mock media and generated version documentation.
+
 ## 0.2.105 - 2026-11-13
 
 - 修复使用 configForms 的 DSH Desktop 上的连接器入口设置，支持切换入口位置和恢复默认设置（#236）。
