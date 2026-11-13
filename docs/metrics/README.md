@@ -2,8 +2,9 @@
 
 Source: npm public Downloads API, package `dsh-mcp-connector`. Daily UTC counts
 are collected from npm package creation date through the last available day.
-Cumulative counts are summed over that exact range; recent periods are complete
-consecutive seven-day bins ending at the cutoff (not calendar weeks).
+The Chinese chart shows only cumulative counts summed over that exact range.
+An increasing cumulative total does not imply accelerating recent growth.
+The PNG renderer uses Noto CJK fonts in CI to preserve Chinese labels.
 
 Downloads include upgrades, repeat installations and automation. These are not
 unique users, successful installations or connector-card connection counts.

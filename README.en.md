@@ -1,9 +1,6 @@
 # MCP Connector: a Specialist Data Marketplace for DeepSeek Harness
 
-<!-- npm-download-trend:start -->
-[![npm download trend](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
-npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
-<!-- npm-download-trend:end -->
+
 
 > MCP Connector for DeepSeek Harness: a data marketplace connecting specialist providers and open data sources. Browse 100+ connectors, manage authorization, search tools and troubleshoot MCP connections.
 
@@ -42,6 +39,11 @@ Tool browsing does not execute target tools. Parameter summaries may omit comple
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
+
+<!-- npm-download-trend:start -->
+[![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
+npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
+<!-- npm-download-trend:end -->
 
 ## Get started
 
