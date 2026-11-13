@@ -524,6 +524,7 @@
       <button data-view="market" class="active"><span id="tab-market">市场</span> <span class="tab-count" id="market-tab-count"></span></button>
       <button data-view="installed"><span id="tab-installed">已安装</span> <span class="tab-count" id="installed-tab-count"></span></button>
       <button data-view="tools"><span id="tab-tools">工具</span></button>
+      <a id="smart-control-link" class="icon-btn" href="/mcp-connector/smart-control/" hidden>智能工具</a>
     </div>
     <div id="ui-language" class="language-switch" role="group" aria-label="Language / 语言">
       <button type="button" data-locale="zh-CN" lang="zh-CN" aria-label="简体中文" title="简体中文" aria-pressed="true">中文</button>
@@ -3773,6 +3774,14 @@
     window.location.assign(url.href);
   });
   syncTabs();
+  fetch('/mcp-connector/smart-control/capabilities', { headers: { accept: 'application/json' } })
+    .then((response) => response.ok ? response.json() : null).then((value) => {
+      if (value?.enabled === true) {
+        const link = $('#smart-control-link'); link.hidden = false;
+        link.textContent = ACTIVE_LOCALE === 'en' ? 'Smart tools' : '智能工具';
+        link.href = `/mcp-connector/smart-control/?uiLocale=${ACTIVE_LOCALE}`;
+      }
+    }).catch(() => {});
   $('#first-use').addEventListener('click', () => { recordLocalConversion('quickStartOpened'); openFirstUse(); });
   if (viewStateReady) restoreViewState();
   requestWorkspaceContext();
