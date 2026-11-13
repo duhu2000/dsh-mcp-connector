@@ -166,6 +166,46 @@ function mockDiscoveryFetch(t, handle) {
   });
 }
 
+test('toolsList counts distinct raw names across endpoints in preview, live discovery and cache', async (t) => {
+  const toolSets = { all: [{ name: 'Lookup' }, { name: 'lookup' }], category: [{ name: 'lookup' }] };
+  const descriptor = {
+    id: 'overlap', name: 'Overlap', auth: { mode: 'none' },
+    servers: Object.keys(toolSets).map(serverKey => ({
+      serverKey, serverName: `overlap-${serverKey}`, url: `https://mcp.example.com/${serverKey}`,
+    })),
+    toolsSnapshot: Object.entries(toolSets).map(([serverKey, tools]) => ({ serverKey, tools })),
+  };
+  mockDiscoveryFetch(t, (request, url) => {
+    if (request.method !== 'tools/list') return;
+    const tools = toolSets[new URL(url).pathname.slice(1)];
+    return Response.json({ jsonrpc: '2.0', id: request.id, result: { tools } });
+  });
+  const host = makePluginContext({ withWeb: true });
+  const target = { connectorId: descriptor.id };
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ connectors: [descriptor] }));
+    const preview = await host.webCall('toolsList', target);
+    for (const { serverKey } of descriptor.servers) {
+      assert.equal((await host.webCall('connect', { ...target, serverKey })).ok, true);
+    }
+    const live = await host.webCall('toolsList', target);
+    const cached = await host.webCall('toolsList', { ...target, cachedOnly: true });
+    for (const result of [preview, live, cached]) {
+      assert.equal(result.ok, true, result.message);
+      assert.equal(result.detail.uniqueToolCount, 2);
+      assert.equal(result.detail.totalToolEntries, 3);
+      assert.equal(result.detail.totalTools, 3);
+      assert.deepEqual(result.detail.servers.map(s => s.tools.map(tool => tool.name)), [['Lookup', 'lookup'], ['lookup']]);
+    }
+    assert.match(preview.message, /2 个工具/);
+    assert.match(live.message, /2 个工具/);
+    const category = await host.webCall('toolsList', { ...target, connectionKey: 'overlap-category' });
+    assert.equal(category.detail.uniqueToolCount, 1);
+    assert.equal(category.detail.totalToolEntries, 1);
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
 test('versionStatus reads profile diagnostics once per request, including with cached version results', async (t) => {
   const { apply } = await import('../lib/index.js');
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ version: '0.2.102', tag_name: 'v0.2.102' })));

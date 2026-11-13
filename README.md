@@ -143,7 +143,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.104（2026-11-13）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.105（2026-11-13）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -225,6 +225,8 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 从旧版升级时，若设置文档里只有 `showSidebarEntry` 而没有 `entryLocation`，插件按旧字段的实际行为翻译：`true` → `both`（旧版侧栏可见、设置页也有打开按钮），`false` → `settings`。这样升级既不会悄悄删掉既有入口，也不会让隐藏过的侧栏重新出现。分层解析中用户自己的覆盖优先于部署基线；「恢复默认」会同时清掉新字段与旧的布尔覆盖。
 
+在 **设置 → MCP连接器** 中可以切换入口位置或恢复默认。当前 Desktop 通过 `configForms` 将偏好写入当前 profile；旧版宿主通过 `settingsScope` 保存。若宿主未提供这两种服务，或未提供放置卡片的设置页入口，仍可从侧栏打开连接器。要更改入口位置，请在启用了设置服务和设置页的宿主中打开同一 profile。
+
 `showSidebarEntry` 默认为 `true`，为兼容既有配置保留；一旦显式设置 `entryLocation`，它不再影响界面。关闭入口只隐藏快捷方式，不停用连接器、已连接 MCP Server 或工具。
 
 `compactManagementTools` 默认为 `false`，兼容原有对话管理工具。希望降低管理工具上下文开销时，可在插件配置中设为 `true` 并重载插件（必要时重启 DSH），下一次推理使用新工具集：
@@ -276,7 +278,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.104`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.104](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.104)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.105`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.105](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.105)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

@@ -27,7 +27,7 @@ function panel(respond) {
     call: async (name, args) => { calls.push(name); return respond(name, args); },
     workspaceParams: () => ({}), detailTryLabel: (v) => v,
     setDetailOpen() {}, renderPromptPage() {}, syncGovernanceBar() {},
-    updateToolsSummary() {}, renderTools() {}, recordLocalConversion() {},
+    resetDetailTools() {}, renderTools() {}, recordLocalConversion() {},
     markCommunityCtaEligible() {}, completeCatalogConnection() {},
     marketItems: {}, installedItems: [],
   });

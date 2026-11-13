@@ -129,7 +129,7 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.104 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.105 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -217,6 +217,8 @@ The proxy variables must be present in the running DSH process. After changing t
 
 When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
 
+Open **Settings → MCP Connector** to change the entry location or restore the default. Current Desktop hosts save the preference to the active profile through `configForms`. Older hosts use `settingsScope`. If neither service is available, or Settings has nowhere to display the card, use the sidebar to open the connector. To change the entry location, open the same profile with a host that provides the settings service and page.
+
 `showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
@@ -269,7 +271,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.104`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.104](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.104).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.105`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.105](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.105).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

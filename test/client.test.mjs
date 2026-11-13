@@ -39,6 +39,7 @@ function clientContext({
   workspaceItems,
   recentWorkspaceId = workspaceId ?? undefined,
   settingsScope,
+  configForms,
   workspaceNavigation = 'legacy',
   nativeSidebar = false,
   layout,
@@ -136,10 +137,17 @@ function clientContext({
     },
   };
   if (layout !== undefined) ctx.layout = layout;
+  const providers = { settingsScope, configForms };
+  const providerCleanup = new Map();
   ctx.inject = (services, callback) => {
-    if (services.includes('settingsScope') && settingsScope !== undefined) {
-      callback({ ...ctx, settingsScope });
-    }
+    const name = services[0];
+    if (providers[name] === undefined) return;
+    const cleanups = [];
+    callback({
+      ...ctx, [name]: providers[name],
+      effect(start) { cleanups.push(start()); },
+    });
+    providerCleanup.set(name, () => cleanups.reverse().forEach(dispose => dispose?.()));
   };
   const slotControls = {
     declare(name) {
@@ -155,7 +163,7 @@ function clientContext({
       }
     },
   };
-  return { ctx, registrations, registrationOrder, calls, slotControls };
+  return { ctx, registrations, registrationOrder, calls, slotControls, providerCleanup };
 }
 
 function mutableSettingsScope(initial) {
@@ -225,7 +233,7 @@ function mutableSettingsScope(initial) {
 }
 
 /**
- * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1。
+ * 只暴露单字段 set/unset 的 settingsScope，复现 @deepseek-ai/dsh-client-ui-settings@0.1.1-rc.2。
  * 没有 mutate —— 直接调 mutate 会抛 "settingsScope.mutate is not a function"。
  */
 function mutableLegacySettingsScope(initial) {
@@ -314,6 +322,111 @@ test('partial optional settings services do not block the connector UI', async (
     assert.ok(overlay, 'connector overlay must remain available');
     assert.equal(overlay.options.store.create().getSnapshot().sidebarVisible, true);
     assert.equal(registrations.has('settings.plugin.item'), false);
+  }
+});
+
+test('configForms follows namespace availability, slot lifetime, and the legacy provider', async () => {
+  const plugin = await loadClient();
+  const modern = mutableSettingsScope({ status: 'loading', writable: false });
+  const legacy = mutableSettingsScope({ status: 'ready', value: { entryLocation: 'sidebar' }, writable: true });
+  const { ctx, registrations, slotControls, providerCleanup } = clientContext({
+    configForms: { get(entryId) { assert.equal(entryId, 'mcp-connector'); return modern.scope; } },
+    settingsScope: { bind: () => legacy.scope },
+    nativeSidebar: true,
+  });
+  slotControls.remove('settings.plugin.item');
+  slotControls.declare('settings.section');
+  plugin.apply(ctx);
+  const section = () => registrations.get('settings.section')?.options.inject().settingsScope;
+  const visible = () => registrations.has('sidebar.panellist');
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+
+  const hidden = { status: 'ready', writable: true, base: { entryLocation: 'both' },
+    user: { showSidebarEntry: false }, value: { entryLocation: 'both', showSidebarEntry: false } };
+  modern.scope.publish(hidden);
+  assert.equal(section(), modern.scope);
+  assert.equal(visible(), false);
+  slotControls.remove('settings.section');
+  assert.equal(visible(), true, 'hiding the final settings surface keeps the sidebar reachable');
+  slotControls.declare('settings.section');
+  assert.equal(section(), modern.scope);
+  assert.equal(visible(), false);
+
+  modern.scope.publish({ ...hidden, status: 'unavailable' });
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+  modern.scope.publish(hidden);
+  providerCleanup.get('configForms')();
+  assert.equal(section(), legacy.scope);
+  assert.equal(visible(), true);
+  modern.scope.publish(hidden);
+  assert.equal(section(), legacy.scope, 'a detached provider cannot change the current registration');
+  providerCleanup.get('settingsScope')();
+  assert.equal(section(), undefined);
+  assert.equal(visible(), true);
+});
+
+test('configForms honours explicit write refusals and resets retained inherited fields', async () => {
+  const current = { status: 'ready', writable: true, value: { entryLocation: 'settings' },
+    user: { entryLocation: 'settings' }, base: { showSidebarEntry: true } };
+  const inherited = { ...current, value: current.base, user: current.base };
+  const settings = mutableSettingsScope(current);
+  const states = [true, false, false];
+  let cursor = 0;
+  const jsx = (type, props) => ({ type, props });
+  const plugin = await loadClient({
+    jsxRuntime: { jsx, jsxs: jsx },
+    reactApi: {
+      useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
+      useState() {
+        const i = cursor++;
+        return [states[i], value => { states[i] = value; }];
+      },
+    },
+  });
+  const { ctx, registrations, slotControls } = clientContext({ configForms: { get: () => settings.scope } });
+  slotControls.remove('settings.plugin.item');
+  slotControls.declare('settings.section');
+  plugin.apply(ctx);
+  const section = registrations.get('settings.section');
+  function renderButtons() {
+    cursor = 0;
+    const card = section.component({ ...section.options.inject(), actions: {} }).props.children;
+    const buttons = [];
+    function visit(node) {
+      if (Array.isArray(node)) return node.forEach(visit);
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'button') buttons.push(node.props);
+      visit(node.props.children);
+    }
+    visit(card.type(card.props));
+    return buttons;
+  }
+  async function click(label) {
+    const button = renderButtons().find(button => button.children === label);
+    assert.equal(button.disabled, false);
+    button.onClick();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+
+  // On conflict the recovery read may already include the requested placement.
+  settings.scope.set = async (field, value) => {
+    assert.deepEqual([field, value], ['entryLocation', 'both']);
+    settings.scope.publish(inherited);
+    return false;
+  };
+  await click('两边显示');
+  assert.equal(states[2], true);
+  for (const accepted of [false, true]) {
+    settings.scope.publish(current);
+    settings.scope.mutate = async ops => {
+      assert.deepEqual(ops.map(op => [op.op, ...op.path]), [['unset', 'entryLocation'], ['unset', 'showSidebarEntry']]);
+      settings.scope.publish(inherited);
+      return accepted;
+    };
+    await click('恢复默认');
+    assert.equal(states[2], !accepted);
   }
 });
 
@@ -2545,7 +2658,7 @@ async function renderSettingsCard(settings) {
 }
 
 test('legacy scope without mutate resets a legacy-only override', async () => {
-  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.2-rc.1：只有 set/unset。
+  // 复现 @deepseek-ai/dsh-client-ui-settings@0.1.1-rc.2：只有 set/unset。
   const settings = mutableLegacySettingsScope({
     status: 'ready',
     value: { showSidebarEntry: false },
