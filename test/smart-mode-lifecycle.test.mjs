@@ -82,6 +82,35 @@ test('unverified Host is refused before registering any hooks', async () => {
   assert.equal(f.listeners.size, 0);
 });
 
+for (const failAt of [1, 2, 3, 4, 5, 6]) {
+  test(`lifecycle registration failure at hook ${failAt} releases acquired hooks and permits retry`, async () => {
+    const f = fixture(), subscribe = f.ctx.on;
+    let attempts = 0;
+    f.ctx.on = (type, fn) => {
+      if (++attempts === failAt) throw new Error('synthetic subscription failure');
+      return subscribe(type, fn);
+    };
+    await assert.rejects(f.adapter.mount(f.ctx), /synthetic subscription failure/);
+    assert.equal([...f.listeners.values()].reduce((sum, value) => sum + value.size, 0), 0);
+    f.ctx.on = subscribe;
+    await f.adapter.mount(f.ctx);
+    const agent = f.make(`retry-${failAt}`);
+    await f.serial('agent/created', { agent, source: 'startup' });
+    f.queue(agent, human('after-retry')); f.claim(agent); await f.step(agent);
+    assert.equal(f.adapter.status(agent).mode, 'smart');
+    assert.equal(f.writes.length, 1);
+    f.adapter.dispose();
+    assert.equal([...f.listeners.values()].reduce((sum, value) => sum + value.size, 0), 0);
+  });
+}
+
+test('lifecycle rejects a missing event disposer and removes earlier subscriptions', async () => {
+  const f = fixture(), subscribe = f.ctx.on;
+  f.ctx.on = (type, fn) => type === 'agent/pre-step' ? undefined : subscribe(type, fn);
+  await assert.rejects(f.adapter.mount(f.ctx), { code: 'EVENT_DISPOSER_REQUIRED' });
+  assert.equal([...f.listeners.values()].reduce((sum, value) => sum + value.size, 0), 0);
+});
+
 test('old blank root waits for first trusted input; timestamp and source startup alone do not choose mode', async () => {
   const f = fixture();
   await f.adapter.mount(f.ctx);

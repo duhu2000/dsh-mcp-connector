@@ -216,6 +216,19 @@ test('missing records, grant changes and asynchronous permission callbacks never
   assert.ok(!asyncPolicy.names(peer.agent).includes(asyncPolicy.businessNames[0]));
 });
 
+for (const callback of ['isRecordUsable', 'isRecordVisible', 'isToolAllowed', 'isManuallyActive']) {
+  test(`a rejecting async ${callback} fails closed without an unhandled rejection`, async () => {
+    const f = fixture({ controller: { [callback]: async () => { throw new Error('synthetic permission unavailable'); } } });
+    for (const record of f.records) record.injectionMode = 'session';
+    const { agent } = f.make(`async-failure-${callback}`);
+    f.prepared.set(agent, [f.businessNames[0]]); f.controller.refresh();
+    assert.ok(!f.names(agent).includes(f.businessNames[0]));
+    assert.ok(f.guard(f.businessNames[0], agent));
+    await new Promise((resolve) => setImmediate(resolve));
+    f.controller.dispose();
+  });
+}
+
 test('a foreign snapshot or replaced legacy entry cannot redirect management to another account or implementation', () => {
   const f = fixture(); const compat = f.make('foreign', 'compat'); compat.stop();
   assert.throws(() => f.controller.installMode(compat.agent, { ...f.snapshot(compat.agent.id), accountRef: 'another-grant' }), { code: 'SNAPSHOT_SCOPE_MISMATCH' });

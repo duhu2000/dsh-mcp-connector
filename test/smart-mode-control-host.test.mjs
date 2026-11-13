@@ -159,6 +159,93 @@ contract('a browser nonce cannot be replayed by another authenticated principal'
   assert.equal((await f.rpc('state')).code, 'CONTROL_CSRF_REJECTED');
 });
 
+for (const foreign of ['accountRef', 'groupId']) {
+  contract(`a bound compatible session from another ${foreign} is neither listed nor operated`, async (t) => {
+    const f = await controlHarness(t), sessionId = `foreign-compat-${foreign}`;
+    const own = await ok(f.rpc('create'));
+    const store = await SmartModeStore.open({ profileDir: f.profileDir });
+    try {
+      await store.writeSnapshot({ version: 1, sessionId, mode: 'compat', policyVersion: 'fixture-v1',
+        selection: 'user-confirmed', accountRef: f.current.scope.accountRef, groupId: f.current.scope.groupId,
+        [foreign]: 'synthetic-other-scope' });
+    } finally { await store.close(); }
+    const handle = f.remember(await f.current.create(sessionId)); await f.current.drive(handle.agent);
+    let callbacks = 0;
+    for (const method of ['resume', 'clear', 'compact']) f.actions[method] = async () => { callbacks++; return { unexpected: true }; };
+    const sourceId = f.current.sources[0].sourceId;
+    const results = [];
+    for (const [method, params] of [
+      ['resume', {}], ['clear', {}], ['compact', {}], ['search', { query: 'fixture' }], ['inspect', { sourceId }],
+      ['previewReview', { sourceId, evidenceHash: 'e'.repeat(64), enabled: false, validForMs: 60000, expectedRevision: 0 }],
+      ['previewSource', { capabilityId: `source:${sourceId}`, kind: 'source', sourceIds: [sourceId] }],
+    ]) results.push([method, (await f.rpc(method, { sessionId, ...params })).code]);
+    const state = await ok(f.rpc('state'));
+    assert.deepEqual(state.sessions.map((entry) => entry.sessionId), [own.sessionId]);
+    assert.ok(results.every(([, code]) => code === 'CONTROL_SESSION_SCOPE_MISMATCH'), JSON.stringify(results));
+    assert.equal(callbacks, 0);
+    assert.equal(f.current.integration.status(handle.agent).lifecycle.mode, 'compat');
+  });
+}
+
+contract('an own-account bound compat default still permits list, clear and resume', async (t) => {
+  const f = await controlHarness(t);
+  await mode(f, 'compat', 0);
+  const { sessionId } = await ok(f.rpc('create'));
+  const snapshot = await f.current.integration.readSnapshot(sessionId);
+  assert.equal(snapshot.mode, 'compat'); assert.equal(snapshot.accountRef, f.current.scope.accountRef);
+  assert.equal((await ok(f.rpc('state'))).sessions[0].sessionId, sessionId);
+  await ok(f.rpc('clear', { sessionId })); await ok(f.rpc('resume', { sessionId }));
+  assert.equal(f.current.integration.status(f.live.get(sessionId).agent).lifecycle.mode, 'compat');
+});
+
+contract('pending prepare blocks human clear/compact and layer rollback but not another session', async (t) => {
+  let heldAgent, entered, release;
+  const started = new Promise((resolve) => { entered = resolve; });
+  const gate = new Promise((resolve) => { release = resolve; });
+  const f = await controlHarness(t, { getUserSourceIntent: (agent) => {
+    if (agent === heldAgent) { entered(); return gate; }
+    return undefined;
+  } });
+  const first = await smart(f), { preview, source } = await review(f, first.sessionId);
+  await ok(f.rpc('commit', { previewId: preview.previewId }));
+  const second = await ok(f.rpc('create'));
+  heldAgent = f.live.get(first.sessionId).agent;
+  const pending = f.current.integration.prepare(heldAgent, { capabilityIds: [`source:${source.sourceId}`] });
+  await started;
+  try {
+    for (const method of ['clear', 'compact']) assert.equal((await f.rpc(method, first)).code, 'CONTROL_REQUIRES_IDLE_AGENT');
+    assert.equal((await f.rpc('layer', { enabled: false })).code, 'PREPARE_DISPOSE_REQUIRES_SETTLED_OPERATIONS');
+    await ok(f.rpc('clear', second));
+    assert.equal(f.current.integration.status().mounted, true);
+  } finally { heldAgent = undefined; release(); assert.equal((await pending).ok, true); }
+  const agent = f.live.get(first.sessionId).agent;
+  assert.equal(f.current.integration.status(agent).restriction.preparedCount, 1);
+  await ok(f.rpc('clear', first));
+  assert.equal(f.current.integration.status(agent).restriction.preparedCount, 0);
+});
+
+contract('readonly revocation remains available during pending prepare and rejects its eventual commit', async (t) => {
+  let heldAgent, entered, release;
+  const started = new Promise((resolve) => { entered = resolve; });
+  const gate = new Promise((resolve) => { release = resolve; });
+  const f = await controlHarness(t, { getUserSourceIntent: (agent) => {
+    if (agent === heldAgent) { entered(); return gate; }
+    return undefined;
+  } });
+  const { sessionId } = await smart(f), { preview, source } = await review(f, sessionId);
+  await ok(f.rpc('commit', { previewId: preview.previewId }));
+  const revoked = await review(f, sessionId, { enabled: false, expectedRevision: 1 });
+  heldAgent = f.live.get(sessionId).agent;
+  const pending = f.current.integration.prepare(heldAgent, { capabilityIds: [`source:${source.sourceId}`] });
+  await started;
+  try { await ok(f.rpc('commit', { previewId: revoked.preview.previewId })); }
+  finally { heldAgent = undefined; release(); }
+  assert.equal((await pending).message, 'READ_ONLY_REVIEW_REQUIRED');
+  const agent = f.live.get(sessionId).agent;
+  assert.equal(agent.ctx.tools.get(source.publicName, agent), undefined);
+  assert.equal(f.current.integration.status(agent).restriction.preparedCount, 0);
+});
+
 contract('a fresh Host reopens readonly evidence but restores no prepared definitions or transient intents', async (t) => {
   const f = await controlHarness(t), { sessionId } = await smart(f), approval = await review(f, sessionId);
   await ok(f.rpc('commit', { previewId: approval.preview.previewId }));

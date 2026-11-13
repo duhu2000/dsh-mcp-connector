@@ -1,8 +1,10 @@
 # QMCP-4963 · Draft PR 范围与验收入口
 
-本文件是本次 PR 的统一审阅入口。其他 `SMART-MODE-*.md` 保留各轮实施时的版本、结果和未完成项，属于历史证据；当前完成状态以本文件为准。冻结新增功能，本次仅做 main 对齐、差异收口和回归。
+本文件是本次 PR 的统一审阅入口。其他 `SMART-MODE-*.md` 保留各轮实施时的版本、结果和未完成项，属于历史证据；当前完成状态以本文件为准。冻结新增功能，首次收口完成 main 对齐，后续仅修复审阅发现的问题并补齐回归。
 
 English: This draft delivers default-off smart-mode components and controlled, isolated validation for one account's six QCC enterprise servers. Production composition, real read-only/source approvals, actual provider benefit measurements and rollout are not delivered. Historical phase reports remain evidence rather than the current completion checklist.
+
+Review follow-up: bound compat-session scope checks, pending preparation/clear races, partial lifecycle subscription rollback and rejected asynchronous permission callbacks are corrected without adding capabilities.
 
 ## 用户问题与本期范围
 
@@ -41,6 +43,19 @@ PR 基于 `main` 的 `7b83486`（0.2.103），在 `codex/qmcp-4963-pr` 汇集全
 
 不以批准全部真实候选作为提 PR 的前提，也不以本地合成批准代替真实批准。合并 PR、发布安装包和启用生产智能模式是不同动作，本次只提交 Draft 供审阅。
 
+## PR #243 审阅修复
+
+基于首次收口提交 `f8eaefe` 审阅会话隔离、权限、prepare 与回滚，确认并修复以下四类问题。仍在 `codex/qmcp-4963-pr`，不合并 PR，不变更生产接入范围。
+
+| 问题及触发条件 | 修复与回归 |
+| --- | --- |
+| 兼容快照已经绑定其他账号/组时，控制器只针对 smart 检查绑定，可能列出标题或调用恢复/清空等操作 | 列表、恢复和所有依赖 agentFor 的路径统一检查已绑定账号/组；未绑定历史会话及同账号 compat 继续兼容。两个外部绑定用例检查七种入口，确认会话操作回调未执行 |
+| Agent 为 idle 但 prepare 仍在等待或排队时，清空可能先成功，随后旧 prepare 又发布工具 | 启用资源层的状态包含逐 Agent pendingOperations；清空/压缩与需要 idle 的控制提交拒绝同会话未完成操作。另一会话不被阻断；只读撤回仍可完成，并使等待中的 prepare 拒绝提交 |
+| 生命周期订阅第 1～6 个事件时失败，会遗留已注册回调，且不能重新挂载 | 逐条获取/校验 disposer，注册失败按逆序释放已取得的订阅，成功后才置 mounted。单测覆盖每个失败位置及缺失 disposer；真实 Host 组合验证整层回滚后原 25 管理入口/业务视图和后续会话正常 |
+| 权限或来源检查错误地返回拒绝的 Promise 时，虽然不授权，仍产生 unhandledRejection | 观察并处理 Promise 拒绝，仍要求同步明确 true；不引入异步权限支持。四种权限回调和来源权限回调均检查封闭拒绝且无未处理异常 |
+
+新增 19 项回归；其中 15 项在对应修复前实际失败，另 4 项补齐受控 Host/HTTP 与兼容验证。首轮完整检查还发现本次状态字段修订影响了禁用返回结构，已恢复原 `{ enabled: false }` 契约，保留原测试而未放宽断言。
+
 ## 验收口径与边界
 
 1. 预算只计本期六企业 Server 的已加载业务定义和两个常驻管理入口。初始目标不超过 1,500，加载后总预算不超过 5,000；使用 DSH 的 `JSON.stringify(...).length / 4 + 4` 口径及其实际取整。90% 只能相对同范围全量定义基线声明，不能用于整个会话、usage 或费用。
@@ -62,11 +77,11 @@ npm run check
 
 不设 Host 锚点时，相应完整 Host 契约测试会跳过；仓库已有 CI 的 Host visibility 任务只覆盖其自己的兼容矩阵，不能当作本套完整生命周期/JSONL 验证。PR CI 状态与本地带锚点结果分别记录。
 
-main 对齐后的完整 `npm run check` 退出码为 0：**1006 项，1001 通过、0 失败、5 项原有跳过**；无新增跳过。lint、中英文门禁、文档/元数据检查、教程链接及打包白名单/安全检查全部通过，发布文件仍为 141 个。本轮不增加测试或功能；数量相对上一轮增加来自合入 main 的既有测试。
+PR 审阅修复后的完整 `npm run check` 退出码为 0：**1025 项，1020 通过、0 失败、5 项原有跳过**；无新增跳过。lint、中英文门禁、文档/元数据检查、教程链接及打包白名单/安全检查全部通过，发布文件仍为 141 个。相对首次收口的 1006 项新增 19 项回归，不增加功能。
 
-47 份 Host/profile 回执覆盖 45 个不同临时 profile，结束时均已清理；真实业务和模型请求为 0。既有成功/失败/取消测试共执行 4 次纯本地合成业务函数。原有跳过为 Windows 环境变量大小写、独立 Web E2E，以及三项独立 SDK 启动保护夹具；本期完整 Host 契约未跳过。
+最终全量运行的 54 份 Host/profile 回执覆盖 52 个不同临时 profile，结束时均已清理；本次失败复现、定向及首轮完整检查的 profile 也已清理。真实业务和模型请求为 0。每轮完整/定向 Host 组合中的既有成功/失败/取消测试执行 4 次纯本地合成业务函数。原有跳过为 Windows 环境变量大小写、独立 Web E2E，以及三项独立 SDK 启动保护夹具；本期完整 Host 契约未跳过。
 
-本轮首次沙箱运行遇到本地 HTTP `EACCES`，停止后在获准环境中完整重跑，保留两个日志。此前 967 项结果属于上一轮，不替代本轮结果。
+首次 PR 收口的沙箱运行曾遇到本地 HTTP `EACCES`，其获准环境重跑结果为 1006 项。本次审阅新增用例保留修复前的 15 项失败、禁用结构契约失败及修复后的定向/全量日志；此前 967/1006 项结果均不替代本次 1025 项结果。
 
 真实业务调用、真实模型调用、真实来源或只读批准、生产智能模式启用均为零。当前 DSH 的 cordis.yml、cordis.patch.yml、package.json、pnpm-lock.yaml 在本轮开始和结束 SHA-256 一致；不把这四文件未变推导成后台全部运行存储从未变化。
 
@@ -75,4 +90,4 @@ main 对齐后的完整 `npm run check` 退出码为 0：**1006 项，1001 通�
 - 生命周期、落盘及限制：[P1-01](SMART-MODE-LIFECYCLE-P1-01.md)、[P1-02](SMART-MODE-STORAGE-P1-02.md)、[P1-03](SMART-MODE-RESTRICTIONS-P1-03.md)。
 - 来源、prepare 及资源：[P1-04](SMART-MODE-SOURCES-P1-04.md)、[P1-05](SMART-MODE-PREPARE-P1-05.md)、[P1-06](SMART-MODE-RESOURCES-P1-06.md)。
 - 隔离组合与补验：[P1-07](SMART-MODE-INTEGRATION-P1-07.md)、[发现补验](SMART-MODE-DISCOVERY-FOLLOWUP.md)、[真实元数据](SMART-MODE-REAL-METADATA-ACCEPTANCE.md)、[绑定与候选修订](SMART-MODE-BINDING-CANDIDATE-FIXES.md)。
-- 人工入口与浏览器受控验收：[客户端控制](SMART-MODE-CLIENT-CONTROL.md)。其中截图与手工结果来自独立合成 profile；本轮只改收口说明和注释，未重复主界面点测。
+- 人工入口与浏览器受控验收：[客户端控制](SMART-MODE-CLIENT-CONTROL.md)。其中截图与手工结果来自独立合成 profile；本次审阅修复使用自动化 HTTP/Host 回归，未操作当前 DSH 主界面。

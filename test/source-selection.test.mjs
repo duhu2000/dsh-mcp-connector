@@ -55,6 +55,17 @@ test('fingerprinting rejects non-JSON values and never invokes getters or toJSON
   assert.notEqual(canonicalSourceJson(-0), canonicalSourceJson(0));
 });
 
+test('rejecting async source permissions report the contract error without an unhandled rejection', async () => {
+  const data = sourceFixture(), agent = { id: 'async-inspector', session: { id: 'async-inspector' } };
+  const selector = createSourceSelector({ enabled: true, scope: data.scope,
+    getSessionSnapshot: () => data.snapshot(agent.id), getRawSources: () => data.rows, getRelations: () => [],
+    inspectSource: async () => { throw new Error('synthetic permission unavailable'); },
+  });
+  await assert.rejects(selector.search(agent, { query: 'fixture' }), { code: 'ASYNC_SOURCE_PERMISSION' });
+  await new Promise((resolve) => setImmediate(resolve));
+  selector.dispose();
+});
+
 test('raw provenance, exact public naming and unambiguous identity are mandatory', () => {
   const data = sourceFixture(); const row = data.rows[0];
   assert.throws(() => indexRawToolSources(data.scope, [{ ...row, origin: 'last-success-cache' }]), { code: 'RAW_PROVENANCE_REQUIRED' });

@@ -36,6 +36,38 @@ test('integration refuses unknown Host contracts and a different explicit profil
   await assert.rejects(fs.stat(join(target, 'storages')), { code: 'ENOENT' });
 });
 
+contract('partial lifecycle subscription failure rolls back every layer before later native sessions', async (t) => {
+  const path = await temporaryProfile(t), h = await profileHarness(t, path, { mount: false });
+  let listeners = 0;
+  const ctx = new Proxy(h.ctx, { get(target, key) {
+    if (key !== 'on') return Reflect.get(target, key, target);
+    return (type, callback) => {
+      if (type === 'agent/inbox/claimed') throw new Error('synthetic lifecycle subscription failure');
+      const stop = target.on(type, callback); listeners++;
+      let active = true;
+      return () => { if (active) { active = false; stop(); listeners--; } };
+    };
+  } });
+  const native = h.ctx.tools.selectExecutor();
+  const integration = await createSmartModeIntegration(ctx, { enabled: true,
+    hostContract: SMART_INTEGRATION_HOST_CONTRACT, profileDir: path, getHostProfileDir: () => path,
+    scope: h.scope, getRecords: () => h.records, isRecordUsable: () => true,
+    isRecordVisible: () => true, isToolAllowed: () => true, classifyInput: () => 'background',
+    isNativeExecutor: (agent) => h.ctx.tools.selectExecutor(agent) === native,
+    projectToolSchema: (definition) => JSON.parse(JSON.stringify(host.projectToolSchema(definition, true))),
+    initialViews: { rawSources: h.rows, readOnlyReviews: h.reviews },
+  });
+  t.after(() => integration.dispose());
+  await assert.rejects(integration.mount(), /synthetic lifecycle subscription failure/);
+  assert.equal(listeners, 0);
+  assert.equal(integration.status().mounted, false);
+  const { agent } = await h.create('after-failed-mount'); await h.drive(agent);
+  assert.ok(h.sources.every((source) => visible(h, agent).includes(source.publicName)));
+  assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.ok(!visible(h, agent).includes('mcp_connector_discover'));
+  assert.deepEqual(h.errors, []);
+});
+
 contract('real JSONL profile keeps historical and pre-enablement blank sessions compatible beside a new smart session', async (t) => {
   const path = await temporaryProfile(t), h = await profileHarness(t, path, { mount: false });
   const old = await h.create('historical'); await h.drive(old.agent);
@@ -84,6 +116,26 @@ contract('fork and subagent persist parent mode while new defaults and ephemeral
   const fresh = await h.create('new-compat'); await h.drive(fresh.agent);
   assert.equal(h.integration.status(fresh.agent).lifecycle.mode, 'compat');
   assert.equal(loaded(h, parent.agent), 1); assert.deepEqual(h.errors, []);
+});
+
+contract('clearing refuses pending preparation in the same Agent without blocking a different session', async (t) => {
+  const h = await profileHarness(t, await temporaryProfile(t));
+  await h.integration.setDefaultMode({ mode: 'smart', expectedRevision: 0 });
+  const first = await h.create('clear-pending'), second = await h.create('clear-independent');
+  await h.drive(first.agent); await h.drive(second.agent);
+  assert.equal((await h.integration.prepare(second.agent, { capabilityIds: [capability(h)] })).ok, true);
+  const pending = h.integration.prepare(first.agent, { capabilityIds: [capability(h)] });
+  try {
+    await assert.rejects(h.integration.clearSessionLoading(first.agent), { code: 'CONTROL_REQUIRES_IDLE_AGENT' });
+    await h.integration.clearSessionLoading(second.agent);
+    assert.equal(loaded(h, second.agent), 0);
+  } finally { assert.equal((await pending).ok, true); }
+  assert.equal(loaded(h, first.agent), 1);
+  await h.integration.clearSessionLoading(first.agent);
+  await tick();
+  assert.equal(loaded(h, first.agent), 0);
+  assert.equal(h.integration.status(first.agent).resources.retainedCount, 0);
+  assert.deepEqual(h.errors, []);
 });
 
 contract('fresh Host context restores actual JSONL history and locked mode without old preparation or timers', async (t) => {
