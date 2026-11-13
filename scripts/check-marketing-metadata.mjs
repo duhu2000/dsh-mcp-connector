@@ -105,10 +105,10 @@ export async function checkMarketingMetadata({ live = false, liveGithub = live, 
   // queries are not segmented, so keep the established core phrase contiguous.
   // The adjacent-intent phrases below protect the real-UI query matrix without
   // changing ranking weights or adding package-specific search aliases.
-  for (const phrase of ['MCP连接器', '连接管理', 'MCP Server', 'MCP 管理面板', '授权配置', 'OAuth']) {
+  for (const phrase of ['MCP连接器', '连接管理', 'MCP Server', 'MCP 管理面板', 'MCP 市场', '数据市场', 'Model Context Protocol', '授权配置', 'OAuth']) {
     contains(metadata.externalListing.zh, phrase, `external Chinese listing is missing search phrase ${phrase}`);
   }
-  for (const phrase of ['MCP manager', 'panel']) {
+  for (const phrase of ['MCP marketplace', 'Model Context Protocol', 'MCP manager']) {
     contains(metadata.externalListing.en, phrase, `external English listing is missing search phrase ${phrase}`);
   }
 
