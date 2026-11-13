@@ -225,6 +225,8 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 从旧版升级时，若设置文档里只有 `showSidebarEntry` 而没有 `entryLocation`，插件按旧字段的实际行为翻译：`true` → `both`（旧版侧栏可见、设置页也有打开按钮），`false` → `settings`。这样升级既不会悄悄删掉既有入口，也不会让隐藏过的侧栏重新出现。分层解析中用户自己的覆盖优先于部署基线；「恢复默认」会同时清掉新字段与旧的布尔覆盖。
 
+在 **设置 → MCP连接器** 中可以切换入口位置或恢复默认。当前 Desktop 通过 `configForms` 将偏好写入当前 profile；旧版宿主通过 `settingsScope` 保存。若宿主未提供这两种服务，或未提供放置卡片的设置页入口，仍可从侧栏打开连接器。要更改入口位置，请在启用了设置服务和设置页的宿主中打开同一 profile。
+
 `showSidebarEntry` 默认为 `true`，为兼容既有配置保留；一旦显式设置 `entryLocation`，它不再影响界面。关闭入口只隐藏快捷方式，不停用连接器、已连接 MCP Server 或工具。
 
 `compactManagementTools` 默认为 `false`，兼容原有对话管理工具。希望降低管理工具上下文开销时，可在插件配置中设为 `true` 并重载插件（必要时重启 DSH），下一次推理使用新工具集：

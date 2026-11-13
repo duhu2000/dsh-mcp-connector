@@ -217,6 +217,8 @@ The proxy variables must be present in the running DSH process. After changing t
 
 When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
 
+Open **Settings → MCP Connector** to change the entry location or restore the default. Current Desktop hosts save the preference to the active profile through `configForms`. Older hosts use `settingsScope`. If neither service is available, or Settings has nowhere to display the card, use the sidebar to open the connector. To change the entry location, open the same profile with a host that provides the settings service and page.
+
 `showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
