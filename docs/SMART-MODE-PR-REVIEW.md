@@ -1,8 +1,8 @@
-# QMCP-4963 · Draft PR 范围与验收入口
+# QMCP-4963 · PR 范围与验收入口
 
 本文件是本次 PR 的统一审阅入口。其他 `SMART-MODE-*.md` 保留各轮实施时的版本、结果和未完成项，属于历史证据；当前完成状态以本文件为准。冻结新增功能，首次收口完成 main 对齐，后续仅修复审阅发现的问题并补齐回归。
 
-English: This draft delivers default-off smart-mode components and controlled, isolated validation for one account's six QCC enterprise servers. Production composition, real read-only/source approvals, actual provider benefit measurements and rollout are not delivered. Historical phase reports remain evidence rather than the current completion checklist.
+English: This PR delivers default-off smart-mode components and controlled, isolated validation for one account's six QCC enterprise servers. Production composition, real read-only/source approvals, actual provider benefit measurements and rollout are not delivered. Historical phase reports remain evidence rather than the current completion checklist. Ready for review means ready for code review, not production deployment or merge approval.
 
 Review follow-up: bound compat-session scope checks, pending preparation/clear races, partial lifecycle subscription rollback and rejected asynchronous permission callbacks are corrected without adding capabilities.
 
@@ -32,16 +32,18 @@ PR 基于 `main` 的 `7b83486`（0.2.103），在 `codex/qmcp-4963-pr` 汇集全
 
 ## 未完成：实际可用与发布验收
 
-| 剩余事项 | 完成条件 | 是否阻止本次 Draft PR |
+| 剩余事项 | 完成条件 | 对当前审阅/发布的影响 |
 | --- | --- | --- |
 | 生产 Host 组合 | 明确 opt-in 接入原始发现、权限、可信操作员身份、Workspace 会话操作和能力门；验证停用/重启 | 否；阻止声称安装即可用 |
 | 真实只读定义核验 | 独立业务核验证据绑定完整定义指纹；未核验时 prepare 保持拒绝 | 否；阻止相应真实工具 prepare 验收 |
 | 真实来源关系核验 | 独立确认返回语义、计费、限流、数据新鲜度、有效期和逐组 kill switch | 否；阻止相应来源合并，不阻止独立来源路径 |
 | 真实模型收益 A/B | 在独立 profile、明确授权次数下测 v4-pro/flash 请求、usage、缓存与成本 | 否；阻止真实收益结论 |
 | 更广 Host/执行器适配 | 本地完整契约固定验证 Native Host；PTC/嵌套派发及其他版本须单独能力验收 | 否；不得扩大支持声明 |
-| 审阅与发布 | 处理代码审阅、CI 结论；之后另行决定发布和受控灰度 | 是，阻止直接当作已发布功能 |
+| 维护者审阅与发布 | 等待维护者代码审阅；之后另行决定合并、发布和受控灰度 | 允许进入代码审阅，不代表审阅通过或发布批准 |
 
-不以批准全部真实候选作为提 PR 的前提，也不以本地合成批准代替真实批准。合并 PR、发布安装包和启用生产智能模式是不同动作，本次只提交 Draft 供审阅。
+不以批准全部真实候选作为提 PR 的前提，也不以本地合成批准代替真实批准。进入代码审阅、合并 PR、发布安装包和启用生产智能模式是不同动作，本次只推进代码审阅。
+
+最终复核确认上轮四类修复及其回归已纳入 `d610140`，未发现本期默认关闭、受控工程范围内新的代码阻塞项。该提交的 12 项远端 CI 全部通过，未留下未解决的审阅讨论或要求修改的审阅意见。本轮仅同步审阅状态与边界说明，不修改运行代码，不合并 PR。状态切换前继续核对最新 head 和 CI；生产接入、真实核验及收益测试仍按上表单独控制。
 
 ## PR #243 审阅修复
 
