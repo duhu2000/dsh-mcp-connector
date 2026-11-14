@@ -4,6 +4,26 @@
 
 > DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
+<!-- catalog-directory:start -->
+## 按分类寻找连接器
+
+覆盖全部 9 个分类；公共条目与插件内置卡片分别统计，示例不是使用量排行。
+
+| 分类 | 连接器数量 | 主要连接器 |
+|---|---:|---|
+| 企业数据 | 公共 0＋内置 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
+| 金融投资 | 公共 13＋内置 0 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json)、[BIS 全球银行与金融统计](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/bis-global-statistics.json)、[巨潮资讯上市公司报告](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/cninfo-listed-company-reports.json)、[DataSinking](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/datasinking.json) |
+| 法律合规 | 公共 4＋内置 1 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json)、[元典法律数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/huayu-legal.json)、[威科先行](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wolterskluwer.json) |
+| 调研分析 | 公共 38＋内置 0 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[AgentNative 政府公共数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/agentnative-government-open-data.json)、[BLS 美国劳工统计](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/bls-us-labour-statistics.json)、[博查搜索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/bocha-search.json)、[Consensus](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/consensus.json) |
+| 办公协作 | 公共 17＋内置 0 | [钉钉工作台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/dingtalk.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Google 日历](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/google-calendar.json)、[金数据表单](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/jinshuju-forms.json)、[LINE Messaging API](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/line.json) |
+| 开发工具 | 公共 23＋内置 0 | [Chrome DevTools](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chrome-devtools.json)、[腾讯云 CloudBase](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/cloudbase.json)、[Cloudflare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/cloudflare-api.json)、[CNB](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/cnb.json)、[Context7](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/context7.json) |
+| 设计创意 | 公共 10＋内置 0 | [Canva 可画](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/canva.json)、[draw.io](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/drawio.json)、[可灵 AI（AceDataCloud）](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/kling.json)、[MasterGo Magic MCP](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/mastergo.json)、[MediaKit CLI](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/mediakit.json) |
+| 效率工具 | 公共 6＋内置 1 | [企查查·智能文档解析](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[高德地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/amap.json)、[百度地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/baidu-maps.json)、[八爪鱼·云采集](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/bazhuayu-cloud-collection.json)、[中华通胜 · 黄历择日 MCP](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chinese-almanac-mcp.json) |
+| 其他 | 公共 2＋内置 0 | [FlyBest·AI 订酒店](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/flybest-hotels.json)、[QVerisMCP](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/qveris-capability-network.json) |
+
+[完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [近期新增](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+<!-- catalog-directory:end -->
+
 从持续更新的连接器目录接入 MCP Server；跨当前范围内已启用连接查找工具，查看易读参数、来源和最后成功缓存时间，并在发现异常时检查连接或重新发现工具。支持 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 与 `mcpServers` JSON 导入。
 
 OAuth 是否可用取决于服务商的客户端注册、账号权限与授权政策；连接已保存、工具已发现和业务调用成功应分别验证。
