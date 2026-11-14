@@ -23,7 +23,9 @@ jobs:
         with:
           node-version: 24
       - name: Fetch the authoritative Registry stats
-        run: npm run registry:stats:sync
+        run: |
+          npm run registry:stats:sync
+          node scripts/sync-category-overview.mjs
       - name: Verify generated files
         run: |
           node --test test/registry-stats-sync.test.mjs
