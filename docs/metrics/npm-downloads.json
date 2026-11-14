@@ -2,7 +2,7 @@
   "package": "dsh-mcp-connector",
   "source": "https://api.npmjs.org",
   "start": "2026-08-20",
-  "end": "2026-11-12",
+  "end": "2026-11-13",
   "days": [
     {
       "day": "2026-08-20",
@@ -343,6 +343,10 @@
     {
       "day": "2026-11-12",
       "downloads": 1852
+    },
+    {
+      "day": "2026-11-13",
+      "downloads": 2361
     }
   ]
 }
