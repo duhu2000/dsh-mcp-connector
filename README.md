@@ -52,6 +52,14 @@ Install into the profile loaded by your host: use `--profile desktop` with the D
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 
+### 按数据场景找连接器
+
+企业数据、金融投资、法律合规与调研分析是专业数据入口；办公协作、开发工具等能力可在完整目录中查找。
+
+[浏览完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [查看近期新增数据源](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+
+目录随正式卡片上架更新，无需等待插件发版。候选草稿不计入已上架数量；连接与工具发现成功不等于全部业务调用已验证。
+
 <!-- npm-download-trend:start -->
 [![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
 npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
@@ -128,7 +136,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
-截至 2026-10-24，公共 Registry 已发布 112 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 116 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。推荐位严格保留 4 张企查查卡片、北大法宝和 Wind，共 6 张；其他连接器按业务分类展示。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
+截至 2026-11-14，公共 Registry 已发布 113 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 117 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
 <!-- catalog-stats:end -->
 
 ## 界面与演示

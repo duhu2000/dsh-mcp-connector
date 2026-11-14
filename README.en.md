@@ -40,6 +40,14 @@ Tool browsing does not execute target tools. Parameter summaries may omit comple
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 
+### Find connectors by data scenario
+
+Explore enterprise, financial, legal and research data, alongside office and developer integrations.
+
+[Full categorized directory](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [Recently added sources](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+
+The directory updates independently of npm releases. Candidate drafts are excluded; tool discovery does not prove every business call succeeds.
+
 <!-- npm-download-trend:start -->
 [![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
 npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
@@ -114,7 +122,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - The two legacy Qichacha OAuth plugins support explicit authorization migration. For an affected connection, select **Connection error** in the marketplace or **View recovery steps** under Installed to see which DSH plugin or remaining service entry to disable. After a full DSH restart, MCP Connector takes over the authorization, or prompts for authorization again if it has expired.
 
 <!-- catalog-stats:start -->
-As of 2026-10-24, the public Registry publishes 112 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 116 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
+As of 2026-11-14, the public Registry publishes 113 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 117 cards across 9 business categories. Homepage recommendations follow the installed plugin version, not the Registry featured count. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
 <!-- catalog-stats:end -->
 
 ## Interface and demo
