@@ -1,0 +1,629 @@
+{
+  "kind": "qmcp-4963-review-preparation-v1",
+  "version": 1,
+  "preparedOn": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "runtimeConsumable": false,
+  "basisCommit": "6dd18ce7553145439145d2fa345b7370fa42836e",
+  "purpose": "人工待核验材料；不是只读证据包、来源批准关系或真实请求授权",
+  "responsibility": {
+    "businessReview": "用户本人",
+    "independentEvidenceAndSigning": "用户本人",
+    "acceptanceDecision": "用户本人",
+    "assistant": "仅整理材料、检查完整性；不代替用户作真实批准",
+    "independentlyOfPluginAndModel": true,
+    "distinctHumanReviewersAsserted": false
+  },
+  "scope": {
+    "groupId": "qcc-enterprise-six-v1",
+    "accountRef": null,
+    "serverNames": [
+      "qcc-company",
+      "qcc-risk",
+      "qcc-ipr",
+      "qcc-operation",
+      "qcc-history",
+      "qcc-executive"
+    ],
+    "accountMustBeRevalidated": true,
+    "productionEnabled": false
+  },
+  "sourceInventory": {
+    "artifact": "qmcp-4963-binding-candidates/raw-discovery-fingerprints.json",
+    "sha256": "64564c80dcb049b61254d36ae2c0beea9e172dc913bb2822127417589e340529",
+    "collectedAt": "2026-11-13T09:04:57.605Z",
+    "historicalDefinitionCount": 356,
+    "historicalCandidateGroups": 170,
+    "currentMetadataRefreshed": false,
+    "fullRawDefinitionsAvailable": false,
+    "outputSchemaObserved": false
+  },
+  "selectionRationale": "按六服务覆盖及五对历史重复候选取样；无使用频率、成功率或只读性排名，不以 get_ 前缀判定只读",
+  "requiredGates": [
+    "current_scope_and_raw_definition",
+    "side_effects_and_return_semantics",
+    "permission_billing_and_limits",
+    "manual_readonly_conclusion",
+    "external_signature_and_expiry",
+    "separate_execution_authorization"
+  ],
+  "tools": [
+    {
+      "id": "QCC-RO-001",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-company",
+      "rawName": "get_company_registration_info",
+      "publicName": "mcp__qcc-company__get_company_registration_info",
+      "label": "企业登记信息（名称释义，待核对）",
+      "reviewFocus": "主体标识及同名歧义；登记字段、地域与更新时间",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "a2aa3301ea34b0e0c8206005c7ad67c509d4f91b49b56c17d43fda39ee322a75",
+        "definitionFingerprint": "c211ad8e819fa4467026c84a7cf89a0724923df7ef21e9c13e09d06cf16a2c52",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-002",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-risk",
+      "rawName": "get_business_exception",
+      "publicName": "mcp__qcc-risk__get_business_exception",
+      "label": "经营异常信息（名称释义，待核对）",
+      "reviewFocus": "列入/移出状态、分页与时间；空结果不能自行解释为无风险",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "772409c81f4abd104342e2019b0c1c4dfb985621192ebf69954268c877d1418e",
+        "definitionFingerprint": "6871710af2fbf39690acbe9ad4af7a8e7f73cd45a115ce9fd65d85d94e63001c",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-003",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-ipr",
+      "rawName": "get_trademark_info",
+      "publicName": "mcp__qcc-ipr__get_trademark_info",
+      "label": "商标信息（名称释义，待核对）",
+      "reviewFocus": "申请/注册标识、权利人、状态与分页；不自动跟随附件链接",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "f883d7c933dc3b6566673ed187451d0ecc9ba2ca02736efa7d60b660d526e9a0",
+        "definitionFingerprint": "4e69d740f1f01394d75c88deccc5666bf886e80f9333b1679410e0432f62c658",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-004",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-operation",
+      "rawName": "get_administrative_license",
+      "publicName": "mcp__qcc-operation__get_administrative_license",
+      "label": "行政许可（名称释义，待核对）",
+      "reviewFocus": "许可主体、证照类型、有效状态与数据时点",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "c370844b7b2d14038fa2d1e17c9fb484baf9a94a88363dfb42857f30b552f48d",
+        "definitionFingerprint": "605b3e28374f31e42c1a6f65bbddaef5a7fede200a7d7ac31c35a79e9f5c71f0",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-005",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-history",
+      "rawName": "get_historical_registration",
+      "publicName": "mcp__qcc-history__get_historical_registration",
+      "label": "历史登记（名称释义，待核对）",
+      "reviewFocus": "当前与历史口径、历史时点/版本；不将历史值当作当前值",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "55ffa4ab03b8dbb5f978c442ef54a2cafc2a7af0e448c3d919edf43ff628e687",
+        "definitionFingerprint": "ae6e37ce5db9923065988e613b2c9a8d217a0c5d89dd578e2f910c39c0ca2415",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-006",
+      "cohort": "six_server_primary",
+      "serverName": "qcc-executive",
+      "rawName": "get_executive_positions",
+      "publicName": "mcp__qcc-executive__get_executive_positions",
+      "label": "任职信息（名称释义，待核对）",
+      "reviewFocus": "人员同名识别、任职类型、当前/历史口径和返回范围；实际参数待确认",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "c21f051c132af798b8f0df939a84ec985aa98d00dcb2d9e93694448a8935798c",
+        "definitionFingerprint": "c7662875942efe03572ec211c90383c464605f3985f870c8ec98085a15c63bb4",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-007",
+      "cohort": "comparison_only",
+      "serverName": "qcc-company",
+      "rawName": "get_business_exception",
+      "publicName": "mcp__qcc-company__get_business_exception",
+      "label": "经营异常信息（名称释义，待核对） · 公司侧候选",
+      "reviewFocus": "列入/移出状态、分页与时间；空结果不能自行解释为无风险",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "3a7c044ac1aecfc15202525d73083b364b52f424dcb6c5e4c69b3f167677b9e2",
+        "definitionFingerprint": "f9cb9ee990788ae36be310a4ae949cb487bc69b58238d73cf73767a84e5886e6",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-008",
+      "cohort": "comparison_only",
+      "serverName": "qcc-company",
+      "rawName": "get_trademark_info",
+      "publicName": "mcp__qcc-company__get_trademark_info",
+      "label": "商标信息（名称释义，待核对） · 公司侧候选",
+      "reviewFocus": "申请/注册标识、权利人、状态与分页；不自动跟随附件链接",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "d718f78acfc645933ef68b5633660d0df3c699f9c96b2527f0bc5c67e6dbaa47",
+        "definitionFingerprint": "9a592a9ba8ec1a653909672215afe77258d335e641c42b6e692a8066d2c482f4",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-009",
+      "cohort": "comparison_only",
+      "serverName": "qcc-company",
+      "rawName": "get_administrative_license",
+      "publicName": "mcp__qcc-company__get_administrative_license",
+      "label": "行政许可（名称释义，待核对） · 公司侧候选",
+      "reviewFocus": "许可主体、证照类型、有效状态与数据时点",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "ff0f33c158552055bd979a1324a7370e241bb65b1d9088ec11a73583d5b2464e",
+        "definitionFingerprint": "cc0aa02b7428d8c4056ba19dc4e39bb2dd2816d1aa7b56abf4bee0d2403890db",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-010",
+      "cohort": "comparison_only",
+      "serverName": "qcc-company",
+      "rawName": "get_historical_registration",
+      "publicName": "mcp__qcc-company__get_historical_registration",
+      "label": "历史登记（名称释义，待核对） · 公司侧候选",
+      "reviewFocus": "当前与历史口径、历史时点/版本；不将历史值当作当前值",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "5d68f3668bb059ba163c5a1395606b770ce5b14092fcd7468e980f4922af4b1e",
+        "definitionFingerprint": "f5d2200f57ef3cc88ab78cce7cdf059da3faba03cd611d1e2f1d909bcdb4b6b8",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-RO-011",
+      "cohort": "comparison_only",
+      "serverName": "qcc-company",
+      "rawName": "get_executive_positions",
+      "publicName": "mcp__qcc-company__get_executive_positions",
+      "label": "任职信息（名称释义，待核对） · 公司侧候选",
+      "reviewFocus": "人员同名识别、任职类型、当前/历史口径和返回范围；实际参数待确认",
+      "state": "pending_current_metadata_and_manual_review",
+      "businessReviewer": "用户本人",
+      "signer": "用户本人",
+      "historicalObservation": {
+        "collectedAt": "2026-11-13T09:04:57.605Z",
+        "sourceId": "4a1f6d39424e5e42414dff5470c0116bb931cf1409839e03d6673453044e5d6b",
+        "definitionFingerprint": "f9647b869e73aa9e77e626c19b88ac947deba34dcf06b71462aa0be41e1c751b",
+        "usableForSigning": false
+      },
+      "currentBinding": {
+        "accountRef": null,
+        "groupId": "qcc-enterprise-six-v1",
+        "connectionKey": null,
+        "sourceId": null,
+        "definitionFingerprint": null,
+        "collectedAt": null
+      },
+      "evidence": {
+        "providerReference": null,
+        "originalDefinitionReviewReference": null,
+        "sideEffectsConclusion": null,
+        "outputSemanticsReference": null,
+        "billingAndRateLimitReference": null,
+        "permissionScopeReference": null,
+        "independentDossierHash": null,
+        "reviewerIdentityHash": null,
+        "reviewedAt": null
+      },
+      "readonlyConclusion": null,
+      "proposedValidity": null,
+      "signingReady": false,
+      "executionAuthorized": false
+    }
+  ],
+  "equivalenceCandidates": [
+    {
+      "id": "QCC-EQ-001",
+      "members": [
+        "QCC-RO-002",
+        "QCC-RO-007"
+      ],
+      "historicalCandidateFingerprint": "41f6e69b33af8ea9aa2fb4118237eede8cf063bddd7503de2370136748ef5ec2",
+      "historicalMatch": "registration-extension-difference",
+      "historicalDifferingFields": [
+        "_registration_tool"
+      ],
+      "state": "not_reviewed",
+      "returnSemantics": null,
+      "billingCompatibility": null,
+      "rateLimitCompatibility": null,
+      "freshnessCompatibility": null,
+      "registrationExtensionMeaning": null,
+      "validityAndKillSwitch": null,
+      "conclusion": null,
+      "canonicalSource": null,
+      "relationApproved": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-EQ-002",
+      "members": [
+        "QCC-RO-003",
+        "QCC-RO-008"
+      ],
+      "historicalCandidateFingerprint": "f2c9fdc3eb23fed83f5fa21db45d6bf22d72f3e0dc4aa5b88532a1672b5396dd",
+      "historicalMatch": "registration-extension-difference",
+      "historicalDifferingFields": [
+        "_registration_tool"
+      ],
+      "state": "not_reviewed",
+      "returnSemantics": null,
+      "billingCompatibility": null,
+      "rateLimitCompatibility": null,
+      "freshnessCompatibility": null,
+      "registrationExtensionMeaning": null,
+      "validityAndKillSwitch": null,
+      "conclusion": null,
+      "canonicalSource": null,
+      "relationApproved": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-EQ-003",
+      "members": [
+        "QCC-RO-004",
+        "QCC-RO-009"
+      ],
+      "historicalCandidateFingerprint": "6e33948b1fd0c4e4bbf70edf17fbae2de768540e62919f9fa9e62bc9cac8b08e",
+      "historicalMatch": "registration-extension-difference",
+      "historicalDifferingFields": [
+        "_registration_tool"
+      ],
+      "state": "not_reviewed",
+      "returnSemantics": null,
+      "billingCompatibility": null,
+      "rateLimitCompatibility": null,
+      "freshnessCompatibility": null,
+      "registrationExtensionMeaning": null,
+      "validityAndKillSwitch": null,
+      "conclusion": null,
+      "canonicalSource": null,
+      "relationApproved": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-EQ-004",
+      "members": [
+        "QCC-RO-005",
+        "QCC-RO-010"
+      ],
+      "historicalCandidateFingerprint": "b0993d19a1b2a920a408a2068bd5ff8b4476e2015d0ad1941d5c47d77009bbf1",
+      "historicalMatch": "registration-extension-difference",
+      "historicalDifferingFields": [
+        "_registration_tool"
+      ],
+      "state": "not_reviewed",
+      "returnSemantics": null,
+      "billingCompatibility": null,
+      "rateLimitCompatibility": null,
+      "freshnessCompatibility": null,
+      "registrationExtensionMeaning": null,
+      "validityAndKillSwitch": null,
+      "conclusion": null,
+      "canonicalSource": null,
+      "relationApproved": false,
+      "executionAuthorized": false
+    },
+    {
+      "id": "QCC-EQ-005",
+      "members": [
+        "QCC-RO-006",
+        "QCC-RO-011"
+      ],
+      "historicalCandidateFingerprint": "eda2355cab3362abe3077dbcede2c98021b8b06e01576bbb689d66a6d15a10fc",
+      "historicalMatch": "registration-extension-difference",
+      "historicalDifferingFields": [
+        "_registration_tool"
+      ],
+      "state": "not_reviewed",
+      "returnSemantics": null,
+      "billingCompatibility": null,
+      "rateLimitCompatibility": null,
+      "freshnessCompatibility": null,
+      "registrationExtensionMeaning": null,
+      "validityAndKillSwitch": null,
+      "conclusion": null,
+      "canonicalSource": null,
+      "relationApproved": false,
+      "executionAuthorized": false
+    }
+  ],
+  "execution": {
+    "realMetadataRequests": 0,
+    "realBusinessCalls": 0,
+    "realModelRequests": 0,
+    "actualPublicKeysProvisioned": 0,
+    "actualBundlesSigned": 0,
+    "realReadonlyApprovals": 0,
+    "realSourceRelationApprovals": 0
+  }
+}
