@@ -13,6 +13,7 @@ import { profileHarness, temporaryProfile, host, tick, bounded } from './smart-m
  * synthetic. No real credential, tool body, model adapter or service endpoint.
  */
 export async function productionHarness(t, options = {}) {
+  const implementation = options.implementation ?? { apply, Config };
   const path = options.profileDir ?? await temporaryProfile(t), data = sourceFixture();
   data.scope.groupId = 'qcc-enterprise-six-v1';
   for (const record of data.records.filter((record) => record.auth.grantKey === data.scope.accountRef)) Object.assign(record, {
@@ -32,13 +33,15 @@ export async function productionHarness(t, options = {}) {
     accessTokenExpiresAt: Date.now() + 3600000, authorizedResources: data.records.map((row) => row.url),
     connectorIds: ['qcc-company'], scope: 'mcp:tools', updatedAt: Date.now() };
   const maps = new Map(Object.entries({ connections: records, grants: new Map([[grant.key, grant]]) }));
+  for (const [name, entries] of Object.entries(options.storageState ?? {})) maps.set(name, new Map(entries));
   const tables = new Map(['connections', 'grants', 'catalog', 'snapshots', 'governance', 'connection_scopes', 'tool_catalog', 'connection_statistics'].map((name) => {
     const map = maps.get(name) ?? new Map(); maps.set(name, map);
     return [name, { get: async (key) => map.get(key), put: async (key, value) => { map.set(key, value); },
       delete: async (key) => map.delete(key), entries: () => [...map.entries()] }];
   }));
   const entries = new Map(), logs = [];
-  root.provide('storageDomain', { open: async () => ({ tables, close: async () => {} }) });
+  root.provide('storageDomain', { open: async () => ({ tables,
+    close: async () => options.persistStorage?.(Object.fromEntries([...maps].map(([name, rows]) => [name, [...rows]]))) }) });
   root.provide('loader', {
     entries: () => entries.values(), resolve: (id) => { if (!entries.has(id)) throw new Error('missing synthetic entry'); return entries.get(id); },
     async create(row) { entries.set(row.id, { id: row.id, options: row }); },
@@ -98,7 +101,7 @@ export async function productionHarness(t, options = {}) {
   let cookie;
   const signed = await fetchNative(services.connection.authenticatedUrl(origin), { redirect: 'manual' });
   cookie = signed.headers.get('set-cookie')?.split(';')[0]; assert.ok(cookie);
-  const config = Config({ catalogUrl: '', persistSecrets: true, openBrowser: false, account: 'default',
+  const config = implementation.Config({ catalogUrl: '', persistSecrets: true, openBrowser: false, account: 'default',
     __grantJournalDir: join(path, 'grant-journal'), ...options.config });
   // Internal test override must be explicit: Config strips unknown fields.
   config.__grantJournalDir = join(path, 'grant-journal');
@@ -110,7 +113,7 @@ export async function productionHarness(t, options = {}) {
       const logger = original.call(ctx, ...args);
       return { info: (...values) => logs.push(['info', ...values]), warn: (...values) => logs.push(['warn', ...values]), error: (...values) => logs.push(['error', ...values]) };
     } });
-    await apply(ctx, config);
+    await implementation.apply(ctx, config);
   } });
   await bounded(fiber.await()).catch((error) => { throw new Error('normal connector apply timed out', { cause: error }); });
   async function waitFor(check) {
@@ -118,9 +121,12 @@ export async function productionHarness(t, options = {}) {
     throw new Error(`production fixture did not settle: ${JSON.stringify(logs)}`);
   }
   const url = `${origin}/mcp-connector/smart-control/`;
-  await waitFor(async () => (await fetchNative(`${url}capabilities`, { headers: { cookie } })).status === 200);
-  const page = await (await fetchNative(url, { headers: { cookie } })).text();
-  const nonce = page.match(/name="control-nonce" content="([a-f0-9]+)"/)?.[1]; assert.ok(nonce);
+  let nonce;
+  if (options.smartControl !== false) {
+    await waitFor(async () => (await fetchNative(`${url}capabilities`, { headers: { cookie } })).status === 200);
+    const page = await (await fetchNative(url, { headers: { cookie } })).text();
+    nonce = page.match(/name="control-nonce" content="([a-f0-9]+)"/)?.[1]; assert.ok(nonce);
+  }
   async function rpc(method, params = {}, headers = {}) {
     const response = await fetchNative(`${url}api`, { method: 'POST', headers: {
       origin, cookie, 'content-type': 'application/json', 'x-mcp-control-nonce': nonce, ...headers,

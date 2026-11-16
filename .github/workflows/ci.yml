@@ -95,6 +95,12 @@ jobs:
           @deepseek-ai/dsh@0.2.2-rc.1
       - name: Offline contracts must run without skips
         run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
+      - run: npm install --global pnpm@11.1.1 --ignore-scripts
+      - name: Actual package install, upgrade, process restart and stable downgrade
+        env:
+          DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+          DSH_SMART_PACKAGE_EVIDENCE_DIR: ${{ runner.temp }}/qmcp-4963-package-evidence
+        run: node scripts/check-smart-mode-package-lifecycle.mjs
 
   fresh-install:
     name: Fresh generation install (${{ matrix.os }})
@@ -123,11 +129,13 @@ jobs:
       - name: Stamp an installable prerelease version
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: >-
           node --input-type=module -e 'import fs from "node:fs";
+          import { smartModeQaVersion } from "./scripts/fixtures/smart-mode-package-version.mjs";
           const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const [major, minor, patch] = p.version.split("-")[0].split(".").map(Number);
-          p.version = [major, minor, patch + 1].join(".") + "-pr." + process.env.PR_NUMBER + "." + process.env.GITHUB_RUN_NUMBER;
+          p.version = smartModeQaVersion(p.version, { pullRequest: Number(process.env.PR_NUMBER),
+          buildNumber: Date.now(), commit: process.env.PR_HEAD_SHA });
           fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");'
       - run: npm pack --ignore-scripts
       - run: shasum -a 256 dsh-mcp-connector-*.tgz > SHA256SUMS.txt
