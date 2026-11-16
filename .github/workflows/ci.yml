@@ -101,6 +101,16 @@ jobs:
           DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
           DSH_SMART_PACKAGE_EVIDENCE_DIR: ${{ runner.temp }}/qmcp-4963-package-evidence
         run: node scripts/check-smart-mode-package-lifecycle.mjs
+      - name: Windows Git Bash with GNU tar ahead of System32
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+          DSH_SMART_PACKAGE_EVIDENCE_DIR: ${{ runner.temp }}/qmcp-4963-package-evidence-msys
+        run: |
+          export PATH="/usr/bin:$PATH"
+          tar --version
+          node scripts/check-smart-mode-package-lifecycle.mjs
 
   fresh-install:
     name: Fresh generation install (${{ matrix.os }})

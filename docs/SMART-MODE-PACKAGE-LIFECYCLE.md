@@ -1,5 +1,13 @@
 # QMCP-4963 · 安装、升级、重启及降级验收
 
+## 2026-11-16 验收复核与 Windows tar 修订
+
+最新结论、预算口径和回归见 [验收复核报告](SMART-MODE-ACCEPTANCE-2026-11-16.md)。Windows 验收入口改为从 SystemRoot/WINDIR 选择绝对 System32/tar.exe，避免 Git Bash 的 GNU tar 将盘符当成远程主机；不统一添加原生 bsdtar 不支持的 --force-local，也不修改用户 PATH。非 Windows 行为保持原样。6 项永久 tar 回归及 Windows Git Bash 的实际生命周期加入门禁。
+
+本次回归使用 395f46c 的不变 runtime 输入与修订后的验收脚本，lib/ui 运行库未改。预算是离线估算；来源等价批准只影响去重，真实只读核验才是智能 prepare 的必要前提。默认兼容的合并/发布决定不与真实启用批准混为一谈，本轮仍不执行合并或发布。
+
+## 以下为 395f46c 之前的安装验收记录
+
 本轮输入是 `28e1349` 提测包，runtime SHA-256 `3dc63678aa6d6708eeb33b2acba7cea6429d5ac91d60ff7577121227831aa5eb`。稳定版基线为 main `377bfe9` 打包出的 0.2.109；另验证旧 `ce02515` 提测包的格式兼容性。运行库、账号范围及智能能力保持冻结，不增加产品功能。
 
 ## 实际路径与隔离

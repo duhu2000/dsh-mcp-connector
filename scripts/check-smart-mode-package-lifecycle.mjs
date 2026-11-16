@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { smartModeQaVersion } from './fixtures/smart-mode-package-version.mjs';
+import { packageTarExecutable } from './fixtures/package-tar.mjs';
 import { compareVersions } from '../lib/version-status.js';
 
 const source = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -25,16 +26,17 @@ for (const candidate of [process.env.npm_execpath,
   if (candidate && await fs.access(candidate).then(() => true, () => false)) { npmCli = candidate; break; }
 }
 if (!npmCli) throw new Error('Cannot find the installation-owned npm CLI; set npm_execpath explicitly');
+const tar = packageTarExecutable();
 const root = await fs.mkdtemp(join(tmpdir(), 'qmcp-4963-package-'));
 await fs.writeFile(join(root, 'validation-home.json'), JSON.stringify({ task: 'QMCP-4963', syntheticOnly: true }));
 const artifact = process.env.DSH_SMART_PACKAGE_EVIDENCE_DIR
   ? resolve(process.env.DSH_SMART_PACKAGE_EVIDENCE_DIR) : await fs.mkdtemp(join(tmpdir(), 'qmcp-4963-package-evidence-'));
 await fs.mkdir(artifact, { recursive: true });
 console.log(`PACKAGE_QA_EVIDENCE=${artifact}`);
+console.log(`PACKAGE_QA_TAR=${tar}`);
 const env = { ...process.env, DSH_HOME: root, CI: '1', NPM_CONFIG_USERCONFIG: join(root, '.npmrc') };
 delete env.NODE_PATH; delete env.NODE_OPTIONS;
 await fs.writeFile(join(root, '.npmrc'), 'registry=https://registry.npmjs.org/\nignore-scripts=true\n');
-const tar = process.platform === 'win32' ? 'tar.exe' : 'tar';
 const results = [];
 let ordinal = 0, error;
 async function run(args, label, { cwd = source, allowedFailure = false } = {}) {
@@ -124,6 +126,7 @@ finally {
   assert.deepEqual(JSON.parse(await fs.readFile(join(root, 'validation-home.json'), 'utf8')), { task: 'QMCP-4963', syntheticOnly: true });
   await fs.rm(root, { recursive: true, force: true });
   await fs.writeFile(join(artifact, 'package-lifecycle-result.json'), JSON.stringify({ passed: !error, node: process.versions.node,
+    archiveTool: tar,
     host: '0.2.2-rc.1', candidateVersion: inputs?.candidateVersion, candidateSha256: inputs?.candidateSha256,
     baseline: '0.2.109', baselineSha256: inputs?.baselineSha256, results, temporaryHomeRemoved: true,
     currentDshConfigurationLoaded: false, realBusinessCalls: 0, realModelCalls: 0 }, null, 2));
