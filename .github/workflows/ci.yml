@@ -80,6 +80,7 @@ jobs:
     name: Smart mode Host (${{ matrix.os }}, 0.2.2-rc.1)
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:

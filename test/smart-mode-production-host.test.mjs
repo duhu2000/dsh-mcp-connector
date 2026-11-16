@@ -80,12 +80,15 @@ contract('a real disk write failure rolls back newly mounted restrictions before
   await fs.writeFile(defaults, 'synthetic write-failure fixture', { flag: 'wx' });
   try {
     assert.equal((await f.rpc('commit', { previewId: preview.previewId })).ok, false);
-    const after = ok(await f.rpc('state'));
-    assert.equal(after.mounted, false); assert.equal(after.defaultMode, 'compat'); assert.equal(after.policyRevision, 0);
+    // Verify the actual Host rollback while the disk fault still exists. A
+    // state read also needs this directory: Linux correctly returns ENOTDIR
+    // rather than treating an obstructed policy store as an empty default.
     const names = f.h.ctx.tools.schemas(f.h.ctx.agents.get(created.sessionId)).map((row) => row.name);
     assert.equal(names.filter((name) => name.startsWith('mcp_connector_')).length, 25);
     assert.ok(f.h.sources.every((source) => names.includes(source.publicName)));
   } finally { await fs.unlink(defaults); }
+  const after = ok(await f.rpc('state'));
+  assert.equal(after.mounted, false); assert.equal(after.defaultMode, 'compat'); assert.equal(after.policyRevision, 0);
   await f.enable(); assert.equal(ok(await f.rpc('state')).mounted, true);
   assert.deepEqual(f.h.errors, []);
 });

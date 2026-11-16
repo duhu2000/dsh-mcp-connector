@@ -12,7 +12,7 @@
 
 ## 环境与启动
 
-推荐 Node 22.22.1，CI 使用 Node 24。需要已安装的完整 Host `0.2.2-rc.1` SDK。若本机没有，可在提测源码旁的独立目录安装代码依赖，不启动 DSH：
+离线回归已验证 Node 22.22.1，CI 使用 Node 24。需要已安装的完整 Host `0.2.2-rc.1` SDK。若本机没有，可在提测源码旁的独立目录安装代码依赖，不启动 DSH；安装时建议 Node ≥24.9，满足 Host CLI 包自身的 engines 声明，本工具始终不执行 CLI：
 
 ```powershell
 npm install --prefix .smart-host-runtime --ignore-scripts --no-audit --no-fund @deepseek-ai/dsh@0.2.2-rc.1
@@ -72,6 +72,8 @@ node scripts/run-smart-mode-qa.mjs serve --seeded --anchor '<Host 安装目录/p
 新的提测命令 `check`：**353 项全部通过、零跳过**。驻留入口与自动化浏览器：8 组流程通过，页面异常 0、外部请求 0，正常停止后 profile 删除。首次驻留验证因浏览器开始前超过上限而清理，未计为通过；后以启动/浏览器/停止的连续流程完成复测。
 
 最新主线合并敏感路径另在 Node 26.13.0 验证 catalog 代理、client、config 与 settings：137 项，136 通过、1 项 Windows 大小写跳过、零失败。该补测不扩展生产 Host 版本或 Node 的完整验收声明。
+
+全新环境补验发现并修正两项测试交付问题：Host 安装遗漏必需 peer；Linux 写盘故障期间的 `state` 读同样会因 `ENOTDIR` 封闭失败。后者改为故障仍在时核对实际 Host 已恢复 25 入口/业务视图，移除障碍后再核对模式/revision 与重试，不放宽存储损坏的生产保护。两平台独立完成门禁，避免首个平台失败取消另一平台。
 
 本清单是工程提测基线，不替代测试人员的独立结果。CI 的 Linux/Windows 完整智能 Host 契约与 PR 包构建在同一 head 上核对；远端状态和最终制品摘要见提测包附带 MANIFEST 与 PR #243，后续结果不得由旧阶段报告推断。
 
