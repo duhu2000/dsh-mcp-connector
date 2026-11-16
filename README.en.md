@@ -4,6 +4,26 @@
 
 > MCP Connector for DeepSeek Harness: a data marketplace connecting specialist providers and open data sources. Browse 100+ connectors, manage authorization, search tools and troubleshoot MCP connections.
 
+<!-- catalog-directory:start -->
+## 按分类寻找连接器
+
+覆盖全部 9 个分类，数量按连接器去重统计。点击分类查看完整列表；以下为部分连接器示例。
+
+| 分类 | 连接器数量 | 主要连接器 |
+|---|---:|---|
+| [企业数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E4%BC%81%E4%B8%9A%E6%95%B0%E6%8D%AE) | 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
+| [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 13 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
+| [法律合规](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%B3%95%E5%BE%8B%E5%90%88%E8%A7%84) | 5 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json) 等 |
+| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 41 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
+| [办公协作](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%8A%9E%E5%85%AC%E5%8D%8F%E4%BD%9C) | 17 | [腾讯文档](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tencent-docs.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Notion](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/notion.json) 等 |
+| [开发工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7) | 23 | [GitHub](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/github.json)、[Playwright](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/playwright.json)、[Chrome DevTools](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chrome-devtools.json) 等 |
+| [设计创意](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%AE%BE%E8%AE%A1%E5%88%9B%E6%84%8F) | 10 | [Canva 可画](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/canva.json)、[draw.io](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/drawio.json)、[可灵 AI（AceDataCloud）](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/kling.json) 等 |
+| [效率工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%95%88%E7%8E%87%E5%B7%A5%E5%85%B7) | 7 | [企查查·智能文档解析](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[高德地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/amap.json)、[百度地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/baidu-maps.json) 等 |
+| [其他](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%85%B6%E4%BB%96) | 2 | [FlyBest·AI 订酒店](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/flybest-hotels.json)、[QVerisMCP](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/qveris-capability-network.json) |
+
+[完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [近期新增](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+<!-- catalog-directory:end -->
+
 Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
 
 OAuth availability depends on each provider's client-registration policy and account permissions. Verify a saved connection, discovered/registered tools, and a successful business call as separate outcomes.
@@ -46,6 +66,14 @@ Preparation still requires an independently verified read-only record bound to t
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 
+### Find connectors by data scenario
+
+Explore enterprise, financial, legal and research data, alongside office and developer integrations.
+
+[Full categorized directory](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [Recently added sources](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+
+The directory updates independently of npm releases. Candidate drafts are excluded; tool discovery does not prove every business call succeeds.
+
 <!-- npm-download-trend:start -->
 [![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
 npm downloads include upgrades, repeat installs and automation; they are not unique users or successful installs. The chart shows its UTC cutoff. [Install](#get-started) · [First successful connection](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
@@ -53,11 +81,19 @@ npm downloads include upgrades, repeat installs and automation; they are not uni
 
 ## Get started
 
-Search for **`dsh-mcp-connector`** in your plugin marketplace, or run the command below. Default Desktop and Web installations both use the `web` profile; custom deployments should use the profile actually loaded by their host.
+Search for **`dsh-mcp-connector`** in your plugin marketplace, or install into the profile actually loaded by your host. For Desktop, launch the app once to initialize it, register or repair its CLI through the app menu's **Manage dsh Command…**, then fully quit the app and run in a new terminal:
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+For default Web:
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+For custom deployments, replace the profile name and use the same `DSH_HOME` as the host. The npm-installed CLI may reject management of `desktop`; use the Desktop-provided CLI in that case.
 
 Fully restart DeepSeek Harness Desktop or `dsh web` after installation or upgrade, then open **MCP Connector** in the primary sidebar, or open it directly from **Settings → Plugins → Plugin Configuration → MCP Connector**.
 
@@ -112,7 +148,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - The two legacy Qichacha OAuth plugins support explicit authorization migration. For an affected connection, select **Connection error** in the marketplace or **View recovery steps** under Installed to see which DSH plugin or remaining service entry to disable. After a full DSH restart, MCP Connector takes over the authorization, or prompts for authorization again if it has expired.
 
 <!-- catalog-stats:start -->
-As of 2026-10-24, the public Registry publishes 112 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 116 cards across 9 business categories. Recommendations remain limited to the four Qichacha cards, PKULaw, and Wind, for 6 featured cards in total. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
+As of 2026-11-15, the public Registry publishes 116 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 120 cards across 9 business categories. Homepage recommendations follow the installed plugin version, not the Registry featured count. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
 <!-- catalog-stats:end -->
 
 ## Interface and demo
@@ -127,17 +163,22 @@ As of 2026-10-24, the public Registry publishes 112 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.103 (2026-11-13), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.109 (2026-11-14), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
 Requirements: DeepSeek Harness Desktop or web profile, and Node.js 20 or later.
 
+Desktop requires its own CLI and must be initialized and fully quit before installation. Default Web uses `web`:
+
 ```bash
+# Desktop-provided CLI
+dsh plugin --profile desktop add dsh-mcp-connector
+# Default Web
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-Or use the installer:
+For custom deployments, use the actual profile name and the host's `DSH_HOME`. Default Web can also use the installer (set `DSH_PROFILE` for other profiles):
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
@@ -210,6 +251,8 @@ The proxy variables must be present in the running DSH process. After changing t
 
 When upgrading from a document that still holds only `showSidebarEntry`, the legacy boolean is translated by its actual behaviour: `true` → `both` (the old sidebar-visible state also offered the Settings open button), `false` → `settings`. That keeps an upgrade from silently dropping an existing entry point or re-revealing a hidden sidebar. In layered resolution a user override wins over the deployment base, and Restore defaults clears both the new field and any legacy boolean override.
 
+Open **Settings → MCP Connector** to change the entry location or restore the default. Current Desktop hosts save the preference to the active profile through `configForms`. Older hosts use `settingsScope`. If neither service is available, or Settings has nowhere to display the card, use the sidebar to open the connector. To change the entry location, open the same profile with a host that provides the settings service and page.
+
 `showSidebarEntry` defaults to `true` and is kept for configuration compatibility; once `entryLocation` is set explicitly it no longer affects the UI. Hiding the entry only hides the shortcut; connectors, connected MCP servers and tools keep working.
 
 `compactManagementTools` defaults to `false` for backward compatibility. Set it to `true` in the plugin configuration and reload the plugin (or restart DSH) to expose only two management tools at the next inference boundary:
@@ -262,7 +305,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.103`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.103](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.103).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.109`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.109](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.109).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 

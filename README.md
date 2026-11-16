@@ -4,6 +4,26 @@
 
 > DeepSeek Harness 的 MCP 数据市场：汇聚各类垂直领域数据厂商与开放数据源，通过超百个 MCP连接器接入 MCP Server，统一授权、查找工具与连接排障。
 
+<!-- catalog-directory:start -->
+## 按分类寻找连接器
+
+覆盖全部 9 个分类，数量按连接器去重统计。点击分类查看完整列表；以下为部分连接器示例。
+
+| 分类 | 连接器数量 | 主要连接器 |
+|---|---:|---|
+| [企业数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E4%BC%81%E4%B8%9A%E6%95%B0%E6%8D%AE) | 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
+| [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 13 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
+| [法律合规](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%B3%95%E5%BE%8B%E5%90%88%E8%A7%84) | 5 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json) 等 |
+| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 41 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
+| [办公协作](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%8A%9E%E5%85%AC%E5%8D%8F%E4%BD%9C) | 17 | [腾讯文档](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tencent-docs.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Notion](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/notion.json) 等 |
+| [开发工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7) | 23 | [GitHub](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/github.json)、[Playwright](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/playwright.json)、[Chrome DevTools](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chrome-devtools.json) 等 |
+| [设计创意](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%AE%BE%E8%AE%A1%E5%88%9B%E6%84%8F) | 10 | [Canva 可画](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/canva.json)、[draw.io](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/drawio.json)、[可灵 AI（AceDataCloud）](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/kling.json) 等 |
+| [效率工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%95%88%E7%8E%87%E5%B7%A5%E5%85%B7) | 7 | [企查查·智能文档解析](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[高德地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/amap.json)、[百度地图](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/baidu-maps.json) 等 |
+| [其他](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%85%B6%E4%BB%96) | 2 | [FlyBest·AI 订酒店](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/flybest-hotels.json)、[QVerisMCP](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/qveris-capability-network.json) |
+
+[完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [近期新增](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+<!-- catalog-directory:end -->
+
 从持续更新的连接器目录接入 MCP Server；跨当前范围内已启用连接查找工具，查看易读参数、来源和最后成功缓存时间，并在发现异常时检查连接或重新发现工具。支持 OAuth 2.0 PKCE、API Key、Streamable HTTP/stdio 与 `mcpServers` JSON 导入。
 
 OAuth 是否可用取决于服务商的客户端注册、账号权限与授权政策；连接已保存、工具已发现和业务调用成功应分别验证。
@@ -16,7 +36,7 @@ OAuth 是否可用取决于服务商的客户端注册、账号权限与授权�
 
 **MCP Connector for DeepSeek Harness** is a specialist data marketplace connecting data providers and open data sources, with authorization, cross-connection tool search and troubleshooting in one panel. Browse a continuously updated catalog of 100+ connectors; connect through OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio or `mcpServers` JSON import.
 
-Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
+Install into the profile loaded by your host: use `--profile desktop` with the Desktop-provided CLI, or `--profile web` for default Web. See [installation](#安装), then select **EN** in the toolbar. The interface supports Chinese and English; provider descriptions and user content keep their original language. Provider accounts, permissions and any provider fees are separate from this plugin. Saving a connection or discovering tools does not guarantee a successful business call.
 
 ![MCP Connector — English interface](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/01-market-overview.jpg)
 
@@ -58,6 +78,14 @@ Install with `dsh plugin --profile web add dsh-mcp-connector`, then select **EN*
 [![Registry connectors](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.registryCount&label=Registry%20connectors&color=5865f2)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 [![Marketplace cards](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fduhu2000%2Fdsh-mcp-connector-registry%2Fmain%2Fcatalog-stats.json&query=%24.marketCount&label=Marketplace%20cards&color=16a34a)](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/catalog-stats.json)
 
+### 按数据场景找连接器
+
+企业数据、金融投资、法律合规与调研分析是专业数据入口；办公协作、开发工具等能力可在完整目录中查找。
+
+[浏览完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [查看近期新增数据源](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
+
+目录随正式卡片上架更新，无需等待插件发版。候选草稿不计入已上架数量；连接与工具发现成功不等于全部业务调用已验证。
+
 <!-- npm-download-trend:start -->
 [![npm 累计下载趋势](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/metrics/npm-downloads.png)](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/metrics/npm-downloads.json)
 npm 下载次数包含升级、重复安装及自动化下载，不等于独立用户数或成功安装数；数据截止日期见图中 UTC 标注。[安装使用](#开始使用) · [首次成功教程](docs/tutorials/FIRST-SUCCESS-SCENARIOS.md)
@@ -65,11 +93,19 @@ npm 下载次数包含升级、重复安装及自动化下载，不等于独立�
 
 ## 开始使用
 
-在插件市场搜索完整包名 **`dsh-mcp-connector`**，或在本机终端运行下方命令。当前默认 Desktop 和 Web 都使用 `web` profile；自定义部署请以宿主实际加载的 profile 为准。
+在插件市场搜索完整包名 **`dsh-mcp-connector`**，或按当前宿主实际加载的 profile 安装。Desktop 先启动应用完成初始化，通过应用菜单“管理 dsh 命令…”注册或修复配套 CLI，完全退出应用后在新终端执行：
+
+```bash
+dsh plugin --profile desktop add dsh-mcp-connector
+```
+
+默认 Web 使用：
 
 ```bash
 dsh plugin --profile web add dsh-mcp-connector
 ```
+
+自定义部署请替换 profile 名称；设置了 `DSH_HOME` 时，终端须沿用与宿主相同的值。npm 安装的 CLI 可能拒绝管理 `desktop`，此时应使用 Desktop 配套 CLI。
 
 安装或升级后完全重启 DeepSeek Harness Desktop 或 `dsh web`，然后打开左侧「MCP连接器」；也可从“设置 → 插件 → 插件配置 → MCP连接器”直接打开。
 
@@ -126,7 +162,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
-截至 2026-10-24，公共 Registry 已发布 112 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 116 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。推荐位严格保留 4 张企查查卡片、北大法宝和 Wind，共 6 张；其他连接器按业务分类展示。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
+截至 2026-11-15，公共 Registry 已发布 116 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 120 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
 <!-- catalog-stats:end -->
 
 ## 界面与演示
@@ -141,17 +177,22 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.103（2026-11-13）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.109（2026-11-14）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
 要求：DeepSeek Harness Desktop/web profile，Node.js 20 或更高版本。
 
+Desktop 使用配套 CLI，初始化后完全退出应用再安装；默认 Web 使用 `web`：
+
 ```bash
+# Desktop 配套 CLI
+dsh plugin --profile desktop add dsh-mcp-connector
+# 默认 Web
 dsh plugin --profile web add dsh-mcp-connector
 ```
 
-也可使用安装脚本：
+自定义部署以实际 profile 为准，并在终端沿用宿主的 `DSH_HOME`。默认 Web 也可使用安装脚本（其他 profile 需设置 `DSH_PROFILE`）：
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/install.sh)
@@ -218,6 +259,8 @@ Bundle 默认配置位于 `cordis.patch.yml`：
 
 从旧版升级时，若设置文档里只有 `showSidebarEntry` 而没有 `entryLocation`，插件按旧字段的实际行为翻译：`true` → `both`（旧版侧栏可见、设置页也有打开按钮），`false` → `settings`。这样升级既不会悄悄删掉既有入口，也不会让隐藏过的侧栏重新出现。分层解析中用户自己的覆盖优先于部署基线；「恢复默认」会同时清掉新字段与旧的布尔覆盖。
 
+在 **设置 → MCP连接器** 中可以切换入口位置或恢复默认。当前 Desktop 通过 `configForms` 将偏好写入当前 profile；旧版宿主通过 `settingsScope` 保存。若宿主未提供这两种服务，或未提供放置卡片的设置页入口，仍可从侧栏打开连接器。要更改入口位置，请在启用了设置服务和设置页的宿主中打开同一 profile。
+
 `showSidebarEntry` 默认为 `true`，为兼容既有配置保留；一旦显式设置 `entryLocation`，它不再影响界面。关闭入口只隐藏快捷方式，不停用连接器、已连接 MCP Server 或工具。
 
 `compactManagementTools` 默认为 `false`，兼容原有对话管理工具。希望降低管理工具上下文开销时，可在插件配置中设为 `true` 并重载插件（必要时重启 DSH），下一次推理使用新工具集：
@@ -269,7 +312,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.103`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.103](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.103)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.109`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.109](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.109)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

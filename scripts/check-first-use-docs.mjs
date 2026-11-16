@@ -54,8 +54,10 @@ export async function checkFirstUseDocs() {
   requireText(PATHS.userGuide, docs.userGuide, '(tutorials/TRUSTED-STATUS-COPY.md)');
   for (const expected of [
     'dsh plugin --profile web add dsh-mcp-connector',
-    'DSH Desktop 和 `dsh web` 都从本机 `web` profile 加载插件',
-    '不要因为使用 Desktop 就把命令改成 `--profile desktop`',
+    'dsh plugin --profile desktop add dsh-mcp-connector',
+    '使用宿主实际加载的 profile',
+    'Desktop 配套 CLI',
+    'DSH_HOME',
     '设置 → 插件 → 插件配置 → MCP连接器',
     'mcp__<serverName>__<toolName>',
     '只读调用',
@@ -68,6 +70,9 @@ export async function checkFirstUseDocs() {
     '../../CONTRIBUTING.md',
   ]) {
     requireText(PATHS.entry, docs.entry, expected);
+  }
+  for (const legacy of ['都从本机 `web` profile 加载插件', '不要因为使用 Desktop 就把命令改成 `--profile desktop`']) {
+    if (docs.entry.includes(legacy)) throw new Error(`${PATHS.entry}: outdated profile guidance: ${legacy}`);
   }
 
   for (const [key, path] of [['json', PATHS.json], ['oauth', PATHS.oauth], ['tools', PATHS.tools]]) {

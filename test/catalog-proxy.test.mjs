@@ -26,7 +26,14 @@ async function fetchInChild(url, proxyEnv = {}, options = {}) {
     import { getGlobalDispatcher } from 'undici';
     import { fetchRemoteCatalog, fetchRemoteCatalogWithFallback } from ${JSON.stringify(catalogModule)};
     const [url, options] = JSON.parse(process.argv[1]);
+    // Node 26 initializes a compatibility wrapper on the first native fetch.
+    // Warm it without network I/O before checking that catalog requests leave
+    // the Host dispatcher unchanged.
+    if (!options.coldStart) await fetch('data:application/json,[]');
     const dispatcher = getGlobalDispatcher();
+    if (options.forbidGlobalFetch) {
+      globalThis.fetch = () => { throw new Error('proxy requests must use matching Undici fetch'); };
+    }
     let output;
     try {
       let value;
@@ -142,6 +149,28 @@ test('catalog fetch uses a scoped environment proxy without Node flags', async (
       assert.equal(target.requests.at(-1).etag, '"previous"');
     });
   }
+});
+
+test('proxy catalog requests do not pass an external dispatcher to global fetch', async (t) => {
+  const target = await origin(t, { tls: true });
+  const via = await proxy(t, target.port);
+  const result = await fetchInChild(`https://catalog.example.test:${target.port}`, {
+    HTTPS_PROXY: via.url,
+  }, { forbidGlobalFetch: true });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.value.connectors[0].id, 'proxy-test');
+  assert.equal(via.tunnels.length, 1);
+});
+
+test('proxy catalog fetch works before native fetch initializes its dispatcher', async (t) => {
+  const target = await origin(t, { tls: true });
+  const via = await proxy(t, target.port);
+  const result = await fetchInChild(`https://catalog.example.test:${target.port}`, {
+    HTTPS_PROXY: via.url,
+  }, { coldStart: true, forbidGlobalFetch: true });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.value.connectors[0].id, 'proxy-test');
+  assert.equal(via.tunnels.length, 1);
 });
 
 test('HTTPS catalog uses HTTPS_PROXY and falls back to HTTP_PROXY', async (t) => {

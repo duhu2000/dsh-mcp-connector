@@ -24,7 +24,7 @@ test('validates count relationships and safe category names', () => {
   assert.deepEqual(normalizeStats(stats), stats);
   assert.throws(() => normalizeStats({ ...stats, marketCount: 81 }), /marketCount must equal/);
   assert.throws(() => normalizeStats({ ...stats, categoryNames: [...stats.categoryNames.slice(0, 8), '[bad]'] }), /unsafe value/);
-  assert.match(renderChineseStats(stats), /78 条.*82 张.*9 类.*6 张/s);
+  assert.match(renderChineseStats(stats), /78 条.*82 张.*9 类/s);
 });
 
 test('syncs the Chinese and English generated blocks plus local snapshot', async (t) => {

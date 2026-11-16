@@ -57,6 +57,40 @@ test('hosts with settings injection but no register method keep loading', () => 
   }, {}));
 });
 
+test('config forms associate the custom presentation and its disposer with the plugin', () => {
+  const fiber = {};
+  const dispose = () => {};
+  const settings = {
+    configure(options, owner) {
+      assert.deepEqual(options, { auto: false });
+      assert.equal(owner, fiber);
+      return dispose;
+    },
+  };
+  let effect;
+  installConnectorSettings({
+    fiber,
+    inject(_services, callback) {
+      callback({ settings, effect: (run) => { effect = run; } });
+    },
+  });
+  assert.equal(effect(), dispose);
+});
+
+test('legacy registration reads plain preferences from volatile Config fields', () => {
+  let base;
+  const ctx = {
+    inject(_services, callback) {
+      callback({ settings: { register(_ns, _schema, options) { base = options.base; } } });
+    },
+  };
+  const showSidebarEntry = { get: () => false };
+  installConnectorSettings(ctx, { showSidebarEntry, entryLocation: { get: () => undefined } });
+  assert.deepEqual(base, { showSidebarEntry: false, entryLocation: 'settings' });
+  installConnectorSettings(ctx, { showSidebarEntry, entryLocation: { get: () => 'sidebar' } });
+  assert.deepEqual(base, { showSidebarEntry: false, entryLocation: 'sidebar' });
+});
+
 test('hosts without optional injection support keep loading', () => {
   assert.doesNotThrow(() => installConnectorSettings({}, {}));
 });

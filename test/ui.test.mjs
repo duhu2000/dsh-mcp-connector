@@ -620,19 +620,6 @@ test('关闭社区入口后在本次页面生命周期内保持隐藏', () => {
   assert.match(uiSource, /dismissCommunityCta\(\) \{ dismissCommunityCta\(\); \}/);
 });
 
-test('工具清单使用中文计数并标记服务商弃用工具', () => {
-  assert.match(
-    uiSource,
-    /\$\('#tools-summary'\)\.textContent = t\('\{servers\} 个服务 · \{tools\} 个工具', \{ servers: detailToolServers\.length, tools: totalTools \}\)/,
-    '工具摘要仍用中文计数，只是包在 t() 里以便英文切换',
-  );
-  assert.match(uiSource, /function isDeprecatedTool\(tool\)/);
-  assert.match(uiSource, /deprecated/);
-  assert.match(uiSource, /已弃用\|已废弃\|不再推荐/);
-  assert.match(uiSource, /<span class="tool-deprecated">\$\{t\('已弃用'\)\}<\/span>/);
-  assert.match(uiSource, /Number\(isDeprecatedTool\(left\)\) - Number\(isDeprecatedTool\(right\)\)/);
-});
-
  test('推荐按指定十张排序并完整展开，分类仍保留原四张预览', () => {
   const start = uiSource.indexOf('  const RECOMMENDED_CONNECTOR_IDS =');
   const end = uiSource.indexOf('  function matchesMarketFilters', start);

@@ -5,7 +5,12 @@ import { pathToFileURL } from 'node:url';
 export const INPUTS = ['ui/index.html', 'ui/sharing-experience.js', 'ui/connection-template-sharing.js', 'scripts/ui-harness.mjs', 'scripts/capture-storefront.mjs', 'catalog/catalog.json', 'scripts/fixtures/storefront-catalog.json'];
 export async function sourceFingerprint(root = process.cwd()) {
   const hash = createHash('sha256');
-  for (const path of INPUTS) { hash.update(path + '\0'); hash.update(await readFile(resolve(root, path))); }
+  for (const path of INPUTS) {
+    hash.update(path + '\0');
+    // Keep captures reproducible across Windows CRLF and Unix LF checkouts.
+    const source = await readFile(resolve(root, path), 'utf8');
+    hash.update(source.replace(/\r\n?/g, '\n'));
+  }
   return hash.digest('hex');
 }
 export function freshnessErrors(meta, version, fingerprint, now = new Date()) {

@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.2.109
+
+- 首页分类表仅展示去重后的连接器总数，每类最多三个示例，更多条目用“等”提示。
+- 分类名称跳转完整目录对应分类；详情目录补齐内置卡片，保持数量与列表一致。
+- 同步分类概览自动更新校验及本版本产品素材。
+
+## 0.2.108
+
+- npm 与 GitHub 简介前置完整九分类表格，展示连接器数量和可点击的代表条目。
+- 分别统计公共与内置卡片，补齐企业数据分类及企查查对应条目。
+- 表格下方提供完整目录和近期新增入口，自动同步 Registry 分类概览。
+- 更新本版本中英文产品截图、演示素材及版本引用。
+
+## 0.2.107
+
+- 同步 npm 中英文简介的正式目录数量和分类、近期新增入口。
+- 移除过期的六张首页推荐描述，区分 Registry featured 与插件首页推荐规则。
+- 分类目录展示用途、提供方、接入方式及探测状态；新增条目保留上架证据与验收边界。
+- 更新中英文产品截图、演示素材与版本引用。
+
+## 0.2.106 - 2026-11-13
+
+- 修复 Node 26 下配置 HTTP/HTTPS 代理后远程目录刷新失败、市场仅显示内置连接器的问题：请求自有代理 dispatcher 与同一 Undici 包提供的 fetch 配套使用（#246，#247）。
+- 无代理时继续使用宿主 fetch；保留 NO_PROXY、TLS 校验、ETag/304、备用目录、超时和失败后不静默直连的行为，并补充冷启动回归测试。
+- 更新 npm 累计下载趋势至 2026-11-12（UTC），85 天累计 76,701 次下载；下载次数不等于独立用户数或成功安装数（#235）。
+- 重新采集 0.2.106 中英文无凭据 Mock 截图与 GIF，并同步生成的版本文档。
+- Fix remote catalog refresh through environment proxies on Node 26 by pairing request-owned dispatchers with fetch from the same Undici package. Preserve the host fetch when no proxy is configured and cover cold starts (#246, #247).
+- Refresh the npm download chart through 2026-11-12 (UTC): 76,701 downloads across 85 days, not unique users or successful installs (#235). Refresh bilingual credential-free Mock media and generated version documentation.
+
+## 0.2.105 - 2026-11-13
+
+- 修复使用 configForms 的 DSH Desktop 上的连接器入口设置，支持切换入口位置和恢复默认设置（#236）。
+- 工具详情按当前连接器内的原始工具名去重。企查查的全量入口与分类入口共用的工具只显示一次，搜索和分页使用相同计数。可切换服务入口查看参数或调整策略（#242）。
+- Desktop hosts using configForms can save and reset the connector entry location. Tool details count each name once across a connector’s endpoints, and parameter views and policy changes use the selected endpoint.
+
+## 0.2.104 - 2026-11-13
+
+- 升级命令使用宿主提供的实际 profile，支持 Desktop、Web 和自定义名称；无法确认时显示更新指引，不再默认使用 `web`。
+- 同步中英文升级提示和安装文档；手动升级命令旁不常驻展示 Desktop 专用长说明。
+- 未取得 profile 名称时显示具体原因，客户选择默认 Web 或 Desktop 后才展示一条候选命令；已读取但不受支持的名称仅作文本展示，目标版本无效时单独说明版本问题。
+- Manual upgrade commands now target the host's actual profile. When the name is unavailable, explain the cause and show one default candidate only after the user chooses Web or Desktop. Display unsupported names as text, diagnose invalid target versions separately, and reset choices and copy feedback as the context changes.
+
 ## 0.2.103
 
 - npm 简介中的下载趋势图移到产品介绍之后；图表改为中文累计下载次数，保留真实统计区间和口径说明。
