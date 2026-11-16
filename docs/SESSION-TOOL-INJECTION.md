@@ -66,6 +66,28 @@ Host 已观察到
 
 本分支尚未批准真实来源关系或只读定义，也未完成真实模型 A/B。完成生产接入代码不代表现在可以启用生产智能模式。
 
+### 可信只读证据交付（尚未发布）
+
+管理员先完成独立业务核验，再向目标 profile 的 `smart-mode-evidence/` 目录交付两个本地文件。该目录属于插件交付约定，不新增或修改 DSH 配置项。没有文件、签名不可信或校验失败时保持未核验；不存在模型工具或网页 API 可安装信任公钥、上传包或签发证据。
+
+| 文件/字段 | 约定 |
+| --- | --- |
+| `trust.json` | 严格对象：`version:1`、`accountRef`、`groupId`、`profileBinding`、`keys`。`profileBinding` 为管理员为目标 profile 生成并妥善保留的 64 位十六进制标识，各 profile 应不同 |
+| `keys[]` | 最多 16 个独立审核方公钥：`id`、`publicKey`（Ed25519 SPKI PEM 公钥）、`enabled`、`notBefore`、`expiresAt`。公钥须通过审核方之外的可信渠道核对并由管理员预置；签名私钥不交给插件、不写入 profile |
+| `bundle.json` | 严格对象：`keyId`、`payload`、`signature`。签名为 Ed25519 签名的标准 Base64，payload 采用下述规范化字节 |
+| `payload` | `version:1`、`purpose:"dsh-read-only-evidence-v1"`、`accountRef`、`groupId`、`profileBinding`、正整数 `revision`、`issuedAt`、`notBefore`、`expiresAt`、`reviews`（最多 1024 条）。所有时间为 UTC epoch 毫秒 |
+| `reviews[]` | `version:1`、`accountRef`、`groupId`、`sourceId`、`definitionFingerprint`、`enabled`、`validFrom`、`expiresAt`、`review:{effect:"read-only",evidenceHash,reviewedAt,reviewerHash}`；四种哈希均为 64 位小写十六进制。sourceId 和完整指纹取自现有受认证 inspect 的 `source`，不从清洗缓存重建 |
+
+包内审核范围必须匹配本期当前账号/六服务组及目标 profile；审核有效期不能超出包的有效期，审核时间不能晚于签发时间。每条审核的 reviewerHash 必填。证据 dossier 由独立审核方保管，包只携带摘要和结论，不携带 schema、业务响应样本、OAuth 凭据或来源等价关系。公钥/签名只能证明签发者及内容完整性，不能代替业务上的只读核验。
+
+签发方通过包的公共 API `readOnlyEvidenceSigningBytes(payload)` 取得精确字节：UTF-8 字符串 `dsh-read-only-evidence-v1` + 换行 + `canonicalSourceJson(payload)`。规范化按对象键排序、数组保序，无空白；禁止非 JSON 值和额外字段。签名必须发生在独立审核环境；插件不提供签发接口。交付文件先写同目录临时文件、刷盘，再原子替换正式文件，避免读取半包；对 `trust.json` 的管理始终由 profile 管理员在网页之外完成。
+
+证据包是**完整快照**。更高 revision 删除/禁用某条审核即可撤回；删除证据文件或移除/禁用公钥也会使其不可用。正常启动后已核验的只读记录自动供 prepare 使用，无需用户逐条保存；本地人工撤回具有优先级，重新启用仍需当前可信证据并显式确认。只读核验不会批准来源等价关系，也不会放宽 Workspace、手动启用或治理限制。
+
+已接收版本下限保存在独立 smart domain 的 `evidence_receipts/`，按账号/组隔离，原子硬链接发布且不覆盖；只保存绑定、版本、内容摘要和校验和。重启后拒绝旧版本及同版本不同内容；已签名、范围正确的过期/未来包也会推进版本下限，恢复时须发送更高 revision。不要删除接收记录来回退授权。公钥轮换保留 profileBinding，并交付更高版本的新签名包；本地撤回不因重启或新包消失。
+
+证据读取有大小/条数/文件类型上限，缺失、损坏、写盘失败均拒绝；接受没有内存专用回退。推理和派发边界同步复核，文件监控及 1 秒轮询同步收窄空闲 lookup 视图，拒绝派发时也刷新 schema/lookup；不承诺撤销已经入站的在途调用。存储要求与原 smart domain 相同：本地原子硬链接文件系统；Windows 不承诺整机断电耐久性。版本下限基于仍完整的本地接收记录，不能对整个 profile/信任根被人为回退或同进程恶意代码作隔离保证。
+
 ## Development preview (English)
 
 The unreleased smart adapter supports the configured account's six QCC enterprise connections under one unambiguous grant on verified Native Host `0.2.2-rc.1`. It requires real profile, Workspace, Session and authenticated browser-owner services. Other accounts, legal/Fabao services, unknown Hosts and global compact management mode retain existing behavior.
@@ -75,3 +97,7 @@ Compatibility is the default. Use Smart tools, preview the six-service scope and
 Existing and pre-enablement blank sessions retain their mode. Forks/subagents inherit mode but never prepared tools. Restart restores the saved default and session snapshots, while loading state is always cleared. Read-only approvals must bind complete raw-definition fingerprints; equivalence approvals remain separate. Neither is inferred from tool names, hints, cached schemas or the mode confirmation. Existing Workspace, manual activation, governance and Host approval boundaries remain authoritative.
 
 For persistent rollback, first confirm Compatibility for new sessions, then disable the smart layer to restore current-process tool views. Disabling alone does not erase the saved smart default. Busy sessions block unsafe mount/unmount; a failed policy write rolls back a newly mounted layer. Real approvals and provider A/B acceptance remain pending.
+
+Trusted read-only delivery is now wired in this development branch. An administrator provisions scoped Ed25519 public keys in `<profile>/smart-mode-evidence/trust.json` and atomically delivers an independently signed full snapshot as `bundle.json`. The table above defines the strict v1 protocol; `readOnlyEvidenceSigningBytes(payload)` is the public canonical-byte helper for an external signer. No private key, signing endpoint, trust installation API, remote download or schema/sample storage is provided.
+
+Verified records automatically feed preparation; local manual withdrawals override them. Every inference/dispatch admission rechecks evidence, expiry and the durable revision floor. File watching and a one-second fallback narrow idle lookup views. Withdrawals cannot cancel already-admitted calls. Missing or invalid evidence and receipt-write failures deny preparation. Higher signed revisions replace the entire approval snapshot; older revisions or changed content at the same revision cannot regain authority after restart while the local receipts remain intact. Real review dossiers, production trust provisioning and actual read-only/source approvals remain pending.

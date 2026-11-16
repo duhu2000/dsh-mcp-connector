@@ -6,6 +6,7 @@ body{font:15px/1.6 system-ui,sans-serif;background:#f5f7fb;color:#172033;margin:
 </style></head><body><main>
 <a href="/mcp-connector/ui/">返回连接器</a><h1>智能工具管理</h1><p id="scope">正在读取范围…</p>
 <div id="notice" role="status" aria-live="polite"></div>
+<p id="evidence-status" hidden></p>
 <section><h2>新会话默认模式</h2><p id="mode"></p><button id="enable">为新会话启用智能模式</button><button id="disable">新会话使用兼容模式</button><button id="layer">停用智能层</button><p>模式切换只影响新会话，已有会话保留原模式。停用智能层会恢复原有工具视图。</p></section>
 <section><h2>会话</h2><label id="workspace-label" hidden>工作区 <select id="workspace"></select></label><label>当前会话 <select id="session"></select></label><button id="create">新建会话</button><button id="resume">恢复所选会话</button><button id="clear">清空可见上下文</button><button id="compact">压缩上下文</button><p>清空保留历史日志和模式记录，并释放本会话已准备的工具；压缩保留现有权限和模式。</p></section>
 <section><h2>查找与选择来源</h2><label>搜索工具 <input id="query" type="text" placeholder="输入工具名称或关键词"></label><button id="search">查找</button><div id="sources"></div>

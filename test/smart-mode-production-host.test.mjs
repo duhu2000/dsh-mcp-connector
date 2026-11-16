@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { SmartModeStore } from '../lib/smart-mode-store.js';
 import { host } from '../scripts/fixtures/smart-mode-profile.mjs';
 import { productionHarness } from '../scripts/fixtures/smart-mode-production.mjs';
+import { signedEvidenceFixture } from '../scripts/fixtures/read-only-evidence.mjs';
 
 const contract = (name, fn) => test(`normal plugin startup: ${name}`, { skip: !host, timeout: 60000 }, fn);
 const ok = (value) => { assert.equal(value.ok, true, JSON.stringify(value)); return value.result; };
@@ -140,6 +141,12 @@ contract('synthetic fingerprint approval enables prepare only in its session; ro
       validFrom: Date.now() - 1000, expiresAt: Date.now() + 3600000,
       review: { effect: 'read-only', evidenceHash: 'a'.repeat(64), reviewedAt: Date.now(), reviewerHash: 'b'.repeat(64) } }, { expectedRevision: 0 });
   } finally { await store.close(); }
+  // A historical local approval alone must not bypass the new production gate.
+  ok(await f.rpc('layer', { enabled: false })); ok(await f.rpc('layer', { enabled: true }));
+  const beforeEvidence = await f.h.ctx.tools.get('mcp_connector_discover', f.h.ctx.agents.get(a.sessionId)).execute(
+    { action: 'prepare', capabilityIds: [item.capabilityId] }, { agent: f.h.ctx.agents.get(a.sessionId), signal: new AbortController().signal });
+  assert.equal(beforeEvidence.message, 'READ_ONLY_REVIEW_REQUIRED');
+  const signed = await signedEvidenceFixture(f.path, f.h.scope, [inspected.source]); await signed.deliver();
   ok(await f.rpc('layer', { enabled: false })); ok(await f.rpc('layer', { enabled: true }));
   await search(f, a.sessionId, 4);
   const agent = f.h.ctx.agents.get(a.sessionId), other = f.h.ctx.agents.get(b.sessionId);

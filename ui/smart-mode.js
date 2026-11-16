@@ -30,6 +30,10 @@ const selected = () => ({ sessionId: $('session').value });
 async function refresh() {
   const previous = $('session').value;
   state = await rpc('state'); $('scope').textContent = t(state.scopeLabel);
+  $('evidence-status').hidden = !state.readOnlyEvidence;
+  $('evidence-status').textContent = state.readOnlyEvidence?.status === 'verified'
+    ? t('可信只读证据已校验（版本 {revision}）；准备时仍会复核权限和有效期。', { revision: state.readOnlyEvidence.revision })
+    : t('暂无可用的可信只读证据，请联系管理员完成核验交付。');
   const previousWorkspace = $('workspace').value;
   $('workspace-label').hidden = !Array.isArray(state.workspaces);
   $('workspace').replaceChildren(...[{ id: '', title: t('请选择工作区') }, ...state.workspaces ?? []].map((entry) => {
@@ -78,7 +82,9 @@ $('search').onclick = run(async () => {
       $('fingerprint').textContent = t('定义指纹：{fingerprint}', { fingerprint: inspected.source.definitionFingerprint });
       $('definition').textContent = JSON.stringify(inspected.definition, null, 2);
       $('review-state').textContent = inspected.persistedReview ? t('记录版本 {revision} · {status}', { revision: inspected.persistedReview.revision,
-        status: t(inspected.persistedReview.review.enabled ? '已启用' : '已撤回') }) : t('当前定义没有持久化只读核验');
+        status: t(inspected.persistedReview.review.enabled ? '已启用' : '已撤回') }) : t(inspected.verifiedReadOnlyReview?.enabled
+          ? '当前完整定义已有可信只读核验；仍须满足有效期和调用权限。' : '当前定义没有持久化只读核验');
+      if (inspected.verifiedReadOnlyReview) $('evidence').value = inspected.verifiedReadOnlyReview.review.evidenceHash;
     }); row.append(button);
     if (source.sourceId !== item.sourceId) {
       const compare = document.createElement('button'); compare.textContent = t('本会话比较此来源与首选');
@@ -93,7 +99,8 @@ $('search').onclick = run(async () => {
 $('source').onclick = run(() => preview('previewSource', { ...selected(), capabilityId, kind: 'source', sourceIds: [inspected.source.sourceId] }));
 for (const [id, enabled] of [['review', true], ['revoke', false]]) $(id).onclick = run(() => preview('previewReview', {
   ...selected(), sourceId: inspected.source.sourceId, enabled,
-  evidenceHash: enabled ? $('evidence').value : inspected.persistedReview?.review.review.evidenceHash ?? $('evidence').value,
+  evidenceHash: enabled ? $('evidence').value : inspected.persistedReview?.review.review.evidenceHash
+    ?? inspected.verifiedReadOnlyReview?.review.evidenceHash ?? $('evidence').value,
   validForMs: Number($('hours').value) * 3600000, expectedRevision: inspected.persistedReview?.revision ?? 0,
 }));
 window.addEventListener('message', (event) => {
