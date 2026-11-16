@@ -76,6 +76,25 @@ jobs:
           {stdio:'inherit',env:{...process.env,DSH_HOST_INTEGRATION_ANCHOR:anchor}});
           if(r.error)throw r.error;process.exit(r.status??1)"
 
+  smart-host:
+    name: Smart mode Host (${{ matrix.os }}, 0.2.2-rc.1)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      # Published SDK code only. No DSH CLI/profile loader, real key, model or MCP.
+      - run: >-
+          npm install --prefix .smart-host-runtime --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          @deepseek-ai/dsh@0.2.2-rc.1
+      - name: Offline contracts must run without skips
+        run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
+
   fresh-install:
     name: Fresh generation install (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -93,7 +112,7 @@ jobs:
   pr-package:
     name: PR test package
     if: github.event_name == 'pull_request'
-    needs: [test, windows, zod-compat, host-visibility, fresh-install]
+    needs: [test, windows, zod-compat, host-visibility, smart-host, fresh-install]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
