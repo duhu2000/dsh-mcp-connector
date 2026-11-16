@@ -15,10 +15,12 @@
 推荐 Node 22.22.1，CI 使用 Node 24。需要已安装的完整 Host `0.2.2-rc.1` SDK。若本机没有，可在提测源码旁的独立目录安装代码依赖，不启动 DSH：
 
 ```powershell
-npm install --prefix .smart-host-runtime --ignore-scripts --legacy-peer-deps --no-audit --no-fund @deepseek-ai/dsh@0.2.2-rc.1
+npm install --prefix .smart-host-runtime --ignore-scripts --no-audit --no-fund @deepseek-ai/dsh@0.2.2-rc.1
 ```
 
 在源码根目录安装测试依赖（提测 ZIP 内为 `source` 目录）：
+
+Host 独立安装必须保留 npm 自动 peer 安装，不能加 `--legacy-peer-deps`，否则会遗漏 `dsh-scope` / `dsh-compaction` 等必要 SDK。下方插件源码安装使用该选项，避免拼装另一套不完整 Host；两个安装目录和用途不同。
 
 ```powershell
 npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund

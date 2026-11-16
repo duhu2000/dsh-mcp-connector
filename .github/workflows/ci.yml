@@ -90,7 +90,7 @@ jobs:
       - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       # Published SDK code only. No DSH CLI/profile loader, real key, model or MCP.
       - run: >-
-          npm install --prefix .smart-host-runtime --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+          npm install --prefix .smart-host-runtime --ignore-scripts --no-audit --no-fund
           @deepseek-ai/dsh@0.2.2-rc.1
       - name: Offline contracts must run without skips
         run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
