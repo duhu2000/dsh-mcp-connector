@@ -87,6 +87,56 @@ test('real disk receipt failure denies acceptance and a later receiver recovers 
   const other = await f.open(); assert.deepEqual(other.reviews(), f.payload.reviews);
 });
 
+test('uncertain receipt publication requires a successful durability retry, including a fresh receiver', async (t) => {
+  const f = await fixture(t); await f.deliver();
+  const receiptFds = new Set(); let barrierFails = true, acknowledgements = 0;
+  const io = { ...fs,
+    openSync(path, ...args) { const fd = fs.openSync(path, ...args);
+      if (String(path).includes('evidence_receipts') && !String(path).includes('.pending-')) receiptFds.add(fd); return fd; },
+    closeSync(fd) { receiptFds.delete(fd); return fs.closeSync(fd); },
+    fsyncSync(fd) {
+      if (receiptFds.has(fd)) { acknowledgements++; if (barrierFails) throw Object.assign(new Error('synthetic durability failure'), { code: 'EIO' }); }
+      return fs.fsyncSync(fd);
+    },
+    linkSync(from, to) { fs.linkSync(from, to); throw Object.assign(new Error('uncertain publication'), { code: 'EIO' }); },
+  };
+  const broken = await f.open(io);
+  assert.deepEqual(broken.reviews(), []);
+  assert.deepEqual(broken.reviews(), [], 'visible receipt alone cannot complete a failed receive');
+  assert.equal(broken.status().code, 'READ_ONLY_EVIDENCE_IO_FAILED');
+  const cold = await f.open(io);
+  assert.deepEqual(cold.reviews(), [], 'new receiver must also confirm the existing receipt');
+  barrierFails = false;
+  assert.deepEqual(cold.reviews(), f.payload.reviews);
+  const confirmed = acknowledgements;
+  assert.ok(confirmed > 0);
+  assert.deepEqual(cold.reviews(), f.payload.reviews);
+  assert.equal(acknowledgements, confirmed, 'confirmed unchanged receipt needs no repeated fsync on the hot path');
+  assert.deepEqual(broken.reviews(), f.payload.reviews);
+});
+
+test('a newer concurrent revocation wins while an existing receipt is being acknowledged', async (t) => {
+  const f = await fixture(t); await f.deliver(); assert.ok(f.verifier.reviews().length);
+  const receiptFds = new Set(); let advanced = false;
+  const cold = await f.open({ ...fs,
+    openSync(path, ...args) { const fd = fs.openSync(path, ...args);
+      if (String(path).includes('evidence_receipts') && !String(path).includes('.pending-')) receiptFds.add(fd); return fd; },
+    closeSync(fd) { receiptFds.delete(fd); return fs.closeSync(fd); },
+    fsyncSync(fd) {
+      fs.fsyncSync(fd);
+      if (!advanced && receiptFds.has(fd)) {
+        advanced = true;
+        fs.writeFileSync(join(f.directory, 'bundle.json'), JSON.stringify(f.bundle({ ...f.payload, revision: 2, reviews: [] })));
+        assert.deepEqual(f.verifier.reviews(), []);
+      }
+    },
+  });
+  assert.deepEqual(cold.reviews(), []);
+  assert.equal(advanced, true);
+  assert.equal(cold.status().revision, 2);
+  await f.deliver(); assert.equal(cold.status().code, 'READ_ONLY_EVIDENCE_ROLLBACK');
+});
+
 test('corrupt receipt, malformed/oversize delivery and missing trust never widen approval', async (t) => {
   const f = await fixture(t); await f.deliver(); assert.ok(f.verifier.reviews().length);
   const receiptBase = join(f.path, 'storages', 'mcp_connector_smart_v1', 'evidence_receipts');

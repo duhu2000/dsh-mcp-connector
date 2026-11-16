@@ -1,5 +1,7 @@
 # QMCP-4963 · PR #243 统一提测范围
 
+独立验收后续：已修复证据回执“链接已发布但持久化确认失败”后过早接受同版证据的问题，保留每次签名/期限/head 校验，新增首次确认与重试确认。四项会话/权限/回滚交叉场景和两项持久化回归已补齐；修订后完整回归 1097 项（1092 通过、5 项既有跳过），提测入口为 359 项。下文 1091 / 353 记录原交付基线；当前结果与边界以 [独立验收报告](SMART-MODE-INDEPENDENT-ACCEPTANCE.md) 及修订包 manifest 为准。
+
 冻结新增功能，当前完整成果已统一到 `codex/qmcp-4963-pr`。该分支沿已有提交历史汇入正常生产接入、可信只读证据接入和真实元数据核验材料，并合入 main `377bfe9d9ceec9303726987b7fc4dc3e44a15eb1`（0.2.109）；不逐个重复合并历史任务分支，不创建发行版本。最终提测 commit、制品摘要和远端检查以 PR #243 与提测包 MANIFEST 为准。
 
 English: This PR delivers session-isolated discovery/prepare, verified-source selection, resource protection, normal Host startup/UI wiring, and signed read-only evidence verification for one account's six QCC enterprise servers. It is default-compatible and validated with real Host modules in isolated synthetic profiles. Real tool/source approvals, real trust deployment, provider A/B, release installation acceptance and production rollout remain outside this delivery. Ready for review and QA does not authorize merge or deployment.
