@@ -136,6 +136,63 @@ test('raw downloads decide the broad mcp tie and stars do not override them', ()
   assert.ok(rows[1].plugin.stars > rows[0].plugin.stars);
 });
 
+for (const rank of [1, 2, 3, 4]) {
+  test(`default broad mcp alert ${rank <= 3 ? 'accepts' : 'rejects'} rank ${rank}`, () => {
+    const competitors = Array.from({ length: rank - 1 }, (_, index) => ({
+      ...windows,
+      name: `dsh-mcp-competitor-${index}`,
+      npm: `dsh-mcp-competitor-${index}`,
+      url: `https://github.com/other-owner/dsh-mcp-competitor-${index}`,
+      downloads: connector.downloads + 1_000 * (index + 1),
+    }));
+    const report = checkMarketSearchRank({ catalog: catalog([connector, ...competitors]) });
+    const broad = report.queries.find((query) => query.id === 'mcp');
+    assert.equal(broad.rank, rank);
+    assert.equal(broad.required, true);
+    assert.equal(broad.passed, rank <= 3);
+    assert.equal(report.ok, rank <= 3);
+  });
+}
+
+test('default broad mcp alert still rejects a missing connector', () => {
+  const report = checkMarketSearchRank({ catalog: catalog([windows]) });
+  const broad = report.queries.find((query) => query.id === 'mcp');
+  assert.equal(broad.rank, null);
+  assert.equal(broad.required, true);
+  assert.equal(broad.passed, false);
+  assert.equal(report.ok, false);
+});
+
+test('default connector intent alerts still reject second place while broad mcp passes', () => {
+  const competitor = {
+    ...connector,
+    name: 'another-mcp-connector',
+    npm: 'another-mcp-connector',
+    url: 'https://github.com/other-owner/another-mcp-connector',
+    downloads: connector.downloads + 1_000,
+  };
+  const report = checkMarketSearchRank({ catalog: catalog([connector, competitor]) });
+  const broad = report.queries.find((query) => query.id === 'mcp');
+  assert.equal(broad.rank, 2);
+  assert.equal(broad.passed, true);
+  for (const query of ['mcp connector', 'MCP连接器', 'MCP 管理', '连接器']) {
+    const result = report.queries.find((result) => result.query === query);
+    assert.equal(result.required, true, query);
+    assert.equal(result.rank, 2, query);
+    assert.equal(result.passed, false, query);
+  }
+  assert.equal(report.ok, false);
+});
+
+test('default report shows the broad Top 3 target and connector intent Top 1 targets', () => {
+  const report = checkMarketSearchRank({ catalog: catalog() });
+  const markdown = reportMarkdown(report);
+  assert.match(markdown, /\| `mcp` \| ✅ required \| 2 \| ≤ 3 \|/);
+  for (const query of ['mcp connector', 'MCP连接器', 'MCP 管理', '连接器']) {
+    assert.ok(markdown.includes(`| \`${query}\` | ✅ required | 1 | ≤ 1 |`), query);
+  }
+});
+
 test('connector intent queries outrank a Windows MCP bridge', () => {
   for (const query of ['mcp connector', 'MCP连接器', 'MCP 管理', '连接器']) {
     const result = assessQuery(catalog(), { id: query, query, maxRank: 1, required: true });

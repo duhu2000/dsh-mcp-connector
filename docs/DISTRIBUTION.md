@@ -233,10 +233,14 @@ not proven metadata corruption. They do not permit automatic issue closure.
 Run `npm run market:rank:live` to reproduce the DSH Market search contract
 against the official awesome-dsh-plugin feed: Chinese locale, all categories,
 and `downloads-desc` after the market's field-aware relevance score. The daily
-`DSH Market search rank` workflow requires `mcp`, `mcp connector`, `MCP连接器`,
-`MCP 管理`, and `连接器` to rank first and maintains one deduplicated drift
-Issue until every required query recovers. Model Context Protocol, marketplace,
-data-market, and MCP Server queries remain visible as non-blocking observations.
+`DSH Market search rank` workflow requires the broad `mcp` query to remain in
+the Top 3, while `mcp connector`, `MCP连接器`, `MCP 管理`, and `连接器` must
+still rank first. The broad query remains a required gate: rank 4 or a missing
+connector fails the check. This alert-policy distinction accounts for broader
+competition on `mcp`; it does not change the market's search ranking. The workflow
+maintains one deduplicated drift Issue until every required query meets its
+target. Model Context Protocol, marketplace, data-market, and MCP Server queries
+remain visible as non-blocking observations.
 The report is a deterministic catalog simulation; it does not claim actual UI
 acceptance, unique users, installation conversion, or business-call success.
 

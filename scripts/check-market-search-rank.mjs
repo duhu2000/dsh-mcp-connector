@@ -11,7 +11,7 @@ const SEARCH_ALGORITHM = 'dsh-market field relevance + downloads-desc tie-break'
 const SEARCH_CONTRACT = 'verified against dsh-market 1.73.6 and 1.73.11';
 
 export const DEFAULT_QUERIES = [
-  { id: 'mcp', query: 'mcp', maxRank: 1, required: true },
+  { id: 'mcp', query: 'mcp', maxRank: 3, required: true },
   { id: 'mcp-connector-en', query: 'mcp connector', maxRank: 1, required: true },
   { id: 'mcp-connector-zh', query: 'MCP连接器', maxRank: 1, required: true },
   { id: 'mcp-management-zh', query: 'MCP 管理', maxRank: 1, required: true },
