@@ -1,5 +1,9 @@
 # QMCP-4963 · 安装、升级、重启及降级验收
 
+## 2026-11-17 主线集成候选
+
+参见 [主线集成报告](SMART-MODE-MAIN-INTEGRATION-2026-11-17.md)。本轮对齐 main dd77852，源码版号为 0.2.110，提测 tgz 使用下一补丁的单调构建号；安装/升级/降级脚本从源码稳定版号读取固定基线（当前 0.2.110），不再写死 0.2.109。跨进程夹具同步使用 baselineVersion，原生 Windows tar 选择及 Git Bash 门禁保持。新包准确摘要和实际 16 步回执随 PR/提测包交付；下文数字及 0.2.109 矩阵保留为历史输入，不是新候选的验收替代。
+
 ## 2026-11-16 验收复核与 Windows tar 修订
 
 最新结论、预算口径和回归见 [验收复核报告](SMART-MODE-ACCEPTANCE-2026-11-16.md)。Windows 验收入口改为从 SystemRoot/WINDIR 选择绝对 System32/tar.exe，避免 Git Bash 的 GNU tar 将盘符当成远程主机；不统一添加原生 bsdtar 不支持的 --force-local，也不修改用户 PATH。非 Windows 行为保持原样。6 项永久 tar 回归及 Windows Git Bash 的实际生命周期加入门禁。

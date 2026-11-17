@@ -12,6 +12,8 @@ import { packageTarExecutable } from './fixtures/package-tar.mjs';
 import { compareVersions } from '../lib/version-status.js';
 
 const source = dirname(dirname(fileURLToPath(import.meta.url)));
+const baselineVersion = JSON.parse(await fs.readFile(join(source, 'package.json'), 'utf8')).version;
+assert.match(baselineVersion, /^\d+\.\d+\.\d+$/, 'package QA requires the source release version as its stable baseline');
 const anchor = process.env.DSH_HOST_INTEGRATION_ANCHOR;
 if (!anchor) throw new Error('Explicit DSH_HOST_INTEGRATION_ANCHOR required; no default profile is read');
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
@@ -81,11 +83,11 @@ try {
   const manifest = JSON.parse(execFileSync(tar, ['-xOf', candidate, 'package/package.json'], { encoding: 'utf8' }));
   let baseline = process.env.DSH_SMART_PACKAGE_BASELINE;
   if (!baseline) {
-    const packed = packEntry(JSON.parse(await run([npmCli, 'pack', 'dsh-mcp-connector@0.2.109', '--ignore-scripts', '--json', '--pack-destination', packs], 'pack-stable-baseline')));
+    const packed = packEntry(JSON.parse(await run([npmCli, 'pack', `dsh-mcp-connector@${baselineVersion}`, '--ignore-scripts', '--json', '--pack-destination', packs], 'pack-stable-baseline')));
     baseline = join(packs, packed.filename);
   }
-  assert.equal(JSON.parse(execFileSync(tar, ['-xOf', baseline, 'package/package.json'], { encoding: 'utf8' })).version, '0.2.109');
-  assert.ok(compareVersions(manifest.version, '0.2.109') > 0);
+  assert.equal(JSON.parse(execFileSync(tar, ['-xOf', baseline, 'package/package.json'], { encoding: 'utf8' })).version, baselineVersion);
+  assert.ok(compareVersions(manifest.version, baselineVersion) > 0);
   // pnpm's Windows store index can exceed a component limit when a local spec
   // embeds a long relative path. Stage short names inside this owned test home.
   const localCandidate = join(packs, 'candidate.tgz'), localBaseline = join(packs, 'baseline.tgz');
@@ -100,7 +102,7 @@ try {
       dependencies: {}, dsh: { profile: { bundles: ['dsh-mcp-connector'] } } }));
     await fs.writeFile(join(profile, 'pnpm-workspace.yaml'), 'packages:\n  - .\nnodeLinker: hoisted\nautoInstallPeers: false\nignoreScripts: true\n');
   }
-  inputs = { home: root, artifact, anchor: resolve(anchor), candidate, candidateVersion: manifest.version,
+  inputs = { home: root, artifact, anchor: resolve(anchor), candidate, candidateVersion: manifest.version, baselineVersion,
     candidateSha256: await fileHash(candidate), baselineSha256: await fileHash(baseline),
     candidateIndexHash: sha(execFileSync(tar, ['-xOf', candidate, 'package/lib/index.js'])) };
   const inputPath = join(root, 'inputs.json'); await fs.writeFile(inputPath, JSON.stringify(inputs));
@@ -115,9 +117,9 @@ try {
   await install('fresh', invalid, 'invalid-install', true);
   assert.equal(await fileHash(join(fresh, 'package.json')), before.manifest); assert.equal(await fileHash(join(fresh, 'pnpm-lock.yaml')), before.lock);
   await phase('fresh', 'repair');
-  await install('upgrade', baseline, 'stable-install'); await phase('upgrade', 'baseline', '0.2.109');
+  await install('upgrade', baseline, 'stable-install'); await phase('upgrade', 'baseline', baselineVersion);
   await install('upgrade', candidate, 'upgrade-install'); await phase('upgrade', 'upgrade'); await phase('upgrade', 'restart');
-  await phase('upgrade', 'withdraw'); await install('upgrade', baseline, 'downgrade-install'); await phase('upgrade', 'downgrade', '0.2.109');
+  await phase('upgrade', 'withdraw'); await install('upgrade', baseline, 'downgrade-install'); await phase('upgrade', 'downgrade', baselineVersion);
   await install('upgrade', candidate, 'return-install'); await phase('upgrade', 'return'); await phase('upgrade', 'restart');
 } catch (failure) { error = failure; }
 finally {
@@ -128,7 +130,7 @@ finally {
   await fs.writeFile(join(artifact, 'package-lifecycle-result.json'), JSON.stringify({ passed: !error, node: process.versions.node,
     archiveTool: tar,
     host: '0.2.2-rc.1', candidateVersion: inputs?.candidateVersion, candidateSha256: inputs?.candidateSha256,
-    baseline: '0.2.109', baselineSha256: inputs?.baselineSha256, results, temporaryHomeRemoved: true,
+    baseline: baselineVersion, baselineSha256: inputs?.baselineSha256, results, temporaryHomeRemoved: true,
     currentDshConfigurationLoaded: false, realBusinessCalls: 0, realModelCalls: 0 }, null, 2));
 }
 if (error) throw error;

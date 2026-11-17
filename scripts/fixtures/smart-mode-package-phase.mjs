@@ -48,7 +48,7 @@ const beforeSmart = await fileHashes(smartDir);
 const results = [];
 test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, async t => {
   t.after(() => bootRoot.fiber.dispose());
-  const stable = expectedVersion === '0.2.109';
+  const stable = expectedVersion === inputs.baselineVersion;
   const f = await fixture.productionHarness(t, { profileDir: profile, implementation, smartControl: !stable, storageState: snapshot,
     async persistStorage(value) { await fs.writeFile(`${stateFile}.tmp`, JSON.stringify(value), { mode: 0o600 }); await fs.rename(`${stateFile}.tmp`, stateFile); } });
   const ok = (r) => { assert.equal(r.ok,true,JSON.stringify(r));return r.result; };

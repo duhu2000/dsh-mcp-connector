@@ -2,7 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { smartModeQaVersion } from '../scripts/fixtures/smart-mode-package-version.mjs';
 import { compareVersions } from '../lib/version-status.js';
+import { readFileSync } from 'node:fs';
 const commit = '28e1349d401343adeb82609db9c3d1d538c46f3f';
+
+test('integrated QA version supersedes the current release and the sealed 7dfebc6 candidate', () => {
+  const base = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  const version = smartModeQaVersion(base, { buildNumber: 100, commit });
+  assert.ok(compareVersions(version, base) > 0);
+  assert.ok(compareVersions(version, '0.2.110-pr.243.qa.1794823352415+g7dfebc6') > 0);
+});
 test('QA build supersedes the previously delivered SHA-ordered packages', () => {
   const version = smartModeQaVersion('0.2.109', { buildNumber: 100, commit });
   for (const previous of ['0.2.109', '0.2.110-pr.243.ce02515', '0.2.110-pr.243.fc40a52', '0.2.110-pr.243.28e1349']) {

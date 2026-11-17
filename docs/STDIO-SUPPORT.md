@@ -680,3 +680,13 @@ cwd: { type: 'string', description: 'transport=stdio 时的工作目录，默认
 **设计基线版本**：v0.2.1
 
 **实施版本规划**：v0.3.0
+
+## 执中双入口：本机凭据桥接
+
+新增 `dsh-zerone-mcp-bridge --service pe|base`，将本机 stdio 工具请求转发到执中官方的两个固定 HTTPS MCP 入口。桥接由 DSH 社区维护，服务端仍为执中；它不是执中提供的原生 stdio 包。
+
+Key 通过本机环境变量 `ZERONE_API_KEY` 传入，启动后从进程环境中移除该字段，仅保留运行所需的内存值。市场卡片使用现有 `credentialFields` / `credentialBindings` 输入和绑定，公开 URL、命令行参数中均不含 Key。持久化仍沿用本机 stdio 凭据配置与现有脱敏分享/备份流程。
+
+桥接支持 `initialize`、`ping`、`tools/list`（保留分页游标）、`tools/call`；不宣称支持远端 Prompt、Resource、采样或双向通知。请求携带远端会话 ID，支持 JSON / SSE 响应，拒绝重定向，错误使用固定文本，响应中原样或编码后的密钥会被脱敏。请求失败或超时不会自动重试业务工具。网络代理沿用本机 HTTP(S) 代理环境配置。
+
+开发者可从源码运行 `node scripts/zerone-bridge.mjs --service pe`；生产卡片必须固定到已经正式发布、实际包含该命令的 npm 版本，不能引用尚未发布的未来版本。两个服务账号权限分别验收，一项读取成功不代表所有工具或另一个服务通过。
