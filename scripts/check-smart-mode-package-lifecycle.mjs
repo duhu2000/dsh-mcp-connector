@@ -7,13 +7,13 @@ import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { smartModeQaVersion } from './fixtures/smart-mode-package-version.mjs';
+import { smartModeQaVersion, smartModeQaBaselineVersion } from './fixtures/smart-mode-package-version.mjs';
 import { packageTarExecutable } from './fixtures/package-tar.mjs';
 import { compareVersions } from '../lib/version-status.js';
 
 const source = dirname(dirname(fileURLToPath(import.meta.url)));
-const baselineVersion = JSON.parse(await fs.readFile(join(source, 'package.json'), 'utf8')).version;
-assert.match(baselineVersion, /^\d+\.\d+\.\d+$/, 'package QA requires the source release version as its stable baseline');
+const sourceVersion = JSON.parse(await fs.readFile(join(source, 'package.json'), 'utf8')).version;
+const baselineVersion = smartModeQaBaselineVersion(sourceVersion, process.env.DSH_SMART_PACKAGE_BASELINE_VERSION);
 const anchor = process.env.DSH_HOST_INTEGRATION_ANCHOR;
 if (!anchor) throw new Error('Explicit DSH_HOST_INTEGRATION_ANCHOR required; no default profile is read');
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
@@ -36,6 +36,7 @@ const artifact = process.env.DSH_SMART_PACKAGE_EVIDENCE_DIR
 await fs.mkdir(artifact, { recursive: true });
 console.log(`PACKAGE_QA_EVIDENCE=${artifact}`);
 console.log(`PACKAGE_QA_TAR=${tar}`);
+console.log(`PACKAGE_QA_BASELINE=${baselineVersion}`);
 const env = { ...process.env, DSH_HOME: root, CI: '1', NPM_CONFIG_USERCONFIG: join(root, '.npmrc') };
 delete env.NODE_PATH; delete env.NODE_OPTIONS;
 await fs.writeFile(join(root, '.npmrc'), 'registry=https://registry.npmjs.org/\nignore-scripts=true\n');

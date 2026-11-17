@@ -1,5 +1,13 @@
 # QMCP-4963 · 安装、升级、重启及降级验收
 
+## 2026-11-17 正式版发布准备
+
+PR #243 已在测试完成后合并到 main `2e460d6`。0.2.111 发布准备保留既有验收记录，不改产品运行库。安装回归默认仍使用源码稳定版号；发布前可用 `DSH_SMART_PACKAGE_BASELINE_VERSION=0.2.110` 显式选择已发布的前一稳定版，避免尝试下载尚未发布的新版本。CI 为本次发布固定使用 0.2.110，Linux、Windows 和 Windows Git Bash 共用该设置。后续发布准备需核对并更新固定基线。
+
+基线只能是稳定版号，且不得高于源码版号；传入本地 `DSH_SMART_PACKAGE_BASELINE` 时仍校验包内版本与所选基线一致。外部候选仍必须提供 SHA-256，并验证候选版本高于基线。该设置仅影响临时 profile 安装回归，不改变插件更新策略、当前 DSH 配置或生产模式。
+
+English: The merged feature remains unchanged. Pre-release installation QA can pin a published predecessor with `DSH_SMART_PACKAGE_BASELINE_VERSION`; CI pins 0.2.110 for the 0.2.111 release. Local baseline packages must match that version, and external candidates still require SHA-256 verification. Future release preparation must review the pin.
+
 ## 2026-11-17 主线集成候选
 
 参见 [主线集成报告](SMART-MODE-MAIN-INTEGRATION-2026-11-17.md)。本轮对齐 main dd77852，源码版号为 0.2.110，提测 tgz 使用下一补丁的单调构建号；安装/升级/降级脚本从源码稳定版号读取固定基线（当前 0.2.110），不再写死 0.2.109。跨进程夹具同步使用 baselineVersion，原生 Windows tar 选择及 Git Bash 门禁保持。新包准确摘要和实际 16 步回执随 PR/提测包交付；下文数字及 0.2.109 矩阵保留为历史输入，不是新候选的验收替代。

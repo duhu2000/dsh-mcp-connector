@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.111 - 2026-11-17
+
+- 合并 QMCP-4963（#243）：为当前账号企查查企业数据六服务提供会话隔离的工具发现、按需加载、版本化来源关系和可信只读核验证据接入。
+- 新增原子 prepare、包含两个常驻入口的 5,000 token 组内预算、10 分钟滑动 TTL、在途保护和安全回退；旧会话、自动化和范围外连接保持兼容。
+- 默认保持兼容模式；发布不自动批准真实只读定义或来源关系，不部署信任公钥，也不自动启用生产智能模式。真实启用仍需单独核验与授权，未经批准的来源不会被自动合并。
+- 覆盖独立 profile 安装、升级、重启、损坏包拒绝及降级回退；修复 Windows Git Bash 的 tar PATH 遮蔽，发布前升级回归固定使用已发布的 0.2.110 基线。
+- 更新本版本中英文无凭据 Mock 截图、演示素材与生成文档。
+- Add session-isolated discovery and on-demand preparation for the current account's six QCC enterprise servers, with reviewed source relationships, signed read-only evidence, a scoped 5,000-token budget, sliding TTL and safe rollback (#243).
+- Compatibility mode remains the default. Publishing grants no real approvals, installs no trust keys and does not enable production smart mode. Real use requires separate verification and authorization; the budget does not cover other connectors or the whole model request.
+- Cover isolated-profile install, upgrade, restart and downgrade; fix Windows tar PATH shadowing, pin the published predecessor for pre-release upgrade tests, and refresh bilingual credential-free Mock media.
+
 ## 0.2.110 - 2026-11-17
 
 - 新增执中 PE/base 双入口 stdio 桥接，通过本机凭据绑定适配官方 URL query API Key。

@@ -79,6 +79,9 @@ jobs:
   smart-host:
     name: Smart mode Host (${{ matrix.os }}, 0.2.2-rc.1)
     runs-on: ${{ matrix.os }}
+    # Pin the published predecessor so release PRs can pass before their version is published.
+    env:
+      DSH_SMART_PACKAGE_BASELINE_VERSION: 0.2.110
     strategy:
       fail-fast: false
       matrix:
