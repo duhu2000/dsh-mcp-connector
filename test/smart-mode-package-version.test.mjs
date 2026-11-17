@@ -1,9 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { smartModeQaVersion } from '../scripts/fixtures/smart-mode-package-version.mjs';
+import { smartModeQaVersion, smartModeQaBaselineVersion } from '../scripts/fixtures/smart-mode-package-version.mjs';
 import { compareVersions } from '../lib/version-status.js';
 import { readFileSync } from 'node:fs';
 const commit = '28e1349d401343adeb82609db9c3d1d538c46f3f';
+
+test('package QA defaults to the source release and allows a pinned published predecessor before release', () => {
+  assert.equal(smartModeQaBaselineVersion('0.2.111'), '0.2.111');
+  assert.equal(smartModeQaBaselineVersion('0.2.111', '0.2.110'), '0.2.110');
+  assert.equal(smartModeQaBaselineVersion('0.2.111', '0.2.111'), '0.2.111');
+});
+
+test('package QA rejects invalid, prerelease and future upgrade baselines', () => {
+  for (const value of ['', 'latest', '0.2.111-pr.243', '0.2.112', '0.2.110 --ignore-scripts', null]) {
+    assert.throws(() => smartModeQaBaselineVersion('0.2.111', value), /Invalid QA baseline version/);
+  }
+  assert.throws(() => smartModeQaBaselineVersion('0.2.111-pr.243', '0.2.110'), /Invalid QA baseline version/);
+});
 
 test('integrated QA version supersedes the current release and the sealed 7dfebc6 candidate', () => {
   const base = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
