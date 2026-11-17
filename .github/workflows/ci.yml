@@ -76,6 +76,42 @@ jobs:
           {stdio:'inherit',env:{...process.env,DSH_HOST_INTEGRATION_ANCHOR:anchor}});
           if(r.error)throw r.error;process.exit(r.status??1)"
 
+  smart-host:
+    name: Smart mode Host (${{ matrix.os }}, 0.2.2-rc.1)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      # Published SDK code only. No DSH CLI/profile loader, real key, model or MCP.
+      - run: >-
+          npm install --prefix .smart-host-runtime --ignore-scripts --no-audit --no-fund
+          @deepseek-ai/dsh@0.2.2-rc.1
+      - name: Offline contracts must run without skips
+        run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
+      - run: npm install --global pnpm@11.1.1 --ignore-scripts
+      - name: Actual package install, upgrade, process restart and stable downgrade
+        env:
+          DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+          DSH_SMART_PACKAGE_EVIDENCE_DIR: ${{ runner.temp }}/qmcp-4963-package-evidence
+        run: node scripts/check-smart-mode-package-lifecycle.mjs
+      - name: Windows Git Bash with GNU tar ahead of System32
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+          DSH_SMART_PACKAGE_EVIDENCE_DIR: ${{ runner.temp }}/qmcp-4963-package-evidence-msys
+        run: |
+          export PATH="/usr/bin:$PATH"
+          tar --version
+          node scripts/check-smart-mode-package-lifecycle.mjs
+
   fresh-install:
     name: Fresh generation install (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -93,7 +129,7 @@ jobs:
   pr-package:
     name: PR test package
     if: github.event_name == 'pull_request'
-    needs: [test, windows, zod-compat, host-visibility, fresh-install]
+    needs: [test, windows, zod-compat, host-visibility, smart-host, fresh-install]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -103,11 +139,13 @@ jobs:
       - name: Stamp an installable prerelease version
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: >-
           node --input-type=module -e 'import fs from "node:fs";
+          import { smartModeQaVersion } from "./scripts/fixtures/smart-mode-package-version.mjs";
           const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const [major, minor, patch] = p.version.split("-")[0].split(".").map(Number);
-          p.version = [major, minor, patch + 1].join(".") + "-pr." + process.env.PR_NUMBER + "." + process.env.GITHUB_RUN_NUMBER;
+          p.version = smartModeQaVersion(p.version, { pullRequest: Number(process.env.PR_NUMBER),
+          buildNumber: Date.now(), commit: process.env.PR_HEAD_SHA });
           fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");'
       - run: npm pack --ignore-scripts
       - run: shasum -a 256 dsh-mcp-connector-*.tgz > SHA256SUMS.txt
