@@ -21,7 +21,7 @@ const WHITELIST = [
   /^lib\/i18n\/[^/]+\.js$/,
   /^lib\/i18n\/locales\/[^/]+\.js$/,
   /^lib\/i18n\/locales\/en\/[^/]+\.js$/,
-  /^scripts\/(?:probe-connector|build-registry|cli-bridge|ui-harness)\.mjs$/,
+  /^scripts\/(?:probe-connector|build-registry|cli-bridge|zerone-bridge|ui-harness)\.mjs$/,
   /^registry\/README\.md$/,
   /^registry\/catalog\.json$/,
   /^registry\/connectors\/[^/]+\.json$/,
