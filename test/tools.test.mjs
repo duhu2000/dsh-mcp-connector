@@ -14,7 +14,7 @@ function captureTools(api = {}, options = {}) {
 test('精简模式只注册两个入口，默认保留全部旧工具且卸载无残留（#161）', () => {
   const full = captureTools();
   const compact = captureTools({}, { compact: true });
-  assert.equal(full.tools.size, 25);
+  assert.equal(full.tools.size, 26);
   assert.deepEqual([...compact.tools.keys()], ['mcp_connector_discover', 'mcp_connector_session_tools']);
   assert.equal(compact.tools.has('mcp_connector_configure'), false);
   const schemas = (tools) => JSON.stringify([...tools.values()].map(({ name, description, parameters }) => ({ name, description, parameters })));

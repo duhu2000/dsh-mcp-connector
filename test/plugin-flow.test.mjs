@@ -625,7 +625,7 @@ test('市场 stdio 本地覆盖：重连、快照恢复、停用保持及失败�
     assert.equal((await webCall('applyLocalOverrides', { key, reset: true })).ok, true);
     assert.equal((await record()).localOverrides, undefined);
     assert.deepEqual(entry().options.config.args, ['server.js']);
-    assert.equal([...tools.defs.keys()].filter((name) => name.startsWith('mcp_connector_')).length, 25, 'no additional resident management tool');
+    assert.equal([...tools.defs.keys()].filter((name) => name.startsWith('mcp_connector_')).length, 26, 'local override does not add a resident management tool');
   } finally { for (const dispose of disposers) await dispose(); }
 });
 

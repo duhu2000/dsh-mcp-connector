@@ -85,9 +85,9 @@ test('explicit Host contract and exactly one bound six-server account group are 
   assert.throws(() => fixture({ controller: { getRecords: () => wrong.records } }), { code: 'GROUP_BINDING_CHANGED' });
 });
 
-test('25 legacy management names match the actual definitions; no broad prefix ownership', () => {
+test('26 management names match the actual definitions; no broad prefix ownership', () => {
   const f = fixture();
-  assert.equal(MCP_CONNECTOR_MANAGEMENT_NAMES.length, 25);
+  assert.equal(MCP_CONNECTOR_MANAGEMENT_NAMES.length, 26);
   assert.ok(MCP_CONNECTOR_MANAGEMENT_NAMES.every((name) => f.globals.has(name)));
 });
 
