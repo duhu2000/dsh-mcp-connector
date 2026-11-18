@@ -577,7 +577,7 @@ contract('P1-03 first real request has two entries, no 356 enterprise schemas, a
   assert.ok(h.businessNames.every((name) => h.ctx.tools.get(name, smart.agent) === undefined));
   assert.equal(h.ctx.tools.get('mcp_connector_discover', compat.agent), undefined);
   await h.drive(compat.agent);
-  assert.equal(h.requests.at(-1).tools.filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(h.requests.at(-1).tools.filter((name) => name.startsWith('mcp_connector_')).length, 26);
 });
 
 contract('P1-03 native dispatch and lookup enforce prepared membership per Agent and after current-policy denial', async (t) => {
@@ -645,7 +645,7 @@ for (const delivery of ['native', 'microtask', 'immediate']) {
     assert.ok(h.ctx.tools.get(name, handle.agent));
     assert.equal(h.ctx.tools.get(h.outsideNames[0], handle.agent), undefined);
     assert.equal(h.ctx.tools.get('mcp_connector_discover', handle.agent), undefined);
-    assert.equal(h.ctx.tools.schemas(handle.agent).filter((def) => def.name.startsWith('mcp_connector_')).length, 25);
+    assert.equal(h.ctx.tools.schemas(handle.agent).filter((def) => def.name.startsWith('mcp_connector_')).length, 26);
     await h.drive(handle.agent);
     assert.ok(h.businessNames.every((entry) => h.requests.at(-1).tools.includes(entry)), 'rollback admits legacy inference again');
     otherDeny(); stop();
