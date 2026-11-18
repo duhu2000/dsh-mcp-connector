@@ -1,3 +1,4 @@
+successfully downloaded text file (SHA: 31713be12bf393c516ec37fcd5ef7379cc9dc32d)
 name: CI
 
 on:
@@ -35,7 +36,7 @@ jobs:
       - run: npm run check
 
   zod-compat:
-    name: zod compatibility (4.6.6)
+    name: zod compatibility (4.1.8)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -43,7 +44,7 @@ jobs:
         with:
           node-version: 24
       - run: npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-      - run: npm install zod@4.6.6 --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - run: npm install zod@4.1.8 --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - run: npm test
 
   host-visibility:
