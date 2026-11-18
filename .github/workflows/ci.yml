@@ -81,7 +81,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     # Pin the published predecessor so release PRs can pass before their version is published.
     env:
-      DSH_SMART_PACKAGE_BASELINE_VERSION: 0.2.110
+      DSH_SMART_PACKAGE_BASELINE_VERSION: 0.2.111
     strategy:
       fail-fast: false
       matrix:

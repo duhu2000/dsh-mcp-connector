@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.112 - 2026-11-18
+
+- 提高运行时依赖的最低版本至 Undici 6.29.1 和 Zod 4.6.6，覆盖相关拒绝服务漏洞的修复。CI 使用 Zod 4.6.6 验证最低版本兼容性（#262）。
+- 更新 npm 下载趋势图，截至 2026-11-16（UTC）累计 83,807 次下载（#260）。
+- Raise the minimum runtime versions to Undici 6.29.1 and Zod 4.6.6 to include denial-of-service fixes. CI tests the minimum supported Zod version (#262).
+- Refresh the npm download chart through 2026-11-16 (UTC), with 83,807 downloads over the reporting period (#260).
+
 ## 0.2.111 - 2026-11-17
 
 - 合并 QMCP-4963（#243）：为当前账号企查查企业数据六服务提供会话隔离的工具发现、按需加载、版本化来源关系和可信只读核验证据接入。
