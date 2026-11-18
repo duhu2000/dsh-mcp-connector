@@ -3318,3 +3318,86 @@ test('治理策略经对话工具预览后在 Host guard 生效，并在重启�
   assert.equal(restored.ok, true, restored.message);
   assert.equal(secondGuard({ name: 'mcp__acme-search__remove' }), undefined);
 });
+
+test('custom JSON and manual URL: pending OAuth, explicit authorize, restart and isolated resources', { timeout: 30000 }, async () => {
+  const oauth = await createMockQccServer({ uniqueClientIds: true });
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  let restarted;
+  try {
+    await apply(host.ctx, baseConfig());
+    const imported = await host.webCall('importJson', { json: JSON.stringify({ mcpServers: { custom_company: { url: `${oauth.base}/mcp/company/stream` } } }), scope: 'project', workspaceId: 'workspace-1' });
+    assert.equal(imported.ok, true, imported.message);
+    assert.equal(oauth.state.registrationCount, 0, 'import must not register or open authorization');
+    assert.equal(host.loader.entries.size, 0, 'pending drafts never mount Host tools');
+    let status = await host.webCall('status');
+    const key = status.detail.items[0].key;
+    assert.equal(status.detail.items[0].connectionState, 'authorization-required');
+    assert.equal((await host.webCall('setEnabled', { key, enabled: true })).ok, false);
+    // Pending state survives a restart without provisioning.
+    for (const dispose of host.disposers) await dispose();
+    restarted = makePluginContext({ shared: host, withWeb: true });
+    await apply(restarted.ctx, baseConfig());
+    assert.equal(restarted.loader.entries.size, 0);
+    const pending = restarted.webCall('authorizeCustom', { key });
+    await autoApprove(restarted.logs);
+    const authorized = await pending;
+    assert.equal(authorized.ok, true, authorized.message);
+    status = await restarted.webCall('status');
+    assert.equal(status.detail.items[0].pendingAuthorization, false);
+    assert.equal(status.detail.items[0].authMode, 'oauth');
+    assert.equal(status.detail.items[0].scope.binding.projects[0], 'workspace-1');
+    assert.match(restarted.loader.entries.get(`mcp-${key}`).options.config.headers.Authorization, /^Bearer /);
+    const second = await restarted.webCall('configure', { name: 'custom-risk', url: `${oauth.base}/mcp/risk/stream` });
+    assert.equal(second.detail.pendingAuthorization, true);
+    assert.equal(oauth.state.registrationCount, 1, 'same issuer does not silently grant another resource');
+    const nextStatus = await restarted.webCall('status');
+    assert.equal(nextStatus.detail.items.filter(item => item.pendingAuthorization).length, 1);
+  } finally {
+    for (const dispose of (restarted || host).disposers) await dispose();
+    await oauth.close();
+  }
+});
+
+test('custom OAuth cancellation retains draft and never enables tools', { timeout: 15000 }, async () => {
+  const oauth = await createMockQccServer();
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig());
+    const result = await host.webCall('configure', { name: 'cancel-custom', url: `${oauth.base}/mcp/company/stream` });
+    assert.equal(result.ok, true, result.message);
+    const key = result.detail.key;
+    const pending = host.webCall('authorizeCustom', { key });
+    await waitFor(() => host.logs.find(line => line.includes('opening authorization page:')));
+    assert.equal((await host.webCall('authorizeCustom', { key })).ok, false);
+    await host.webCall('cancelCustomAuthorization', { key });
+    assert.equal((await pending).ok, false);
+    assert.equal((await host.webCall('status')).detail.items[0].pendingAuthorization, true);
+    assert.equal(host.loader.entries.size, 0);
+  } finally {
+    for (const dispose of host.disposers) await dispose();
+    await oauth.close();
+  }
+});
+
+test('custom OAuth Host startup failure rolls back to pending without a live grant', { timeout: 15000 }, async () => {
+  const oauth = await createMockQccServer({ uniqueClientIds: true });
+  const host = makePluginContext({ withWeb: true, loaderHooks: { onCreate() { throw Error('synthetic Host startup failure'); } } });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig());
+    const draft = await host.webCall('configure', { name: 'host-failure', url: `${oauth.base}/mcp/company/stream` });
+    assert.equal(draft.ok, true);
+    const pending = host.webCall('authorizeCustom', { key: draft.detail.key });
+    await autoApprove(host.logs);
+    const result = await pending;
+    assert.equal(result.ok, false);
+    assert.equal((await host.webCall('status')).detail.items[0].pendingAuthorization, true);
+    assert.equal(host.loader.entries.size, 0);
+    assert.equal([...host.tables.get('grants').entries()].length, 0);
+  } finally {
+    for (const dispose of host.disposers) await dispose();
+    await oauth.close();
+  }
+});
