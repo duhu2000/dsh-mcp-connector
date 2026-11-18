@@ -50,7 +50,7 @@ test('client bundle is self-contained across Host store/runtime module layouts',
   assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-ui-primitives'], undefined);
   assert.equal(packageJson.peerDependencies['@deepseek-ai/dsh-client-runtime'], undefined);
   assert.equal(packageJson.peerDependencies.zod, undefined);
-  assert.equal(packageJson.dependencies.zod, '^4.1.8');
+  assert.equal(packageJson.dependencies.zod, '^4.6.6');
   assert.equal(packageJson.devDependencies.zod, undefined);
   assert.equal(
     packageJson.peerDependencies['@deepseek-ai/dsh-mcp-client'],
