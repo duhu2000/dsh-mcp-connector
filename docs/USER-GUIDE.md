@@ -431,3 +431,18 @@ Windows 下 `.cmd` / `.bat` 是脚本包装器，不等同于可直接启动的 
 ### 如何反馈问题
 
 提交 [GitHub Issue](https://github.com/duhu2000/dsh-mcp-connector/issues) 时，请提供 DSH 版本、插件版本、连接器名称、复现步骤和已脱敏的错误信息。不要附带 Token、API Key、Cookie、授权码或包含真实凭据的配置文件。
+
+
+## 自定义 MCP：粘贴 JSON 或填写 URL 后授权
+
+在「添加连接」中粘贴标准 `mcpServers` JSON，或手动填写 MCP URL 并保留「自动检测认证（含 OAuth）」。无需创建市场卡片或提供 Registry JSON 地址。
+
+```json
+{"mcpServers":{"qcc-company":{"url":"https://agent.qcc.com/mcp/company/stream"},"tradesparq-trade-data":{"type":"streamable-http","url":"https://mcp.tradesparq.com/mcp/data-search"}}}
+```
+
+服务返回 HTTP 401 且提供可用的 OAuth 元数据时，配置保存为「待身份验证」。进入「已安装」逐项点击「进行身份验证」，在服务商页面确认授权。授权、MCP 初始化及首次工具同步成功后才启用连接；取消、超时或失败不会把待授权配置显示为已连接。可以取消后重试，重启后也可以继续授权。
+
+自动授权适用于支持 Authorization Code、PKCE S256 和公共客户端动态注册的服务。需要预登记客户端、API Key 或自定义认证 Header 的服务仍需按服务商说明配置；403、网络故障不会被当作 OAuth 授权提示。已有凭据不会被自动替换。自定义授权只绑定所填写的资源，不自动开通同一服务商的其他 MCP Server。
+
+授权在运行 DSH 的主机上发起，回调使用该主机的本地地址。远程访问 DSH 时，浏览器必须能访问该回调主机；本功能不会自动建立隧道。凭据沿用插件的本机存储与刷新机制，待授权配置不会注册可调用工具。

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.113 - 2026-11-18
+
+- 自定义 URL 与标准 mcpServers JSON 导入自动检测 HTTP 401 的 OAuth 认证需求；保存待授权配置后，可在已安装页逐项进行身份验证，无需市场卡片 URL。
+- 复用 PKCE、动态客户端注册、本机凭据存储和刷新机制；首次工具同步成功后才启用，取消和失败保留待授权配置，阻止重复授权及同名覆盖。
+- 自定义 OAuth 仅绑定所填资源，保持项目范围和按需注入设置；显式凭据、stdio、403 与网络故障不触发自动授权。
+- Add OAuth discovery and explicit authentication for custom HTTP URLs and standard MCP JSON imports. Pending drafts survive restart; successful startup is required before enabling tools.
+- Keep credentials local and resource-scoped; retain project scope, cancellation and existing explicit-credential behavior.
+
 ## 0.2.112 - 2026-11-18
 
 - 提高运行时依赖的最低版本至 Undici 6.29.1 和 Zod 4.6.6，覆盖相关拒绝服务漏洞的修复。CI 使用 Zod 4.6.6 验证最低版本兼容性（#262）。

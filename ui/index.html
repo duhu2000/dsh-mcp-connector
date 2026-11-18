@@ -656,6 +656,14 @@
   // 的扁平映射（与 lib/i18n/locales/en/*.js 同一约定）。缺项回退中文原文，绝不空白。
   // 少量同名中文在不同上下文需要不同英文时，用 LABELS 的 key 单独提供词条。
   MESSAGES.en = {
+  "进行身份验证": "Authenticate",
+  "取消授权": "Cancel authorization",
+  "无凭据的 HTTP 服务会自动检测 OAuth；导入后在已安装页逐项进行身份验证，不会同时打开多个授权窗口。": "HTTP services without credentials are checked for OAuth. Authenticate each connection in Installed after import. Authorization windows are not opened in bulk.",
+  "只需填写 MCP 地址。检测到 OAuth 后保存为待身份验证，再由你点击授权；无需市场卡片地址。": "Enter the MCP URL. If OAuth is detected, save and click Authenticate. No marketplace card URL is needed.",
+  "自动检测认证（含 OAuth）": "Detect authentication (including OAuth)",
+  "正在授权…": "Authorizing\u2026",
+  "待身份验证": "Authentication required",
+
     "如何获取 TuShare Token": "How to get a TuShare Token",
     "connect": "Connect",
     "切换界面语言": "Change interface language",
@@ -1288,7 +1296,6 @@
       'my-server': {
         type: 'streamable-http',
         url: 'https://example.com/mcp',
-        headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
       },
       'local-server': {
         type: 'stdio',
@@ -2666,7 +2673,7 @@
     const canRename = r.canRename === true;
     const canEditConfiguration = r.canEditConfiguration === true;
     const authMode = r.authMode === 'oauth' ? `<span class="badge auth-oauth">OAuth</span>` : `<span class="badge">${esc(r.authMode || 'manual')}</span>`;
-    const healthLabels = { healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
+    const healthLabels = { 'authorization-required': '待身份验证', healthy: '已连接', unknown: '状态未知', configured: '已配置', reauth: '需重新授权', recovering: '自动重试中', degraded: '部分异常', unavailable: '连接异常', disabled: '已停用' };
     const healthClass = r.connectionState === 'healthy' ? 'pass' : ['reauth', 'recovering', 'degraded'].includes(r.connectionState) ? 'partial' : r.connectionState === 'unavailable' ? 'fail' : '';
     const healthBadge = `<span class="badge ${healthClass}">${esc(t(healthLabels[r.connectionState] || '状态未知'))}</span>`;
     const scopeBadge = `<span class="badge">${esc(t(r.scope?.label || '全局'))}</span>`;
@@ -2687,15 +2694,16 @@
         <option value="session" ${injectionMode === 'session' ? 'selected' : ''}>${t('按会话启用（实验）')}</option>
       </select>
       <label class="switch" title="${t(enabled ? '停用' : '启用')}" aria-label="${t(enabled ? '停用' : '启用')} ${esc(r.name)}">
-        <input type="checkbox" ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle(${keyJs}, this.checked)">
+        <input type="checkbox" ${r.pendingAuthorization ? 'disabled' : ''} ${enabled ? 'checked' : ''} onchange="window.__mcp.toggle(${keyJs}, this.checked)">
         <span class="slider"></span>
       </label>
       ${canEditConfiguration ? `<button class="btn ghost" type="button" onclick="window.__mcp.openEditor(${keyJs})">${t('编辑配置')}</button>` : ''}
       ${r.canEditLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.openLocalEditor(${keyJs})">${t('本地参数')}</button>` : r.hasLocalOverrides ? `<button class="btn ghost" type="button" onclick="window.__mcp.submitLocalOverrides(${keyJs}, true)">${t('清除本地参数')}</button>` : ''}
       ${canRename ? `<button class="btn ghost" type="button" onclick="window.__mcp.openRename(${keyJs})">${t('重命名')}</button>` : ''}
       ${enabled ? `<button class="btn ghost" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">${t('工具')}</button>` : ''}
+      ${r.customOAuth && (r.pendingAuthorization || r.connectionState === 'reauth') ? `<button class="btn" type="button" onclick="window.__mcp.authorizeCustom(${keyJs}, this)">${t('进行身份验证')}</button><button class="btn ghost" type="button" onclick="window.__mcp.cancelCustomAuthorization(${keyJs})">${t('取消授权')}</button>` : ''}
       ${r.diagnostic?.legacyConflict ? `<button class="btn status-bad" type="button" onclick="window.__mcp.showConnectionTools(${keyJs})">${t('查看处理步骤')}</button>`
-        : r.connectionState === 'reauth' && r.authMode === 'oauth' ? `<button class="btn" type="button" onclick="window.__mcp.reauthorize(${jsString(r.connectorId)})">${t('reauthorize')}</button>`
+        : !r.customOAuth && r.connectionState === 'reauth' && r.authMode === 'oauth' ? `<button class="btn" type="button" onclick="window.__mcp.reauthorize(${jsString(r.connectorId)})">${t('reauthorize')}</button>`
         : enabled && r.connectionState !== 'healthy' ? `<button class="btn ghost" type="button" title="${t('重新建立 Host 侧条目并复检：不改配置、凭据、范围或注入模式')}" onclick="window.__mcp.reconnect(${keyJs})">${t('重新连接')}</button>` : ''}
       <button class="btn ghost" type="button" onclick="window.__mcp.openScope(${keyJs})">${t('范围')}</button>
       <button class="btn danger" onclick="window.__mcp.disconnect(${keyJs})">${t('断开')}</button>
@@ -2875,6 +2883,7 @@
         <div class="field-label-row"><label for="import-json">${t('粘贴 MCP JSON')}</label><button class="text-btn" type="button" onclick="window.__mcp.formatImportJson(false)">${t('格式化 JSON')}</button></div>
         <textarea id="import-json" rows="8" spellcheck="false" placeholder="${esc(MCP_JSON_EXAMPLE)}" onpaste="setTimeout(() => window.__mcp.formatImportJson(true), 0)"></textarea>
         <div class="field-help">${t('支持 {code} 的 Streamable HTTP、SSE 与 stdio（command/args/env/cwd），配置和凭据仅保存在 DSH 本机。私有 IP 明文 HTTP 必须在对应条目显式设置 {flag}。', { code: `<code>mcpServers</code>`, flag: `<code>"allowInsecurePrivateNetwork": true</code>` })}</div>
+        <p class="field-help">${t('无凭据的 HTTP 服务会自动检测 OAuth；导入后在已安装页逐项进行身份验证，不会同时打开多个授权窗口。')}</p>
         ${scopeFieldHtml()}
         <div class="inline-error" id="modal-error" tabindex="-1"></div>
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitImport()">${t('校验并导入')}</button></div>`);
@@ -2891,7 +2900,7 @@
         <div class="m-actions"><button class="btn ghost" type="button" onclick="window.__mcp.closeModal()">${t('取消')}</button><button class="btn" type="button" onclick="window.__mcp.submitUrl()">${t('验证并安装')}</button></div>`);
       return;
     }
-    const suggestedAuth = preset.authMode === 'bearer' || preset.authMode === 'api-key' ? preset.authMode : 'none';
+    const suggestedAuth = preset.authMode === 'bearer' || preset.authMode === 'api-key' ? preset.authMode : 'auto';
     openModal(t('添加 MCP 连接'), `${addTabs(mode)}
       <p class="field-help">${t('适合私有、内网或暂未上架的 MCP Server。凭据只写入 DSH 本机 storage domain。')}</p>
       ${scopeFieldHtml()}
@@ -2899,10 +2908,10 @@
       <div><label for="cfg-sname">serverName${t('（工具前缀）')}</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
       <label for="cfg-transport">${t('传输方式')}</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">${t('Streamable HTTP（兼容 SSE）')}</option><option value="stdio">${t('stdio（本地进程）')}</option></select>
       <div id="cfg-http-fields">
-        <label for="cfg-url">${t('MCP URL（必填）')}</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
+        <p class="field-help">${t('只需填写 MCP 地址。检测到 OAuth 后保存为待身份验证，再由你点击授权；无需市场卡片地址。')}</p><label for="cfg-url">${t('MCP URL（必填）')}</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
         <label class="insecure-network-consent" for="cfg-allow-insecure-lan"><input id="cfg-allow-insecure-lan" type="checkbox" />${t('我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。')}</label>
         <div class="field-help">${t('仅放行 10/8、172.16/12、192.168/16 和 IPv6 ULA 字面量；域名、公网 HTTP、链路本地与云元数据地址仍会被拒绝。')}</div>
-        <label for="cfg-auth">${t('鉴权方式')}</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>${t('无鉴权')}</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
+        <label for="cfg-auth">${t('鉴权方式')}</label><select id="cfg-auth" onchange="window.__mcp.syncAuthFields()"><option value="auto" ${suggestedAuth === 'auto' ? 'selected' : ''}>${t('自动检测认证（含 OAuth）')}</option><option value="none" ${suggestedAuth === 'none' ? 'selected' : ''}>${t('无鉴权')}</option><option value="bearer" ${suggestedAuth === 'bearer' ? 'selected' : ''}>Bearer Token</option><option value="api-key" ${suggestedAuth === 'api-key' ? 'selected' : ''}>API Key</option></select>
         <div id="cfg-bearer"><label for="cfg-token">Bearer Token${t('（必填）')}</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${t('仅保存在本机')}" /></div>
         <div id="cfg-apikey" class="form-row"><div><label for="cfg-key-header">API Key Header</label><input id="cfg-key-header" value="${esc(preset.authMode === 'api-key' ? 'X-Api-Key' : '')}" placeholder="X-Api-Key" /></div><div><label for="cfg-key-value">API Key${t('（必填）')}</label><input id="cfg-key-value" type="password" autocomplete="off" placeholder="${t('仅保存在本机')}" /></div></div>
         <label for="cfg-headers">${t('额外 Headers（可选 JSON）')}</label><textarea id="cfg-headers" rows="2" spellcheck="false" placeholder='{"X-Tenant":"team-a"}'></textarea>
@@ -2966,6 +2975,20 @@
   }
 
   window.__mcp = {
+    async authorizeCustom(key, button) {
+      button.disabled = true;
+      button.textContent = t('正在授权…');
+      try {
+        const result = await call('authorizeCustom', { key }, { timeoutMs: 310_000 });
+        showToast(result.message, result.ok);
+        await refresh();
+      } catch (error) { showToast(error.message, false); }
+      finally { button.disabled = false; button.textContent = t('进行身份验证'); }
+    },
+    async cancelCustomAuthorization(key) {
+      const result = await call('cancelCustomAuthorization', { key });
+      showToast(result.message, result.ok);
+    },
     async connect(connectorId) {
       if ($('#scope-connector-id')?.value !== connectorId) {
         openConnectScope(connectorId);
@@ -3312,7 +3335,7 @@
       setModalBusy(false);
       if (!r.ok) { showModalError(r.message); return; }
       markCommunityCtaEligible();
-      closeModal(); showToast(r.message, true); await refresh();
+      closeModal(); showToast(r.message, true); if (r.detail?.pendingAuthorization) { view = 'installed'; syncTabs(); } await refresh();
     },
     async submitImport() {
       let json = $('#import-json').value.trim();
