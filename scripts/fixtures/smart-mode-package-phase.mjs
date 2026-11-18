@@ -5,6 +5,7 @@ import * as fs from 'node:fs/promises';
 import { join, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { compareVersions } from '../../lib/version-status.js';
 // Synthetic package lifecycle only. The parent owns marker validation/cleanup.
 const inputs = JSON.parse(await fs.readFile(process.env.DSH_SMART_PACKAGE_INPUTS, 'utf8'));
 const artifact = inputs.artifact;
@@ -49,10 +50,13 @@ const results = [];
 test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, async t => {
   t.after(() => bootRoot.fiber.dispose());
   const stable = expectedVersion === inputs.baselineVersion;
-  const f = await fixture.productionHarness(t, { profileDir: profile, implementation, smartControl: !stable, storageState: snapshot,
+  // 0.2.111 was the first stable release that could read and use the persisted smart policy.
+  const baselineHasSmartControl = compareVersions(inputs.baselineVersion, '0.2.111') >= 0;
+  const smartControl = !stable || baselineHasSmartControl;
+  const f = await fixture.productionHarness(t, { profileDir: profile, implementation, smartControl, storageState: snapshot,
     async persistStorage(value) { await fs.writeFile(`${stateFile}.tmp`, JSON.stringify(value), { mode: 0o600 }); await fs.rename(`${stateFile}.tmp`, stateFile); } });
   const ok = (r) => { assert.equal(r.ok,true,JSON.stringify(r));return r.result; };
-  const create = async () => { const value = stable ? await f.services.sessionController.create({workspaceId:'workspace-a'}) : ok(await f.rpc('create'));
+  const create = async () => { const value = smartControl ? ok(await f.rpc('create')) : await f.services.sessionController.create({workspaceId:'workspace-a'});
     await f.prompt(value.sessionId); return value.sessionId; };
   const resume = async id => { const value = await f.services.sessionController.resolveAgent(id); assert.ok(value.agent);
     await f.prompt(id); return value.agent; };
@@ -91,14 +95,31 @@ test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, 
     assert.equal(ok(await f.rpc('state')).readOnlyEvidence.revision,2); assert.equal((await prepare(a)).ok,false);
     results.push('synthetic revision 2 withdrawal is durable and cannot prepare');
   } else if(phase==='downgrade') {
-    assert.equal(stable,true); const a=await resume(known.a);
-    assert.equal(management(a).length,25);assert.equal(companyVisible(a),true);assert.equal(riskInvisible(a),true);
-    assert.equal((await fetch(`${f.origin}/mcp-connector/smart-control/capabilities`,{headers:{cookie:f.cookie}})).status,404);
+    assert.equal(stable,true);
+    if (baselineHasSmartControl) {
+      await f.waitFor(async () => ok(await f.rpc('state')).mounted);
+    }
+    const a=await resume(known.a);
+    assert.equal(riskInvisible(a),true);
+    if (baselineHasSmartControl) {
+      const state = ok(await f.rpc('state'));
+      assert.equal(state.defaultMode, 'smart');
+      assert.equal(management(a).length, 2);
+      assert.equal(companyVisible(a), false);
+      await search(known.a);
+      assert.equal(state.readOnlyEvidence.revision, 2);
+      assert.equal((await prepare(a)).ok, false);
+      results.push('stable downgrade retains the smart policy, governance and evidence withdrawal');
+    } else {
+      assert.equal(management(a).length,25);assert.equal(companyVisible(a),true);
+      assert.equal((await fetch(`${f.origin}/mcp-connector/smart-control/capabilities`,{headers:{cookie:f.cookie}})).status,404);
+      results.push('legacy downgrade restores compatible injection and preserves governance');
+    }
     known.duringStable=await create();
-    results.push('explicit stable downgrade restores normal compatible injection, preserves governance, offers no smart controls');
+    assert.equal(management(f.h.ctx.agents.get(known.duringStable)).length, baselineHasSmartControl ? 2 : 25);
   } else if(phase==='return') {
     const a=await resume(known.a), old=await resume(known.old), during=await resume(known.duringStable);
-    assert.equal(management(a).length,2);assert.equal(management(old).length,25);assert.equal(management(during).length,25);
+    assert.equal(management(a).length,2);assert.equal(management(old).length,25);assert.equal(management(during).length,baselineHasSmartControl ? 2 : 25);
     assert.equal(companyVisible(a),false);assert.equal(riskInvisible(a),true);
     const evidence=join(profile,'smart-mode-evidence');
     await fs.writeFile(join(evidence,'trust.json'),JSON.stringify(known.originalTrust));await fs.writeFile(join(evidence,'bundle.json'),JSON.stringify(known.originalBundle));
@@ -111,7 +132,7 @@ test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, 
   await fs.writeFile(knownFile,JSON.stringify(known),{mode:0o600});
   assert.deepEqual(f.h.errors,[]);await f.h.close();
   assert.ok(await readOptional(stateFile),'synthetic KV must really persist before the next process');
-  if(phase==='downgrade') assert.deepEqual(await fileHashes(smartDir),beforeSmart,'stable code must not rewrite smart state or replay receipts');
+  if(phase==='downgrade' && !baselineHasSmartControl) assert.deepEqual(await fileHashes(smartDir),beforeSmart,'legacy code must not rewrite smart state or replay receipts');
   await fs.writeFile(join(artifact,`${profileName}-${phase}-result.json`),JSON.stringify({profileName,phase,pid:process.pid,
     node:process.versions.node,version:installedManifest.version,installedPackageDirectory:installedDir,results,
     currentDshConfigurationLoaded:false,temporaryManifestLoaded:true,syntheticDataOnly:true,
