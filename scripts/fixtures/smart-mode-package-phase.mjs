@@ -49,6 +49,7 @@ const results = [];
 test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, async t => {
   t.after(() => bootRoot.fiber.dispose());
   const stable = expectedVersion === inputs.baselineVersion;
+  const expectedManagementCount = stable ? 25 : 26; // candidate adds resource_read; stable rollback retains 25
   const f = await fixture.productionHarness(t, { profileDir: profile, implementation, smartControl: !stable, storageState: snapshot,
     async persistStorage(value) { await fs.writeFile(`${stateFile}.tmp`, JSON.stringify(value), { mode: 0o600 }); await fs.rename(`${stateFile}.tmp`, stateFile); } });
   const ok = (r) => { assert.equal(r.ok,true,JSON.stringify(r));return r.result; };
@@ -64,10 +65,10 @@ test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, 
   const prepare = async agent => f.h.ctx.tools.get('mcp_connector_discover',agent).execute({action:'prepare',capabilityIds:[known.item.capabilityId]}, {agent,signal:new AbortController().signal});
   if(phase==='baseline') {
     assert.equal(stable,true); known.old=await create();
-    assert.equal(management(f.h.ctx.agents.get(known.old)).length,25); results.push('stable baseline creates a durable compatibility session');
+    assert.equal(management(f.h.ctx.agents.get(known.old)).length,expectedManagementCount); results.push('stable baseline creates a durable compatibility session');
   } else if(phase==='fresh' || phase==='upgrade') {
     assert.equal(stable,false); const state=ok(await f.rpc('state')); assert.equal(state.defaultMode,'compat');assert.equal(state.mounted,false);
-    if(known.old) { const old=await resume(known.old); assert.equal(management(old).length,25); }
+    if(known.old) { const old=await resume(known.old); assert.equal(management(old).length,expectedManagementCount); }
     else known.old=await create();
     await f.enable(); known.a=await create();known.b=await create();
     const found=await search(known.a); known.item=found.items.find(x=>x.serverName==='qcc-company');
@@ -81,7 +82,7 @@ test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, 
   } else if(phase==='restart' || phase==='repair') {
     assert.equal(ok(await f.rpc('state')).defaultMode,'smart');
     const old=await resume(known.old),a=await resume(known.a),b=await resume(known.b);
-    assert.equal(management(old).length,25);assert.equal(management(a).length,2);assert.equal(companyVisible(a),false);assert.equal(companyVisible(b),false);assert.equal(riskInvisible(a),true);
+    assert.equal(management(old).length,expectedManagementCount);assert.equal(management(a).length,2);assert.equal(companyVisible(a),false);assert.equal(companyVisible(b),false);assert.equal(riskInvisible(a),true);
     await search(known.a);ok(await prepare(a)); assert.equal(companyVisible(a),true);assert.equal(companyVisible(b),false);
     results.push('new OS process restores JSONL/mode/governance/evidence but never prepared state');
   } else if(phase==='withdraw') {
@@ -92,13 +93,13 @@ test(`installed package lifecycle ${profileName}/${phase}`, { timeout: 60000 }, 
     results.push('synthetic revision 2 withdrawal is durable and cannot prepare');
   } else if(phase==='downgrade') {
     assert.equal(stable,true); const a=await resume(known.a);
-    assert.equal(management(a).length,25);assert.equal(companyVisible(a),true);assert.equal(riskInvisible(a),true);
+    assert.equal(management(a).length,expectedManagementCount);assert.equal(companyVisible(a),true);assert.equal(riskInvisible(a),true);
     assert.equal((await fetch(`${f.origin}/mcp-connector/smart-control/capabilities`,{headers:{cookie:f.cookie}})).status,404);
     known.duringStable=await create();
     results.push('explicit stable downgrade restores normal compatible injection, preserves governance, offers no smart controls');
   } else if(phase==='return') {
     const a=await resume(known.a), old=await resume(known.old), during=await resume(known.duringStable);
-    assert.equal(management(a).length,2);assert.equal(management(old).length,25);assert.equal(management(during).length,25);
+    assert.equal(management(a).length,2);assert.equal(management(old).length,expectedManagementCount);assert.equal(management(during).length,expectedManagementCount);
     assert.equal(companyVisible(a),false);assert.equal(riskInvisible(a),true);
     const evidence=join(profile,'smart-mode-evidence');
     await fs.writeFile(join(evidence,'trust.json'),JSON.stringify(known.originalTrust));await fs.writeFile(join(evidence,'bundle.json'),JSON.stringify(known.originalBundle));
