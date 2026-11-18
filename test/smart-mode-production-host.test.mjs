@@ -23,7 +23,7 @@ contract('actual Host services expose authenticated controls without enabling a 
   assert.deepEqual(state.workspaces, [{ id: 'workspace-a', title: 'Synthetic project' }]);
   const old = ok(await f.rpc('create')); await f.prompt(old.sessionId);
   const nativeNames = () => f.h.ctx.tools.schemas(f.h.ctx.agents.get(old.sessionId)).map((tool) => tool.name);
-  assert.equal(nativeNames().filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(nativeNames().filter((name) => name.startsWith('mcp_connector_')).length, 26);
   assert.ok(f.h.sources.every((source) => nativeNames().includes(source.publicName)));
   await f.enable();
   const fresh = ok(await f.rpc('create')); await f.prompt(fresh.sessionId);
@@ -84,7 +84,7 @@ contract('a real disk write failure rolls back newly mounted restrictions before
     // state read also needs this directory: Linux correctly returns ENOTDIR
     // rather than treating an obstructed policy store as an empty default.
     const names = f.h.ctx.tools.schemas(f.h.ctx.agents.get(created.sessionId)).map((row) => row.name);
-    assert.equal(names.filter((name) => name.startsWith('mcp_connector_')).length, 25);
+    assert.equal(names.filter((name) => name.startsWith('mcp_connector_')).length, 26);
     assert.ok(f.h.sources.every((source) => names.includes(source.publicName)));
   } finally { await fs.unlink(defaults); }
   const after = ok(await f.rpc('state'));
@@ -125,7 +125,7 @@ contract('normal governance and workspace scopes remain authoritative; disabled 
   assert.equal((await search(f, a.sessionId, 1)).total, 1);
   ok(await f.rpc('layer', { enabled: false }));
   const legacyNames = f.h.ctx.tools.schemas(f.h.ctx.agents.get(a.sessionId)).map((row) => row.name);
-  assert.equal(legacyNames.filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(legacyNames.filter((name) => name.startsWith('mcp_connector_')).length, 26);
   assert.ok(!legacyNames.includes(company.publicName));
   assert.ok(!legacyNames.some((name) => name.startsWith('mcp__qcc-risk__')));
   assert.deepEqual(f.h.errors, []);
@@ -170,7 +170,7 @@ contract('synthetic fingerprint approval enables prepare only in its session; ro
   assert.equal(rejected.message, 'READ_ONLY_REVIEW_REQUIRED');
   ok(await f.rpc('layer', { enabled: false }));
   assert.equal(ok(await f.rpc('state')).defaultMode, 'smart');
-  assert.equal(f.h.ctx.tools.schemas(agent).filter((row) => row.name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(f.h.ctx.tools.schemas(agent).filter((row) => row.name.startsWith('mcp_connector_')).length, 26);
   ok(await f.rpc('layer', { enabled: true }));
   assert.equal(f.h.ctx.tools.get(item.publicName, agent), undefined);
   await f.h.close();

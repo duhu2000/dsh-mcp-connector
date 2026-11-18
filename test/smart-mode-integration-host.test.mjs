@@ -63,7 +63,7 @@ contract('partial lifecycle subscription failure rolls back every layer before l
   assert.equal(integration.status().mounted, false);
   const { agent } = await h.create('after-failed-mount'); await h.drive(agent);
   assert.ok(h.sources.every((source) => visible(h, agent).includes(source.publicName)));
-  assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 26);
   assert.ok(!visible(h, agent).includes('mcp_connector_discover'));
   assert.deepEqual(h.errors, []);
 });
@@ -213,7 +213,7 @@ contract('whole integration rollback restores exact legacy definitions, preserve
   await h.integration.dispose();
   assert.deepEqual(h.ctx.tools.schemas(agent), legacy);
   assert.equal(visible(h, smart.agent).includes(h.outside[0]), false);
-  assert.equal(visible(h, smart.agent).filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(visible(h, smart.agent).filter((name) => name.startsWith('mcp_connector_')).length, 26);
   assert.ok(h.sources.every((source) => visible(h, smart.agent).includes(source.publicName)));
   await h.mount(); assert.deepEqual(await h.integration.readSnapshot(smart.agent.id), saved);
   assert.equal(loaded(h, smart.agent), 0); assert.equal(h.integration.status(smart.agent).lifecycle.mode, 'smart');
@@ -229,7 +229,7 @@ contract('rollback preflight refuses a running Host before removing any local en
   await assert.rejects(h.integration.dispose(), { code: 'DISPOSE_REQUIRES_IDLE_AGENTS' });
   assert.deepEqual(visible(h, agent), before); assert.equal(h.integration.status(agent).mounted, true);
   gate.resolve(); await driving; await tick(); await h.integration.dispose();
-  assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 26);
 });
 
 contract('rollback preflight refuses an asynchronous prepare transaction even while the Agent is idle', async (t) => {
@@ -245,7 +245,7 @@ contract('rollback preflight refuses an asynchronous prepare transaction even wh
   await assert.rejects(h.integration.dispose(), { code: 'PREPARE_DISPOSE_REQUIRES_SETTLED_OPERATIONS' });
   assert.deepEqual(visible(h, agent), before); assert.equal(h.integration.status(agent).mounted, true);
   pending = false; gate.resolve(); assert.equal((await preparing).ok, true);
-  await h.integration.dispose(); assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 25);
+  await h.integration.dispose(); assert.equal(visible(h, agent).filter((name) => name.startsWith('mcp_connector_')).length, 26);
 });
 
 contract('a late mount failure unwinds every component and leaves original Host definitions available', async (t) => {

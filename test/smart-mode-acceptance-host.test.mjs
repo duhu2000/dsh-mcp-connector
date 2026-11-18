@@ -56,7 +56,7 @@ contract('signed withdrawal invalidates both prepared sessions and layer rollbac
   assert.equal(denied.ok, true);
   ok(await f.rpc('layer', { enabled: false }));
   assert.equal(f.visible(f.a), false); assert.equal(f.visible(f.b), false);
-  assert.equal(f.h.ctx.tools.schemas(f.a).filter((tool) => tool.name.startsWith('mcp_connector_')).length, 25);
+  assert.equal(f.h.ctx.tools.schemas(f.a).filter((tool) => tool.name.startsWith('mcp_connector_')).length, 26);
   ok(await f.rpc('layer', { enabled: true })); assert.equal(f.visible(f.a), false);
   assert.equal((await f.prepare(f.a)).ok, false); assert.deepEqual(f.h.errors, []);
 });
