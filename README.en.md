@@ -48,11 +48,11 @@ Results identify their source and last successful cache time. A cached tool is n
 
 Tool browsing does not execute target tools. Parameter summaries may omit complex rules; the original-schema view contains the sanitized, size-limited cached schema, not an untouched server response. See the [Chinese tool-workspace guide](docs/USER-GUIDE.md#51-工具工作台统一查找工具).
 
-### QCC smart loading (development preview; unreleased)
+### QCC smart loading
 
-Normal startup on verified Native Host `0.2.2-rc.1` can expose Smart tools for the configured account's six enterprise services under one unambiguous grant. Compatibility remains the default. One preview/confirmation enables smart loading for new sessions; existing sessions keep their mode, without changing six separate injection settings.
+Smart loading has shipped since plugin version `0.2.111`. Compatibility mode is the default. The verified host is DSH Native Host `0.2.2-rc.1`. The feature covers the configured account's six QCC enterprise data services under a single grant. Preview the scope in **Smart tools** and confirm to enable smart loading for new sessions. Existing sessions keep their mode.
 
-Preparation still requires an independently verified read-only record bound to the complete definition fingerprint; deduplication requires separately approved equivalence relations. This branch creates neither approval automatically. Production installation and real provider benefit remain unverified. See the [scope and rollback guide](docs/SESSION-TOOL-INJECTION.md#development-preview-english).
+Preparing a real tool requires an independent read-only review and trusted signed evidence bound to its full definition fingerprint. Combining duplicate sources requires a separate equivalence review. An administrator must provision the trust keys and review evidence for the target environment. Token savings on real model requests still need to be measured. [Enablement, evidence delivery and rollback](docs/SESSION-TOOL-INJECTION.md#qcc-enterprise-smart-loading)
 
 [Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [First contribution](docs/FIRST-CONTRIBUTION.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 

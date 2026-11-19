@@ -50,9 +50,11 @@ Host 已观察到
 
 更底层的状态机、威胁模型和后续阶段见 [Issue #111 设计文档](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/DESIGN-SESSION-DYNAMIC-TOOL-INJECTION.md)。
 
-## 企查查企业数据智能按需模式（开发分支预览）
+<a name="企查查企业数据智能按需模式开发分支预览"></a>
 
-本节说明尚未发布的 QMCP-4963 生产接入。上文的手动按会话激活功能继续保留，两者不互相替代。
+## 企查查企业数据智能按需模式
+
+智能按需模式自插件 `0.2.111` 起随包交付，默认使用兼容模式。上文所述的手动按会话激活功能也可继续使用。
 
 正常启动仅在以下条件全部具备时显示“智能工具”：已验证的 Host `0.2.2-rc.1`、Native 执行器、浏览器 owner 身份、真实 profile/Workspace/Session 服务，以及当前配置账号的单个明确 grant 下六条官方企业连接：`qcc-company`、`qcc-risk`、`qcc-ipr`、`qcc-operation`、`qcc-history`、`qcc-executive`。不合并多个账号或 grant；不覆盖法律、法宝和其他连接。缺少依赖、未知版本或全局 `compactManagementTools=true` 时保留现有兼容行为。
 
@@ -64,9 +66,11 @@ Host 已观察到
 
 **回退：**“新会话使用兼容模式”只改变后续会话的默认值；“停用智能层”恢复当前进程的原有工具视图并释放加载状态，仍保留原有权限限制和模式记录。若需重启后也保持兼容，请先确认兼容默认，再停用智能层。运行中的会话或在途操作会阻止不安全的启停；写入默认模式失败时撤回本次新挂载。
 
-本分支尚未批准真实来源关系或只读定义，也未完成真实模型 A/B。完成生产接入代码不代表现在可以启用生产智能模式。
+生产启用需要目标环境的授权和独立审核。真实模型请求的 Token 用量和任务效果仍待对照实测。
 
-### 可信只读证据交付（尚未发布）
+<a name="可信只读证据交付尚未发布"></a>
+
+### 可信只读证据交付
 
 管理员先完成独立业务核验，再向目标 profile 的 `smart-mode-evidence/` 目录交付两个本地文件。该目录属于插件交付约定，不新增或修改 DSH 配置项。没有文件、签名不可信或校验失败时保持未核验；不存在模型工具或网页 API 可安装信任公钥、上传包或签发证据。
 
@@ -88,9 +92,11 @@ Host 已观察到
 
 证据读取有大小/条数/文件类型上限，缺失、损坏、写盘失败均拒绝；接受没有内存专用回退。推理和派发边界同步复核，文件监控及 1 秒轮询同步收窄空闲 lookup 视图，拒绝派发时也刷新 schema/lookup；不承诺撤销已经入站的在途调用。存储要求与原 smart domain 相同：本地原子硬链接文件系统；Windows 不承诺整机断电耐久性。版本下限基于仍完整的本地接收记录，不能对整个 profile/信任根被人为回退或同进程恶意代码作隔离保证。
 
-## Development preview (English)
+<a name="development-preview-english"></a>
 
-The unreleased smart adapter supports the configured account's six QCC enterprise connections under one unambiguous grant on verified Native Host `0.2.2-rc.1`. It requires real profile, Workspace, Session and authenticated browser-owner services. Other accounts, legal/Fabao services, unknown Hosts and global compact management mode retain existing behavior.
+## QCC enterprise smart loading
+
+Plugin version `0.2.111` introduced smart loading for the configured account's six QCC enterprise connections under one unambiguous grant on verified Native Host `0.2.2-rc.1`. It requires real profile, Workspace, Session and authenticated browser-owner services. Other accounts, legal/Fabao services, unknown Hosts and global compact management mode retain existing behavior.
 
 Compatibility is the default. Use Smart tools, preview the six-service scope and confirm once; normal DSH new-session and conversation entry points then work without six per-connection changes. The control page also delegates creation and recovery to Host services. Select a workspace only when its context cannot be inferred.
 
@@ -98,6 +104,6 @@ Existing and pre-enablement blank sessions retain their mode. Forks/subagents in
 
 For persistent rollback, first confirm Compatibility for new sessions, then disable the smart layer to restore current-process tool views. Disabling alone does not erase the saved smart default. Busy sessions block unsafe mount/unmount; a failed policy write rolls back a newly mounted layer. Real approvals and provider A/B acceptance remain pending.
 
-Trusted read-only delivery is now wired in this development branch. An administrator provisions scoped Ed25519 public keys in `<profile>/smart-mode-evidence/trust.json` and atomically delivers an independently signed full snapshot as `bundle.json`. The table above defines the strict v1 protocol; `readOnlyEvidenceSigningBytes(payload)` is the public canonical-byte helper for an external signer. No private key, signing endpoint, trust installation API, remote download or schema/sample storage is provided.
+An administrator provisions scoped Ed25519 public keys in `<profile>/smart-mode-evidence/trust.json` and atomically delivers an independently signed full snapshot as `bundle.json`. The table above defines the strict v1 protocol; `readOnlyEvidenceSigningBytes(payload)` is the public canonical-byte helper for an external signer. No private key, signing endpoint, trust installation API, remote download or schema/sample storage is provided.
 
 Verified records automatically feed preparation; local manual withdrawals override them. Every inference/dispatch admission rechecks evidence, expiry and the durable revision floor. File watching and a one-second fallback narrow idle lookup views. Withdrawals cannot cancel already-admitted calls. Missing or invalid evidence and receipt-write failures deny preparation. Higher signed revisions replace the entire approval snapshot; older revisions or changed content at the same revision cannot regain authority after restart while the local receipts remain intact. Real review dossiers, production trust provisioning and actual read-only/source approvals remain pending.
