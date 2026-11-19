@@ -32,7 +32,7 @@ OAuth availability depends on each provider's client-registration policy and acc
 
 [简体中文](README.md)
 
-**Bilingual interface:** Compact **中文 / EN** buttons share the top toolbar; full language names remain in tooltips and accessible labels. Your explicit choice is remembered in this browser. Host messages follow the explicit DSH language preference, defaulting to Chinese when unavailable; configure `locale: en` or `locale: zh-CN` to override. Switching reloads only the panel. Provider descriptions and user content retain their original language. See [language configuration](docs/I18N.md).
+**Bilingual interface:** Compact **中文 / EN** buttons share the top toolbar; full language names remain in tooltips and accessible labels. Your explicit choice is remembered in this browser. Host messages follow the explicit DSH language preference, defaulting to Chinese when unavailable; configure `locale: en` or `locale: zh-CN` to override. The panel language buttons reload only the panel. Settings cards, sidebar entries and panel chrome follow Host language changes live; an open iframe keeps its language and unsaved edits without a forced reload. Provider descriptions and user content retain their original language. See [language configuration](docs/I18N.md).
 
 ### Homepage recommendations
 
