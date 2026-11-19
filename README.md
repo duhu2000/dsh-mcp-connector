@@ -156,7 +156,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 可解释诊断：只报告实际观察结果；未检查或 Host 状态不可见时显示“状态未知”，并提供失败阶段、稳定错误码、建议动作、检查时间和进程内最近成功时间。
 - 目录运营：内置目录、远程 registry、本地覆盖，支持 `published` 上下架与 `featured` 精选。
 - 独立远程 Registry：新市场卡片合并后客户端刷新即可见，无需重新发布 npm；远程不可用时自动回退内置目录。
-- Windows 和 macOS 桌面版检测到插件新版本时，点击“前往更新”，在宿主的插件详情页确认安装。若宿主无法打开详情，面板会显示从侧栏进入的步骤。需要复制命令时可展开“其他更新方式”。Web 版可通过兼容的 Update Provider 在面板内完成更新，并查看进度及可用的回滚操作。[插件更新说明](docs/PLUGIN-UPDATE.md)
+- Windows 和 macOS 桌面版检测到插件新版本时，点击“前往更新”，在宿主的插件详情页确认安装。若宿主无法打开详情，面板会显示从侧栏进入的步骤。跳转不可用时可展开“查看手动升级命令”。Web 版可通过兼容的 Update Provider 在面板内完成更新，并查看进度及可用的回滚操作。[插件更新说明](docs/PLUGIN-UPDATE.md)
 - Registry 工具链：Schema/唯一性/密钥审计、MCP/OAuth 无凭据探针、每周健康巡检。
 - 旧企查查 OAuth 插件迁移：扫描并复制工商、法律授权。已迁移的客户可以从市场的“连接异常”或已安装行查看冲突插件、残留条目和恢复步骤。
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。

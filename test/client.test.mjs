@@ -1900,10 +1900,11 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
 
 async function upgradeHarness({
   profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', writeText,
-  desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, nativeSidebar = false,
+  desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, nativeSidebar = false, readVersion,
 } = {}) {
   const hooks = [], effects = [], opened = [], copied = [];
-  const requests = [], closed = [];
+  const requests = [], closed = [], timers = new Map();
+  let nextTimer = 0;
   let cursor = 0, dirty = true, tree, modalOpen = true;
   let detail = {
     profileName, profileInfo, installedVersion: '0.2.24', latestVersion, updateAvailable: true,
@@ -1937,7 +1938,10 @@ async function upgradeHarness({
     windowExtras: {
       fetch: async (url, options = {}) => {
         requests.push({ url, method: options.method ?? 'GET' });
-        if (url === '/mcp-connector/api') return Response.json({ ok: true, detail });
+        if (url === '/mcp-connector/api') {
+          requests.at(-1).force = JSON.parse(options.body).params.force;
+          return readVersion ? readVersion(detail) : Response.json({ ok: true, detail });
+        }
         if (providerUpdate && url === '/dsh-market/api/v1/capabilities') return Response.json({
           schema: 'dsh-market/update-api/v1', apiVersion: 1, runtime: 'desktop',
           features: { update: true }, restart: { supported: false },
@@ -1950,7 +1954,8 @@ async function upgradeHarness({
       },
       ...(desktopBridge ? { dshDesktop: { protocolVersion: 1 } } : {}),
       location: { origin: 'http://127.0.0.1:3080' },
-      addEventListener() {}, removeEventListener() {}, setTimeout() { return 1; }, clearTimeout() {},
+      addEventListener() {}, removeEventListener() {},
+      setTimeout(fn) { timers.set(++nextTimer, fn); return nextTimer; }, clearTimeout(id) { timers.delete(id); },
       open(...args) { opened.push(args); },
       navigator: { clipboard: { async writeText(value) { copied.push(value); await writeText?.(value); } } },
     },
@@ -2003,11 +2008,53 @@ async function upgradeHarness({
     },
     async refresh(patch) {
       detail = { ...detail, ...patch };
-      button(locale === 'en' ? 'Check for updates' : '检查更新').props.onClick();
+      const [id, poll] = timers.entries().next().value;
+      timers.delete(id);
+      poll();
       await settle();
     },
   };
 }
+
+async function verifyOpenAndRetry(options) {
+  for (const failure of ['npm', 'transport']) {
+    let responseCount = 0, finishFirstCheck;
+    const ui = await upgradeHarness({
+      ...options, profileName: 'custom',
+      readVersion(detail) {
+        if (++responseCount === 1) return new Promise(resolve => { finishFirstCheck = resolve; });
+        return Response.json({ ok: true, detail });
+      },
+    });
+    assert.ok(ui.nodes().some(node => node.props?.children === '正在检查更新…'));
+    const requests = () => ui.requests.filter(request => request.url === '/mcp-connector/api');
+    assert.deepEqual(requests().map(request => request.force), [true]);
+    finishFirstCheck(failure === 'transport' ? new Response('', { status: 503 }) : Response.json({
+      ok: true, detail: { installedVersion: '0.2.24', checking: false, updateAvailable: false, sources: { npm: { ok: false } } },
+    }));
+    await ui.settle();
+    assert.ok(ui.nodes().some(node => node.props?.children === '暂时无法确认 MCP 连接器是否有新版本。'));
+    ui.button('重新检查').props.onClick();
+    await ui.settle();
+    assert.deepEqual(requests().map(request => request.force), [true, true]);
+    assert.equal(ui.button('重新检查'), undefined);
+    assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'));
+  }
+}
+
+test('Desktop opens with an automatic version check and recovers from either first-check failure', async () => {
+  for (const desktopPlatform of ['win32', 'darwin']) await verifyOpenAndRetry({ desktopPlatform });
+});
+
+test('Desktop preserves the last known offer across failed polling and clears it on a successful no-update response', async () => {
+  const ui = await upgradeHarness({ desktopPlatform: 'darwin' });
+  await ui.refresh({ latestVersion: null, updateAvailable: false, sources: { npm: { ok: false } } });
+  assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'));
+  assert.ok(ui.nodes().some(node => node.props?.children === '重新检查失败，显示上次发现的版本。'));
+  await ui.refresh({ latestVersion: '0.2.24', updateAvailable: false, sources: { npm: { ok: true } } });
+  assert.equal(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'), false);
+  assert.equal(ui.button('前往更新'), undefined);
+});
 
 test('Windows and macOS desktop update opens the installed bundle in its native details page', async () => {
   for (const [desktopPlatform, nativeSidebar, locale, go, more] of [
@@ -2020,7 +2067,9 @@ test('Windows and macOS desktop update opens the installed bundle in its native 
       pluginNavigation: { openBundle(...args) { calls.push(args); } },
     });
     assert.ok(ui.button(go));
-    assert.equal(ui.button(more).props['aria-expanded'], false);
+    assert.equal(ui.button(more), undefined);
+    assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'));
+    assert.equal(ui.button('检查更新'), undefined);
     assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
     assert.deepEqual(calls, [], 'checking versions must not navigate');
     await ui.button(go).props.onClick();
@@ -2040,15 +2089,16 @@ test('desktop navigation failure leaves the official path accessible and manual 
     const ui = await upgradeHarness({ desktopPlatform: 'win32', profileName: 'research', pluginNavigation });
     assert.equal(ui.button('复制升级命令'), undefined);
     assert.equal(ui.button('查看 npm'), undefined);
-    await ui.button('前往更新').props.onClick();
+    if (typeof pluginNavigation?.openBundle === 'function') await ui.button('前往更新').props.onClick();
     await ui.settle();
+    assert.equal(ui.button('前往更新'), undefined);
     assert.deepEqual(ui.closed, []);
     assert.deepEqual(ui.opened, []);
     assert.ok(ui.nodes().some((node) => typeof node.props?.children === 'string'
       && /插件.*已安装.*dsh-mcp-connector.*更新/.test(node.props.children)));
-    ui.button('其他更新方式').props.onClick();
+    ui.button('查看手动升级命令').props.onClick();
     await ui.settle();
-    assert.equal(ui.button('其他更新方式').props['aria-expanded'], true);
+    assert.equal(ui.button('查看手动升级命令').props['aria-expanded'], true);
     const command = 'dsh plugin --profile research add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25';
     assert.deepEqual(ui.nodes().filter((node) => node.type === 'code').map((node) => node.props.children), [command]);
     ui.button('复制升级命令').props.onClick();
@@ -2058,23 +2108,23 @@ test('desktop navigation failure leaves the official path accessible and manual 
   }
   const ui = await upgradeHarness({ desktopPlatform: 'darwin', profileName: 'desktop' });
   const toggle = async () => {
-    ui.button('其他更新方式').props.onClick();
+    ui.button('查看手动升级命令').props.onClick();
     await ui.settle();
   };
   await toggle();
   await toggle();
-  assert.equal(ui.button('其他更新方式').props['aria-expanded'], false);
+  assert.equal(ui.button('查看手动升级命令').props['aria-expanded'], false);
   assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
   assert.equal(ui.button('复制升级命令'), undefined);
   await toggle();
   await ui.refresh({ latestVersion: '0.2.27' });
-  assert.equal(ui.button('其他更新方式').props['aria-expanded'], false, 'changing the target collapses the previous command');
+  assert.equal(ui.button('查看手动升级命令').props['aria-expanded'], false, 'changing the target collapses the previous command');
   assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
   await toggle();
   assert.ok(ui.nodes().some((node) => node.type === 'code' && node.props.children.endsWith('dsh-mcp-connector@0.2.27')));
   await ui.refresh({ latestVersion: '0.2.24', updateAvailable: false });
   assert.equal(ui.button('前往更新'), undefined);
-  assert.equal(ui.button('其他更新方式'), undefined);
+  assert.equal(ui.button('查看手动升级命令'), undefined);
   assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
 });
 
@@ -2094,7 +2144,7 @@ test('a desktop-named profile, host navigation, or OS marker alone does not chan
 
 test('desktop uses the native update entry with a provider and prioritizes an installed update waiting for restart', async () => {
   const available = { name: 'dsh-mcp-connector', installedVersion: '0.2.24', latestVersion: '0.2.25', updateAvailable: true };
-  const desktop = await upgradeHarness({ desktopPlatform: 'win32', providerUpdate: available });
+  const desktop = await upgradeHarness({ desktopPlatform: 'win32', providerUpdate: available, pluginNavigation: { openBundle() {} } });
   assert.ok(desktop.button('前往更新'));
   assert.equal(desktop.button('一键更新到 v0.2.25'), undefined);
   assert.equal(desktop.button('复制升级命令'), undefined);
@@ -2103,11 +2153,11 @@ test('desktop uses the native update entry with a provider and prioritizes an in
     desktopPlatform: 'win32', profileName: 'desktop', providerUpdate: { ...available, latestVersion: '0.2.26' },
   });
   await providerOnly.refresh({ latestVersion: '0.2.24', updateAvailable: false });
-  assert.ok(providerOnly.button('前往更新'));
-  assert.ok(providerOnly.nodes().some((node) => node.props?.children === '发现新版本 v0.2.26'));
-  providerOnly.button('其他更新方式').props.onClick();
+  assert.equal(providerOnly.button('前往更新'), undefined);
+  assert.ok(providerOnly.nodes().some((node) => node.props?.children === 'v0.2.24 → v0.2.26'));
+  providerOnly.button('查看手动升级命令').props.onClick();
   await providerOnly.settle();
-  assert.equal(providerOnly.button('其他更新方式').props['aria-expanded'], true);
+  assert.equal(providerOnly.button('查看手动升级命令').props['aria-expanded'], true);
   assert.equal(providerOnly.button('复制升级命令'), undefined);
   assert.equal(providerOnly.nodes().some((node) => node.type === 'code'), false, 'a CLI target requires npm confirmation');
 
