@@ -2047,10 +2047,24 @@ test('Desktop opens with an automatic version check and recovers from either fir
 });
 
 test('Desktop preserves the last known offer across failed polling and clears it on a successful no-update response', async () => {
-  const ui = await upgradeHarness({ desktopPlatform: 'darwin' });
+  const opened = [];
+  const ui = await upgradeHarness({
+    desktopPlatform: 'darwin', nativeSidebar: true, profileName: 'desktop',
+    pluginNavigation: { openBundle(name) { opened.push(name); throw new Error('navigation failed'); } },
+  });
   await ui.refresh({ latestVersion: null, updateAvailable: false, sources: { npm: { ok: false } } });
   assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'));
   assert.ok(ui.nodes().some(node => node.props?.children === '重新检查失败，显示上次发现的版本。'));
+  await ui.button('前往更新').props.onClick();
+  await ui.settle();
+  assert.deepEqual(opened, ['dsh-mcp-connector']);
+  assert.equal(ui.button('前往更新'), undefined);
+  assert.ok(ui.button('重新检查'));
+  ui.button('查看手动升级命令').props.onClick();
+  await ui.settle();
+  assert.ok(ui.nodes().some(node => node.props?.children === 'npm 尚未确认此版本，暂时无法提供升级命令。'));
+  assert.equal(ui.button('复制升级命令'), undefined);
+  assert.equal(ui.nodes().some(node => node.type === 'code'), false);
   await ui.refresh({ latestVersion: '0.2.24', updateAvailable: false, sources: { npm: { ok: true } } });
   assert.equal(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.25'), false);
   assert.equal(ui.button('前往更新'), undefined);
