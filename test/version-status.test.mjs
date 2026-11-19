@@ -172,3 +172,22 @@ test('版本源均不可用时仍返回本地安装版本', async () => {
   assert.equal(status.status, 'unavailable');
   assert.equal(warnings.length, 1);
 });
+
+test('a failed registry check retains the previous offer through the retry window until npm answers again', async () => {
+  let latest = '0.2.25';
+  const service = createVersionStatusService({
+    installedVersion: '0.2.24', fetchImpl: async () => jsonResponse({ version: latest }),
+  });
+  await service.check();
+  latest = null;
+  for (let i = 0; i < 2; i++) {
+    const result = await service.check({ force: true });
+    assert.equal(result.updateAvailable, false);
+    assert.equal(result.sources.npm.ok, false);
+    assert.equal(result.lastConfirmedUpdateVersion, '0.2.25');
+    assert.equal(service.status().lastConfirmedUpdateVersion, '0.2.25');
+  }
+  latest = '0.2.24';
+  await service.check({ force: true });
+  assert.equal(service.status().lastConfirmedUpdateVersion, undefined);
+});

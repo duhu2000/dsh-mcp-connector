@@ -1,6 +1,14 @@
 # MCP连接器插件更新协议
 
-MCP连接器把“刷新连接器目录”和“升级插件代码”视为两个独立动作：前者只重新拉取 Registry 卡片，后者必须由当前 DSH 宿主中可用的安全 Update Provider 执行。
+“检查更新”检查 MCP连接器插件的版本。市场页的刷新按钮用于重新加载 Registry 中的连接器卡片。
+
+## 在 Windows 和 macOS 桌面版更新
+
+1. 打开 MCP连接器后会自动检查更新。首次检查失败时，点击“重新检查”。发现新版后，点击“前往更新”。
+2. 在宿主的插件详情页确认包名 `dsh-mcp-connector` 和目标版本，点击“更新到…”。如果宿主无法直接打开详情，按连接器面板中的指引打开侧栏“插件” → “已安装” → `dsh-mcp-connector`，再点击更新。这里的“已安装”位于宿主的“插件”页面。
+3. 按宿主提示完成更新。若提示重启，完全退出并重新打开 DeepSeek Harness，再到 MCP连接器标题旁确认正在运行的版本。
+
+桌面入口面向通过宿主桥接协议 v1 识别到的 Windows 和 macOS 客户端。连接器通过宿主提供的可选 `pluginNavigation.openBundle` 打开插件详情，用户在详情页确认安装。未提供直达入口或跳转失败时，页头直接显示侧栏路径和“查看手动升级命令”。
 
 ## 分层与 Provider 适配
 
@@ -14,9 +22,9 @@ MCP连接器把“刷新连接器目录”和“升级插件代码”视为两�
 
 每个 Provider 适配器只硬编码自己的 capabilities 入口，其余更新、任务、回滚和重启端点均从能力响应中读取。客户端只接受当前 DSH 页面的相对同源端点，拒绝跨域 URL、协议不匹配、缺少必要端点或未声明 `features.update` 的 Provider。
 
-DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。未安装任何可用 Provider、接口返回 404、协议不兼容或检查失败时，页面进入下述手动升级流程，不会尝试私有更新路由。已有 Provider 的失败流程仍可通过“查看更新方式”打开宿主插件市场或 npm 页面。
+DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。在 Web 等使用此适配器的宿主上，接口不可用、协议不兼容或检查失败时，页面提供下述手动升级方式。已有 Provider 的失败流程仍可通过“查看更新方式”打开宿主插件市场或 npm 页面。
 
-## 更新流程
+## 通过 Update Provider 更新
 
 1. 插件自己的服务端缓存检查 npm `latest` 与 GitHub Release，只在 npm 已有可安装新版本时提示升级。
 2. 选中的 Provider 再检查本 profile 中 `dsh-mcp-connector` 的实际安装版本和目标版本。
@@ -29,7 +37,11 @@ Provider 读取的是 profile 中已经落盘的插件版本，标题版本来�
 
 失败结果使用稳定代码区分正在运行的 Agent、其他安装任务占用、发布安全等待、镜像同步、版本未变化、超时和权限拒绝，以及 `DOWNGRADE_DETECTED`、`RESOLVED_VERSION_MISMATCH`、`INVALID_UPDATE_RESULT` 三类完整性故障。`RELEASE_TOO_FRESH` 明确显示为约 24 小时的发布安全等待期，并提供“立即更新（跳过等待）”；真正的镜像同步故障保留独立提示，不再混用同一文案。
 
-当 DSH Desktop 或其他宿主没有兼容 Update Provider 时，标题区展示绑定 npm 精确版本和当前 profile 的 CLI 命令，并提供复制按钮与 npm 页面入口。服务端每次请求只读取一次可选的 `profileContext.name`。`versionStatus.detail.profileName` 继续只返回可安全生成命令的名称或 `null`；新增的 `profileInfo` 只包含实际读取到的字符串 `detectedName`（或 `null`）和固定的 `status`，不包含本机目录、环境变量或异常原文。客户端不会根据窗口类型、网址或插件目录猜测 profile。
+## 手动升级
+
+Windows 和 macOS 桌面版在无法直达详情页时可展开“查看手动升级命令”。在 Web 等宿主上，若 Provider 未提供可安装的新版，连接器检测到有效的 npm 新版本时会在标题区显示手动升级选项。
+
+命令绑定 npm 精确版本和当前 profile，并提供复制按钮与 npm 页面入口。服务端每次请求只读取一次可选的 `profileContext.name`。`versionStatus.detail.profileName` 只返回可安全生成命令的名称或 `null`。`profileInfo` 只包含实际读取到的字符串 `detectedName`（或 `null`）和固定的 `status`。自定义 profile 仍使用宿主提供的名称。
 
 | `profileInfo.status` | 含义与界面行为 |
 | --- | --- |
