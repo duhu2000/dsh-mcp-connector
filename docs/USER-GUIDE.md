@@ -456,3 +456,9 @@ Windows 下 `.cmd` / `.bat` 是脚本包装器，不等同于可直接启动的 
 自动授权适用于支持 Authorization Code、PKCE S256 和公共客户端动态注册的服务。需要预登记客户端、API Key 或自定义认证 Header 的服务仍需按服务商说明配置；403、网络故障不会被当作 OAuth 授权提示。已有凭据不会被自动替换。自定义授权只绑定所填写的资源，不自动开通同一服务商的其他 MCP Server。
 
 授权在运行 DSH 的主机上发起，回调使用该主机的本地地址。远程访问 DSH 时，浏览器必须能访问该回调主机；本功能不会自动建立隧道。凭据沿用插件的本机存储与刷新机制，待授权配置不会注册可调用工具。
+
+### HTTP 多凭据卡片（v0.2.115 起）
+
+亿欧等服务需要 Client ID 和 Client Secret 两项凭据。市场卡片会分别显示两个密码输入框，填写后点击连接即可，不需要编辑 JSON 或手工设置 Header。凭据只保存在本机连接中，目录与脱敏备份不包含真实值。若仅看到一个 API Key 输入框，请升级插件再连接；已有 JSON 导入连接仍可继续使用。
+
+描述符维护者使用 `auth.headerCredentialFields` 声明字段、`servers[].headerCredentialBindings` 声明 Header 名到字段 key 的映射。仅用于 HTTP/SSE API Key 连接；Header 值原样注入，不自动添加 Bearer。未知引用、重复 Header、协议控制头和缺失必填值会被拒绝。旧版客户端可继续加载目录，但不能配置这种双凭据卡片。

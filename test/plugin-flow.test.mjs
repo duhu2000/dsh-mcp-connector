@@ -3445,3 +3445,50 @@ test('manual default registry refresh falls back to CDN when origin is unreachab
     assert.equal((await host.tables.get('catalog').get('remote')).connectors[0].id, 'cdn-available');
   } finally { for (const dispose of host.disposers) await dispose(); }
 });
+
+test('HTTP market card binds both credentials, validates before request, and redacts exports', async (t) => {
+  const seen = [];
+  mockDiscoveryFetch(t, (request, url, options) => {
+    seen.push(new Headers(options.headers));
+  });
+  const connector = {
+    id: 'dual-header', name: 'Dual header', auth: { mode: 'api-key',
+      headerCredentialFields: [
+        { key: 'clientId', label: 'Client ID', required: true, secret: true },
+        { key: 'clientSecret', label: 'Client Secret', required: true, secret: true },
+      ] },
+    servers: [{ serverKey: 'main', serverName: 'dual', url: 'https://example.com/mcp',
+      headers: { 'X-Region': 'cn' },
+      headerCredentialBindings: { 'X-Client-Id': 'clientId', 'X-Client-Secret': 'clientSecret' } }],
+  };
+  const host = makePluginContext({ withWeb: true });
+  const { apply } = await import('../lib/index.js');
+  const execute = (name, input = {}) => host.tools.defs.get('mcp_connector_' + name).execute(input);
+  try {
+    await apply(host.ctx, baseConfig({ connectors: [connector] }));
+    const before = seen.length;
+    const missing = await execute('configure', { connectorId: connector.id, credentialValues: { clientId: 'synthetic-id' } });
+    assert.equal(missing.ok, false);
+    assert.equal(seen.length, before);
+    const bad = await execute('configure', { connectorId: connector.id, credentialValues: { clientId: 'synthetic-id', clientSecret: 'synthetic-secret\r\ninjected' } });
+    assert.equal(bad.ok, false);
+    assert.equal(seen.length, before);
+    assert.doesNotMatch(JSON.stringify(bad), /synthetic-secret/);
+    const result = await execute('configure', { connectorId: connector.id, credentialValues: { clientId: 'synthetic-id', clientSecret: 'synthetic-secret' } });
+    assert.equal(result.ok, true, result.message);
+    assert.ok(seen.length > before);
+    for (const headers of seen.slice(before)) {
+      assert.equal(headers.get('X-Client-Id'), 'synthetic-id');
+      assert.equal(headers.get('X-Client-Secret'), 'synthetic-secret');
+      assert.equal(headers.get('X-Region'), 'cn');
+      assert.equal(headers.get('X-Api-Key'), null);
+    }
+    const catalog = await execute('catalog', { keyword: connector.id });
+    const status = await execute('status');
+    assert.deepEqual(catalog.detail.items[0].servers[0].headerCredentialBindings, connector.servers[0].headerCredentialBindings);
+    const { exportRedactedConnections } = await import('../lib/connection-backup.js');
+    const records = [...host.tables.get('connections').entries()].map(([, r]) => r);
+    assert.equal(records[0].headers['X-Client-Secret'], 'synthetic-secret');
+    assert.doesNotMatch(JSON.stringify({ result, catalog, status, logs: host.logs, backup: exportRedactedConnections(records) }), /synthetic-(id|secret)/);
+  } finally { for (const dispose of host.disposers.reverse()) await dispose(); }
+});

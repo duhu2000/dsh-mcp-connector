@@ -640,3 +640,17 @@ test('关闭社区入口后在本次页面生命周期内保持隐藏', () => {
   assert.equal((category.match(/<article>/g)||[]).length,4);
   assert.match(category,/data-section-toggle/);
  });
+
+test('HTTP multi-header form renders separate secret inputs without editable header overrides', () => {
+  const start = uiSource.indexOf('  function openCatalogCredentialForm(preset)');
+  const end = uiSource.indexOf('  function openConnectScope', start);
+  let html;
+  const render = new Function('t', 'esc', 'scopeFieldHtml', 'openModal', uiSource.slice(start, end) + '; return openCatalogCredentialForm;')(
+    tZh, s => String(s ?? ''), () => '', (_title, body) => { html = body; });
+  render({ id: 'dual', name: 'Dual', authMode: 'api-key',
+    credentialFields: [{ key: 'clientId', label: 'Client ID' }, { key: 'clientSecret', label: 'Client Secret' }],
+    servers: [{ serverName: 'dual', url: 'https://example.com/mcp', headerCredentialBindings: { 'X-Client-Id': 'clientId', 'X-Client-Secret': 'clientSecret' } }] });
+  assert.match(html, /data-credential-key="clientId" type="password"/);
+  assert.match(html, /data-credential-key="clientSecret" type="password"/);
+  assert.doesNotMatch(html, /id="cfg-key-header"/);
+});

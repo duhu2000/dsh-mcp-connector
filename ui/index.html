@@ -2771,7 +2771,7 @@
       const id = `cfg-credential-${field.key}`;
       return `<label for="${esc(id)}">${esc(field.label)}${t(field.required === false ? '（可选）' : '（必填）')}</label><input id="${esc(id)}" data-credential-key="${esc(field.key)}" type="${field.secret === false ? 'text' : 'password'}" autocomplete="off" placeholder="${esc(field.placeholder || t('仅保存在 DSH 本机'))}" />${field.description ? `<div class="field-help">${esc(field.description)}</div>` : ''}`;
     }).join('');
-    const credentialFields = usesStdio
+    const credentialFields = (usesStdio || servers.some(server => Object.keys(server.headerCredentialBindings || {}).length))
       ? stdioCredentialFields
       : authMode === 'bearer'
         ? `<label for="cfg-token">${esc(credentialName)}${t('（必填）')}</label><input id="cfg-token" type="password" autocomplete="off" placeholder="${esc(credentialPlaceholder)}" /><div class="field-help">${esc(credentialDescription)}</div>`

@@ -452,3 +452,30 @@ test('OAuth protected resource metadata fallback 保留 MCP 路径', () => {
     'https://agent.example.com/mcp/.well-known/oauth-protected-resource/company/stream',
   );
 });
+
+test('HTTP header credentials validate references, collisions and transport boundaries', () => {
+  const raw = {
+    id: 'dual-header', name: 'Dual header',
+    auth: { mode: 'api-key', credentialFields: [
+      { key: 'clientId', label: 'Client ID', required: true },
+      { key: 'clientSecret', label: 'Client Secret', required: true },
+    ] },
+    servers: [{ serverKey: 'main', serverName: 'dual', url: 'https://example.com/mcp',
+      headerCredentialBindings: { 'X-Client-Id': 'clientId', 'X-Client-Secret': 'clientSecret' } }],
+  };
+  auditRawDescriptor(raw);
+  assert.deepEqual(auditDescriptor(normalizeConnectorDescriptor(raw)).servers[0].headerCredentialBindings, raw.servers[0].headerCredentialBindings);
+  for (const mutate of [
+    d => { d.servers[0].headerCredentialBindings['X-Client-Secret'] = 'unknown'; },
+    d => { d.servers[0].headerCredentialBindings['x-client-id'] = 'clientId'; },
+    d => { d.servers[0].headers = { 'x-client-id': 'public-static' }; },
+    d => { d.servers[0].headerCredentialBindings.Host = 'clientId'; },
+    d => { d.auth.mode = 'none'; },
+    d => { d.auth.mode = 'oauth2-pkce'; },
+    d => { d.servers[0].transport = 'stdio'; d.servers[0].command = 'node'; },
+    d => { delete d.servers[0].headerCredentialBindings['X-Client-Secret']; },
+  ]) {
+    const invalid = structuredClone(raw); mutate(invalid);
+    assert.throws(() => auditDescriptor(normalizeConnectorDescriptor(invalid)));
+  }
+});
