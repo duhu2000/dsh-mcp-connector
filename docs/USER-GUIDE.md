@@ -189,7 +189,7 @@ OAuth 一键连接要求服务商支持标准 OAuth 2.1/PKCE 和公开元数据�
 
 ### 6.2 手动配置
 
-- **HTTP**：填写名称、HTTPS MCP URL、可选 Header 和传输方式。回环 HTTP 可直接使用；局域网私有 IP 明文 HTTP 需勾选风险确认。
+- **HTTP/SSE**：填写名称、HTTPS MCP URL、可选 Header 和传输方式。旧版服务请选择 `SSE (HTTP + SSE)`，不要将其当作 Streamable HTTP。回环 HTTP 可直接使用；局域网私有 IP 明文 HTTP 需勾选风险确认。
 - **stdio**：填写本机命令、参数、环境变量和可选工作目录。
 
 stdio 进程由 `@deepseek-ai/dsh-mcp-client` 管理，插件透传 `command`、`args`、`env`、`cwd`，并等待 Host 完成首次 MCP 初始化和工具同步。stdio 会以当前用户权限启动本机进程，只运行你信任的软件包和命令。手动 HTTP 配置也会在保存前执行 `initialize` 校验；验证失败时表单内容仍保留，且不会生成无效连接记录。
@@ -274,6 +274,16 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 
 多 Server 连接器只要部分 Server 可用、部分异常，就显示“部分异常”；每条已安装连接仍保留自己的诊断。OAuth Access Token 暂时刷新失败显示“自动重试中”，只有明确的永久授权失败才显示“需重新授权”。
 
+### 旧版 SSE 直接导入（v0.2.114 起）
+
+厂商给出的 `mcpServers` JSON 若含 `"type": "sse"`，可原样粘贴到“添加连接 → 导入 JSON”，只在本机填写真实 Key。`headers` 中的自定义鉴权头会用于 SSE 建连和后续消息请求。也可在“手动配置”中选择 SSE，填写厂商 URL 与鉴权。
+
+插件会自动使用随包适配器，无需用户编写 `mcp-remote` 模板或安装额外软件包。连接成功后查看工具清单，再按实际额度授权执行查询。此功能不授予服务商账号权限，也不保证查询免费。
+
+旧版 SSE 使用 GET 建立事件流，再向服务给出的同源端点 POST 消息；Streamable HTTP 使用原 URL 发起 POST，两者不可互换。未声明传输方式时仍默认 Streamable HTTP，不根据 URL 后缀猜测，也不在鉴权失败时切换协议。若以前导入时已经被旧版保存成 HTTP，可编辑该连接，将 `transport` 改成 `sse` 后重新验证。现有 stdio 兼容模板仍可用，不自动迁移或建立重复连接。
+
+适配器拒绝重定向及跨源消息端点；协议不兼容时需服务商提供同源配置。断开后不自动重放业务请求，避免重复扣费。当前真实摩熵业务验收来自既有兼容模板；内置适配器已通过本机隔离 Mock 回归，真实账号可在更新后继续验证，不会自动执行付费查询。
+
 ## 8. 兼容性、架构与责任边界
 
 ### 8.1 兼容矩阵
@@ -282,7 +292,7 @@ OAuth 断开时，插件会尽力调用服务商的撤销端点；无撤销端�
 |---|---|---|
 | DSH 宿主 | Desktop / `web` profile | Node.js 20+；连接保存于当前 profile |
 | 官方 MCP 客户端 | `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` | 负责连接生命周期、stdio 进程和工具注册 |
-| 传输 | Streamable HTTP、stdio | 历史 `sse` 配置归一为 Streamable HTTP |
+| 传输 | Streamable HTTP、旧版 HTTP + SSE、stdio | 厂商 `type: "sse"` 配置直接导入，由插件自动适配宿主 |
 | 鉴权 | 无鉴权、Bearer、API Key、OAuth 2.0 PKCE | OAuth 支持动态客户端注册和 Grant 共享 |
 | 配置交换 | JSON 导入、脱敏导出、本机快照 | 占位符需重填；恢复原子执行；OAuth 撤销后需重新授权 |
 | 作用域 | Workspace project / profile global | 全局由所有 Workspace 继承；project-only 工具由 Host restriction + guard 强制隔离 |
@@ -424,7 +434,7 @@ Windows 下 `.cmd` / `.bat` 是脚本包装器，不等同于可直接启动的 
 | `auth` | Token/API Key 是否过期、账号是否有目标 Server 权限；OAuth 是否需要重新授权 |
 | `refresh` | 网络、OAuth 服务状态和自动重试时间；不要立即重复授权 |
 | `dns` / `tls` / `timeout` / `http` | DNS、代理、VPN/专线、证书、IP 白名单、URL 和服务状态 |
-| `protocol` | URL 是否为兼容的 MCP Streamable HTTP 端点 |
+| `protocol` | URL 与传输方式是否符合厂商配置；旧版 SSE 应选择 SSE |
 | `process-not-found` / `process-exit` / `startup` | 本地运行时、command/args/env/cwd、退出码和 Host 日志 |
 | `host-tools-pending` / `host-status-unavailable` | Host 是否完成工具注册、Host 版本是否支持状态读取 |
 

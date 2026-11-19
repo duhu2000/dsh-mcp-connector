@@ -37,7 +37,7 @@
 ### 1.2 补齐目标
 
 - 新增 `stdio` 传输方式，支持 `command / args / env / cwd` 配置
-- 补齐后传输方式 = `stdio` + `streamable-http`（SSE 兼容），与大厂三家对齐
+- 补齐后传输方式 = `stdio` + `streamable-http` + `sse`（v0.2.114 起独立实现），与大厂三家对齐
 - 顺带修复：`sse` 归一化到 `streamable-http`（详见 §5.2）
 
 ---
@@ -143,7 +143,7 @@ const Config = z.union([
 
 **最终合法 transport 值只有 `stdio` 和 `streamable-http`**，与 `dsh-mcp-client` 完全对齐。
 
-- `sse` 在 normalize 阶段归一化为 `streamable-http`（MCP 官方 SDK 的 streamable-http 客户端已向后兼容 SSE 端点）
+- **v0.2.114 修正**：`sse` 保留为旧版 HTTP + SSE。Streamable HTTP 客户端不会自动完成旧版 GET endpoint 握手；插件使用随包 `lib/legacy-sse-bridge.js` 适配仅支持 HTTP/stdio 的 Host。凭据通过环境传入，不进入 argv，运行时不下载 npm 包。
 - 现有 `catalog/catalog.json` 和 `registry/catalog.json` **均无 sse**（已核实 0 处），归一化无破坏性
 
 ### 决策 2：schema 从「url 必填」改为「url/command 二选一」

@@ -24,7 +24,7 @@
 [完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [近期新增](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
 <!-- catalog-directory:end -->
 
-Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
+Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/SSE/stdio, and `mcpServers` JSON import.
 
 OAuth availability depends on each provider's client-registration policy and account permissions. Verify a saved connection, discovered/registered tools, and a successful business call as separate outcomes.
 
@@ -114,7 +114,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 | Capability | What it gives you |
 |---|---|
 | Continuously updated catalog | Browse featured connectors and nine business categories; refresh after a Registry update to fetch new cards |
-| Multiple connection paths | Connect with OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, or `mcpServers` JSON |
+| Multiple connection paths | Connect with OAuth 2.0 PKCE, API keys, Streamable HTTP/SSE/stdio, or `mcpServers` JSON |
 | Cross-connection tool search | Search the last-success cache of enabled connections in the current scope, then filter by connection, service, or state |
 | Readable parameters and sources | Inspect types, required fields, enums, nested summaries, sources, cache time, and a sanitized schema |
 | Connection troubleshooting | Use observed stages and stable error codes to check a connection or rediscover tools while retaining an available last-success cache |
@@ -163,7 +163,7 @@ As of 2026-11-18, the public Registry publishes 119 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.113 (2026-11-18), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.114 (2026-11-19), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -282,7 +282,7 @@ This is a deliberate security trade-off, not an oversight: `frame-ancestors` can
 |---|---|
 | Host and runtime | DSH Desktop / `web` profile; Node.js 20+ |
 | MCP client | Official `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
-| Transports | Streamable HTTP and stdio; legacy `sse` normalizes to Streamable HTTP |
+| Transports | Streamable HTTP, legacy HTTP + SSE and stdio; explicit `sse` uses the bundled adapter |
 | Configuration scope | Workspace project / profile global, with Host enforcement, impact preview, copy/move, and revision rollback |
 | Configuration exchange | JSON import, redacted export, up to 20 local snapshots, preview, and atomic restore |
 | Governance and execution | Connection / Server / Tool allow/deny with preview, revision commits, and rollback; no tool trial yet |
@@ -305,7 +305,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.113`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.113](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.113).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.114`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.114](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.114).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
@@ -316,7 +316,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - Unchecked or Host-unobservable connections are reported as `unknown`, never as healthy. Health history and last-success timestamps are currently process-local.
 - External URLs use HTTPS by default, and HTTP is allowed for loopback development. A user-created connection may explicitly opt in to plaintext HTTP for literal RFC1918 IPv4 or RFC4193 IPv6 ULA addresses; hostnames, public HTTP, link-local addresses, and cloud metadata addresses remain blocked.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
-- Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. Restored stdio connections run their original command through a transparent startup guard; persisted records, environment and working directory remain unchanged. Tool registration and execution still belong to `@deepseek-ai/dsh-mcp-client`.
+- Streamable HTTP, legacy HTTP + SSE and stdio are supported. Vendor JSON with `type: "sse"` is imported directly; the plugin bundles a stdio adapter for Hosts without native SSE support. No generated template or extra npm install is needed. Credentials reach only the configured origin, via environment rather than command arguments. The adapter does not reconnect or replay business requests. Omitted transport still defaults to Streamable HTTP; edit previously mis-normalized records to `sse` when required. Existing stdio compatibility templates remain unchanged. Restored stdio connections run their original command through a transparent startup guard; persisted records, environment and working directory remain unchanged. Tool registration and execution still belong to `@deepseek-ai/dsh-mcp-client`.
 - On restoration, `server/discover`, `initialize` and initial `tools/list` requests (including pagination) use `requestTimeoutMs`, capped at 15 seconds per request. A timeout closes that connection and its child processes rather than blocking Host startup. Connections stay enabled; requests after initial discovery keep the Host deadline.
 - Official CLIs that are not MCP servers can be exposed through a separate [controlled CLI Provider](docs/CLI-PROVIDERS.md). Only code-reviewed commands and arguments are available; the initial DingTalk `dws` provider is read-only.
 - stdio starts a local process. Import or connect only trusted commands and packages. Catalog descriptors may declare `credentialFields` and `credentialBindings`, but may never contain actual token/secret values; user input is injected only into the local Host process environment.

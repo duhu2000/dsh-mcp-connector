@@ -144,7 +144,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索、参数详情和独立滚动。实时发现失败时显示带时间/陈旧标记的最后成功工具缓存。
 - 实时状态：页面通过同源 SSE 接收连接、目录、健康、工具、治理和作用域变化通知并自动刷新；事件不携带连接标识、端点、错误或凭据。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
-- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
+- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/SSE/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片共享一次授权，跨进程锁与独立原子 Grant journal 防止 Desktop/Web 并行时重复消耗 Refresh Token。
 - 配置原地编辑：自定义和 JSON 导入连接可在“已安装”中编辑标准化 JSON 并重新连接；敏感值以本机保留标记处理，校验、启动或保存失败时原连接继续可用。
@@ -177,7 +177,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.113（2026-11-18）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.114（2026-11-19）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -210,7 +210,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 连接成功后，工具按 `mcp__<serverName>__*` 前缀提供给模型。
 
-分类浏览、鉴权与连接状态、自定义 HTTP/stdio、JSON 导入、脱敏备份、可解释诊断、兼容矩阵、责任边界与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
+分类浏览、鉴权与连接状态、自定义 HTTP/SSE/stdio、JSON 导入、脱敏备份、可解释诊断、兼容矩阵、责任边界与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
 
 ## 中文教程与生态入口
 
@@ -289,7 +289,7 @@ frameAncestors: ['self', 'http://tauri.localhost', 'tauri://localhost']
 |---|---|
 | 宿主与运行时 | DSH Desktop / `web` profile，Node.js 20+ |
 | MCP 客户端 | 官方 `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
-| 传输 | Streamable HTTP、stdio；旧 `sse` 归一为 Streamable HTTP |
+| 传输 | Streamable HTTP、旧版 HTTP + SSE、stdio；原生导入 `type: "sse"`，插件自动适配宿主 |
 | 配置作用域 | Workspace project / profile global；全局由项目继承，Host 强制隔离，支持预览、复制/移动和 revision 回滚 |
 | 配置交换 | JSON 导入、脱敏导出、最多 20 个本机快照、预览与原子恢复 |
 | 治理与执行 | Connection / Server / Tool allow/deny，预览、revision 提交与回滚；暂无工具试运行 |
@@ -312,7 +312,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.113`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.113](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.113)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.114`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.114](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.114)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。
