@@ -2105,6 +2105,9 @@ test('desktop navigation failure leaves the official path accessible and manual 
     await ui.settle();
     assert.deepEqual(ui.copied, [command]);
     assert.ok(ui.button('查看 npm'));
+    await ui.refresh({ latestVersion: '0.2.26' });
+    assert.equal(ui.button('前往更新'), undefined, 'polling another version must not restore broken bundle navigation');
+    assert.equal(ui.button('查看手动升级命令').props['aria-expanded'], false);
   }
   const ui = await upgradeHarness({ desktopPlatform: 'darwin', profileName: 'desktop' });
   const toggle = async () => {
