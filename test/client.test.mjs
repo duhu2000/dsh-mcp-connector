@@ -1156,17 +1156,20 @@ test('导航取消发生在创建、引用就绪或写入后时，不抢回用�
 
 async function hostPromptBridge(launch) {
   const effects = [];
-  const refs = [];
   const listeners = new Map();
   const replies = [];
   const closes = [];
   const origin = 'http://127.0.0.1:3080';
   const frame = { postMessage: (data, target) => replies.push({ data, target }) };
+  const element = (type, props) => {
+    if (type === 'iframe') props.ref.current = { contentWindow: frame };
+    return { type, props };
+  };
   const plugin = await loadClient({
-    jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
+    jsxRuntime: { jsx: element, jsxs: element },
     reactApi: {
       useState: (initial) => [initial, () => {}],
-      useRef(initial) { const ref = { current: initial }; refs.push(ref); return ref; },
+      useRef: initial => ({ current: initial }),
       useEffect: (start) => effects.push(start),
     },
     windowExtras: {
@@ -1184,7 +1187,6 @@ async function hostPromptBridge(launch) {
     startPromptSession: launch,
     workspaceContext: () => null, workspaceOptions: () => [],
   });
-  refs[0].current = { contentWindow: frame };
   const dispose = effects[0]();
   const dispatch = (data, extras = {}) => listeners.get('message')({ origin, source: frame, data, ...extras });
   return { dispatch, replies, closes, dispose, origin };
@@ -1382,55 +1384,26 @@ test('从设置快捷打开时弹框 Portal 到 body 并高于 DSH 设置层', a
 
 test('版本检查支持强制刷新且不会被旧缓存隐藏 Provider 更新', async () => {
   for (const failed of [false, true]) {
-    // 数组按组件里 useState 的出现顺序排列。manualCommandVisible 插在
-    // manualCommandCopied 与 versionCheckRequest 之间，因此下游 ordinal 顺延一位。
-    const state = [
-      { installedVersion: '0.2.54', latestVersion: '0.2.54', updateAvailable: false, checkedAt: '2026-09-22T00:00:00Z' },
-      'ready', { provider: { label: '市场' } },
-      { installedVersion: '0.2.54', latestVersion: '0.2.56', updateAvailable: true },
-      null, null, null, false, false, false, false, false, 0, false, failed,
-    ];
-    let cursor = 0;
-    let refresh = 0;
-    const plugin = await loadClient({
-      windowExtras: { dshDesktop: { protocolVersion: 1 }, location: { origin: 'http://127.0.0.1:3080' } },
-      jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
-      reactApi: {
-        useState(initial) {
-          const index = cursor++;
-          return [index in state ? state[index] : initial, (value) => {
-            if (index === 12) refresh = value(refresh);
-          }];
-        },
-        useRef: (current) => ({ current }), useEffect() {},
-      },
+    const ui = await upgradeHarness({
+      desktopBridge: true,
+      providerUpdate: { name: 'dsh-mcp-connector', installedVersion: '0.2.54', latestVersion: '0.2.56', updateAvailable: true },
+      readVersion: detail => Response.json({ ok: true, detail: {
+        ...detail, installedVersion: '0.2.54', latestVersion: '0.2.54', updateAvailable: false,
+        checkedAt: '2026-09-22T00:00:00Z', sources: { npm: { ok: !failed } },
+      } }),
     });
-    const { ctx, registrations } = clientContext();
-    plugin.apply(ctx);
-    const tree = registrations.get('shell.overlay').component({
-      wide: true, useStore: (select) => select({ open: true, detailOpen: false }),
-      actions: { close() {}, detailOpened() {}, detailClosed() {} }, startPromptSession() {},
-    });
-    const nodes = [];
-    function visit(node) {
-      if (!node || typeof node !== 'object') return;
-      nodes.push(node);
-      const children = node.props?.children;
-      for (const child of Array.isArray(children) ? children : [children]) visit(child);
-    }
-    visit(tree);
-    assert.ok(nodes.some((node) => node.props?.children === '一键更新到 v0.2.56'));
-    const button = nodes.find((node) => node.props?.children === '检查更新');
+    assert.ok(ui.button('一键更新到 v0.2.56'));
+    const button = ui.button('检查更新');
     assert.equal(button.props.disabled, false);
     assert.match(button.props.title, /上次检查/);
     button.props.onClick();
-    assert.equal(refresh, 1);
-    assert.equal(nodes.some((node) => node.props?.children === '暂时无法确认 npm 最新版本，请重试'), failed);
+    await ui.settle();
+    assert.deepEqual(ui.requests.filter(r => r.url === '/mcp-connector/api').map(r => r.force), [true, true]);
+    const providerLookups = ui.requests.filter(r => r.url.startsWith('/provider/updates?'));
+    assert.equal(providerLookups.length, 2);
+    assert.ok(providerLookups.every(r => new URL(r.url, 'http://localhost').searchParams.get('force') === '1'));
+    assert.equal(ui.nodes().some(node => node.props?.children === '暂时无法确认 npm 最新版本，请重试'), failed);
   }
-  const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-  assert.match(source, /params: \{ force \}/);
-  assert.match(source, /check\(true\)/);
-  assert.equal(source.match(/\[open, versionCheckRequest\]/g).length, 2, '手动刷新同步重查版本和 Provider');
 });
 
 test('市场标题展示安装版本，并通过 Provider 适配层一键更新', async () => {
@@ -1883,7 +1856,8 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   let tree = render();
   const command = 'dsh plugin --profile web add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25';
   assert.equal(descendants(tree).some(node => node.type === 'code'), false);
-  descendants(tree).find(node => node.props?.children === '查看升级方式').props.onClick();
+  assert.ok(descendants(tree).some(node => node.type === 'button' && node.props?.children === '重试'));
+  descendants(tree).find(node => node.props?.children === '手动升级方式').props.onClick();
   tree = render();
   assert.ok(descendants(tree).some((node) => node.type === 'code'
     && node.props?.children === command));
@@ -1903,7 +1877,7 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
 
 async function upgradeHarness({
   profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', writeText,
-  desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, readProviderUpdate, nativeSidebar = false, readVersion,
+  desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, readProviderUpdate, readCapabilities, nativeSidebar = false, readVersion,
 } = {}) {
   const hooks = [], effects = [], opened = [], copied = [];
   const requests = [], closed = [], timers = new Map();
@@ -1945,13 +1919,17 @@ async function upgradeHarness({
           requests.at(-1).force = JSON.parse(options.body).params.force;
           return readVersion ? readVersion(detail) : Response.json({ ok: true, detail });
         }
+        if (readCapabilities && url === '/dsh-market/api/v1/capabilities') return readCapabilities();
         if (providerUpdate && url === '/dsh-market/api/v1/capabilities') return Response.json({
-          schema: 'dsh-market/update-api/v1', apiVersion: 1, runtime: 'desktop',
+          schema: 'dsh-market/update-api/v1', apiVersion: 1, runtime: desktopBridge ? 'desktop' : 'web',
           features: { update: true }, restart: { supported: false },
           endpoints: { updates: '/provider/updates', operations: '/provider/operations' },
         });
         if (providerUpdate && String(url).startsWith('/provider/updates?')) {
           return Response.json({ schema: 'dsh-market/update-api/v1', package: readProviderUpdate ? await readProviderUpdate() : providerUpdate });
+        }
+        if (providerUpdate && url === '/provider/updates' && options.method === 'POST') {
+          return Response.json({ schema: 'dsh-market/update-api/v1', operation: { operationId: 'update-1', state: 'queued' } });
         }
         return new Response('', { status: 404 });
       },
@@ -2005,8 +1983,12 @@ async function upgradeHarness({
       for (const hook of hooks) hook?.cleanup?.();
       hooks.length = 0;
       Object.assign(props, entry.options.inject());
-      dirty = true;
+      dirty = false;
+      cursor = 0;
+      tree = entry.component(props);
+      const firstRender = nodes();
       await settle();
+      return firstRender;
     },
     async selectProfile(value) {
       nodes().find((node) => node.type === 'select').props.onChange({ target: { value } });
@@ -2221,51 +2203,253 @@ async function manualUpgradeHarness(options) {
   };
 }
 
-test('Web keeps a provider-only action visible during revalidation and follows the new result', async () => {
-  const offer = { name: 'dsh-mcp-connector', installedVersion: '0.2.24', latestVersion: '0.2.26', updateAvailable: true };
-  for (const available of [true, false]) {
+const webOffer = { name: 'dsh-mcp-connector', installedVersion: '0.2.24', latestVersion: '0.2.25', updateAvailable: true };
+const checkingDirectUpdate = '正在确认能否直接更新…';
+const hasText = (nodes, text) => nodes.some(node => node.props?.children === text);
+const installPosts = ui => ui.requests.filter(({ method, url }) => method === 'POST' && url === '/provider/updates');
+
+test('Web retains an immediately actionable fresh offer and shows just one status while rechecking an expired offer', async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  for (const nativeSidebar of [true, false]) {
     let queries = 0, finish;
     const ui = await upgradeHarness({
-      providerUpdate: offer,
-      readProviderUpdate: () => ++queries === 1 ? offer : new Promise(resolve => { finish = resolve; }),
+      nativeSidebar, providerUpdate: webOffer,
+      readProviderUpdate: () => ++queries === 1 ? webOffer : new Promise(resolve => { finish = resolve; }),
+      // This offer is known only to the market; the version source cannot supply its badge.
       readVersion: detail => Response.json({ ok: true, detail: { ...detail, latestVersion: '0.2.24', updateAvailable: false } }),
     });
-    assert.ok(ui.button('更新到 v0.2.26'));
-    await ui.setOpen(false);
-    await ui.setOpen(true);
-    assert.ok(ui.button('更新到 v0.2.26').props.disabled);
-    assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.26'));
-    finish({ ...offer, latestVersion: available ? '0.2.27' : '0.2.24', updateAvailable: available });
+    const reopen = async () => {
+      if (nativeSidebar) return ui.remountSidebar();
+      await ui.setOpen(false);
+      await ui.setOpen(true);
+      return ui.nodes();
+    };
+    now += 59_000;
+    const recent = await reopen();
+    const action = recent.find(node => node.type === 'button' && node.props.children === '更新到 v0.2.25');
+    assert.ok(action && !action.props.disabled, 'the first frame of a fresh return is already actionable');
+    assert.equal(hasText(recent, '正在检查更新…'), false);
+    assert.equal(hasText(recent, checkingDirectUpdate), false);
+    assert.equal(queries, 1, 'returning to a fresh offer must not trigger another market lookup');
+
+    now += 2_000;
+    const expired = await reopen();
+    assert.equal(queries, 2, 'using a cached result must not renew its expiry');
+    assert.equal(expired.some(node => node.type === 'button' && node.props.children === '更新到 v0.2.25'), false,
+      'a stale button must not flash before the mount effect');
+    assert.equal(ui.button('更新到 v0.2.25'), undefined);
+    assert.ok(hasText(ui.nodes(), 'v0.2.24 → v0.2.25'));
+    assert.equal(ui.nodes().filter(node => node.props?.children === checkingDirectUpdate).length, 1);
+    assert.equal(hasText(ui.nodes(), '正在检查更新…'), false);
+    assert.equal(ui.button('查看升级方式'), undefined);
+    finish({ ...webOffer, latestVersion: '0.2.26' });
     await ui.settle();
-    assert.equal(ui.button('更新到 v0.2.26'), undefined);
-    if (available) assert.equal(ui.button('更新到 v0.2.27').props.disabled, false);
-    else assert.equal(ui.button('查看升级方式'), undefined);
+    assert.ok(ui.button('更新到 v0.2.26'));
+    assert.equal(hasText(ui.nodes(), checkingDirectUpdate), false);
+    assert.equal(installPosts(ui).length, 0);
   }
 });
 
-test('Web sidebar remount retains the last confirmed action only until the fresh provider check settles', async () => {
-  const offer = { installedVersion: '0.2.24', latestVersion: '0.2.26', updateAvailable: true };
-  for (const outcome of ['confirmed', 'withdrawn', 'unavailable']) {
-    let queries = 0, finish, fail;
-    const ui = await upgradeHarness({
-      nativeSidebar: true, providerUpdate: offer,
-      readProviderUpdate: () => ++queries === 1 ? offer : new Promise((resolve, reject) => { finish = resolve; fail = reject; }),
-      readVersion: detail => Response.json({ ok: true, detail: { ...detail, updateAvailable: false } }),
-    });
-    assert.equal(ui.button('更新到 v0.2.26').props.disabled, false);
-    await ui.remountSidebar();
-    assert.equal(queries, 2);
-    assert.equal(ui.button('更新到 v0.2.26')?.props.disabled, true);
-    assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.26'));
-    if (outcome === 'unavailable') fail(new Error('provider unavailable'));
-    else finish({ ...offer, updateAvailable: outcome === 'confirmed' });
-    await ui.settle();
-    if (outcome === 'confirmed') assert.equal(ui.button('更新到 v0.2.26').props.disabled, false);
-    else {
-      assert.equal(ui.button('更新到 v0.2.26'), undefined);
-      await ui.remountSidebar();
-      assert.equal(ui.button('更新到 v0.2.26'), undefined);
+test('Web invalidates a recent market offer once the host runs that version or newer', async () => {
+  for (const nativeSidebar of [true, false]) {
+    for (const newRunning of [webOffer.latestVersion, '0.2.26']) {
+      let running = webOffer.installedVersion, queries = 0, offered = webOffer;
+      const ui = await upgradeHarness({
+        nativeSidebar, providerUpdate: webOffer,
+        readVersion: detail => Response.json({ ok: true, detail: { ...detail, installedVersion: running, latestVersion: running, updateAvailable: false } }),
+        readProviderUpdate() { queries++; return offered; },
+      });
+      assert.ok(ui.button('更新到 v0.2.25'));
+      const reopen = async () => {
+        if (nativeSidebar) return ui.remountSidebar();
+        await ui.setOpen(false);
+        await ui.setOpen(true);
+      };
+      running = newRunning;
+      await reopen();
+      assert.equal(queries, 1, 'the refreshed running version can invalidate an otherwise fresh cache');
+      assert.equal(ui.button('更新到 v0.2.25'), undefined);
+      assert.ok(hasText(ui.nodes(), 'v' + running));
+      assert.equal(hasText(ui.nodes(), 'v' + running + ' → v0.2.25'), false);
+      await reopen();
+      assert.equal(queries, 2, 'the stale selection is no longer reusable');
+      assert.equal(ui.button('更新到 v0.2.25'), undefined, 'a late market response cannot restore an obsolete offer');
+      offered = { ...webOffer, installedVersion: running, latestVersion: '0.2.27' };
+      await reopen();
+      assert.ok(ui.button('更新到 v0.2.27'), 'a new provider-only target still works');
     }
+  }
+});
+
+test('Web skips a pending install when the host reaches the target during preflight', async () => {
+  let finish, queries = 0;
+  const ui = await upgradeHarness({
+    providerUpdate: webOffer,
+    readProviderUpdate: () => ++queries === 1 ? webOffer : new Promise(resolve => { finish = resolve; }),
+  });
+  ui.button('更新到 v0.2.25').props.onClick();
+  await ui.settle();
+  await ui.refresh({ installedVersion: webOffer.latestVersion, updateAvailable: false });
+  finish(webOffer);
+  await ui.settle();
+  assert.equal(installPosts(ui).length, 0);
+  assert.equal(ui.button('更新到 v0.2.25'), undefined);
+  assert.ok(hasText(ui.nodes(), 'v0.2.25'));
+});
+
+test('Web retries an inconclusive lookup without installing or promoting manual instructions', async () => {
+  const unknown = { ...webOffer, latestVersion: null, updateAvailable: false };
+  let attempts = 0, finish;
+  const ui = await upgradeHarness({
+    nativeSidebar: true, profileName: 'web', providerUpdate: webOffer,
+    readProviderUpdate() {
+      attempts += 1;
+      if (attempts === 1) return unknown; // The market also reports individual lookup failures in a successful HTTP response.
+      if (attempts === 2) throw new Error('temporary provider failure');
+      return new Promise(resolve => { finish = resolve; });
+    },
+  });
+  function assertRetriable() {
+    assert.ok(ui.button('重试'));
+    assert.ok(ui.button('手动升级方式'));
+    assert.equal(ui.button('查看升级方式'), undefined);
+    assert.equal(ui.button('更新到 v0.2.25'), undefined);
+    assert.ok(hasText(ui.nodes(), 'v0.2.24 → v0.2.25'));
+  }
+  assertRetriable();
+  assert.ok(hasText(ui.nodes(), '暂时无法确认能否直接更新'));
+  ui.button('手动升级方式').props.onClick();
+  await ui.settle();
+  assert.ok(ui.nodes().some(node => node.type === 'code' && node.props.children.endsWith('dsh-mcp-connector@0.2.25')));
+  ui.button('重试').props.onClick();
+  await ui.settle();
+  assertRetriable();
+  assert.ok(hasText(ui.nodes(), '仍未能确认能否直接更新'));
+  ui.button('重试').props.onClick();
+  await ui.settle();
+  assert.equal(ui.button('重试'), undefined);
+  assert.equal(ui.button('手动升级方式'), undefined);
+  assert.ok(hasText(ui.nodes(), checkingDirectUpdate));
+  finish(webOffer);
+  await ui.settle();
+  assert.ok(ui.button('更新到 v0.2.25'));
+  assert.equal(ui.button('重试'), undefined);
+  assert.equal(attempts, 3);
+  assert.equal(ui.requests.filter(({url}) => url === '/mcp-connector/api').length, 1, 'CTA retries only the inconclusive lookup');
+  assert.equal(installPosts(ui).length, 0);
+});
+
+test('Web offers manual instructions as the primary action only on confirmed unsupported capabilities', async () => {
+  const manual = await upgradeHarness({ profileName: 'web', readCapabilities: () => Response.json({
+    schema: 'dsh-market/update-api/v1', apiVersion: 1, features: { update: false },
+  }) });
+  assert.ok(manual.button('查看升级方式'));
+  assert.equal(manual.button('重试'), undefined);
+  const newerOnNpm = await upgradeHarness({ providerUpdate: { ...webOffer, latestVersion: '0.2.24', updateAvailable: false } });
+  assert.ok(newerOnNpm.button('重试'), 'a market with no matching offer has not classified the host as manual-only');
+  assert.equal(newerOnNpm.button('查看升级方式'), undefined);
+});
+
+test('Web directs locally managed sources to their owner without replacing the install with an npm package', async () => {
+  for (const [source, latest, help] of [
+    ['linked', null, '请在原来的插件目录更新文件，然后重启 DSH 加载新版本。'],
+    ['linked', webOffer.latestVersion, '请在原来的插件目录更新文件，然后重启 DSH 加载新版本。'],
+    ['generation', webOffer.latestVersion, '请通过宿主的插件管理器更新此插件。'],
+  ]) {
+    const local = { ...webOffer, source, latestVersion: latest, updateAvailable: source === 'linked' && latest !== null };
+    const ui = await upgradeHarness({ profileName: 'web', providerUpdate: local });
+    assert.equal(ui.button('更新到 v0.2.25'), undefined);
+    assert.equal(ui.button('重试'), undefined);
+    ui.button('查看升级方式').props.onClick();
+    await ui.settle();
+    assert.ok(hasText(ui.nodes(), help));
+    assert.equal(ui.button('复制升级命令'), undefined);
+    assert.equal(ui.nodes().some(node => node.type === 'code'), false);
+  }
+  let checks = 0;
+  const changed = await upgradeHarness({
+    providerUpdate: webOffer,
+    readProviderUpdate: () => ++checks === 1 ? webOffer : { ...webOffer, source: 'linked' },
+  });
+  await changed.button('更新到 v0.2.25').props.onClick();
+  await changed.settle();
+  assert.equal(installPosts(changed).length, 0, 'do not submit if the installation became a checkout before preflight');
+  assert.ok(changed.button('查看升级方式'));
+});
+
+test('Web remembers a provider-only version after a transient failure without offering an unconfirmed CLI target', async (t) => {
+  let now = Date.now(), attempts = 0;
+  t.mock.method(Date, 'now', () => now);
+  const ui = await upgradeHarness({
+    nativeSidebar: true, profileName: 'web', providerUpdate: webOffer,
+    readVersion: detail => Response.json({ ok: true, detail: { ...detail, latestVersion: '0.2.24', updateAvailable: false } }),
+    readProviderUpdate: () => ++attempts === 1 ? webOffer : { ...webOffer, latestVersion: null, updateAvailable: false },
+  });
+  now += 61_000;
+  await ui.remountSidebar();
+  assert.ok(hasText(ui.nodes(), 'v0.2.24 → v0.2.25'));
+  assert.ok(hasText(ui.nodes(), '上次检查时，v0.2.25 可以直接更新。'));
+  assert.ok(ui.button('重试'));
+  ui.button('手动升级方式').props.onClick();
+  await ui.settle();
+  assert.equal(ui.nodes().some(node => node.type === 'code'), false);
+  assert.equal(ui.button('复制升级命令'), undefined);
+});
+
+test('Web rechecks the clicked target, prevents double starts, and discards a check after leaving the page', async () => {
+  for (const outcome of ['confirmed', 'changed', 'withdrawn', 'unknown', 'closed']) {
+    let finish, checks = 0;
+    const ui = await upgradeHarness({
+      providerUpdate: webOffer,
+      readProviderUpdate: () => ++checks === 1 ? webOffer : new Promise(resolve => { finish = resolve; }),
+    });
+    const update = ui.button('更新到 v0.2.25');
+    update.props.onClick();
+    update.props.onClick();
+    await ui.settle();
+    assert.equal(checks, 2);
+    const lookups = ui.requests.filter(({url}) => url.startsWith('/provider/updates?'));
+    assert.ok(lookups.every(({url}) => new URL(url, 'http://localhost').searchParams.get('force') === '1'));
+    assert.ok(hasText(ui.nodes(), '正在校验安装条件…'));
+    assert.equal(installPosts(ui).length, 0);
+    if (outcome === 'closed') await ui.setOpen(false);
+    if (outcome === 'changed') finish({ ...webOffer, latestVersion: '0.2.26' });
+    else if (outcome === 'withdrawn' || outcome === 'unknown') finish({ ...webOffer, latestVersion: outcome === 'unknown' ? null : '0.2.24', updateAvailable: false });
+    else finish(webOffer);
+    await ui.settle();
+    assert.equal(installPosts(ui).length, outcome === 'confirmed' ? 1 : 0, outcome);
+    if (outcome === 'changed') assert.ok(ui.button('更新到 v0.2.26'));
+    if (outcome === 'unknown') assert.ok(ui.button('重试'));
+  }
+});
+
+test('Web recognizes Git-source offers and verifies the full commit before starting an update', async () => {
+  const commit = 'abcd1234' + '1'.repeat(32);
+  // The shown prefix can stay the same even when the offered revision changes.
+  const replacement = 'abcd1234' + '2'.repeat(32);
+  const offer = { ...webOffer, source: 'github', installedVersion: '0'.repeat(40), latestVersion: commit };
+  let queries = 0;
+  const ui = await upgradeHarness({
+    nativeSidebar: true, providerUpdate: offer,
+    readProviderUpdate: () => ++queries === 1 ? offer : { ...offer, latestVersion: replacement },
+  });
+  const action = () => ui.button('更新到提交 abcd1234');
+  assert.equal(action().props.title, '更新到提交 ' + commit);
+  assert.ok(hasText(ui.nodes(), 'v0.2.24 → v0.2.25'), 'version badge comes from the independent package-version check');
+  await ui.remountSidebar();
+  assert.equal(queries, 1);
+  await action().props.onClick();
+  await ui.settle();
+  assert.equal(installPosts(ui).length, 0, 'the full commit changed after the click');
+  assert.equal(action().props.title, '更新到提交 ' + replacement);
+  await action().props.onClick();
+  await ui.settle();
+  assert.equal(installPosts(ui).length, 1);
+  for (const invalid of [{ ...offer, source: 'npm' }, { ...offer, latestVersion: 'abcd1234' }]) {
+    const other = await upgradeHarness({ providerUpdate: invalid });
+    assert.ok(other.button('重试'));
+    assert.equal(other.button('更新到提交 abcd1234'), undefined);
   }
 });
 

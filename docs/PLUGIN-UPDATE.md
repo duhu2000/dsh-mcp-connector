@@ -22,13 +22,13 @@
 
 每个 Provider 适配器只硬编码自己的 capabilities 入口，其余更新、任务、回滚和重启端点均从能力响应中读取。客户端只接受当前 DSH 页面的相对同源端点，拒绝跨域 URL、协议不匹配、缺少必要端点或未声明 `features.update` 的 Provider。
 
-DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。在 Web 等使用此适配器的宿主上，接口不可用、协议不兼容或检查失败时，页面提供下述手动升级方式。已有 Provider 的失败流程仍可通过“查看更新方式”打开宿主插件市场或 npm 页面。
+DSH Market 适配器从 `GET /dsh-market/api/v1/capabilities` 开始，要求 `schema: dsh-market/update-api/v1` 与 `apiVersion: 1`。Web 版已发现新版时，更新查询出错、结果缺失或协议响应异常会显示“重试”，手动升级说明也可展开。当前 Web 环境未提供更新服务或服务明确关闭更新功能时，主操作为“查看升级方式”。
 
 ## 通过 Update Provider 更新
 
 1. 插件自己的服务端缓存检查 npm `latest` 与 GitHub Release，只在 npm 已有可安装新版本时提示升级。
 2. 选中的 Provider 再检查本 profile 中 `dsh-mcp-connector` 的实际安装版本和目标版本。
-3. 用户点击“一键更新”后，Provider 立即返回 `operationId`；页面通过适配器轮询任务状态，展示排队、解析、下载和安装进度。
+3. Web 用户点击“更新到…”时，面板先向 Provider 复查当前安装版本与目标版本。结果与点击时一致才会提交安装。Provider 返回 `operationId` 后，页面轮询任务状态，展示排队、解析、下载和安装进度。
 4. Provider 报告成功后，页面仍会独立校验 `beforeVersion`、点击时的预期版本与 `installedVersion`。降级、目标不一致或无效结果会被拒绝；Provider 保留恢复点时自动回滚，不向用户展示重启。
 5. 完整性校验通过后，按 Provider 返回的激活结论展示“刷新生效”或重启提示。Web 且 Provider 明确允许进程重启时才展示“立即重启”；Desktop 等由外壳管理生命周期的宿主只提示用户重启，不自行杀进程。
 6. Provider 保留恢复点时展示“回滚”。回滚仍由 Provider 执行，MCP连接器不直接修改 profile、lockfile 或 `node_modules`。
@@ -39,7 +39,9 @@ Provider 读取的是 profile 中已经落盘的插件版本，标题版本来�
 
 ## 手动升级
 
-Windows 和 macOS 桌面版在无法直达详情页时可展开“查看手动升级命令”。Web 版打开面板就会自动检查。有可安装的版本时显示“更新到 v目标版本”，点击后由当前环境的更新服务执行。只有 npm 查到新版时显示“查看升级方式”，展开后可按当前安装环境查看和复制命令。已是最新版时只显示当前版本。首次检查失败时，点击“重新检查”即可再次查询。
+Windows 和 macOS 桌面版在无法直达详情页时可展开“查看手动升级命令”。Web 版在更新服务确认可以安装后显示“更新到 v目标版本”。在同一页面内切走并于确认后的 60 秒内返回，可以直接点击原按钮。超过 60 秒再返回时，标题保留版本号，操作位置显示“正在确认能否直接更新…”，确认后恢复更新按钮。
+
+版本查询首次失败时，点击“重新检查”可再查一次有没有新版。如果新版已经发现，但更新服务暂时无法确认是否可安装，请点“重试”。需要在终端升级时，展开手动升级方式即可查看当前 profile 和已确认目标版本对应的命令。
 
 命令绑定 npm 精确版本和当前 profile，并提供复制按钮与 npm 页面入口。服务端每次请求只读取一次可选的 `profileContext.name`。`versionStatus.detail.profileName` 只返回可安全生成命令的名称或 `null`。`profileInfo` 只包含实际读取到的字符串 `detectedName`（或 `null`）和固定的 `status`。自定义 profile 仍使用宿主提供的名称。
 
