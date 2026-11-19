@@ -18,8 +18,8 @@
       "description": "MCP Connector for DeepSeek Harness: a data marketplace connecting enterprise, financial, legal, patent and research data. Manage authorization, search tools and troubleshoot MCP connections. Supports OAuth, API keys and HTTP/stdio.",
       "versions": [
         {
-          "version": "0.2.97",
-          "publishTimestamp": 1794212031,
+          "version": "0.2.114",
+          "publishTimestamp": 1795058231,
           "source": {
             "type": "npm",
             "registry": "https://registry.npmjs.org/"

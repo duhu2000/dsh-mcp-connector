@@ -14,7 +14,7 @@
 | [企业数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E4%BC%81%E4%B8%9A%E6%95%B0%E6%8D%AE) | 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
 | [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 14 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
 | [法律合规](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%B3%95%E5%BE%8B%E5%90%88%E8%A7%84) | 5 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json) 等 |
-| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 43 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
+| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 44 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
 | [办公协作](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%8A%9E%E5%85%AC%E5%8D%8F%E4%BD%9C) | 17 | [腾讯文档](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tencent-docs.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Notion](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/notion.json) 等 |
 | [开发工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7) | 23 | [GitHub](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/github.json)、[Playwright](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/playwright.json)、[Chrome DevTools](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chrome-devtools.json) 等 |
 | [设计创意](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%AE%BE%E8%AE%A1%E5%88%9B%E6%84%8F) | 10 | [Canva 可画](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/canva.json)、[draw.io](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/drawio.json)、[可灵 AI（AceDataCloud）](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/kling.json) 等 |
@@ -60,11 +60,11 @@ Install into the profile loaded by your host: use `--profile desktop` with the D
 
 详见[工具工作台教程](docs/USER-GUIDE.md#51-工具工作台统一查找工具)。工具页用于发现与诊断，不执行目标工具；参数摘要与原始安全缓存均有裁剪边界。
 
-### 企查查智能按需模式（开发分支预览，尚未发布）
+### 企查查智能按需模式
 
-在已验证的 Native Host `0.2.2-rc.1` 上，正常插件启动可自动提供“智能工具”入口。首期只识别当前配置账号、单个明确授权下的企业数据六个服务；默认保持兼容模式，一次预览确认即可为新会话启用按需模式，已有会话保留原模式。无需逐服务修改注入配置。
+插件自 `0.2.111` 起提供智能按需模式，默认使用兼容模式。已验证的宿主为 DSH Native Host `0.2.2-rc.1`，首期范围是当前配置账号在同一授权下的六个企查查企业数据服务。在“智能工具”中预览范围并确认后，按需模式对新会话生效，已有会话保留原模式。
 
-真实工具仍须完整定义指纹绑定的独立只读核验，来源合并仍须独立等价核验；本分支不自动生成这些批准，未核验时 prepare 会拒绝。生产安装与真实收益尚待验收。支持边界、恢复和回退见[按会话工具注入说明](docs/SESSION-TOOL-INJECTION.md#企查查企业数据智能按需模式开发分支预览)。
+真实工具的按需加载需要与完整工具定义指纹绑定的独立只读核验及受信签名证据，合并重复来源还需要单独的等价核验。管理员须为目标环境配置信任公钥并交付审核证据。真实模型的 Token 节省效果仍待实测。[启用条件、证据交付与回退](docs/SESSION-TOOL-INJECTION.md#企查查企业数据智能按需模式)
 
 [用户手册](docs/USER-GUIDE.md) · [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [首次贡献](docs/FIRST-CONTRIBUTION.md) · [参与贡献](CONTRIBUTING.md) · [问题反馈](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
@@ -144,7 +144,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 连接器详情：精选 Prompt 优先展示，点击可带入 DSH 新会话；工具按 Server 分组，支持描述、搜索、参数详情和独立滚动。实时发现失败时显示带时间/陈旧标记的最后成功工具缓存。
 - 实时状态：页面通过同源 SSE 接收连接、目录、健康、工具、治理和作用域变化通知并自动刷新；事件不携带连接标识、端点、错误或凭据。
 - Prompt 模板：使用 `{{company}}` 等变量，发送前填写真实查询主体。
-- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
+- 三种接入：OAuth 2.0 PKCE、自定义 HTTP/SSE/stdio、导入 `mcpServers` JSON；也支持从连接器描述 URL 安装。OAuth 动态注册兼容公共客户端以及 `client_secret_post` / `client_secret_basic` 机密客户端。
 - 市场 Bearer/API Key 连接器先执行 MCP initialize 连通性与凭据校验，全部 HTTP Server 通过后才持久化凭据并进入“已安装”；stdio 卡片可声明多个本机凭据字段及其环境变量映射。
 - 生命周期管理：连接持久化、重启恢复、启停、断开、OAuth 自动刷新/退避恢复与撤销；同 issuer 卡片共享一次授权，跨进程锁与独立原子 Grant journal 防止 Desktop/Web 并行时重复消耗 Refresh Token。
 - 配置原地编辑：自定义和 JSON 导入连接可在“已安装”中编辑标准化 JSON 并重新连接；敏感值以本机保留标记处理，校验、启动或保存失败时原连接继续可用。
@@ -162,7 +162,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
-截至 2026-11-18，公共 Registry 已发布 119 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 123 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
+截至 2026-11-19，公共 Registry 已发布 120 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 124 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
 <!-- catalog-stats:end -->
 
 ## 界面与演示
@@ -177,7 +177,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 | 连接诊断与最后成功缓存 |  |
 | ![连接诊断](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->截图与 GIF 采集自 v0.2.113（2026-11-18）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
+<!-- generated:media -->截图与 GIF 采集自 v0.2.114（2026-11-19）无凭据 Mock 页面，展示界面而非真实业务验收；市场数量是测试夹具。来源与更新方法见 [素材说明](docs/screenshots/README.md)。<!-- /generated:media -->
 
 ## 安装
 
@@ -210,7 +210,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 
 连接成功后，工具按 `mcp__<serverName>__*` 前缀提供给模型。
 
-分类浏览、鉴权与连接状态、自定义 HTTP/stdio、JSON 导入、脱敏备份、可解释诊断、兼容矩阵、责任边界与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
+分类浏览、鉴权与连接状态、自定义 HTTP/SSE/stdio、JSON 导入、脱敏备份、可解释诊断、兼容矩阵、责任边界与故障排查见完整的[用户手册](docs/USER-GUIDE.md)。
 
 ## 中文教程与生态入口
 
@@ -289,7 +289,7 @@ frameAncestors: ['self', 'http://tauri.localhost', 'tauri://localhost']
 |---|---|
 | 宿主与运行时 | DSH Desktop / `web` profile，Node.js 20+ |
 | MCP 客户端 | 官方 `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
-| 传输 | Streamable HTTP、stdio；旧 `sse` 归一为 Streamable HTTP |
+| 传输 | Streamable HTTP、旧版 HTTP + SSE、stdio；原生导入 `type: "sse"`，插件自动适配宿主 |
 | 配置作用域 | Workspace project / profile global；全局由项目继承，Host 强制隔离，支持预览、复制/移动和 revision 回滚 |
 | 配置交换 | JSON 导入、脱敏导出、最多 20 个本机快照、预览与原子恢复 |
 | 治理与执行 | Connection / Server / Tool allow/deny，预览、revision 提交与回滚；暂无工具试运行 |
@@ -312,7 +312,7 @@ npm run dev:ui
 
 公共 Registry 每次合并后会生成 `catalog-stats.json`；本仓库的定时工作流每小时同步中英文介绍和统计快照。npm 页面中的静态正文随版本发布更新，上方动态统计徽标则直接读取 Registry，可在不发布新 npm 版本时保持实时数量一致。
 
-<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.113`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.113](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.113)。<!-- /generated:version -->
+<!-- generated:version -->当前公开版本为 [`dsh-mcp-connector@0.2.114`](https://www.npmjs.com/package/dsh-mcp-connector)，对应 [GitHub Release v0.2.114](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.114)。<!-- /generated:version -->
 
 版本能力与变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 Desktop 发版回归见 [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md)。

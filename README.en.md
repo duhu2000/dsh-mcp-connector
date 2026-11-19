@@ -14,7 +14,7 @@
 | [企业数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E4%BC%81%E4%B8%9A%E6%95%B0%E6%8D%AE) | 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
 | [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 14 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
 | [法律合规](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%B3%95%E5%BE%8B%E5%90%88%E8%A7%84) | 5 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json) 等 |
-| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 43 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
+| [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 44 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
 | [办公协作](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%8A%9E%E5%85%AC%E5%8D%8F%E4%BD%9C) | 17 | [腾讯文档](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tencent-docs.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Notion](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/notion.json) 等 |
 | [开发工具](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7) | 23 | [GitHub](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/github.json)、[Playwright](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/playwright.json)、[Chrome DevTools](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/chrome-devtools.json) 等 |
 | [设计创意](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%AE%BE%E8%AE%A1%E5%88%9B%E6%84%8F) | 10 | [Canva 可画](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/canva.json)、[draw.io](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/drawio.json)、[可灵 AI（AceDataCloud）](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/kling.json) 等 |
@@ -24,7 +24,7 @@
 [完整分类目录](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md) · [近期新增](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/RECENT-ADDITIONS.md)
 <!-- catalog-directory:end -->
 
-Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, and `mcpServers` JSON import.
+Connect MCP servers from a continuously updated catalog. Search tools across enabled connections in the current scope, inspect readable parameters, source metadata, and the last successful cache time, then check a connection or rediscover its tools when discovery fails. Supports OAuth 2.0 PKCE, API keys, Streamable HTTP/SSE/stdio, and `mcpServers` JSON import.
 
 OAuth availability depends on each provider's client-registration policy and account permissions. Verify a saved connection, discovered/registered tools, and a successful business call as separate outcomes.
 
@@ -48,11 +48,11 @@ Results identify their source and last successful cache time. A cached tool is n
 
 Tool browsing does not execute target tools. Parameter summaries may omit complex rules; the original-schema view contains the sanitized, size-limited cached schema, not an untouched server response. See the [Chinese tool-workspace guide](docs/USER-GUIDE.md#51-工具工作台统一查找工具).
 
-### QCC smart loading (development preview; unreleased)
+### QCC smart loading
 
-Normal startup on verified Native Host `0.2.2-rc.1` can expose Smart tools for the configured account's six enterprise services under one unambiguous grant. Compatibility remains the default. One preview/confirmation enables smart loading for new sessions; existing sessions keep their mode, without changing six separate injection settings.
+Smart loading has shipped since plugin version `0.2.111`. Compatibility mode is the default. The verified host is DSH Native Host `0.2.2-rc.1`. The feature covers the configured account's six QCC enterprise data services under a single grant. Preview the scope in **Smart tools** and confirm to enable smart loading for new sessions. Existing sessions keep their mode.
 
-Preparation still requires an independently verified read-only record bound to the complete definition fingerprint; deduplication requires separately approved equivalence relations. This branch creates neither approval automatically. Production installation and real provider benefit remain unverified. See the [scope and rollback guide](docs/SESSION-TOOL-INJECTION.md#development-preview-english).
+Preparing a real tool requires an independent read-only review and trusted signed evidence bound to its full definition fingerprint. Combining duplicate sources requires a separate equivalence review. An administrator must provision the trust keys and review evidence for the target environment. Token savings on real model requests still need to be measured. [Enablement, evidence delivery and rollback](docs/SESSION-TOOL-INJECTION.md#qcc-enterprise-smart-loading)
 
 [Chinese user guide](docs/USER-GUIDE.md) · [Connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md) · [First contribution](docs/FIRST-CONTRIBUTION.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/duhu2000/dsh-mcp-connector/issues)
 
@@ -114,7 +114,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 | Capability | What it gives you |
 |---|---|
 | Continuously updated catalog | Browse featured connectors and nine business categories; refresh after a Registry update to fetch new cards |
-| Multiple connection paths | Connect with OAuth 2.0 PKCE, API keys, Streamable HTTP/stdio, or `mcpServers` JSON |
+| Multiple connection paths | Connect with OAuth 2.0 PKCE, API keys, Streamable HTTP/SSE/stdio, or `mcpServers` JSON |
 | Cross-connection tool search | Search the last-success cache of enabled connections in the current scope, then filter by connection, service, or state |
 | Readable parameters and sources | Inspect types, required fields, enums, nested summaries, sources, cache time, and a sanitized schema |
 | Connection troubleshooting | Use observed stages and stable error codes to check a connection or rediscover tools while retaining an available last-success cache |
@@ -148,7 +148,7 @@ If the plugin helps you connect an MCP server faster, consider [starring the rep
 - The two legacy Qichacha OAuth plugins support explicit authorization migration. For an affected connection, select **Connection error** in the marketplace or **View recovery steps** under Installed to see which DSH plugin or remaining service entry to disable. After a full DSH restart, MCP Connector takes over the authorization, or prompts for authorization again if it has expired.
 
 <!-- catalog-stats:start -->
-As of 2026-11-18, the public Registry publishes 119 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 123 cards across 9 business categories. Homepage recommendations follow the installed plugin version, not the Registry featured count. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
+As of 2026-11-19, the public Registry publishes 120 connector descriptors. After merging and deduplicating them with the 4 bundled Qichacha cards, the Marketplace exposes 124 cards across 9 business categories. Homepage recommendations follow the installed plugin version, not the Registry featured count. The Registry evolves independently; the badge shown after a client refresh and the live badges above are the authoritative current counts.
 <!-- catalog-stats:end -->
 
 ## Interface and demo
@@ -163,7 +163,7 @@ As of 2026-11-18, the public Registry publishes 119 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.113 (2026-11-18), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.114 (2026-11-19), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
@@ -282,7 +282,7 @@ This is a deliberate security trade-off, not an oversight: `frame-ancestors` can
 |---|---|
 | Host and runtime | DSH Desktop / `web` profile; Node.js 20+ |
 | MCP client | Official `@deepseek-ai/dsh-mcp-client` `^0.1.1-rc.2` |
-| Transports | Streamable HTTP and stdio; legacy `sse` normalizes to Streamable HTTP |
+| Transports | Streamable HTTP, legacy HTTP + SSE and stdio; explicit `sse` uses the bundled adapter |
 | Configuration scope | Workspace project / profile global, with Host enforcement, impact preview, copy/move, and revision rollback |
 | Configuration exchange | JSON import, redacted export, up to 20 local snapshots, preview, and atomic restore |
 | Governance and execution | Connection / Server / Tool allow/deny with preview, revision commits, and rollback; no tool trial yet |
@@ -305,7 +305,7 @@ npm run dev:ui
 
 Every Registry merge regenerates `catalog-stats.json`; an hourly workflow in this repository synchronizes the Chinese and English product copy plus a local stats snapshot. The static npm README updates with package releases, while the live badges above read the Registry directly and therefore stay current without another npm release.
 
-<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.113`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.113](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.113).<!-- /generated:version -->
+<!-- generated:version -->The current public version is [`dsh-mcp-connector@0.2.114`](https://www.npmjs.com/package/dsh-mcp-connector), with [GitHub Release v0.2.114](https://github.com/duhu2000/dsh-mcp-connector/releases/tag/v0.2.114).<!-- /generated:version -->
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](docs/DESKTOP-E2E.md) for the Desktop release checklist.
 
@@ -316,7 +316,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and [docs/DESKTOP-E2E.md](d
 - Unchecked or Host-unobservable connections are reported as `unknown`, never as healthy. Health history and last-success timestamps are currently process-local.
 - External URLs use HTTPS by default, and HTTP is allowed for loopback development. A user-created connection may explicitly opt in to plaintext HTTP for literal RFC1918 IPv4 or RFC4193 IPv6 ULA addresses; hostnames, public HTTP, link-local addresses, and cloud metadata addresses remain blocked.
 - Remote descriptors and catalogs are limited to 2 MiB, Web API requests to 1 MiB, and imported JSON is scanned for credential fields before normalization.
-- Streamable HTTP and stdio are supported end to end. Legacy `sse` entries are normalized to Streamable HTTP. Restored stdio connections run their original command through a transparent startup guard; persisted records, environment and working directory remain unchanged. Tool registration and execution still belong to `@deepseek-ai/dsh-mcp-client`.
+- Streamable HTTP, legacy HTTP + SSE and stdio are supported. Vendor JSON with `type: "sse"` is imported directly; the plugin bundles a stdio adapter for Hosts without native SSE support. No generated template or extra npm install is needed. Credentials reach only the configured origin, via environment rather than command arguments. The adapter does not reconnect or replay business requests. Omitted transport still defaults to Streamable HTTP; edit previously mis-normalized records to `sse` when required. Existing stdio compatibility templates remain unchanged. Restored stdio connections run their original command through a transparent startup guard; persisted records, environment and working directory remain unchanged. Tool registration and execution still belong to `@deepseek-ai/dsh-mcp-client`.
 - On restoration, `server/discover`, `initialize` and initial `tools/list` requests (including pagination) use `requestTimeoutMs`, capped at 15 seconds per request. A timeout closes that connection and its child processes rather than blocking Host startup. Connections stay enabled; requests after initial discovery keep the Host deadline.
 - Official CLIs that are not MCP servers can be exposed through a separate [controlled CLI Provider](docs/CLI-PROVIDERS.md). Only code-reviewed commands and arguments are available; the initial DingTalk `dws` provider is read-only.
 - stdio starts a local process. Import or connect only trusted commands and packages. Catalog descriptors may declare `credentialFields` and `credentialBindings`, but may never contain actual token/secret values; user input is injected only into the local Host process environment.

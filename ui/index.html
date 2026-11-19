@@ -2906,7 +2906,7 @@
       ${scopeFieldHtml()}
       <div class="form-row"><div><label for="cfg-name">${t('名称（必填）')}</label><input id="cfg-name" value="${esc(preset.name || '')}" placeholder="${t('连接显示名')}" /></div>
       <div><label for="cfg-sname">serverName${t('（工具前缀）')}</label><input id="cfg-sname" value="${esc(server.serverName || '')}" placeholder="my-server" /></div></div>
-      <label for="cfg-transport">${t('传输方式')}</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">${t('Streamable HTTP（兼容 SSE）')}</option><option value="stdio">${t('stdio（本地进程）')}</option></select>
+      <label for="cfg-transport">${t('传输方式')}</label><select id="cfg-transport" onchange="window.__mcp.syncTransportFields()"><option value="streamable-http">Streamable HTTP</option><option value="sse">SSE (HTTP + SSE)</option><option value="stdio">${t('stdio（本地进程）')}</option></select>
       <div id="cfg-http-fields">
         <p class="field-help">${t('只需填写 MCP 地址。检测到 OAuth 后保存为待身份验证，再由你点击授权；无需市场卡片地址。')}</p><label for="cfg-url">${t('MCP URL（必填）')}</label><input id="cfg-url" type="url" value="${esc(server.url || '')}" placeholder="https://example.com/mcp" />
         <label class="insecure-network-consent" for="cfg-allow-insecure-lan"><input id="cfg-allow-insecure-lan" type="checkbox" />${t('我确认这是可信的局域网私有 IP，并接受 HTTP 传输可被同网段监听或篡改的风险。')}</label>

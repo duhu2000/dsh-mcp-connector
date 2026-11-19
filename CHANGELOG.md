@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.114 - 2026-11-19
+
+- 修复厂商 `type: "sse"` 配置导入后被改成 Streamable HTTP、连接返回 HTTP 405 的问题。JSON 导入、手动配置、目录卡片、编辑及脱敏分享保留旧版 HTTP + SSE 协议。
+- 内置 SSE 适配器自动完成 GET 事件流、同源消息端点与 POST 请求；现有 Host 经插件随包 stdio 适配器接入，无需用户生成兼容模板、安装额外 npm 包。
+- API Key / Bearer / OAuth 凭据用于建连和消息发送，不进入启动参数或桥接日志；拒绝重定向及跨源消息端点，限制帧大小与连接超时。桥接断线不自动重连，不重放业务查询。
+- 明确区分 Streamable HTTP 的 SSE 响应与旧版 SSE 传输；现有 HTTP/stdio 和已安装的兼容模板保持原配置。
+- 使用隔离的 Mock 服务验证导入、握手、工具分页和宿主子进程调用；未重新消耗摩熵账号额度。更新中英文文档与本版本 Mock 界面素材。
+- Preserve explicit legacy SSE configurations and ship a built-in host adapter, with credential-safe startup, same-origin message endpoints, bounded parsing and no automatic business-request replay. Existing HTTP/stdio configurations remain unchanged.
+
 ## 0.2.113 - 2026-11-18
 
 - 自定义 URL 与标准 mcpServers JSON 导入自动检测 HTTP 401 的 OAuth 认证需求；保存待授权配置后，可在已安装页逐项进行身份验证，无需市场卡片 URL。
