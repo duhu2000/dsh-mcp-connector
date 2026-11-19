@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.117 - 2026-11-19
+
+- 导入 `mcpServers` JSON 时，接受全小写 `"type": "streamablehttp"`，按 `streamable-http` 校验连接。URL 和自定义请求头原样保留（#275）。
+- Accept lowercase `"type": "streamablehttp"` in `mcpServers` JSON and validate it as `streamable-http`, preserving the URL and custom headers (#275).
+
 ## 0.2.116 - 2026-11-19
 
 - 市场卡片支持 HTTP 多凭据配置，可分别填写亿欧 Client ID 与 Client Secret；凭据绑定到声明的 Header，缺值和非法头值在联网前拒绝。
