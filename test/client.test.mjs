@@ -2000,6 +2000,14 @@ async function upgradeHarness({
   await settle();
   return {
     nodes, button, opened, copied, requests, closed, settle,
+    async remountSidebar() {
+      assert.ok(nativeSidebar);
+      for (const hook of hooks) hook?.cleanup?.();
+      hooks.length = 0;
+      Object.assign(props, entry.options.inject());
+      dirty = true;
+      await settle();
+    },
     async selectProfile(value) {
       nodes().find((node) => node.type === 'select').props.onChange({ target: { value } });
       await settle();
@@ -2232,6 +2240,32 @@ test('Web keeps a provider-only action visible during revalidation and follows t
     assert.equal(ui.button('更新到 v0.2.26'), undefined);
     if (available) assert.equal(ui.button('更新到 v0.2.27').props.disabled, false);
     else assert.equal(ui.button('查看升级方式'), undefined);
+  }
+});
+
+test('Web sidebar remount retains the last confirmed action only until the fresh provider check settles', async () => {
+  const offer = { installedVersion: '0.2.24', latestVersion: '0.2.26', updateAvailable: true };
+  for (const outcome of ['confirmed', 'withdrawn', 'unavailable']) {
+    let queries = 0, finish, fail;
+    const ui = await upgradeHarness({
+      nativeSidebar: true, providerUpdate: offer,
+      readProviderUpdate: () => ++queries === 1 ? offer : new Promise((resolve, reject) => { finish = resolve; fail = reject; }),
+      readVersion: detail => Response.json({ ok: true, detail: { ...detail, updateAvailable: false } }),
+    });
+    assert.equal(ui.button('更新到 v0.2.26').props.disabled, false);
+    await ui.remountSidebar();
+    assert.equal(queries, 2);
+    assert.equal(ui.button('更新到 v0.2.26')?.props.disabled, true);
+    assert.ok(ui.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.26'));
+    if (outcome === 'unavailable') fail(new Error('provider unavailable'));
+    else finish({ ...offer, updateAvailable: outcome === 'confirmed' });
+    await ui.settle();
+    if (outcome === 'confirmed') assert.equal(ui.button('更新到 v0.2.26').props.disabled, false);
+    else {
+      assert.equal(ui.button('更新到 v0.2.26'), undefined);
+      await ui.remountSidebar();
+      assert.equal(ui.button('更新到 v0.2.26'), undefined);
+    }
   }
 });
 
