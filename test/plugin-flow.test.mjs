@@ -5,7 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMockQccServer } from './mock-oauth-server.mjs';
-import { DEFAULT_CATALOG_URL } from '../lib/constants.js';
+import { DEFAULT_CATALOG_URL, DEFAULT_CATALOG_FALLBACK_URLS } from '../lib/constants.js';
 import { catalogRecordSchema } from '../lib/schema.js';
 
 /* ───────────────────────── fake cordis ctx ───────────────────────── */
@@ -3400,4 +3400,48 @@ test('custom OAuth Host startup failure rolls back to pending without a live gra
     for (const dispose of host.disposers) await dispose();
     await oauth.close();
   }
+});
+
+
+test('manual default registry refresh prefers origin over stale successful CDN and discards origin ETag', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url, etag: options.headers['If-None-Match'] });
+    const items = url === DEFAULT_CATALOG_URL
+      ? [catalogDescriptor('old-a'), catalogDescriptor('old-b')]
+      : [catalogDescriptor('quandashi-trademark')];
+    return new Response(JSON.stringify(items), { headers: { ETag: url === DEFAULT_CATALOG_URL ? 'cdn-old' : 'origin-new' } });
+  });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: DEFAULT_CATALOG_URL }));
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    assert.deepEqual(requests, [
+      { url: DEFAULT_CATALOG_URL, etag: undefined },
+      { url: DEFAULT_CATALOG_FALLBACK_URLS[0], etag: undefined },
+    ]);
+    const saved = await host.tables.get('catalog').get('remote');
+    assert.deepEqual(saved.connectors.map(c => c.id), ['quandashi-trademark']);
+    assert.equal(saved.etag, undefined, 'origin ETag must never be reused for CDN background refresh');
+    assert.equal(saved.catalogUrl, DEFAULT_CATALOG_URL);
+  } finally { for (const dispose of host.disposers) await dispose(); }
+});
+
+test('manual default registry refresh falls back to CDN when origin is unreachable', async (t) => {
+  const host = makePluginContext({ withWeb: true });
+  await host.tables.get('catalog').put('remote', { catalogUrl: DEFAULT_CATALOG_URL, updatedAt: Date.now(), connectors: [] });
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    requests.push(url);
+    if (url === DEFAULT_CATALOG_FALLBACK_URLS[0]) throw new Error('origin offline');
+    return new Response(JSON.stringify([catalogDescriptor('cdn-available')]));
+  });
+  const { apply } = await import('../lib/index.js');
+  try {
+    await apply(host.ctx, baseConfig({ catalogUrl: DEFAULT_CATALOG_URL }));
+    assert.equal((await host.webCall('refreshCatalog')).ok, true);
+    assert.deepEqual(requests, [DEFAULT_CATALOG_FALLBACK_URLS[0], DEFAULT_CATALOG_URL]);
+    assert.equal((await host.tables.get('catalog').get('remote')).connectors[0].id, 'cdn-available');
+  } finally { for (const dispose of host.disposers) await dispose(); }
 });
