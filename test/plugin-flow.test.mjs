@@ -2384,10 +2384,11 @@ test('自定义 configure + JSON 导入 + 无中断重命名 + 停用/断开', {
     assert.equal(loader.entries.get('mcp-custom-my').options.config.headers.Authorization, 'Bearer tok');
 
     const imp = await tools.defs.get('mcp_connector_import_json').execute({
-      json: JSON.stringify({ mcpServers: { vendor: { type: 'streamable-http', url: manualUrl, headers: { Authorization: 'Bearer vtok' } } } }),
+      json: JSON.stringify({ mcpServers: { vendor: { type: 'streamablehttp', url: manualUrl, headers: { Authorization: 'Bearer vtok' } } } }),
     });
     assert.equal(imp.ok, true, imp.message);
     assert.equal(imp.detail.keys.length, 1);
+    assert.equal(loader.entries.get('mcp-json-vendor').options.config.transport, 'streamable-http');
     assert.equal(loader.entries.get('mcp-json-vendor').options.config.headers.Authorization, 'Bearer vtok');
 
     const editable = await tools.defs.get('mcp_connector_get_editable_config').execute({ key: 'json-vendor' });
