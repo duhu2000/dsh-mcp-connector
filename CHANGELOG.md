@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.116 - 2026-11-19
+
+- 市场卡片支持 HTTP 多凭据配置，可分别填写亿欧 Client ID 与 Client Secret；凭据绑定到声明的 Header，缺值和非法头值在联网前拒绝。
+- 公开目录只保存字段引用，状态、日志与脱敏导出不包含真实凭据；保留单凭据、stdio 和已有 JSON 导入连接行为。新版字段兼容旧版目录读取，新卡片配置需升级。
+- 同步当前版本中英文无凭据 Mock 截图和生成文档；未追加厂商业务调用。
+- Support multiple HTTP credentials in market cards with explicit header bindings, preflight validation and redacted exports. Existing single-key and stdio connections remain compatible.
+
 ## 0.2.115 - 2026-11-19
 
 打开「MCP 连接器」后，面板会自动检查插件版本。发现新版时，标题旁会同时显示当前版本和可更新的版本。首次检查失败时，可以点击「重新检查」。
