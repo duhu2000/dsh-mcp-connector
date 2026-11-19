@@ -1393,7 +1393,7 @@ test('版本检查支持强制刷新且不会被旧缓存隐藏 Provider 更新'
     let cursor = 0;
     let refresh = 0;
     const plugin = await loadClient({
-      windowExtras: { location: { origin: 'http://127.0.0.1:3080' } },
+      windowExtras: { dshDesktop: { protocolVersion: 1 }, location: { origin: 'http://127.0.0.1:3080' } },
       jsxRuntime: { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
       reactApi: {
         useState(initial) {
@@ -1771,7 +1771,7 @@ test('能力探测通过后渲染一键更新，并使用 Provider 广告的同�
   effects.length = 0;
   let tree = render();
   const update = descendants(tree).find((node) => node.type === 'button'
-    && node.props?.children === '一键更新到 v0.2.25');
+    && node.props?.children === '更新到 v0.2.25');
   assert.ok(update, '探测到 v1 后应在当前页面提供一键更新');
   update.props.onClick();
   await new Promise((resolve) => setImmediate(resolve));
@@ -1882,6 +1882,9 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
   effects.length = 0;
   let tree = render();
   const command = 'dsh plugin --profile web add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25';
+  assert.equal(descendants(tree).some(node => node.type === 'code'), false);
+  descendants(tree).find(node => node.props?.children === '查看升级方式').props.onClick();
+  tree = render();
   assert.ok(descendants(tree).some((node) => node.type === 'code'
     && node.props?.children === command));
   const copyButton = descendants(tree).find((node) => node.type === 'button'
@@ -2141,7 +2144,7 @@ test('a desktop-named profile, host navigation, or OS marker alone does not chan
     });
     assert.equal(ui.button('前往更新'), undefined);
     assert.equal(ui.button('其他更新方式'), undefined);
-    assert.ok(ui.button('复制升级命令'));
+    assert.ok(ui.button(desktopBridge ? '复制升级命令' : '查看升级方式'));
   }
 });
 
@@ -2174,14 +2177,56 @@ test('desktop uses the native update entry with a provider and prioritizes an in
   assert.equal(pending.button('其他更新方式'), undefined);
 
   const web = await upgradeHarness({ profileName: 'desktop', providerUpdate: available, pluginNavigation: {} });
-  assert.ok(web.button('一键更新到 v0.2.25'));
+  assert.ok(web.button('更新到 v0.2.25'));
   assert.equal(web.button('前往更新'), undefined);
+});
+
+// Exercise the profile and clipboard contracts through the actual Web disclosure.
+async function manualUpgradeHarness(options) {
+  const ui = await upgradeHarness(options);
+  async function expand() {
+    const button = ui.button('查看升级方式') ?? ui.button('View upgrade methods');
+    if (button) {
+      button.props.onClick();
+      await ui.settle();
+    }
+  }
+  await expand();
+  return {
+    ...ui,
+    async refresh(patch) { await ui.refresh(patch); await expand(); },
+    async setOpen(open) { await ui.setOpen(open); if (open) await expand(); },
+  };
+}
+
+test('Web automatically checks, retries the first failure, and uses only the applicable update action', async () => {
+  await verifyOpenAndRetry({});
+  const ui = await upgradeHarness({ profileName: 'web' });
+  assert.equal(ui.button('检查更新'), undefined);
+  assert.equal(ui.button('更新选项'), undefined);
+  assert.equal(ui.button('查看升级方式').props['aria-expanded'], false);
+  assert.equal(ui.button('复制升级命令'), undefined);
+  ui.button('查看升级方式').props.onClick();
+  await ui.settle();
+  assert.ok(ui.button('复制升级命令'));
+  ui.button('收起升级方式').props.onClick();
+  await ui.settle();
+  assert.equal(ui.button('复制升级命令'), undefined);
+  await ui.refresh({ updateAvailable: false, latestVersion: '0.2.24' });
+  assert.equal(ui.button('查看升级方式'), undefined);
+  assert.equal(ui.button('重新检查'), undefined);
+  const provider = await upgradeHarness({ providerUpdate: {
+    name: 'dsh-mcp-connector', installedVersion: '0.2.24', latestVersion: '0.2.26', updateAvailable: true,
+  } });
+  assert.ok(provider.button('更新到 v0.2.26'));
+  assert.ok(provider.nodes().some(node => node.props?.children === 'v0.2.24 → v0.2.26'));
+  assert.equal(provider.button('查看升级方式'), undefined);
 });
 
 test('manual upgrade UI targets and copies Desktop, Web and custom profiles with old and new APIs', async () => {
   for (const profileName of ['desktop', 'web', 'team-dev_2.1']) {
     for (const profileInfo of [undefined, { detectedName: profileName, status: 'ready' }]) {
-      const ui = await upgradeHarness({ profileName, profileInfo });
+      const ui = await manualUpgradeHarness({ profileName, profileInfo });
       const command = `dsh plugin --profile ${profileName} add --config.minimumReleaseAge=0 dsh-mcp-connector@0.2.25`;
       assert.ok(ui.nodes().some((node) => node.type === 'code' && node.props.children === command));
       const hint = ui.nodes().some((node) => String(node.props?.children).includes('Desktop 配套 CLI'));
@@ -2205,7 +2250,7 @@ test('unknown profiles explain the cause and require an explicit default install
     [null, { detectedName: null, status: 'read-error' }, '读取当前 profile 失败'],
     [null, { detectedName: '', status: 'invalid-value' }, '宿主未返回有效的 profile 名称'],
   ]) {
-    const ui = await upgradeHarness({ profileName, profileInfo });
+    const ui = await manualUpgradeHarness({ profileName, profileInfo });
     assert.equal(ui.nodes().find((node) => node.type === 'select').props.value, '');
     assert.equal(ui.nodes().some((node) => node.type === 'code'), false);
     assert.equal(ui.button('复制升级命令'), undefined);
@@ -2238,7 +2283,7 @@ test('known unsafe profile names are shown as text without default choices or co
     'web;whoami', 'web&whoami', '$(whoami)', '`whoami`', '%DSH_HOME%', 'web\n', 'web\r\n', '自定义']) {
     for (const profileInfo of [undefined, { detectedName: profileName, status: 'unsupported-name' },
       { detectedName: profileName, status: 'ready' }]) {
-      const ui = await upgradeHarness({ profileName, profileInfo });
+      const ui = await manualUpgradeHarness({ profileName, profileInfo });
       assert.equal(ui.nodes().some((node) => node.type === 'code'), false, String(profileName));
       assert.equal(ui.nodes().some((node) => node.type === 'select'), false);
       assert.equal(ui.button('复制升级命令'), undefined);
@@ -2253,7 +2298,7 @@ test('known unsafe profile names are shown as text without default choices or co
     ['web\0\x7f', '"web\\u0000\\u007f"', null],
     ['<img src=x onerror=alert(1)>', '"<img\\u0020src=x\\u0020onerror=alert(1)>"', null],
   ]) {
-    const ui = await upgradeHarness({ profileName: null, profileInfo: { detectedName: name, status: 'unsupported-name' } });
+    const ui = await manualUpgradeHarness({ profileName: null, profileInfo: { detectedName: name, status: 'unsupported-name' } });
     assert.ok(ui.nodes().some((node) => node.type === 'span' && node.props?.children === `已读取的 profile：${displayed}`));
     if (reason) assert.ok(ui.nodes().some((node) => node.props?.children === reason));
     assert.equal(ui.nodes().some((node) => ['code', 'select', 'img'].includes(node.type) || node.props?.dangerouslySetInnerHTML), false);
@@ -2261,10 +2306,10 @@ test('known unsafe profile names are shown as text without default choices or co
 });
 
 test('manual update controls render in English without Desktop CLI guidance', async () => {
-  const desktop = await upgradeHarness({ profileName: 'desktop', locale: 'en' });
+  const desktop = await manualUpgradeHarness({ profileName: 'desktop', locale: 'en' });
   assert.equal(desktop.nodes().some((node) => String(node.props?.children).includes('Manage dsh Command')), false);
   assert.ok(desktop.button('Copy upgrade command'));
-  const unknown = await upgradeHarness({ locale: 'en' });
+  const unknown = await manualUpgradeHarness({ locale: 'en' });
   assert.ok(unknown.nodes().some((node) => node.props?.children === 'The host did not provide profile information.'));
   assert.ok(unknown.nodes().some((node) => node.type === 'option' && node.props?.children === 'Default Desktop (desktop)'));
   assert.equal(unknown.button('Copy upgrade command'), undefined);
@@ -2273,9 +2318,9 @@ test('manual update controls render in English without Desktop CLI guidance', as
   assert.ok(unknown.nodes().some((node) => node.props?.children === 'For default installations only; custom deployments must use their actual profile.'));
   assert.ok(unknown.button('View update instructions'));
   assert.ok(unknown.button('View on npm'));
-  const failed = await upgradeHarness({ locale: 'en', profileInfo: { detectedName: null, status: 'read-error' } });
+  const failed = await manualUpgradeHarness({ locale: 'en', profileInfo: { detectedName: null, status: 'read-error' } });
   assert.ok(failed.nodes().some((node) => node.props?.children === 'Could not read the current profile.'));
-  const unsupported = await upgradeHarness({ locale: 'en', profileInfo: { detectedName: 'node_modules', status: 'unsupported-name' } });
+  const unsupported = await manualUpgradeHarness({ locale: 'en', profileInfo: { detectedName: 'node_modules', status: 'unsupported-name' } });
   assert.ok(unsupported.nodes().some((node) => node.props?.children === 'Detected profile: "node_modules"'));
   assert.ok(unsupported.nodes().some((node) => node.props?.children === 'This profile name is reserved, so an upgrade command cannot be generated automatically.'));
 });
@@ -2283,22 +2328,22 @@ test('manual update controls render in English without Desktop CLI guidance', as
 test('invalid target versions explain the version problem without commands or profile choices', async () => {
   for (const latestVersion of [null, '', 'latest', '0.2.25;whoami', 42]) {
     for (const profileName of [undefined, 'desktop', 'unsafe name']) {
-      const ui = await upgradeHarness({ profileName, latestVersion });
-      assert.ok(ui.nodes().some((node) => node.props?.children === '未取得有效的目标版本，请点击“检查更新”后重试'));
+      const ui = await manualUpgradeHarness({ profileName, latestVersion });
+      assert.ok(ui.nodes().some((node) => node.props?.children === '暂时无法确认 MCP 连接器是否有新版本。'));
       assert.equal(ui.nodes().some((node) => ['code', 'select'].includes(node.type)), false);
       assert.equal(ui.nodes().some((node) => String(node.props?.children).includes('宿主未提供')
         || String(node.props?.children).includes('该 profile 名称')), false);
       assert.equal(ui.button('复制升级命令'), undefined);
-      assert.ok(ui.button('检查更新'));
+      assert.ok(ui.button('重新检查'));
     }
   }
-  const english = await upgradeHarness({ locale: 'en', latestVersion: null });
-  assert.ok(english.nodes().some((node) => node.props?.children === 'No valid target version was received. Click Check for updates and try again.'));
+  const english = await manualUpgradeHarness({ locale: 'en', latestVersion: null });
+  assert.ok(english.nodes().some((node) => node.props?.children === 'Could not check whether a new MCP Connector version is available.'));
 });
 
 test('default installation choices reset on version, diagnosis and panel changes', async () => {
   let clipboardFailure = false;
-  const ui = await upgradeHarness({ writeText: async () => {
+  const ui = await manualUpgradeHarness({ writeText: async () => {
     if (clipboardFailure) throw new Error('clipboard unavailable');
   } });
   const hasCommand = () => ui.nodes().some((node) => node.type === 'code');
@@ -2330,7 +2375,7 @@ test('default installation choices reset on version, diagnosis and panel changes
 
 test('late clipboard results cannot mark a reselected candidate or reopened panel copied', async () => {
   let completeCopy;
-  const ui = await upgradeHarness({ writeText: () => new Promise((resolve) => { completeCopy = resolve; }) });
+  const ui = await manualUpgradeHarness({ writeText: () => new Promise((resolve) => { completeCopy = resolve; }) });
   await ui.selectProfile('web');
   ui.button('复制升级命令').props.onClick();
   await ui.settle();
@@ -2351,7 +2396,7 @@ test('late clipboard results cannot mark a reselected candidate or reopened pane
 
 test('profile and target changes reset copy success, clipboard failure and late copy results', async () => {
   let clipboardFailure = false, completeCopy;
-  const ui = await upgradeHarness({ profileName: 'desktop', writeText: async () => {
+  const ui = await manualUpgradeHarness({ profileName: 'desktop', writeText: async () => {
     if (clipboardFailure) throw new Error('clipboard unavailable');
     if (completeCopy === null) await new Promise((resolve) => { completeCopy = resolve; });
   } });

@@ -39,7 +39,7 @@ Provider 读取的是 profile 中已经落盘的插件版本，标题版本来�
 
 ## 手动升级
 
-Windows 和 macOS 桌面版在无法直达详情页时可展开“查看手动升级命令”。在 Web 等宿主上，若 Provider 未提供可安装的新版，连接器检测到有效的 npm 新版本时会在标题区显示手动升级选项。
+Windows 和 macOS 桌面版在无法直达详情页时可展开“查看手动升级命令”。Web 版打开面板就会自动检查。有可安装的版本时显示“更新到 v目标版本”，点击后由当前环境的更新服务执行。只有 npm 查到新版时显示“查看升级方式”，展开后可按当前安装环境查看和复制命令。已是最新版时只显示当前版本。首次检查失败时，点击“重新检查”即可再次查询。
 
 命令绑定 npm 精确版本和当前 profile，并提供复制按钮与 npm 页面入口。服务端每次请求只读取一次可选的 `profileContext.name`。`versionStatus.detail.profileName` 只返回可安全生成命令的名称或 `null`。`profileInfo` 只包含实际读取到的字符串 `detectedName`（或 `null`）和固定的 `status`。自定义 profile 仍使用宿主提供的名称。
 
