@@ -148,6 +148,19 @@ test('normalizeJsonImport: mcpServers 格式 + Bearer 提升', () => {
   assert.equal('Authorization' in r.headers, false);
 });
 
+test('normalizeJsonImport: 全小写 streamablehttp 保留 URL 和静态 Authorization', () => {
+  const url = 'https://vendor.example.com:8643/mcp';
+  const input = JSON.stringify({
+    mcpServers: { vendor: { type: 'streamablehttp', url, headers: { Authorization: 'XXXXXXXX' } } },
+  });
+  const { records, skipped } = normalizeJsonImport(input);
+  assert.equal(records.length, 1);
+  assert.deepEqual(skipped, []);
+  assert.equal(records[0].transport, 'streamable-http');
+  assert.equal(records[0].url, url);
+  assert.deepEqual(records[0].headers, { Authorization: 'XXXXXXXX' });
+});
+
 test('连接显示名去除首尾空格并拒绝空值、控制字符与超长值', () => {
   assert.equal(normalizeConnectionDisplayName('  生产数据  '), '生产数据');
   assert.throws(() => normalizeConnectionDisplayName('  '), /不能为空/);
