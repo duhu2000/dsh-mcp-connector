@@ -226,7 +226,7 @@ test('normalizeJsonImport: 全部跳过时抛错', () => {
   );
 });
 
-test('stdio 描述校验、SSE 归一化与目录 env 密钥审计', () => {
+test('stdio 描述校验、SSE 协议保留与目录 env 密钥审计', () => {
   const descriptor = normalizeConnectorDescriptor({
     id: 'local-tools', name: 'Local Tools', auth: { mode: 'none' },
     servers: [{ serverKey: 'main', transport: 'stdio', command: 'npx', args: ['-y', 'server'], serverName: 'local-tools' }],
@@ -238,7 +238,7 @@ test('stdio 描述校验、SSE 归一化与目录 env 密钥审计', () => {
   }), /command 必填/);
   assert.equal(normalizeConnectorDescriptor({
     id: 'legacy', name: 'Legacy', servers: [{ serverKey: 'main', transport: 'sse', url: 'https://mcp.example.com/sse', serverName: 'legacy' }],
-  }).servers[0].transport, 'streamable-http');
+  }).servers[0].transport, 'sse');
   assert.throws(() => auditDescriptor(normalizeConnectorDescriptor({
     id: 'secret-env', name: 'Secret env', auth: { mode: 'none' },
     servers: [{ serverKey: 'main', transport: 'stdio', command: 'npx', env: { GITHUB_TOKEN: 'x' }, serverName: 'secret-env' }],
@@ -343,9 +343,9 @@ test('HTTP Server 可声明 oauthResource：请求 URL 与 OAuth 资源标识解
     '未声明 oauthResource 时行为与旧版一致');
 });
 
-test('旧 connection record 的 SSE 归一化，stdio 字段保留', () => {
+test('旧 connection record 的 SSE 协议保留，stdio 字段保留', () => {
   const base = { key: 'x', connectorId: 'x', kind: 'json', name: 'X', serverName: 'x', createdAt: 1, updatedAt: 1 };
-  assert.equal(normalizeConnectionRecord({ ...base, transport: 'sse', url: 'https://mcp.example.com/sse' }).transport, 'streamable-http');
+  assert.equal(normalizeConnectionRecord({ ...base, transport: 'sse', url: 'https://mcp.example.com/sse' }).transport, 'sse');
   const stdio = normalizeConnectionRecord({ ...base, transport: 'stdio', command: 'uvx', args: ['server'], env: { MODE: 'test' } });
   assert.equal(stdio.command, 'uvx');
   assert.deepEqual(stdio.env, { MODE: 'test' });
