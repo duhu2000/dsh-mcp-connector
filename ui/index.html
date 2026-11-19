@@ -668,6 +668,7 @@
     "connect": "Connect",
     "切换界面语言": "Change interface language",
     "切换语言将重新加载面板，未保存的编辑会丢失。继续吗？": "Changing the language reloads this panel and discards unsaved edits. Continue?",
+    "DSH 语言已更改；关闭当前编辑或详情后自动应用，未保存内容不会丢失。": "The DSH language changed. It will apply after you close the current editor or details; unsaved content is preserved.",
 "、…等共 {count} 个": ", … {count} total",
 "{message}\n{affected}\n\n目标：{target}\n确认替换原有范围？{warning}": "{message}\n{affected}\n\nTarget: {target}\nReplace the current scopes? {warning}",
 "历史已有连接基线：{count} 张卡片，未验证前不计成功，验证后也不计新增。": "Historical baseline: {count} cards. Unverified cards do not count as successful; verification does not count them as new.",
@@ -1210,7 +1211,7 @@
   // 面板是独立 HTML，不能 import ES 模块，所以这里内联等价实现（纯函数）。
   const DEFAULT_LOCALE = 'zh-CN';
   const LANGUAGE_STORAGE_KEY = 'mcp-connector.ui-language';
-  const ACTIVE_LOCALE = detectLocale();
+  let ACTIVE_LOCALE = detectLocale();
   document.documentElement.lang = ACTIVE_LOCALE;
 
   /** 归一化语言标签：zh* → zh-CN，en* → en，其它返回 undefined。 */
@@ -1224,11 +1225,8 @@
     return undefined;
   }
 
-  /**
-   * 语言优先级：当前面板参数 → 浏览器中主动选择 → Host 注入 → locale 参数 → HTML。
-   * 无法识别或不受支持一律回退中文（中文仍是默认界面）。
-   */
-  function detectLocale() {
+  /** Explicit panel/browser/plugin choices win over the live Host default. */
+  function explicitLocale() {
     // Explicit panel choice affects this view only, never Host permissions/config.
     try {
       const choice = normalizeLocale(new URLSearchParams(window.location.search || '').get('uiLocale'));
@@ -1238,16 +1236,24 @@
       const saved = normalizeLocale(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
       if (saved) return saved;
     } catch { /* Storage may be unavailable in embedded/private contexts. */ }
-    const fromHost = normalizeLocale(window.__MCP_CONNECTOR_LOCALE__);
-    if (fromHost !== undefined) return fromHost;
+    if (window.__MCP_CONNECTOR_LOCALE_EXPLICIT__ === true) {
+      return normalizeLocale(window.__MCP_CONNECTOR_LOCALE__);
+    }
+    return undefined;
+  }
+
+  function detectLocale() {
+    const explicit = explicitLocale();
+    if (explicit) return explicit;
     let requested = '';
     try { requested = new URLSearchParams(window.location.search || '').get('locale') || ''; } catch { /* 无 location 时按未指定处理 */ }
     const configured = requested.trim();
     if (configured !== '' && configured.toLowerCase() !== 'auto') {
       return normalizeLocale(configured) ?? DEFAULT_LOCALE;
     }
+    const fromHost = normalizeLocale(window.__MCP_CONNECTOR_LOCALE__);
     const fromHtml = normalizeLocale(document.documentElement.getAttribute('lang'));
-    return fromHtml ?? DEFAULT_LOCALE;
+    return fromHost ?? fromHtml ?? DEFAULT_LOCALE;
   }
 
   /** `{name}` 占位符插值：只替换显式提供的字段，缺失的保留字面量。 */
@@ -1412,6 +1418,7 @@
   let viewRenderSequence = 0;
   let viewStateLoading = false;
   let pendingViewScroll = null;
+  let relocalizeView = null;
 
   function normalizeViewState(value) {
     const text = (s) => typeof s === 'string' ? s.slice(0, 500) : '';
@@ -1450,6 +1457,7 @@
   }
 
   function beginViewRender() {
+    relocalizeView = null;
     if (pendingViewScroll === null) saveViewState();
     viewStateLoading = true;
     return { sequence: ++viewRenderSequence, workspace: viewStateKey(), view };
@@ -1687,6 +1695,10 @@
 
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin || event.source !== window.parent) return;
+    if (event.data?.type === 'mcp-connector:host-locale') {
+      receiveHostLocale(event.data.locale);
+      return;
+    }
     if (event.data?.type === WORKSPACE_CONTEXT_RESULT_TYPE) {
       const workspace = event.data.workspace;
       const previousWorkspaceId = currentWorkspace?.workspaceId ?? null;
@@ -1759,6 +1771,7 @@
     $('.app').classList.toggle('detail-open', open);
     notifyDetailState(open);
     if (open) setTimeout(() => $('#detail-close').focus(), 0);
+    else flushHostLocale();
   }
 
   function closeDetail() {
@@ -2216,6 +2229,7 @@
     pendingPrompt = null;
     lastModalFocus?.focus?.();
     lastModalFocus = null;
+    flushHostLocale();
   }
   $('#modalMask').addEventListener('click', (e) => { if (e.target.id === 'modalMask') closeModal(); });
 
@@ -2244,6 +2258,7 @@
     // 焦点还给触发确认的元素，键盘位置不丢（原生框的失焦问题正在于此）。
     if (pending.returnFocus?.isConnected !== false) pending.returnFocus?.focus?.();
     pending.resolve(result);
+    flushHostLocale();
   }
 
   // 工具清单可能上百条：只列前若干项再补计数，避免确认框里堆一屏工具名。
@@ -2378,9 +2393,9 @@
     arrows[1].disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 1;
   }
 
-  function syncMarketNav() {
+  function syncMarketNav(force = false) {
     const nav = $('#market-nav');
-    if (view === 'market' && nav.querySelector('.category-chips')) {
+    if (!force && view === 'market' && nav.querySelector('.category-chips')) {
       nav.hidden = false;
       nav.querySelectorAll('[data-category-filter]').forEach(button => {
         const active = button.dataset.categoryFilter === marketCategory;
@@ -2466,8 +2481,9 @@
       updateAvailableWorkspaces(status.detail?.scope?.workspaces);
       setTabCount('installed', (status.detail?.items ?? []).length);
     }
-    if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     const items = r.detail?.items ?? [];
+    relocalizeView = () => {
+    if (!r.ok) { main.innerHTML = `<div class="empty">${esc(r.message)}</div>`; return; }
     setTabCount('market', items.length);
     if (!items.length) { main.innerHTML = `<div class="empty">${t('暂无已上架的连接器')}</div>`; return; }
     marketItems = {};
@@ -2482,8 +2498,10 @@
         : `<div class="empty">${t('没有匹配当前筛选条件的连接器')}</div>`;
     const firstUseBanner = status.ok && (status.detail?.items ?? []).length === 0 && !marketCategory && !searchQuery ? firstUseBannerHtml() : '';
     main.innerHTML = `${firstUseBanner}${resultHtml}`;
+    };
+    relocalizeView();
     if (preserveScroll) main.scrollTop = previousScrollTop;
-    if (checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
+    if (r.ok && checkHealth && !initialHealthCheckStarted && items.some((item) => item.connected?.length > 0)) {
       initialHealthCheckStarted = true;
       call('healthCheck', {}).then(() => {
         if (view === 'market') loadMarket({ checkHealth: false, preserveScroll: true });
@@ -2576,15 +2594,20 @@
     const sequence = ++explorerSequence;
     const workspaceId = currentWorkspace?.workspaceId;
     syncMarketNav();
-    if (!$('#tool-explorer')) {
+    const shellLocale = ACTIVE_LOCALE;
+    const renderShell = () => {
       main.innerHTML = `<section id="tool-explorer"><p class="hint">${t('搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。')}</p><div class="explorer-filters"><label>${t('explorerConnection')}<select id="explorer-connection" aria-label="${t('按连接筛选')}"></select></label><label>${t('explorerServer')}<select id="explorer-server" aria-label="${t('按服务筛选')}"></select></label><label>${t('发现状态')}<select id="explorer-status" aria-label="${t('按发现状态筛选')}"><option value="">${t('全部状态')}</option>${Object.keys(EXPLORER_STATUS).map((key) => `<option value="${key}">${esc(explorerStatusLabel(key))}</option>`).join('')}</select></label><button class="btn ghost" data-explorer-clear>${t('清除筛选')}</button></div><p id="explorer-summary" role="status">${t('正在读取缓存…')}</p><div id="explorer-connections"></div><div id="explorer-results"></div><div id="explorer-pages" class="m-actions"></div></section>`;
-    }
+    };
+    if (!$('#tool-explorer')) renderShell();
     const response = await call('toolExplorer', { ...workspaceParams(), ...explorerFilter, query: searchQuery, offset: explorerOffset, limit: 20 });
     if (!isViewRenderCurrent(render) || sequence !== explorerSequence || view !== 'tools' || workspaceId !== currentWorkspace?.workspaceId) return;
+    if (response.ok) explorerData = response.detail;
+    const { connections = [], selectedConnections = [], items = [], total = 0 } = response.detail ?? {};
+    if (response.ok && explorerOffset >= total && explorerOffset > 0) { explorerOffset = Math.max(0, Math.floor((total - 1) / 20) * 20); return loadToolExplorer(); }
+    relocalizeView = (rebuildShell = true) => {
+    const detailsOpen = $('#explorer-connections details')?.open;
+    if (rebuildShell) renderShell();
     if (!response.ok) { $('#explorer-summary').textContent = response.message; return; }
-    explorerData = response.detail;
-    const { connections = [], selectedConnections = [], items = [], total = 0 } = explorerData;
-    if (explorerOffset >= total && explorerOffset > 0) { explorerOffset = Math.max(0, Math.floor((total - 1) / 20) * 20); return loadToolExplorer(); }
     $('#explorer-connection').innerHTML = `<option value="">${t('全部连接')}</option>` + connections.map((c) => `<option value="${esc(c.connectionKey)}">${esc(c.connectionName)} · ${esc(c.serverName)}</option>`).join('');
     const services = [...new Set(connections.filter((c) => !explorerFilter.connectionKey || c.connectionKey === explorerFilter.connectionKey).map((c) => c.serverName))];
     $('#explorer-server').innerHTML = `<option value="">${t('全部服务')}</option>` + services.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
@@ -2595,6 +2618,12 @@
     $('#explorer-connections').innerHTML = `<details ${explorerFilter.connectionKey || !total ? 'open' : ''}><summary>${t('连接状态与故障处理（{count}）', { count: selectedConnections.length })}</summary>${selectedConnections.map((c) => `<div class="explorer-card"><strong>${esc(c.connectionName)}</strong><div>${esc(c.serverName)} · ${esc(explorerStatusLabel(c.status))} · ${t('缓存 {count} 个工具', { count: c.toolCount })}</div><div class="hint">${t('最近发现：{observed}；最后成功：{success}{stale}{truncated}', { observed: esc(formatObserved(c.checkedAt)), success: esc(formatObserved(c.observedAt)), stale: c.stale ? t(' · 缓存超过 24 小时') : '', truncated: c.cacheTruncated ? t(' · 缓存清单已截断') : '' })}</div>${explorerDiagnosticsHtml(c)}${c.retryReason === 'auth' ? `<p>${t('鉴权失败已暂停后台重试，请到已安装页更新凭据或重新授权。')}</p>` : c.nextDiscoveryAt ? `<p class="hint">${t('下次后台发现不早于：{at}（页面保持连接时）', { at: esc(formatObserved(c.nextDiscoveryAt)) })}</p>` : ''}<div class="m-actions"><button class="btn ghost" data-explorer-action="discover" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('重新发现工具')}</button><button class="btn ghost" data-explorer-action="check" data-key="${esc(c.connectionKey)}" ${explorerBusy.has(c.connectionKey) ? 'disabled' : ''}>${t('检查连接')}</button></div></div>`).join('') || `<p>${t('当前筛选下没有连接。')}</p>`}</details>`;
     $('#explorer-results').innerHTML = items.map((item, index) => `<article class="explorer-card"><strong>${esc(item.name)}</strong>${item.title !== item.name ? `<div>${esc(item.title)}</div>` : ''}<p>${esc(item.description || t('暂无描述'))}</p><div class="hint">${t('来源：{connector} / {connection} / {server}', { connector: esc(item.connection.connectorName), connection: esc(item.connection.connectionName), server: esc(item.serverName) })}<br>${esc(explorerStatusLabel(item.connection.status))} · ${t('最后成功缓存 {at}', { at: esc(formatObserved(item.observedAt)) })}${item.stale ? t(' · 已超过 24 小时') : ''}</div><button class="btn ghost" data-explorer-detail="${index}">${t('参数详情')}</button></article>`).join('') || `<p class="empty">${t(connections.length ? '没有匹配工具。请调整关键词或筛选；也可展开连接状态检查是否尚未发现或读取失败。' : '当前范围没有已启用连接。请先添加连接，或选择对应工作区。')}</p>`;
     $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>${t('上一页')}</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>${t('下一页')}</button>`;
+    if (rebuildShell && detailsOpen !== undefined) $('#explorer-connections details').open = detailsOpen;
+    };
+    const localeChanged = shellLocale !== ACTIVE_LOCALE;
+    const scrollTop = main.scrollTop;
+    relocalizeView(localeChanged);
+    if (localeChanged) main.scrollTop = scrollTop;
     } finally { finishViewRender(render); }
   }
 
@@ -2641,6 +2670,7 @@
     main.innerHTML = `<div class="empty">${t('加载中…')}</div>`;
     const [r, migration] = await Promise.all([call('status', workspaceParams()), call('migrationPreview', { scanStored: false })]);
     if (!isViewRenderCurrent(render)) return;
+    relocalizeView = () => {
     if (!r.ok) {
       main.innerHTML = `<div class="empty">${esc(r.message)}</div>`;
       if (preserveScroll) main.scrollTop = previousScrollTop;
@@ -2663,6 +2693,8 @@
     const filtered = items.filter(matchesSearch);
     const rollbackDisabled = scopeRollbackRevision === null ? 'disabled' : '';
     main.innerHTML = `${migrationHtml}<div class="stats"><span class="count">${t('共')} <strong>${filtered.length}</strong> ${t('条连接')}${searchQuery ? ` · ${t('搜索「{query}」', { query: esc(searchQuery) })}` : ''} · ${t('作用域 revision={revision}', { revision: scopeRevision })}</span><button class="btn ghost" id="scope-rollback" type="button" ${rollbackDisabled} onclick="window.__mcp.rollbackScope()">${t('回滚上次范围变更')}</button><button class="btn ghost" type="button" onclick="window.__mcp.openConnectionStatistics()">${t('本机连接统计')}</button><button class="btn ghost" id="config-backup" type="button" onclick="window.__mcp.openConfigBackup()">${t('配置备份')}</button><button class="btn ghost" type="button" title="${t('扫描企查查旧 OAuth 插件；不会删除旧插件或原凭据')}" onclick="window.__mcp.scanLegacy()">${t('检测企查查旧授权')}</button></div><div class="rows">${filtered.map(rowHtml).join('')}</div>${communityCtaHtml()}`;
+    };
+    relocalizeView();
     if (preserveScroll) main.scrollTop = previousScrollTop;
     } finally { finishViewRender(render); }
   }
@@ -3878,18 +3910,82 @@
     setAttr('#connection-policy', 'aria-label', '连接策略');
   }
 
+  let pendingHostLocale = null;
+  let localeFlushScheduled = false;
+
+  function receiveHostLocale(value) {
+    const next = normalizeLocale(value) ?? DEFAULT_LOCALE;
+    if (explicitLocale()) return;
+    pendingHostLocale = next === ACTIVE_LOCALE ? null : next;
+    if (pendingHostLocale && localeViewBusy()) {
+      showToast(t('DSH 语言已更改；关闭当前编辑或详情后自动应用，未保存内容不会丢失。'));
+    }
+    flushHostLocale();
+  }
+
+  function localeViewBusy() {
+    return $('#modalMask').classList.contains('show')
+      || $('#confirmMask').classList.contains('show')
+      || $('#detail-overlay').classList.contains('active');
+  }
+
+  function flushHostLocale() {
+    // Closing one dialog may synchronously open another. Wait until that handoff
+    // finishes before translating; never replace a form or detail document.
+    if (localeFlushScheduled) return;
+    localeFlushScheduled = true;
+    queueMicrotask(() => {
+      localeFlushScheduled = false;
+      if (explicitLocale()) { pendingHostLocale = null; return; }
+      if (!pendingHostLocale || localeViewBusy()) return;
+      ACTIVE_LOCALE = pendingHostLocale;
+      pendingHostLocale = null;
+      document.documentElement.lang = ACTIVE_LOCALE;
+      t.locale = ACTIVE_LOCALE;
+      const scrollTop = main.scrollTop;
+      const railScroll = $('#market-nav .category-chips')?.scrollLeft;
+      applyStaticLocale();
+      syncLanguageButtons();
+      syncMarketNav(true);
+      syncTabs();
+      // Reuse the current response, never a loading placeholder or a new request.
+      // An in-flight load has no renderer yet and will use the latest translator.
+      relocalizeView?.();
+      main.scrollTop = scrollTop;
+      const rail = $('#market-nav .category-chips');
+      if (rail && railScroll !== undefined) rail.scrollLeft = railScroll;
+    });
+  }
+
+  function syncLanguageButtons() {
+    for (const button of $('#ui-language').querySelectorAll('button[data-locale]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.locale === ACTIVE_LOCALE));
+    }
+    const link = $('#smart-control-link');
+    // Keep the existing bilingual link and the destination's explicit choice.
+    link.textContent = ACTIVE_LOCALE === 'en' ? 'Smart tools' : '智能工具';
+    link.href = `/mcp-connector/smart-control/?uiLocale=${ACTIVE_LOCALE}`;
+  }
+
   applyStaticLocale();
   const languageSwitch = $('#ui-language');
-  for (const button of languageSwitch.querySelectorAll('button[data-locale]')) {
-    button.setAttribute('aria-pressed', String(button.dataset.locale === ACTIVE_LOCALE));
-  }
+  syncLanguageButtons();
   let languageChangePending = false;
   languageSwitch.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-locale]');
     if (!button || languageChangePending) return;
     const choice = normalizeLocale(button.dataset.locale);
     if (!choice) return;
-    if (choice === ACTIVE_LOCALE) return;
+    if (choice === ACTIVE_LOCALE) {
+      // Clicking the active language is still an explicit choice, even when
+      // browser storage is blocked. Pin only this panel, never the Host locale.
+      try { window.localStorage.setItem(LANGUAGE_STORAGE_KEY, choice); } catch {}
+      const url = new URL(window.location.href);
+      url.searchParams.set('uiLocale', choice);
+      window.history.replaceState(null, '', url.href);
+      pendingHostLocale = null;
+      return;
+    }
     languageChangePending = true;
     if ($('#modalMask').classList.contains('show') && !await confirmDialog({
       title: t('切换界面语言'),
@@ -3905,13 +4001,13 @@
     .then((response) => response.ok ? response.json() : null).then((value) => {
       if (value?.enabled === true) {
         const link = $('#smart-control-link'); link.hidden = false;
-        link.textContent = ACTIVE_LOCALE === 'en' ? 'Smart tools' : '智能工具';
-        link.href = `/mcp-connector/smart-control/?uiLocale=${ACTIVE_LOCALE}`;
+        syncLanguageButtons();
       }
     }).catch(() => {});
   $('#first-use').addEventListener('click', () => { recordLocalConversion('quickStartOpened'); openFirstUse(); });
   if (viewStateReady) restoreViewState();
   requestWorkspaceContext();
+  if (window.parent !== window) window.parent.postMessage({ type: 'mcp-connector:host-locale-request' }, window.location.origin);
   connectStatusEvents();
   refresh();
 })();

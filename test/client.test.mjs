@@ -97,14 +97,7 @@ function clientContext({
       }
     : undefined;
   const ctx = {
-    // Cordis 官方「不要求 inject」的服务读取入口。`locale` 未写进 inject 列表，
-    // 直接读 ctx.locale 会抛 `cannot get property "locale" without inject`。
-    reflect: {
-      get(service) {
-        if (service === 'locale') return localeService;
-        return undefined;
-      },
-    },
+    reflect: { get() { throw new Error('Use the public ctx.get API'); } },
     effect(start) {
       start();
     },
@@ -132,6 +125,7 @@ function clientContext({
     workspaces,
     sessions,
     get(service) {
+      if (service === 'locale') return localeService;
       if (service === 'pluginNavigation') return pluginNavigation;
       if (service === 'uiWorkspace') return uiWorkspace;
       if (service === 'conversation') return { input: { shell: () => shell } };
@@ -1186,7 +1180,14 @@ async function hostPromptBridge(launch) {
     workspaceContext: () => null, workspaceOptions: () => [],
   });
   refs[0].current = { contentWindow: frame };
-  const dispose = effects[0]();
+  // Run the bridge effect, not the preceding locale-send effect.
+  const disposers = [];
+  for (const effect of effects) {
+    disposers.push(effect());
+    if (listeners.has('message')) break;
+  }
+  replies.length = 0;
+  const dispose = () => disposers.reverse().forEach(fn => fn?.());
   const dispatch = (data, extras = {}) => listeners.get('message')({ origin, source: frame, data, ...extras });
   return { dispatch, replies, closes, dispose, origin };
 }
@@ -1907,6 +1908,8 @@ async function upgradeHarness({
   desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, readProviderUpdate, nativeSidebar = false, readVersion,
 } = {}) {
   const hooks = [], effects = [], opened = [], copied = [];
+  const messages = [], messageListeners = new Map();
+  const frameWindow = { postMessage: (data, origin) => messages.push({ data, origin }) };
   const requests = [], closed = [], timers = new Map();
   let nextTimer = 0;
   let cursor = 0, dirty = true, tree, modalOpen = true;
@@ -1963,7 +1966,8 @@ async function upgradeHarness({
       },
       ...(desktopBridge ? { dshDesktop: { protocolVersion: 1 } } : {}),
       location: { origin: 'http://127.0.0.1:3080' },
-      addEventListener() {}, removeEventListener() {},
+      addEventListener(name, listener) { messageListeners.set(name, listener); },
+      removeEventListener(name) { messageListeners.delete(name); },
       setTimeout(fn) { timers.set(++nextTimer, fn); return nextTimer; }, clearTimeout(id) { timers.delete(id); },
       open(...args) { opened.push(args); },
       navigator: { clipboard: { async writeText(value) { copied.push(value); await writeText?.(value); } } },
@@ -1995,6 +1999,8 @@ async function upgradeHarness({
       if (dirty) {
         dirty = false; cursor = 0;
         tree = entry.component(props);
+        const frame = nodes().find(node => node.type === 'iframe');
+        if (frame) frame.props.ref.current = { contentWindow: frameWindow };
       }
       for (const effect of effects.splice(0)) effect();
       await new Promise((resolve) => setImmediate(resolve));
@@ -2005,7 +2011,11 @@ async function upgradeHarness({
   const button = (text) => nodes().find((node) => node.type === 'button' && node.props?.children === text);
   await settle();
   return {
-    nodes, button, opened, copied, requests, closed, settle,
+    nodes, button, opened, copied, requests, closed, settle, messages,
+    requestLocale(extras = {}) {
+      messageListeners.get('message')({ source: frameWindow, origin: 'http://127.0.0.1:3080',
+        data: { type: 'mcp-connector:host-locale-request' }, ...extras });
+    },
     async remountSidebar() {
       assert.ok(nativeSidebar);
       for (const hook of hooks) hook?.cleanup?.();
@@ -2532,10 +2542,21 @@ test('live host locale updates open panel chrome without navigating its iframe',
     const ui = await upgradeHarness({ localeService, nativeSidebar });
     const frame = () => ui.nodes().find(node => node.type === 'iframe');
     const initialSrc = frame().props.src;
+    assert.match(initialSrc, /\?locale=zh-CN$/);
+    assert.deepEqual(ui.messages.at(-1), { data: { type: 'mcp-connector:host-locale', locale: 'zh-CN' }, origin: 'http://127.0.0.1:3080' });
     assert.equal(frame().props.title, 'MCP连接器');
     localeService.publish('en-US');
     await ui.settle();
     assert.equal(frame().props.title, 'MCP Connector');
+    assert.deepEqual(ui.messages.at(-1), { data: { type: 'mcp-connector:host-locale', locale: 'en' }, origin: 'http://127.0.0.1:3080' });
+    const count = ui.messages.length;
+    ui.requestLocale({ source: {} });
+    ui.requestLocale({ origin: 'https://other.example' });
+    assert.equal(ui.messages.length, count);
+    ui.requestLocale();
+    assert.equal(ui.messages.length, count + 1);
+    frame().props.onLoad();
+    assert.equal(ui.messages.at(-2).data.locale, 'en', 'load handshake carries latest language');
     assert.equal(frame().props.src, initialSrc, 'a host switch must not reload unsaved iframe forms');
     localeService.publish('zh-CN');
     await ui.settle();
@@ -2620,7 +2641,64 @@ test('live host locale subscription is released with the optional provider', asy
   host.providerCleanup.get('locale')();
   assert.equal(localeService.listenerCount(), 0);
   localeService.publish('zh');
-  assert.equal(label(), 'MCP Connector', 'disposed provider cannot update client copy');
+  assert.equal(label(), 'MCP连接器', 'removed provider falls back and cannot update client copy');
+});
+
+test('optional locale arrives late, is replaced, and ignores disposed callbacks', async () => {
+  const plugin = await loadClient();
+  const host = clientContext({ nativeSidebar: true });
+  let provider, mount, cleanup;
+  const originalGet = host.ctx.get;
+  host.ctx.get = name => name === 'locale' ? provider : originalGet(name);
+  const originalInject = host.ctx.inject;
+  host.ctx.inject = (names, callback) => {
+    if (names[0] === 'locale') mount = callback;
+    else originalInject(names, callback);
+  };
+  plugin.apply(host.ctx);
+  const label = () => host.registrations.get('sidebar.panellist').options.label();
+  assert.equal(label(), 'MCP连接器');
+  const first = mutableLocale('en-US');
+  let staleCallback;
+  const firstSubscribe = first.subscribe;
+  first.subscribe = callback => { staleCallback = callback; return firstSubscribe(callback); };
+  provider = first;
+  mount({ ...host.ctx, effect(start) { cleanup = start(); } });
+  assert.equal(label(), 'MCP Connector');
+  assert.equal(first.listenerCount(), 1);
+  cleanup();
+  assert.equal(first.listenerCount(), 0);
+  const second = mutableLocale('zh');
+  provider = second;
+  mount({ ...host.ctx, effect(start) { cleanup = start(); } });
+  staleCallback();
+  first.publish('en');
+  assert.equal(label(), 'MCP连接器');
+  second.publish('en');
+  assert.equal(label(), 'MCP Connector');
+  second.publish('fr');
+  assert.equal(label(), 'MCP连接器', 'unsupported Host locales retain the Chinese fallback');
+  cleanup();
+  assert.equal(second.listenerCount(), 0);
+});
+
+test('locale works without optional inject and tolerates unavailable services', async () => {
+  for (const throws of [false, true]) {
+    const plugin = await loadClient();
+    const locale = mutableLocale('en');
+    const host = clientContext({ localeService: locale, nativeSidebar: true });
+    delete host.ctx.inject;
+    const cleanups = [];
+    host.ctx.effect = start => { cleanups.push(start()); };
+    if (throws) {
+      const get = host.ctx.get;
+      host.ctx.get = name => { if (name === 'locale') throw Error('unavailable'); return get(name); };
+    }
+    plugin.apply(host.ctx);
+    assert.equal(host.registrations.get('sidebar.panellist').options.label(), throws ? 'MCP连接器' : 'MCP Connector');
+    for (const cleanup of cleanups.reverse()) cleanup?.();
+    assert.equal(locale.listenerCount(), 0);
+  }
 });
 
 test('用户选了英文时，侧边栏文案为英文', async () => {
