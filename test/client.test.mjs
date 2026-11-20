@@ -1878,10 +1878,12 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
 async function upgradeHarness({
   profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', writeText,
   desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, readProviderUpdate, readCapabilities, nativeSidebar = false, readVersion,
+  sessionStorage, reload, providerResponse,
 } = {}) {
   const hooks = [], effects = [], opened = [], copied = [];
   const requests = [], closed = [], timers = new Map();
   let nextTimer = 0;
+  const delays = new Map();
   let cursor = 0, dirty = true, tree, modalOpen = true;
   let detail = {
     profileName, profileInfo, installedVersion: '0.2.24', latestVersion, updateAvailable: true,
@@ -1914,9 +1916,14 @@ async function upgradeHarness({
     },
     windowExtras: {
       fetch: async (url, options = {}) => {
-        requests.push({ url, method: options.method ?? 'GET' });
+        const request = { url, method: options.method ?? 'GET' };
+        requests.push(request);
+        if (providerResponse) {
+          const response = await providerResponse(url, options);
+          if (response) return response;
+        }
         if (url === '/mcp-connector/api') {
-          requests.at(-1).force = JSON.parse(options.body).params.force;
+          request.force = JSON.parse(options.body).params.force;
           return readVersion ? readVersion(detail) : Response.json({ ok: true, detail });
         }
         if (readCapabilities && url === '/dsh-market/api/v1/capabilities') return readCapabilities();
@@ -1934,9 +1941,9 @@ async function upgradeHarness({
         return new Response('', { status: 404 });
       },
       ...(desktopBridge ? { dshDesktop: { protocolVersion: 1 } } : {}),
-      location: { origin: 'http://127.0.0.1:3080' },
+      sessionStorage, location: { origin: 'http://127.0.0.1:3080', reload },
       addEventListener() {}, removeEventListener() {},
-      setTimeout(fn) { timers.set(++nextTimer, fn); return nextTimer; }, clearTimeout(id) { timers.delete(id); },
+      setTimeout(fn, delay) { timers.set(++nextTimer, fn); delays.set(nextTimer, delay); return nextTimer; }, clearTimeout(id) { timers.delete(id); },
       open(...args) { opened.push(args); },
       navigator: { clipboard: { async writeText(value) { copied.push(value); await writeText?.(value); } } },
     },
@@ -1978,6 +1985,13 @@ async function upgradeHarness({
   await settle();
   return {
     nodes, button, opened, copied, requests, closed, settle,
+    async fireTimer(delay) {
+      const entry = [...timers].find(([id]) => delays.get(id) === delay);
+      assert.ok(entry, `No pending timer for ${delay} ms`);
+      timers.delete(entry[0]);
+      await entry[1]();
+      await settle();
+    },
     async remountSidebar() {
       assert.ok(nativeSidebar);
       for (const hook of hooks) hook?.cleanup?.();
@@ -2296,6 +2310,59 @@ const webOffer = { name: 'dsh-mcp-connector', installedVersion: '0.2.24', latest
 const checkingDirectUpdate = '正在确认能否直接更新…';
 const hasText = (nodes, text) => nodes.some(node => node.props?.children === text);
 const installPosts = ui => ui.requests.filter(({ method, url }) => method === 'POST' && url === '/provider/updates');
+
+test('Web restores the in-flight install, restarts once and returns only when the replacement serves the target', async () => {
+  const data = new Map();
+  const sessionStorage = { getItem: key => data.get(key), setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
+  let boot = 'first', running = webOffer.installedVersion, reloads = 0, restartPosts = 0;
+  const schema = 'dsh-market/update-api/v1';
+  const opts = {
+    nativeSidebar: true, sessionStorage, providerUpdate: webOffer, reload() { reloads++; },
+    readVersion(detail) { return Response.json({ ok: true, detail: { ...detail, installedVersion: running } }); },
+    readCapabilities() { return Response.json({ schema, apiVersion: 1, bootId: boot, features: { update: true },
+      restart: { supported: true }, endpoints: { updates: '/provider/updates', operations: '/provider/operations', restart: '/provider/restart' } }); },
+    providerResponse(url) {
+      if (url.startsWith('/provider/operations?')) return Response.json({ schema, operation: {
+        operationId: 'update-1', state: 'succeeded', beforeVersion: webOffer.installedVersion,
+        installedVersion: webOffer.latestVersion, outcome: { restartRequired: true },
+      } });
+      if (url === '/provider/restart') { restartPosts++; throw new TypeError('connection closed'); }
+    },
+  };
+  const start = await upgradeHarness(opts);
+  await start.button('更新到 v0.2.25').props.onClick();
+  assert.equal(installPosts(start).length, 1);
+  const replaced = await upgradeHarness(opts);
+  assert.deepEqual(replaced.closed, [['selectPanel', 'mcp-connector']]);
+  await replaced.fireTimer(1000);
+  const restart = replaced.button('立即重启');
+  assert.ok(restart);
+  restart.props.onClick();
+  restart.props.onClick();
+  await replaced.settle();
+  assert.equal(restartPosts, 1);
+  const reconnecting = await upgradeHarness(opts);
+  running = webOffer.latestVersion;
+  await reconnecting.fireTimer(1000);
+  assert.equal(reloads, 0, 'the old process can still answer');
+  boot = 'replacement';
+  running = webOffer.installedVersion;
+  await reconnecting.fireTimer(1000);
+  assert.equal(reloads, 0, 'a replacement serving the wrong version is not ready');
+  await reconnecting.fireTimer(60000);
+  assert.ok(reconnecting.button('重新连接'));
+  running = webOffer.latestVersion;
+  reconnecting.button('重新连接').props.onClick();
+  await reconnecting.settle();
+  assert.equal(reloads, 1);
+  assert.equal(restartPosts, 1);
+  assert.equal(installPosts(replaced).length + installPosts(reconnecting).length, 0);
+  const restored = await upgradeHarness(opts);
+  assert.deepEqual(restored.closed, [['selectPanel', 'mcp-connector']]);
+  assert.equal(restored.button('立即重启'), undefined);
+  assert.equal(data.size, 0);
+  assert.deepEqual((await upgradeHarness(opts)).closed, [], 'later visits open normally');
+});
 
 test('Web retains an immediately actionable fresh offer and shows just one status while rechecking an expired offer', async (t) => {
   let now = Date.now();
