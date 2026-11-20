@@ -14,6 +14,10 @@ if (process.env.DSH_HOST_INTEGRATION_ANCHOR) {
   const load = (name) => import(pathToFileURL(require.resolve(name)).href);
   host = { ...await load('@deepseek-ai/cordis'), ...await load('@deepseek-ai/dsh-tools'),
     bridge: await load('@deepseek-ai/dsh-mcp-client') };
+  if (typeof host.ToolRuntime.prototype.selectExecutor === 'function') {
+    const executorRequire = createRequire(require.resolve('@deepseek-ai/dsh-agent-loop'));
+    host.native = await import(pathToFileURL(executorRequire.resolve('@deepseek-ai/dsh-tool-executor-native')).href);
+  }
 }
 
 test('real Host → Streamable HTTP: invalid args blocked, nested args unchanged on wire', { skip: !host, timeout: 20000 }, async (t) => {
@@ -37,6 +41,7 @@ test('real Host → Streamable HTTP: invalid args blocked, nested args unchanged
   const root = new host.Context();
   root.provide('systemPrompt', { tools() {} });
   root.plugin(host.ToolRuntime);
+  if (host.native) root.plugin(host.native);
   try {
     await new Promise((resolve, reject) => root.plugin({ inject: ['tools'], async apply(ctx) {
       let guard;
