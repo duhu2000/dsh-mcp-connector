@@ -2594,9 +2594,9 @@
     const sequence = ++explorerSequence;
     const workspaceId = currentWorkspace?.workspaceId;
     syncMarketNav();
-    const shellLocale = ACTIVE_LOCALE;
     const renderShell = () => {
       main.innerHTML = `<section id="tool-explorer"><p class="hint">${t('搜索当前范围内已启用连接的工具缓存；不会执行工具。最近发现成功不代表每次调用均可成功。')}</p><div class="explorer-filters"><label>${t('explorerConnection')}<select id="explorer-connection" aria-label="${t('按连接筛选')}"></select></label><label>${t('explorerServer')}<select id="explorer-server" aria-label="${t('按服务筛选')}"></select></label><label>${t('发现状态')}<select id="explorer-status" aria-label="${t('按发现状态筛选')}"><option value="">${t('全部状态')}</option>${Object.keys(EXPLORER_STATUS).map((key) => `<option value="${key}">${esc(explorerStatusLabel(key))}</option>`).join('')}</select></label><button class="btn ghost" data-explorer-clear>${t('清除筛选')}</button></div><p id="explorer-summary" role="status">${t('正在读取缓存…')}</p><div id="explorer-connections"></div><div id="explorer-results"></div><div id="explorer-pages" class="m-actions"></div></section>`;
+      $('#tool-explorer').dataset.locale = ACTIVE_LOCALE;
     };
     if (!$('#tool-explorer')) renderShell();
     const response = await call('toolExplorer', { ...workspaceParams(), ...explorerFilter, query: searchQuery, offset: explorerOffset, limit: 20 });
@@ -2620,7 +2620,8 @@
     $('#explorer-pages').innerHTML = `<button class="btn ghost" data-explorer-page="prev" ${explorerOffset === 0 ? 'disabled' : ''}>${t('上一页')}</button><span>${Math.floor(explorerOffset / 20) + 1} / ${Math.max(1, Math.ceil(total / 20))}</span><button class="btn ghost" data-explorer-page="next" ${explorerOffset + 20 >= total ? 'disabled' : ''}>${t('下一页')}</button>`;
     if (rebuildShell && detailsOpen !== undefined) $('#explorer-connections details').open = detailsOpen;
     };
-    const localeChanged = shellLocale !== ACTIVE_LOCALE;
+    // A newer request can reuse filters rendered by an older request in another locale.
+    const localeChanged = $('#tool-explorer')?.dataset.locale !== ACTIVE_LOCALE;
     const scrollTop = main.scrollTop;
     relocalizeView(localeChanged);
     if (localeChanged) main.scrollTop = scrollTop;
@@ -3938,12 +3939,13 @@
       localeFlushScheduled = false;
       if (explicitLocale()) { pendingHostLocale = null; return; }
       if (!pendingHostLocale || localeViewBusy()) return;
+      // Changing lang can reflow content and trigger scroll anchoring on the next layout read.
+      const scrollTop = main.scrollTop;
+      const railScroll = $('#market-nav .category-chips')?.scrollLeft;
       ACTIVE_LOCALE = pendingHostLocale;
       pendingHostLocale = null;
       document.documentElement.lang = ACTIVE_LOCALE;
       t.locale = ACTIVE_LOCALE;
-      const scrollTop = main.scrollTop;
-      const railScroll = $('#market-nav .category-chips')?.scrollLeft;
       applyStaticLocale();
       syncLanguageButtons();
       syncMarketNav(true);

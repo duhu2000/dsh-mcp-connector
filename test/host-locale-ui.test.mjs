@@ -154,3 +154,74 @@ test('dialog-to-dialog handoff does not translate or replace the new editor', ()
   p.node('#confirmMask').classes.delete('show'); p.run('flushHostLocale()'); p.flush();
   assert.equal(p.run('ACTIVE_LOCALE'), 'en');
 });
+
+test('locale adoption captures scroll before lang-triggered layout and anchoring', () => {
+  const p = panel();
+  p.context.main.scrollTop = 600;
+  let lang = 'zh-CN';
+  Object.defineProperty(p.context.document.documentElement, 'lang', {
+    get: () => lang,
+    set(value) { lang = value; p.context.main.scrollTop += 2; },
+  });
+  p.receive('en'); p.flush();
+  assert.equal(lang, 'en');
+  assert.equal(p.context.main.scrollTop, 600);
+});
+
+test('out-of-order Explorer searches translate reused filters and retain the newest data', async () => {
+  for (const order of [[1, 0], [0, 1]]) {
+    const p = panel(), pending = [], elements = new Map();
+    let content = '';
+    const node = selector => elements.get(selector) ?? null;
+    const main = {
+      scrollTop: 600,
+      get innerHTML() { return content; },
+      set innerHTML(value) {
+        content = value;
+        elements.clear();
+        elements.set('#tool-explorer', { dataset: { locale: /data-locale="([^"]+)"/.exec(value)?.[1] } });
+        for (const id of ['connection', 'server', 'status', 'summary', 'connections', 'results', 'pages']) {
+          elements.set(`#explorer-${id}`, { innerHTML: '', textContent: '', value: '' });
+        }
+        elements.set('#explorer-connections details', { open: true });
+      },
+    };
+    Object.assign(p.context, {
+      $: node, main, view: 'tools', viewRenderSequence: 0, viewStateLoading: false,
+      viewStateKey: () => 'fixture', saveViewState() {}, currentWorkspace: null,
+      explorerSequence: 0, explorerOffset: 0, explorerData: {}, explorerBusy: new Set(),
+      explorerFilter: { connectionKey: 'fixture', serverName: 'server', status: 'success' },
+      searchQuery: '', workspaceParams: () => ({}), esc: String,
+      t: value => `${p.run('ACTIVE_LOCALE')}:${value}`,
+      call: (method, params) => new Promise(resolve => pending.push({ method, params, resolve })),
+    });
+    vm.runInContext(section('  function beginViewRender(', '  async function call('), p.context);
+    vm.runInContext(section('  const EXPLORER_STATUS =', "  main.addEventListener('scroll',"), p.context);
+    const first = p.run('loadToolExplorer()');
+    p.run("ACTIVE_LOCALE = 'en'; searchQuery = 'fixture'");
+    const second = p.run('loadToolExplorer()');
+    assert.equal(pending.length, 2);
+    assert.equal(pending[0].params.query, '');
+    assert.equal(pending[1].params.query, 'fixture');
+    for (const index of order) {
+      const connection = { connectionKey: 'fixture', connectionName: 'Fixture', serverName: 'server', status: 'success' };
+      pending[index].resolve({ ok: true, detail: {
+        connections: [connection], selectedConnections: [connection], total: 40, scopeLabel: 'Fixture',
+        items: [{ name: index ? 'newest_tool' : 'obsolete_tool', title: 'Fixture', connection, serverName: 'server' }],
+      } });
+      await (index ? second : first);
+      if (index === 1 || order[0] === 1) {
+        assert.match(content, /aria-label="en:按连接筛选"/);
+        assert.match(content, />en:清除筛选<\/button>/);
+        assert.match(node('#explorer-pages').innerHTML, /en:下一页/);
+        assert.match(node('#explorer-results').innerHTML, /newest_tool/);
+        assert.doesNotMatch(node('#explorer-results').innerHTML, /obsolete_tool/);
+        assert.equal(node('#explorer-connection').value, 'fixture');
+        assert.equal(node('#explorer-server').value, 'server');
+        assert.equal(node('#explorer-status').value, 'success');
+        assert.equal(node('#explorer-connections details').open, true);
+      }
+    }
+    assert.equal(pending.length, 2);
+  }
+});
