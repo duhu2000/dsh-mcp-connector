@@ -98,6 +98,10 @@ jobs:
           @deepseek-ai/dsh@0.2.2-rc.1
       - name: Offline contracts must run without skips
         run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
+      - name: Nested MCP arguments against the real Host and loopback HTTP
+        env:
+          DSH_HOST_INTEGRATION_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+        run: node --test test/tool-input-guard.test.mjs test/tool-input-guard-host.test.mjs
       - run: npm install --global pnpm@11.1.1 --ignore-scripts
       - name: Actual package install, upgrade, process restart and stable downgrade
         env:
