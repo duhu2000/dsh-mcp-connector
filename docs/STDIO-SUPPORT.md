@@ -690,3 +690,12 @@ Key 通过本机环境变量 `ZERONE_API_KEY` 传入，启动后从进程环境�
 桥接支持 `initialize`、`ping`、`tools/list`（保留分页游标）、`tools/call`；不宣称支持远端 Prompt、Resource、采样或双向通知。请求携带远端会话 ID，支持 JSON / SSE 响应，拒绝重定向，错误使用固定文本，响应中原样或编码后的密钥会被脱敏。请求失败或超时不会自动重试业务工具。网络代理沿用本机 HTTP(S) 代理环境配置。
 
 开发者可从源码运行 `node scripts/zerone-bridge.mjs --service pe`；生产卡片必须固定到已经正式发布、实际包含该命令的 npm 版本，不能引用尚未发布的未来版本。两个服务账号权限分别验收，一项读取成功不代表所有工具或另一个服务通过。
+
+
+## 聚源 Token 适配
+
+`dsh-gildata-mcp-bridge` 将本机 `GILDATA_API_KEY` 环境变量中的 Token 注入聚源官方金融综合问数端点的 `token` 查询参数。仅允许固定端点 `https://api.gildata.com/mcp-servers/aidata-assistant-srv-tool`，不接收 URL 或 Key 命令行参数，不跟随重定向、不自动重试。使用 Registry 卡片时，在本机凭据表单中填写 Token；不得把它写入公开卡片。
+
+该入口仅透传 tools/list 与 tools/call，支持 JSON/SSE 返回及 MCP 会话；不声明 resources/prompts 支持。单次请求超时为 180 秒；宿主也需允许相应等待时间，超时不意味着未计费。上游仍以 URL Token 鉴权，服务方及本机所配置代理的日志管理不由桥接器控制。
+
+验收范围：原始连接 FinQuery 单次公司财务查询已通过；新桥接连接与9工具发现已通过，桥接业务参数透传由本地模拟验证，未重复收费业务查询。
