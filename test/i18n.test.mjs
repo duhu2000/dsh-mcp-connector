@@ -168,11 +168,11 @@ test('未声明 locale 时，auto 之外的配置完全不触碰语言服务', a
   assert.equal(resolveLocale('en', {}), 'en');
 });
 
-test('客户端通过 ctx.reflect.get 读取可选 locale 服务，不用 ctx.locale', async () => {
+test('客户端通过公共 ctx.get 读取可选 locale 服务，不用 ctx.locale', async () => {
   // 回归：`locale` 没有写进 client bundle 的 inject 列表，Cordis 的上下文代理在读取
   // 未注入属性时直接抛 `cannot get property "locale" without inject`，可选链拦不住。
   // 旧实现用 try/catch 吞掉异常 → activeLocale 永远是中文，侧边栏/设置卡片即使
-  // 用户选了英文也显示中文。reflect.get 是官方「不要求 inject」的读取入口。
+  // 用户选了英文也显示中文。使用公共 ctx.get 读取可选服务。
   const src = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
   const decl = src.match(/const inject = \[([\s\S]*?)\];/)[1];
   assert.equal(/"locale"/.test(decl), false,
@@ -184,9 +184,9 @@ test('客户端通过 ctx.reflect.get 读取可选 locale 服务，不用 ctx.lo
     .filter((l) => !l.trim().startsWith('//'))
     .join('\n');
   assert.equal(/ctx\??\.locale\b/.test(code), false,
-    '客户端不得直接访问 ctx.locale，必须走 ctx.reflect.get("locale")');
-  assert.match(code, /ctx\?\.reflect\?\.get\?\.\("locale"\)/,
-    '客户端应通过 ctx.reflect.get("locale") 读取语言服务');
+    '客户端不得直接访问未注入的 ctx.locale');
+  assert.match(code, /ctx\?\.get\?\.\("locale"\)/,
+    '客户端应通过公共 ctx.get("locale") 读取语言服务');
 });
 
 test('侧边栏 label 传函数，语言变化后无需重新注册即可生效', async () => {
