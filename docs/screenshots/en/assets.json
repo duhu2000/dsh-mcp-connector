@@ -4,7 +4,7 @@
     "locale": "en",
     "capturedOn": "2026-11-21",
     "sourceVersion": "0.2.119",
-    "sourceFingerprint": "19cac1ab493d33bcd48c8270a5d54cc1d73b4a2aa0954d5dfee8ad4733678cf9",
+    "sourceFingerprint": "b78c2a018c372ac606a544035787b842b61892a1d2f15edec3f9690cedeaf6fa",
     "browserViewport": {
       "width": 1280,
       "height": 720
@@ -33,7 +33,7 @@
     },
     {
       "path": "docs/screenshots/en/03-tool-discovery.jpg",
-      "sha256": "0b68adaaa581d582abcc5996ec2c9b2380011df4d9d8159bc6c6d41cf50b23b2",
+      "sha256": "48c2e04a5e7194ede9684df83e42d40760d7eb885f0a6b83cde20b5a10c99745",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-21",
@@ -41,7 +41,7 @@
     },
     {
       "path": "docs/screenshots/en/04-json-import.jpg",
-      "sha256": "493144b68ab7ef59671e6905e3a5d457111a3ec5305fcdd9cc20d71bad14f807",
+      "sha256": "b8fe9cf3e944f59fabc9aa11e706237f03b8c5ff05d2d2667800d8f5d201a460",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-21",
@@ -49,7 +49,7 @@
     },
     {
       "path": "docs/screenshots/en/05-unified-tool-search.png",
-      "sha256": "4c7d044839fb4ead1b9db5ea409720d4f34b2c47a072182973fe7e07ee0f9ccf",
+      "sha256": "e83cdce2e033f2f9015ab2df3fd25c8cd42c8628cf89d4bd6573b3565e4ac33b",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-21",
@@ -57,7 +57,7 @@
     },
     {
       "path": "docs/screenshots/en/06-tool-parameters.png",
-      "sha256": "691271af47d4cb4a4aa353795926e826d59b4dae27546fbf377353fd20c827b1",
+      "sha256": "49e6fcbeeb13f3757b380f03f9f51e75b884fb2dba667bd2a54ce9011e06bc62",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-21",
@@ -65,7 +65,7 @@
     },
     {
       "path": "docs/screenshots/en/07-connection-diagnostics.png",
-      "sha256": "f49b6feade56ffe5bbf08cc6574f22b7f0d9841d752a6ba53176724a3ca01c40",
+      "sha256": "fc8ee05e098c54a29c2a13bd40fce044215aa3de0bc47db05a9d5518dba2f34c",
       "width": 1280,
       "height": 720,
       "capturedOn": "2026-11-21",
@@ -87,7 +87,7 @@
   ],
   "demo": {
     "path": "docs/screenshots/en/demo.gif",
-    "sha256": "4e65b4c3d8db983fe4900a8d381a3532d0ee22ebe7471c3dd96c486fa19a9032",
+    "sha256": "0e4e475823628aeaf128b778686aecc59a36632465edd75b7f79013c7867c0d5",
     "width": 960,
     "height": 540,
     "capturedOn": "2026-11-21",
