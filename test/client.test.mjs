@@ -23,7 +23,7 @@ async function loadClient({
       load(definition) {
         plugin = definition.factory((id) => {
           if (id === 'react/jsx-runtime') return jsxRuntime;
-          if (id === 'react') return reactApi;
+          if (id === 'react') return { useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(), ...reactApi };
           if (id === 'react-dom') return reactDomApi;
           throw new Error(`unexpected client import: ${id}`);
         });
@@ -45,6 +45,7 @@ function clientContext({
   nativeSidebar = false,
   layout,
   locale,
+  localeService = locale === undefined ? undefined : { getLocale: () => ({ active: locale }) },
 } = {}) {
   const registrations = new Map();
   const registrationOrder = [];
@@ -96,14 +97,7 @@ function clientContext({
       }
     : undefined;
   const ctx = {
-    // Cordis 官方「不要求 inject」的服务读取入口。`locale` 未写进 inject 列表，
-    // 直接读 ctx.locale 会抛 `cannot get property "locale" without inject`。
-    reflect: {
-      get(service) {
-        if (service === 'locale' && locale !== undefined) return { getLocale: () => ({ active: locale }) };
-        return undefined;
-      },
-    },
+    reflect: { get() { throw new Error('Use the public ctx.get API'); } },
     effect(start) {
       start();
     },
@@ -131,6 +125,7 @@ function clientContext({
     workspaces,
     sessions,
     get(service) {
+      if (service === 'locale') return localeService;
       if (service === 'pluginNavigation') return pluginNavigation;
       if (service === 'uiWorkspace') return uiWorkspace;
       if (service === 'conversation') return { input: { shell: () => shell } };
@@ -139,7 +134,7 @@ function clientContext({
     },
   };
   if (layout !== undefined) ctx.layout = layout;
-  const providers = { settingsScope, configForms };
+  const providers = { settingsScope, configForms, locale: localeService };
   const providerCleanup = new Map();
   ctx.inject = (services, callback) => {
     const name = services[0];
@@ -1187,7 +1182,14 @@ async function hostPromptBridge(launch) {
     startPromptSession: launch,
     workspaceContext: () => null, workspaceOptions: () => [],
   });
-  const dispose = effects[0]();
+  // Run the bridge effect, not the preceding locale-send effect.
+  const disposers = [];
+  for (const effect of effects) {
+    disposers.push(effect());
+    if (listeners.has('message')) break;
+  }
+  replies.length = 0;
+  const dispose = () => disposers.reverse().forEach(fn => fn?.());
   const dispatch = (data, extras = {}) => listeners.get('message')({ origin, source: frame, data, ...extras });
   return { dispatch, replies, closes, dispose, origin };
 }
@@ -1876,11 +1878,13 @@ test('Provider 广告跨源端点时拒绝一键更新并安全降级', async ()
 });
 
 async function upgradeHarness({
-  profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', writeText,
+  profileName, profileInfo, latestVersion = '0.2.25', locale = 'zh-CN', localeService, writeText,
   desktopPlatform, desktopBridge = desktopPlatform !== undefined, pluginNavigation, providerUpdate, readProviderUpdate, readCapabilities, nativeSidebar = false, readVersion,
   sessionStorage, reload, providerResponse,
 } = {}) {
   const hooks = [], effects = [], opened = [], copied = [];
+  const messages = [], messageListeners = new Map();
+  const frameWindow = { postMessage: (data, origin) => messages.push({ data, origin }) };
   const requests = [], closed = [], timers = new Map();
   let nextTimer = 0;
   const delays = new Map();
@@ -1907,6 +1911,11 @@ async function upgradeHarness({
         }];
       },
       useRef(initial) { return hooks[cursor++] ??= { current: initial }; },
+      useSyncExternalStore(subscribe, getSnapshot) {
+        const index = cursor++;
+        if (!hooks[index]) hooks[index] = { cleanup: subscribe(() => { dirty = true; }) };
+        return getSnapshot();
+      },
       useEffect(start, deps) {
         const index = cursor++, previous = hooks[index];
         if (previous && deps?.every((value, i) => Object.is(value, previous.deps?.[i]))) return;
@@ -1942,14 +1951,15 @@ async function upgradeHarness({
       },
       ...(desktopBridge ? { dshDesktop: { protocolVersion: 1 } } : {}),
       sessionStorage, location: { origin: 'http://127.0.0.1:3080', reload },
-      addEventListener() {}, removeEventListener() {},
+      addEventListener(name, listener) { messageListeners.set(name, listener); },
+      removeEventListener(name) { messageListeners.delete(name); },
       setTimeout(fn, delay) { timers.set(++nextTimer, fn); delays.set(nextTimer, delay); return nextTimer; }, clearTimeout(id) { timers.delete(id); },
       open(...args) { opened.push(args); },
       navigator: { clipboard: { async writeText(value) { copied.push(value); await writeText?.(value); } } },
     },
   });
   const { ctx, registrations } = clientContext({
-    locale, pluginNavigation, nativeSidebar, layout: { selectPanel: (id) => closed.push(['selectPanel', id]) },
+    locale, localeService, pluginNavigation, nativeSidebar, layout: { selectPanel: (id) => closed.push(['selectPanel', id]) },
   });
   plugin.apply(ctx);
   const entry = registrations.get(nativeSidebar ? 'main' : 'shell.overlay');
@@ -1974,6 +1984,8 @@ async function upgradeHarness({
       if (dirty) {
         dirty = false; cursor = 0;
         tree = entry.component(props);
+        const frame = nodes().find(node => node.type === 'iframe');
+        if (frame) frame.props.ref.current = { contentWindow: frameWindow };
       }
       for (const effect of effects.splice(0)) effect();
       await new Promise((resolve) => setImmediate(resolve));
@@ -1984,7 +1996,11 @@ async function upgradeHarness({
   const button = (text) => nodes().find((node) => node.type === 'button' && node.props?.children === text);
   await settle();
   return {
-    nodes, button, opened, copied, requests, closed, settle,
+    nodes, button, opened, copied, requests, closed, settle, messages,
+    requestLocale(extras = {}) {
+      messageListeners.get('message')({ source: frameWindow, origin: 'http://127.0.0.1:3080',
+        data: { type: 'mcp-connector:host-locale-request' }, ...extras });
+    },
     async fireTimer(delay) {
       const entry = [...timers].find(([id]) => delays.get(id) === delay);
       assert.ok(entry, `No pending timer for ${delay} ms`);
@@ -2840,6 +2856,189 @@ test('profile and target changes reset copy success, clipboard failure and late 
   completeCopy();
   await ui.settle();
   assert.equal(ui.button('已复制'), undefined, 'old profile copy must not mark the new command copied');
+});
+
+function mutableLocale(active = 'zh') {
+  let snapshot = { active, locales: [], revision: 0 };
+  const listeners = new Set();
+  return {
+    getSnapshot() { return snapshot; },
+    getLocale() { return snapshot; },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    publish(value) {
+      snapshot = { ...snapshot, active: value, revision: snapshot.revision + 1 };
+      for (const listener of listeners) listener();
+    },
+    listenerCount: () => listeners.size,
+  };
+}
+
+test('live host locale updates open panel chrome without navigating its iframe', async () => {
+  for (const nativeSidebar of [false, true]) {
+    const localeService = mutableLocale();
+    const ui = await upgradeHarness({ localeService, nativeSidebar });
+    const frame = () => ui.nodes().find(node => node.type === 'iframe');
+    const initialSrc = frame().props.src;
+    assert.match(initialSrc, /\?locale=zh-CN$/);
+    assert.deepEqual(ui.messages.at(-1), { data: { type: 'mcp-connector:host-locale', locale: 'zh-CN' }, origin: 'http://127.0.0.1:3080' });
+    assert.equal(frame().props.title, 'MCP连接器');
+    localeService.publish('en-US');
+    await ui.settle();
+    assert.equal(frame().props.title, 'MCP Connector');
+    assert.deepEqual(ui.messages.at(-1), { data: { type: 'mcp-connector:host-locale', locale: 'en' }, origin: 'http://127.0.0.1:3080' });
+    const count = ui.messages.length;
+    ui.requestLocale({ source: {} });
+    ui.requestLocale({ origin: 'https://other.example' });
+    assert.equal(ui.messages.length, count);
+    ui.requestLocale();
+    assert.equal(ui.messages.length, count + 1);
+    frame().props.onLoad();
+    assert.equal(ui.messages.at(-2).data.locale, 'en', 'load handshake carries latest language');
+    assert.equal(frame().props.src, initialSrc, 'a host switch must not reload unsaved iframe forms');
+    localeService.publish('zh-CN');
+    await ui.settle();
+    assert.equal(frame().props.title, 'MCP连接器');
+    assert.equal(frame().props.src, initialSrc);
+    localeService.publish('en');
+    await ui.settle();
+    if (nativeSidebar) await ui.remountSidebar();
+    else { await ui.setOpen(false); await ui.setOpen(true); }
+    assert.match(frame().props.src, /\?locale=en$/);
+  }
+});
+
+test('live host locale updates mounted settings and legacy sidebar without resetting state', async () => {
+  const localeService = mutableLocale();
+  const settings = mutableSettingsScope({ status: 'ready', writable: true, value: {}, user: {}, base: {} });
+  const subscriptions = new Map();
+  const states = new Map();
+  const trees = new Map();
+  const dirty = new Set();
+  let current, cursor;
+  const jsx = (type, props) => ({ type, props });
+  const plugin = await loadClient({
+    jsxRuntime: { jsx, jsxs: jsx },
+    reactApi: {
+      useSyncExternalStore(subscribe, getSnapshot) {
+        const key = `${current}:${cursor++}`;
+        if (!subscriptions.has(key)) {
+          const owner = current;
+          subscriptions.set(key, subscribe(() => dirty.add(owner)));
+        }
+        return getSnapshot();
+      },
+      useState(initial) {
+        const key = `${current}:${cursor++}`;
+        if (!states.has(key)) states.set(key, initial);
+        const owner = current;
+        return [states.get(key), value => { states.set(key, value); dirty.add(owner); }];
+      },
+      useEffect() {},
+    },
+  });
+  const host = clientContext({ localeService, settingsScope: { bind: () => settings.scope } });
+  plugin.apply(host.ctx);
+  const entries = ['settings.plugin.item', 'sidebar.footer.action'];
+  function flush() {
+    for (const name of [...dirty]) {
+      dirty.delete(name); current = name; cursor = 0;
+      const entry = host.registrations.get(name);
+      trees.set(name, entry.component({ ...entry.options.inject?.(), wide: true,
+        useStore: select => select({ open: false, sidebarVisible: true }), actions: { open() {} } }));
+    }
+  }
+  entries.forEach(name => dirty.add(name));
+  flush();
+  const card = trees.get(entries[0]);
+  card.props.children[0].props.onClick();
+  flush();
+  assert.match(JSON.stringify(trees.get(entries[0])), /入口展示位置/);
+  localeService.publish('en');
+  assert.deepEqual([...dirty].sort(), [...entries].sort());
+  flush();
+  assert.match(JSON.stringify(trees.get(entries[0])), /Entry placement/, 'expanded card remains expanded');
+  assert.match(JSON.stringify(trees.get(entries[1])), /MCP Connector/);
+  localeService.publish('zh');
+  flush();
+  assert.match(JSON.stringify(trees.get(entries[0])), /入口展示位置/);
+  assert.match(JSON.stringify(trees.get(entries[1])), /MCP连接器/);
+  for (const unsubscribe of subscriptions.values()) unsubscribe();
+  host.providerCleanup.get('locale')();
+});
+
+test('live host locale subscription is released with the optional provider', async () => {
+  const localeService = mutableLocale();
+  const plugin = await loadClient();
+  const host = clientContext({ localeService, nativeSidebar: true });
+  plugin.apply(host.ctx);
+  const label = () => host.registrations.get('sidebar.panellist').options.label();
+  assert.equal(localeService.listenerCount(), 1);
+  localeService.publish('en');
+  assert.equal(label(), 'MCP Connector');
+  host.providerCleanup.get('locale')();
+  assert.equal(localeService.listenerCount(), 0);
+  localeService.publish('zh');
+  assert.equal(label(), 'MCP连接器', 'removed provider falls back and cannot update client copy');
+});
+
+test('optional locale arrives late, is replaced, and ignores disposed callbacks', async () => {
+  const plugin = await loadClient();
+  const host = clientContext({ nativeSidebar: true });
+  let provider, mount, cleanup;
+  const originalGet = host.ctx.get;
+  host.ctx.get = name => name === 'locale' ? provider : originalGet(name);
+  const originalInject = host.ctx.inject;
+  host.ctx.inject = (names, callback) => {
+    if (names[0] === 'locale') mount = callback;
+    else originalInject(names, callback);
+  };
+  plugin.apply(host.ctx);
+  const label = () => host.registrations.get('sidebar.panellist').options.label();
+  assert.equal(label(), 'MCP连接器');
+  const first = mutableLocale('en-US');
+  let staleCallback;
+  const firstSubscribe = first.subscribe;
+  first.subscribe = callback => { staleCallback = callback; return firstSubscribe(callback); };
+  provider = first;
+  mount({ ...host.ctx, effect(start) { cleanup = start(); } });
+  assert.equal(label(), 'MCP Connector');
+  assert.equal(first.listenerCount(), 1);
+  cleanup();
+  assert.equal(first.listenerCount(), 0);
+  const second = mutableLocale('zh');
+  provider = second;
+  mount({ ...host.ctx, effect(start) { cleanup = start(); } });
+  staleCallback();
+  first.publish('en');
+  assert.equal(label(), 'MCP连接器');
+  second.publish('en');
+  assert.equal(label(), 'MCP Connector');
+  second.publish('fr');
+  assert.equal(label(), 'MCP连接器', 'unsupported Host locales retain the Chinese fallback');
+  cleanup();
+  assert.equal(second.listenerCount(), 0);
+});
+
+test('locale works without optional inject and tolerates unavailable services', async () => {
+  for (const throws of [false, true]) {
+    const plugin = await loadClient();
+    const locale = mutableLocale('en');
+    const host = clientContext({ localeService: locale, nativeSidebar: true });
+    delete host.ctx.inject;
+    const cleanups = [];
+    host.ctx.effect = start => { cleanups.push(start()); };
+    if (throws) {
+      const get = host.ctx.get;
+      host.ctx.get = name => { if (name === 'locale') throw Error('unavailable'); return get(name); };
+    }
+    plugin.apply(host.ctx);
+    assert.equal(host.registrations.get('sidebar.panellist').options.label(), throws ? 'MCP连接器' : 'MCP Connector');
+    for (const cleanup of cleanups.reverse()) cleanup?.();
+    assert.equal(locale.listenerCount(), 0);
+  }
 });
 
 test('用户选了英文时，侧边栏文案为英文', async () => {

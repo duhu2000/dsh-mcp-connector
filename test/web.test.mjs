@@ -453,7 +453,13 @@ test('面板语言注入：中英文均注入安全常量、非法值不产生�
   }
 
   const injected = injectPanelLocale(buffer, 'en').toString('utf8');
-  assert.ok(injected.includes('<script>window.__MCP_CONNECTOR_LOCALE__="en"</script>'));
+  assert.ok(injected.includes('<script>window.__MCP_CONNECTOR_LOCALE__="en";window.__MCP_CONNECTOR_LOCALE_EXPLICIT__=false</script>'));
+  for (const preference of ['zh', 'zh-CN', 'en-US']) {
+    assert.ok(injectPanelLocale(buffer, preference, preference).includes('window.__MCP_CONNECTOR_LOCALE_EXPLICIT__=true'));
+  }
+  for (const preference of ['auto', undefined, 'fr', '</script>']) {
+    assert.ok(injectPanelLocale(buffer, 'en', preference).includes('window.__MCP_CONNECTOR_LOCALE_EXPLICIT__=false'));
+  }
   assert.ok(injected.indexOf('__MCP_CONNECTOR_LOCALE__') < injected.indexOf('</head>'), '注入必须在 head 内');
   assert.ok(injected.includes('<body></body>'), '其余内容保持不变');
   assert.equal(injectPanelLocale(buffer, 'en-US').toString('utf8').match(/"en"/) !== null, true, 'en-US 归一化为 en');

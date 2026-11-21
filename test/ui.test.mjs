@@ -214,9 +214,9 @@ test('默认界面仍是中文且直接展示双语语言切换入口', () => {
 test('语言偏好优先级及禁用存储时降级', () => {
   const start = uiSource.indexOf('  function normalizeLocale(value) {');
   const end = uiSource.indexOf('  function interpolate(', start);
-  const resolve = (search, saved, host, blocked = false) => new Function('window', 'document', 'DEFAULT_LOCALE', 'LANGUAGE_STORAGE_KEY',
+  const resolve = (search, saved, host, blocked = false, explicit = false) => new Function('window', 'document', 'DEFAULT_LOCALE', 'LANGUAGE_STORAGE_KEY',
     uiSource.slice(start, end) + '; return detectLocale();')({
-      location: { search }, __MCP_CONNECTOR_LOCALE__: host,
+      location: { search }, __MCP_CONNECTOR_LOCALE__: host, __MCP_CONNECTOR_LOCALE_EXPLICIT__: explicit,
       localStorage: { getItem() { if (blocked) throw Error('blocked'); return saved; } },
     }, { documentElement: { getAttribute: () => 'zh-CN' } }, 'zh-CN', 'mcp-connector.ui-language');
   assert.equal(resolve('', null, undefined), 'zh-CN');
@@ -225,6 +225,12 @@ test('语言偏好优先级及禁用存储时降级', () => {
   assert.equal(resolve('', 'invalid', 'en'), 'en');
   assert.equal(resolve('', 'en', 'zh-CN', true), 'zh-CN');
   assert.equal(resolve('?uiLocale=en', null, 'zh-CN', true), 'en');
+  assert.equal(resolve('?locale=en', null, 'zh-CN'), 'en', 'fresh client default beats stale automatic startup locale');
+  assert.equal(resolve('?locale=zh-CN', null, 'en'), 'zh-CN');
+  assert.equal(resolve('?locale=en', null, 'zh-CN', false, true), 'zh-CN', 'explicit plugin Chinese wins');
+  assert.equal(resolve('?locale=zh-CN', null, 'en', false, true), 'en', 'explicit plugin English wins');
+  assert.equal(resolve('?uiLocale=zh-CN&locale=en', null, 'en', true, true), 'zh-CN');
+  assert.equal(resolve('?locale=en', 'zh-CN', 'en', false, true), 'zh-CN');
 });
 
 test('目录刷新文案与插件升级明确区分', () => {
