@@ -12,7 +12,7 @@
 | 分类 | 连接器数量 | 主要连接器 |
 |---|---:|---|
 | [企业数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E4%BC%81%E4%B8%9A%E6%95%B0%E6%8D%AE) | 2 | [企查查·企业工商](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[企查查·招投标](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json) |
-| [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 18 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
+| [金融投资](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E9%87%91%E8%9E%8D%E6%8A%95%E8%B5%84) | 19 | [Wind·股票数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/wind-stock-data.json)、[TuShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tushare.json)、[AKShare](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/akshare.json) 等 |
 | [法律合规](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E6%B3%95%E5%BE%8B%E5%90%88%E8%A7%84) | 6 | [企查查·法律数据](https://github.com/duhu2000/dsh-mcp-connector/blob/main/catalog/catalog.json)、[北大法宝·法律检索](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/pkulaw-legal.json)、[巴西参议院开放数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/brazil-senate-open-data.json) 等 |
 | [调研分析](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E8%B0%83%E7%A0%94%E5%88%86%E6%9E%90) | 47 | [飞常准航空数据](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/variflight-aviation-data.json)、[智慧芽专利与文献](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/patsnap.json)、[OpenAlex 全球学术研究](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/openalex-research-catalog.json) 等 |
 | [办公协作](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/CONNECTOR-DIRECTORY.md#%E5%8A%9E%E5%85%AC%E5%8D%8F%E4%BD%9C) | 17 | [腾讯文档](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/tencent-docs.json)、[飞书开放平台](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/feishu.json)、[Notion](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/connectors/notion.json) 等 |
@@ -162,7 +162,7 @@ Desktop 需要完全退出并重新启动应用；Web 需要停止原 `dsh web` 
 - 对话工具：`mcp_connector_catalog`、`connect`、`configure`、`import_json`、`export_config`、`snapshot`、`install_from_url`、`status`、`scope`、`health_check`、`policy`、`set_enabled`、`session_tools`、`disconnect`、`refresh_catalog`、`publish`、`tools_list`、`tool_search`、`tool_detail`。搜索/详情只做渐进式能力发现，不执行目标 MCP 工具。
 
 <!-- catalog-stats:start -->
-截至 2026-11-20，公共 Registry 已发布 128 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 132 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
+截至 2026-11-21，公共 Registry 已发布 129 条连接器描述；与随包的 4 张企查查卡片合并去重后，市场页可浏览 133 张卡片，覆盖企业数据、金融投资、法律合规、开发工具、办公协作、调研分析、设计创意、效率工具、其他 9 类。首页推荐由当前插件版本的推荐规则决定，不以 Registry featured 数量代表首页推荐数量。Registry 可独立持续更新，实际数量以客户端刷新后的市场页签徽标和上方实时统计徽标为准。
 <!-- catalog-stats:end -->
 
 ## 界面与演示
