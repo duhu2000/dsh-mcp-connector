@@ -206,14 +206,13 @@ The detailed [Chinese user guide](docs/USER-GUIDE.md) covers category browsing, 
 - [Connection scopes: project/global inheritance, copy, move, and rollback](docs/CONNECTION-SCOPES.md)
 - [Connection, Server, and Tool governance](docs/TOOL-GOVERNANCE.md)
 - [Per-session tool activation, TTL, and Host safety boundary](docs/SESSION-TOOL-INJECTION.md)
-- [Tool trial: official API evidence and safety design](docs/TOOL-TRIAL-DESIGN.md)
+- [Trying tools in a DSH session and reviewing approvals](docs/TOOL-TRIAL-DESIGN.md)
 - [Plugin updates: version discovery, providers, and rollback](docs/PLUGIN-UPDATE.md)
 - [Localization: `locale`, dictionary conventions, and the translation completeness gate](docs/I18N.md)
 - [Marketplace registration: local cards, the public Registry, and OAuth requirements](docs/MARKET-REGISTRATION.md)
 - [Third-party connector onboarding](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
 - [First contribution: from a good first issue to your first PR](docs/FIRST-CONTRIBUTION.md)
 - [Development, forks, and contributions](CONTRIBUTING.md)
-- [Growth baseline and monthly review template](docs/GROWTH-BASELINE.md)
 
 ## Connector catalog
 

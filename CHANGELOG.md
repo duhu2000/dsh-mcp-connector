@@ -387,7 +387,7 @@
 ### Compatibility and verification
 
 - 优先使用上游公开 definitions()；已发布旧 Host 通过集中、只读、形状校验的内部 view() 兼容层读取名称。内部接口属于兼容风险，增加 Windows/Linux × Host 0.2.1-rc.2/rc.3 契约门禁；不修改宿主安装。
-- 增加同步、微任务、下一轮事件交付及残余 schema 反馈回路回归。详见 docs/ACCEPTANCE-178-20261024.md。
+- 增加同步、微任务、下一轮事件交付及残余 schema 反馈回路回归。
 - 本次是工具运行时机制修复；报告者 Windows Desktop UI 的原始卡顿与 1.29 亿次调用对照仍需复测，#178 保留跟踪。不包含延期的国际化或其他草案功能。
 
 ## [0.2.78] - 2026-10-22
@@ -423,7 +423,7 @@
 
 - 完整 check（含隔离真实 MCP bridge）：427 passed / 4 skipped / 0 failed；89 个发布文件检查通过。
 - macOS 隔离真实 UI 验证安装、编辑、停用/启用、工具发现、失败重试、快照恢复、脱敏导出及断开。
-- 按维护者明确要求发布。Windows Desktop 实机、完整宿主重启持久化与生产 ToolRuntime UI 调用尚未验收；CI 不等于 Desktop 验收，#146 保持开放。详见 docs/ACCEPTANCE-146-20261020.md。
+- 按维护者明确要求发布。Windows Desktop 实机、完整宿主重启持久化与生产 ToolRuntime UI 调用尚未验收；CI 不等于 Desktop 验收，#146 保持开放。
 
 ## [0.2.75] - 2026-10-17
 

@@ -28,10 +28,9 @@ index parsing does not establish runtime compatibility of any package.
 
 ## Acceptance and publication gate
 
-The 2026-11-10 candidate passed upstream `parseMarketIndex` and
-`marketInstallTarget`; this is schema/installation-coordinate validation only.
-Verification procedure (completed steps and remaining limitations are in
-[ACCEPTANCE.md](./ACCEPTANCE.md)):
+Use the upstream `parseMarketIndex` and `marketInstallTarget` checks to verify
+the schema and installation coordinates. To verify the index in a DSH host,
+follow these steps.
 
 1. Serve the reviewed JSON via HTTPS, with 2xx and no redirects.
 2. Use an isolated DSH home/profile supporting Custom plugin indexes.

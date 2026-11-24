@@ -221,14 +221,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/m
 - [连接作用域：project/global 继承、复制、移动与回滚](docs/CONNECTION-SCOPES.md)
 - [连接、Server 与 Tool 治理](docs/TOOL-GOVERNANCE.md)
 - [按会话启用工具：显式激活、TTL 与 Host 安全边界](docs/SESSION-TOOL-INJECTION.md)
-- [工具试运行：官方 API 证据与安全设计](docs/TOOL-TRIAL-DESIGN.md)
+- [在 DSH 会话中试用工具与确认审批](docs/TOOL-TRIAL-DESIGN.md)
 - [插件更新：版本检测、Provider 与回滚](docs/PLUGIN-UPDATE.md)
 - [国际化：`locale` 配置、词典约定与翻译完备性门禁](docs/I18N.md)
 - [市场注册：本地卡片、公共 Registry 与 OAuth 要求](docs/MARKET-REGISTRATION.md)
 - [第三方连接器上架指南](https://github.com/duhu2000/dsh-mcp-connector-registry/blob/main/docs/ONBOARDING.md)
 - [首次贡献：从 good first issue 到第一个 PR](docs/FIRST-CONTRIBUTION.md)
 - [开发、Fork 与贡献指南](CONTRIBUTING.md)
-- [增长基线与月度复盘模板](docs/GROWTH-BASELINE.md)
 
 ## 配置
 
