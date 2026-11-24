@@ -25,8 +25,30 @@ jobs:
       - name: Require current product media before publishing
         run: npm run storefront:freshness
       - run: npm run check
-      - name: Publish to npm with Trusted Publishing
-        run: npm publish --access public
+      - name: Build and inspect the release tarball
+        shell: bash
+        run: |
+          dir=$(mktemp -d)
+          npm run pack:reviewed -- "$dir"
+          archives=("$dir"/*.tgz)
+          test "${#archives[@]}" -eq 1
+          echo "REVIEWED_TGZ=${archives[0]}" >> "$GITHUB_ENV"
+          digest=$(openssl dgst -sha512 -binary "${archives[0]}" | openssl base64 -A)
+          echo "REVIEWED_INTEGRITY=sha512-$digest" >> "$GITHUB_ENV"
+      - name: Publish the reviewed tarball with Trusted Publishing
+        run: npm publish "$REVIEWED_TGZ" --access public
+      - name: Confirm npm serves the reviewed bytes
+        shell: bash
+        run: |
+          spec="$(node -p "const p=require('./package.json'); p.name+'@'+p.version")"
+          for attempt in 1 2 3 4 5; do
+            if [[ "$(npm view "$spec" dist.integrity --registry=https://registry.npmjs.org --prefer-online)" == "$REVIEWED_INTEGRITY" ]]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Published dist.integrity did not match the reviewed tarball"
+          exit 1
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

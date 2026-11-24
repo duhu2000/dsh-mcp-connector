@@ -44,6 +44,11 @@ npm run dev:ui
 4. README 中的当前版本必须与 `package.json` 一致，`npm run docs:check` 会阻断版本漂移。
 5. 只使用无凭据 mock 或已脱敏数据做测试与截图。
 
+准备发布时，把需要随包分发的截图逐个列入 `package.json` 的 `files`。在提交后运行
+`npm run pack:reviewed -- <已有的空目录>` 核对实际的 npm 包。该命令需要 Python 3，
+会核对包内文件的 Git 跟踪状态、允许路径以及归档内每个文件的 SHA-256。
+发行标签的工作流发布经过这一步校验的同一个 `.tgz`。
+
 ## 从 Fork 到 PR
 
 ```bash
