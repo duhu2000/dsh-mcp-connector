@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import spawn from 'cross-spawn';
 import { checkRepositoryLinks } from '../scripts/check-repository-links.mjs';
@@ -25,7 +24,6 @@ test('a packable untracked source fails and an unlisted tracked screenshot is ex
   t.after(() => rm(root, { recursive: true, force: true }));
   const project = new URL('../', import.meta.url);
   const pkg = JSON.parse(await readFile(new URL('package.json', project)));
-  const verify = fileURLToPath(new URL('scripts/verify-pack.mjs', project));
   const write = async (path, data) => {
     await mkdir(dirname(join(root, path)), { recursive: true });
     await writeFile(join(root, path), data);
@@ -35,9 +33,10 @@ test('a packable untracked source fails and an unlisted tracked screenshot is ex
   for (const file of tutorials.filter(p => p.endsWith('.md'))) await write('docs/tutorials/' + file, 'fixture');
   await write('install.sh', 'PKG="dsh-mcp-connector"\n');
   await write('docs/screenshots/private-review.png', 'synthetic image');
+  await write('verify.mjs', 'import ' + JSON.stringify(new URL('scripts/verify-pack.mjs', project).href) + ';\n');
   await write('package.json', JSON.stringify({
     name: 'release-guard-fixture', version: '1.0.0', files: pkg.files,
-    scripts: { verify: 'node "' + verify + '"' },
+    scripts: { verify: 'node verify.mjs' },
   }));
   execFileSync('git', ['init', '-q'], { cwd: root });
   execFileSync('git', ['add', '.'], { cwd: root });
