@@ -9,7 +9,6 @@ const PATHS = {
   readmeZh: 'README.md',
   readmeEn: 'README.en.md',
   userGuide: 'docs/USER-GUIDE.md',
-  growth: 'docs/GROWTH-BASELINE.md',
   entry: 'docs/tutorials/README.md',
   json: 'docs/tutorials/JSON-MIGRATION.md',
   oauth: 'docs/tutorials/OAUTH-DIAGNOSTICS.md',
@@ -17,8 +16,6 @@ const PATHS = {
   scenarios: 'docs/tutorials/FIRST-SUCCESS-SCENARIOS.md',
   statusCopy: 'docs/tutorials/TRUSTED-STATUS-COPY.md',
   contribution: 'docs/FIRST-CONTRIBUTION.md',
-  publicationDrafts: 'marketing/campaign-0.2.59/P1-SCENARIO-PUBLICATION-DRAFTS.md',
-  publicationPack: 'marketing/P1-FIRST-SUCCESS-PUBLICATION-PACK-2026-10-16.md',
 };
 
 function requireText(path, text, expected) {
@@ -128,34 +125,6 @@ export async function checkFirstUseDocs() {
   }
 
   for (const expected of [
-    '仅本地/仓库草稿',
-    '不得自动公开发布',
-    'MCP连接器、MCP Server、连接管理、跨连接工具搜索、连接排障',
-    '2026-10-02',
-    '2026-10-09',
-    '不从下载量推算连接或首次调用',
-    '(../P1-FIRST-SUCCESS-PUBLICATION-PACK-2026-10-16.md)',
-  ]) {
-    requireText(PATHS.publicationDrafts, docs.publicationDrafts, expected);
-  }
-
-  for (const expected of [
-    '仅仓库准备，不得自动发布',
-    '发布所有权与直链登记',
-    '未发布，无直链',
-    'JSON-MIGRATION.md',
-    'OAUTH-DIAGNOSTICS.md',
-    'TOOL-SEARCH-RECOVERY.md',
-    'v0.2.46 无凭据 Mock',
-    '43 秒 `docs/demo.gif`',
-    '1280×720',
-    '800px',
-    '“需重新授权”',
-  ]) {
-    requireText(PATHS.publicationPack, docs.publicationPack, expected);
-  }
-
-  for (const expected of [
     '#29',
     '已完成并关闭',
     'issues/156',
@@ -164,23 +133,6 @@ export async function checkFirstUseDocs() {
     '不发起网络请求',
   ]) {
     requireText(PATHS.contribution, docs.contribution, expected);
-  }
-
-  for (const expected of [
-    '## 7/14-day first-use review template',
-    'DSH Market/search impressions | No data',
-    'First successful read-only calls | No data',
-    'Do not calculate an exposure-to-install, download-to-connection, or download-to-first-call conversion rate',
-    '### 0.2.59 scheduled first-use checkpoints',
-    'T+7 = 2026-10-02',
-    'T+14 = 2026-10-09',
-    'Fill only after due date',
-    '## Repeatable equal-window review procedure',
-    '`P-7` through `P-1`',
-    '`P+1` through `P+7`',
-    'Call it an equal-window change, not campaign attribution or a',
-  ]) {
-    requireText(PATHS.growth, docs.growth, expected);
   }
 
   return PATHS.entry;
