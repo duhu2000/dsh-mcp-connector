@@ -17,6 +17,7 @@ const WHITELIST = [
   /^catalog\/[^/]+\.json$/,
   /^lib\/[^/]+\.js$/,
   /^lib\/connectors\/[^/]+\.js$/,
+  /^lib\/mcp-apps\/(?:policy|views|registration)\.js$/,
   // i18n 运行时与语言词典：随插件一起发布，英文界面依赖它们。
   /^lib\/i18n\/[^/]+\.js$/,
   /^lib\/i18n\/locales\/[^/]+\.js$/,
