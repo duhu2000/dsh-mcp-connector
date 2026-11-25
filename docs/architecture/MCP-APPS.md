@@ -41,4 +41,4 @@
 - 官方 AppBridge Renderer、公开 RPC 与真实会话身份关联、Host 侧用户确认。
 - 两种 fixture 在真实 DSH 对话中展示与模型回合结束后的回调。
 - QCC 原资源及模拟交易测试、两宿主版本/四智能体共存回归。
-- 通过后再进入 release/tag/npm；当前不 bump version。
+- 按用户发布指令，0.2.121 仅打包尚未启用的基础模块；不宣称支持 MCP Apps。完整功能须通过上述验收后另行发布。
