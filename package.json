@@ -90,7 +90,7 @@
     "verify-pack": "node scripts/verify-pack.mjs",
     "docs:tutorial-links:check": "node scripts/check-tutorial-links.mjs",
     "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:links:check",
-    "prepublishOnly": "npm run check",
+    "prepublishOnly": "npm run check && git diff --exit-code --name-status HEAD -- .",
     "docs:sync": "node scripts/sync-product-docs.mjs",
     "storefront:capture": "node scripts/capture-storefront.mjs && node scripts/capture-storefront.mjs --locale=en",
     "storefront:freshness": "node scripts/check-media-freshness.mjs",
