@@ -4,6 +4,8 @@ import { createHostGovernanceController } from '../lib/governance.js';
 import { createHostScopeController } from '../lib/connection-scopes.js';
 import { createSessionToolInjectionController } from '../lib/session-injection.js';
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Restrictions notify asynchronously, as opposed to the synchronous-only
 // fixtures that previously covered reentrancy. Never start a real DSH profile.
 function fixture(count = 1) {
@@ -49,8 +51,21 @@ function fixture(count = 1) {
     reads: () => reads,
     setNames(next) { names = next; emit('tools/change'); },
     async settle() {
-      for (let i = 0; i < 30 && pending; i += 1) await Promise.resolve();
-      assert.equal(pending, 0, 'restriction notifications must converge');
+      // Session visibility refreshes on tools/change through a 50ms fixed
+      // coalescing window, and a refresh that changes a mask re-notifies via
+      // microtask, which can arm one more window. Wait for quiescence: drain
+      // the microtask notifications, then wait out a window and check that
+      // no further Host tool enumeration happened.
+      for (let round = 0; round < 10; round += 1) {
+        for (let i = 0; i < 30 && pending; i += 1) await Promise.resolve();
+        assert.equal(pending, 0, 'restriction notifications must converge');
+        const before = reads;
+        await sleep(70);
+        for (let i = 0; i < 30 && pending; i += 1) await Promise.resolve();
+        assert.equal(pending, 0, 'restriction notifications must converge');
+        if (reads === before) return;
+      }
+      assert.fail('visibility did not converge after coalescing windows');
     },
   };
 }
