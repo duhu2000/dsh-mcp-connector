@@ -6,6 +6,22 @@ on:
   pull_request:
 
 jobs:
+  public-paths:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check outgoing public paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-public-paths.mjs --range "$BASE_SHA" "$HEAD_SHA"
+
   test:
     runs-on: ubuntu-latest
     strategy:
