@@ -4,6 +4,18 @@
 
 Thank you for contributing. Never put tokens, API keys, cookies, OAuth credentials, or real business data in issues, pull requests, logs, screenshots, or fixtures.
 
+## 公开材料自查 / Before pushing
+
+公开仓库用于使用、集成和贡献指南、公开接口及可分享的示例。设计原稿、内部排期、竞品策略、候选处置和原始验收证据请保存到团队的私有工作区。混合文档先保留私有原件，公开版只写已交付的行为、适用范围和复现步骤。外部贡献者可以直接提交公开版，无需访问维护者的私有系统。
+
+1. 暂存准备公开的文件，运行 `npm run public:check`，再用 `git diff --cached` 阅读正文，打开每张截图和附件核对内容。
+2. 首次推送或更新公开分支前，先取得目标分支最新引用，再运行 `npm run public:check -- --range upstream/main HEAD`。将 `upstream/main` 换成指向目标仓库的远端引用。此命令逐个检查待推送提交；先加入、后删除的草稿仍会出现在先前提交中。
+3. 若检查报错，先将内部原件存妥，整理尚未推送的提交，再次检查后推送。公开分支在推送时即可阅读。路径检查无法判断普通文件名下的正文、图片像素、PR 正文或附件，请逐份确认适合公开。
+
+Stage the files and run `npm run public:check` before committing. Before pushing, check the full outgoing range as shown above. Review text and images yourself, including the PR description and attachments. Keep internal drafts and raw evidence private; share the public guide or a sanitized summary.
+
+随 npm 分发的截图应在 `package.json` 的 `files` 中逐名列出；仅用于公开文档的图片可放在分发截图目录之外。检查已归档路径使用小写 Git 相对路径的 SHA-256，不需要私有仓库。发布仍按现有流程审查实际 tgz。
+
 ## 参与方式
 
 - 报告安全漏洞：请遵循 [安全报告政策](https://github.com/duhu2000/dsh-mcp-connector/blob/main/SECURITY.md)，使用 [私密报告入口](https://github.com/duhu2000/dsh-mcp-connector/security/advisories/new)，勿公开提交利用细节。

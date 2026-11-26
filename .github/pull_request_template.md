@@ -8,6 +8,8 @@
 
 ## Verification / 验证
 
+- [ ] I checked the outgoing commits with `npm run public:check -- --range upstream/main HEAD` (using my target remote).
+- [ ] I reviewed the text, screenshots and attachments for public use. Internal plans, competitive analysis and original acceptance evidence stay private.
 - [ ] `npm run check`
 - [ ] Chinese and English user-facing copy stay aligned, where applicable.
 - [ ] No token, API key, cookie, OAuth credential, private URL, local path, or real business data is included.
