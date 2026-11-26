@@ -46,6 +46,7 @@ function makeWctx() {
   return {
     routes,
     webRuntime: { trustedHosts: [] },
+    get: () => ({ admit: (req) => isTrustedWebRequest(req) ? { peer: {} } : { rejection: 403 } }),
     webServer: {
       register(route) {
         routes.set(route.path, route);

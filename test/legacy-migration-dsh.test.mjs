@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { createInterface } from 'node:readline';
 import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -101,9 +102,9 @@ test('isolated DSH web: both real legacy bundles, red cards, residual and restar
     }`);
   const bundles = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', ...cases.map((c) => c.pkg), 'dsh-mcp-connector'];
   await writeFile(join(profile, 'package.json'), JSON.stringify({ name: 'dsh-profile-acceptance', private: true, dsh: { profile: { bundles } } }));
-  let base;
+  let base, browserCookie;
   async function call(method, params = {}) {
-    const response = await fetch(base + '/mcp-connector/api', { method: 'POST', headers: { 'content-type': 'application/json' },
+    const response = await fetch(base + '/mcp-connector/api', { method: 'POST', headers: { 'content-type': 'application/json', cookie: browserCookie },
       body: JSON.stringify({ method, params }), signal: AbortSignal.timeout(5000) });
     return response.json();
   }
@@ -126,19 +127,28 @@ test('isolated DSH web: both real legacy bundles, red cards, residual and restar
     const port = await listen(portProbe);
     await new Promise((resolve) => portProbe.close(resolve));
     base = 'http://127.0.0.1:' + port;
+    browserCookie = undefined;
     const env = { ...process.env, DSH_HOME: home };
     delete env.NODE_TEST_CONTEXT;
     host = spawn(process.execPath, [cli, '--profile', 'acceptance', '--port', String(port), '--no-open'], {
       cwd: home, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
     });
     stopped = once(host, 'exit');
-    let output = '';
-    for (const stream of [host.stdout, host.stderr]) stream.on('data', (chunk) => {
-      output = (output + chunk.toString().replace(/([?&]token=)[^\s&]+/gi, '$1[redacted]')).slice(-1600);
-    });
+    let output = '', launchUrl;
+    for (const stream of [host.stdout, host.stderr]) {
+      createInterface({ input: stream }).on('line', (line) => {
+        const url = /^dsh web:\s+(\S+)/.exec(line)?.[1];
+        if (url?.startsWith(`${base}/?token=`)) launchUrl = url;
+        output = (output + '\n' + line.replace(/([?&]token=)[^\s&]+/gi, '$1[redacted]')).slice(-1600);
+      });
+    }
     for (let attempt = 0; attempt < 160; attempt++) {
       if (host.exitCode !== null) throw new Error('DSH exited: ' + output);
-      if ((await call('status').catch(() => null))?.ok) return;
+      if (launchUrl && !browserCookie) {
+        const response = await fetch(launchUrl, { redirect: 'manual', signal: AbortSignal.timeout(5000) }).catch(() => undefined);
+        if (response?.status === 303) browserCookie = response.headers.get('set-cookie')?.split(';', 1)[0];
+      }
+      if (browserCookie && (await call('status').catch(() => null))?.ok) return;
       await delay(200);
     }
     assert.fail('Isolated DSH API did not start: ' + output);
@@ -150,6 +160,9 @@ test('isolated DSH web: both real legacy bundles, red cards, residual and restar
   assert.deepEqual(migration.detail.pendingLegacyDisable.pluginIds.sort(), cases.map((c) => c.plugin).sort());
   browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE && { executablePath: process.env.CHROMIUM_EXECUTABLE }) });
   const page = await browser.newPage();
+  const cookieSeparator = browserCookie.indexOf('=');
+  assert.ok(cookieSeparator > 0);
+  await page.context().addCookies([{ name: browserCookie.slice(0, cookieSeparator), value: browserCookie.slice(cookieSeparator + 1), url: base, httpOnly: true, sameSite: 'Strict' }]);
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   await page.goto(base + '/mcp-connector/ui/');
   for (const c of cases) {
