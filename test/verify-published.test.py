@@ -8,7 +8,8 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
+from urllib.error import HTTPError
 
 
 release = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/verify-published.py'))
@@ -39,11 +40,44 @@ class ReadbackTests(unittest.TestCase):
 
     def verify(self, online, npm_sri=None, prior_sri=None):
         meta = {'name': name, 'version': version, 'dist': {
-            'tarball': url, 'integrity': npm_sri or release['sri'](online)}}
+            'tarball': url, 'integrity': npm_sri or release['sri'](self.local)}}
         responses = {spec: json.dumps(meta).encode(), url: online}
         with patch('urllib.request.urlopen', side_effect=lambda address, timeout: io.BytesIO(responses[address])), \
                 contextlib.redirect_stdout(self.log):
             release['verify'](version, self.path, prior_sri or release['sri'](self.local))
+
+    def test_retry_metadata_and_tarball_404_independently(self):
+        seen = []
+        integrity = release['sri'](self.local)
+        meta = json.dumps({'name': name, 'version': version,
+                           'dist': {'tarball': url, 'integrity': integrity}}).encode()
+
+        def download(address, timeout):
+            seen.append(address)
+            if seen.count(address) == 1:
+                raise HTTPError(address, 404, 'not propagated', {}, None)
+            return io.BytesIO(meta if address == spec else self.local)
+
+        with patch('urllib.request.urlopen', side_effect=download), patch('time.sleep') as sleep, \
+                contextlib.redirect_stdout(self.log):
+            release['verify'](version, self.path, integrity)
+        self.assertEqual(seen, [spec, spec, url, url])
+        self.assertEqual(sleep.call_args_list, [call(5), call(5)])
+        self.assertTrue(json.loads(self.log.getvalue())['bytes_equal'])
+
+    def test_404_retries_are_bounded(self):
+        with patch('urllib.request.urlopen', side_effect=HTTPError(url, 404, 'missing', {}, None)) as get, \
+                patch('time.sleep') as sleep, self.assertRaises(HTTPError):
+            release['registry_bytes'](url, 30)
+        self.assertEqual(get.call_count, 9)
+        self.assertEqual([c.args[0] for c in sleep.call_args_list], [5, 10, 20, 40, 60, 60, 60, 60])
+
+    def test_other_http_errors_do_not_retry(self):
+        with patch('urllib.request.urlopen', side_effect=HTTPError(url, 403, 'denied', {}, None)) as get, \
+                patch('time.sleep') as sleep, self.assertRaises(HTTPError):
+            release['registry_bytes'](url, 30)
+        get.assert_called_once()
+        sleep.assert_not_called()
 
     def test_exact_archive(self):
         self.verify(self.local)
