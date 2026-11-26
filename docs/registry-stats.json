@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "registryCount": 139,
+  "registryCount": 143,
   "bundledUniqueCount": 4,
-  "marketCount": 143,
+  "marketCount": 147,
   "featuredCount": 6,
   "categoryCount": 9,
   "categoryNames": [
@@ -16,5 +16,5 @@
     "效率工具",
     "其他"
   ],
-  "updatedOn": "2026-11-25"
+  "updatedOn": "2026-11-26"
 }
