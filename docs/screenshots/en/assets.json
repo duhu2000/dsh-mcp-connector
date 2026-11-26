@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "capture": {
     "locale": "en",
-    "capturedOn": "2026-11-25",
-    "sourceVersion": "0.2.121",
+    "capturedOn": "2026-11-26",
+    "sourceVersion": "0.2.122",
     "sourceFingerprint": "b78c2a018c372ac606a544035787b842b61892a1d2f15edec3f9690cedeaf6fa",
     "browserViewport": {
       "width": 1280,
@@ -17,63 +17,63 @@
   "screenshots": [
     {
       "path": "docs/screenshots/en/01-market-overview.jpg",
-      "sha256": "1d2ccbf32659f4bb19ba63194b187dfeab6e9f172cc35319c68cffc8e2a8572a",
+      "sha256": "9a64d24849f89cb71722584d61ad4dfdc9ad0475a8d50072420d5592397378ff",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/02-connector-detail.jpg",
-      "sha256": "50b701315159d2bfdd384f7f219edd41afb90161b6f29539ed4b737d4a6488bd",
+      "sha256": "380e66b5e85b05b71c452623c803bcf38438e498e668466416cb73ec73f73d9e",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/03-tool-discovery.jpg",
-      "sha256": "c5beddd51557369e6352746ce924356ee5b3abf87dadc7d7dbc4f1621a1f1df9",
+      "sha256": "126c062b8bb0d673e8517ef46eadcf8dcb733f1433e29d9839a9a51776b524b6",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/04-json-import.jpg",
-      "sha256": "ea5e2318b57ed58634c9b7bc01c6ca66ce3c2dda02a7575becfae637a8b125bd",
+      "sha256": "4956038c32d4ad3a39827edec3fe05162fd37c0512d22fa105fff1cbe32be40c",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/05-unified-tool-search.png",
-      "sha256": "81e3ab2037e72f561b0a44e78e7ade66b9a8e64c65539b296b315f539f7d3b0d",
+      "sha256": "7051d09ed480aceecae7f99e4489fbe9c33be38d32a74303292d1efca646c601",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/06-tool-parameters.png",
-      "sha256": "06cd1d4a11607870c737f8e1eb554b4babe81e68cee7e56eab560729e6cacd0a",
+      "sha256": "1811b7a02997b59a1855cdd26544e5388860ce8c8c93f908623df431a6fbe03d",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/07-connection-diagnostics.png",
-      "sha256": "97174d92cc6d408291383431d8080ba1d18d5f51cfdb075a09fefa26dd6f29ff",
+      "sha256": "98c869ea15fc8876c5b5e7428f08084666bd7a99141cd677540d0cbc12ca9b89",
       "width": 1280,
       "height": 720,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     },
     {
       "path": "docs/screenshots/en/08-ten-recommendations.jpg",
-      "sha256": "f316934dec05634f1b952601078fb17d32a41430e1d7803eca7984997e4f834a",
+      "sha256": "3ea1be59e89f07c1221b632727c5c468ca840f65f75e194f45d898aa53f8f778",
       "width": 1280,
       "height": 1400,
       "browserViewport": {
@@ -81,17 +81,17 @@
         "height": 1400
       },
       "panelHeight": 1280,
-      "capturedOn": "2026-11-25",
-      "sourceVersion": "0.2.121"
+      "capturedOn": "2026-11-26",
+      "sourceVersion": "0.2.122"
     }
   ],
   "demo": {
     "path": "docs/screenshots/en/demo.gif",
-    "sha256": "b1653dcd10fb9a46489afc5ef1f0e8b78777adbee0fb87fe778623163810770f",
+    "sha256": "57efc1f1ea94be96b2865da1de8aa1fb73d40283cecb2968756b1632398435c0",
     "width": 960,
     "height": 540,
-    "capturedOn": "2026-11-25",
-    "sourceVersion": "0.2.121",
+    "capturedOn": "2026-11-26",
+    "sourceVersion": "0.2.122",
     "durationSeconds": 36
   }
 }
