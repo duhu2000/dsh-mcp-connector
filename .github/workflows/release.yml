@@ -3,13 +3,25 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Original Release tag-push run ID (run from main)
+        type: string
+        required: true
+      create_release:
+        description: Create the GitHub Release if missing after verification
+        type: boolean
+        default: false
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 jobs:
-  release:
+  publish:
+    if: github.event_name == 'push' && github.event.created && !github.event.deleted && github.run_attempt == '1'
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,28 +46,90 @@ jobs:
           test "${#archives[@]}" -eq 1
           echo "REVIEWED_TGZ=${archives[0]}" >> "$GITHUB_ENV"
           digest=$(openssl dgst -sha512 -binary "${archives[0]}" | openssl base64 -A)
-          echo "REVIEWED_INTEGRITY=sha512-$digest" >> "$GITHUB_ENV"
+          printf 'sha512-%s\n' "$digest" > "${archives[0]}.integrity"
+      - name: Preserve the reviewed archive before publishing
+        uses: actions/upload-artifact@v7
+        with:
+          name: reviewed-npm-${{ github.run_id }}
+          path: |
+            ${{ env.REVIEWED_TGZ }}
+            ${{ env.REVIEWED_TGZ }}.integrity
+          if-no-files-found: error
+          retention-days: 90
+      - name: Check that the exact version is unpublished
+        shell: bash
+        run: |
+          # Query the package index so the preflight does not prime a 404 for the new version.
+          curl --fail --silent --show-error "https://registry.npmjs.org/dsh-mcp-connector?run=$GITHUB_RUN_ID" |
+            jq -e --arg v "${GITHUB_REF_NAME#v}" '(.versions | type == "object") and (.versions | has($v) | not)' > /dev/null
       - name: Publish the reviewed tarball with Trusted Publishing
         run: npm publish "$REVIEWED_TGZ" --access public
-      - name: Confirm npm serves the reviewed bytes
+
+  verify:
+    needs: publish
+    if: >-
+      !cancelled() && (
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'push' && github.event.created && !github.event.deleted &&
+         (needs.publish.result == 'success' || (github.run_attempt != '1' && needs.publish.result == 'skipped'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SOURCE_RUN: ${{ inputs.source_run || github.run_id }}
+    outputs:
+      tag: ${{ steps.source.outputs.tag }}
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resolve the original tag and reviewed run
+        id: source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { reviewedRun } = require('./scripts/release-recovery.cjs');
+            const { tag, sha } = await reviewedRun(github, context.repo, process.env.SOURCE_RUN);
+            core.setOutput('tag', tag);
+            core.setOutput('sha', sha);
+      - uses: actions/download-artifact@v4
+        with:
+          name: reviewed-npm-${{ env.SOURCE_RUN }}
+          path: ${{ runner.temp }}/reviewed
+          run-id: ${{ env.SOURCE_RUN }}
+          github-token: ${{ github.token }}
+      - name: Compare the exact-version npm download with the preserved archive
         shell: bash
-        run: |
-          spec="$(node -p "const p=require('./package.json'); p.name+'@'+p.version")"
-          for attempt in 1 2 3 4 5; do
-            if [[ "$(npm view "$spec" dist.integrity --registry=https://registry.npmjs.org --prefer-online)" == "$REVIEWED_INTEGRITY" ]]; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::Published dist.integrity did not match the reviewed tarball"
-          exit 1
-      - name: Compare the npm download with the reviewed tarball
-        shell: bash
+        env:
+          TAG: ${{ steps.source.outputs.tag }}
+          SHA: ${{ steps.source.outputs.sha }}
         run: |
           set -euo pipefail
-          printf 'Commit: %s | Tag: %s\n' "$(git rev-parse HEAD)" "$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
-          python3 scripts/verify-published.py "${GITHUB_REF_NAME#v}" "$REVIEWED_TGZ" "$REVIEWED_INTEGRITY" | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+          archive="$RUNNER_TEMP/reviewed/dsh-mcp-connector-${TAG#v}.tgz"
+          printf 'Commit: %s | Tag: %s | Source run: %s\n' "$SHA" "$TAG" "$SOURCE_RUN" >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/verify-published.py "${TAG#v}" "$archive" "$(cat "$archive.integrity")" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  github-release:
+    needs: verify
+    if: >-
+      !cancelled() && needs.verify.result == 'success' &&
+      (github.event_name == 'push' || inputs.create_release)
+    concurrency: create-github-release-${{ needs.verify.outputs.tag }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
         with:
-          generate_release_notes: true
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        env:
+          TAG: ${{ needs.verify.outputs.tag }}
+          SHA: ${{ needs.verify.outputs.sha }}
+        with:
+          script: |
+            const { ensureRelease } = require('./scripts/release-recovery.cjs');
+            core.info(await ensureRelease(github, context.repo, process.env.TAG, process.env.SHA));

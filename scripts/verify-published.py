@@ -5,6 +5,8 @@ import io
 import json
 import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -32,17 +34,35 @@ def sri(data):
     return 'sha512-' + base64.b64encode(hashlib.sha512(data).digest()).decode('ascii')
 
 
+# The registry can cache a missing tarball for 300 seconds, independently of metadata.
+RETRY_404_DELAYS = (5, 10, 20, 40, 60, 60, 60, 60)
+
+
+def registry_bytes(url, timeout):
+    for attempt in range(len(RETRY_404_DELAYS) + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            error.close()
+            if error.code != 404 or attempt == len(RETRY_404_DELAYS):
+                raise
+            delay = RETRY_404_DELAYS[attempt]
+            print(f'npm returned 404 for {url}; retrying in {delay}s', file=sys.stderr)
+            time.sleep(delay)
+
+
 def verify(version, reviewed_path, reviewed_integrity):
-    with urllib.request.urlopen(f'{REGISTRY}/{PACKAGE}/{version}', timeout=30) as response:
-        metadata = json.load(response)
+    metadata = json.loads(registry_bytes(f'{REGISTRY}/{PACKAGE}/{version}', timeout=30))
     if (metadata['name'], metadata['version']) != (PACKAGE, version):
         raise ValueError('Exact-version npm metadata mismatch')
     url = f'{REGISTRY}/{PACKAGE}/-/{PACKAGE}-{version}.tgz'
     if metadata['dist']['tarball'] != url:
         raise ValueError('Unexpected npm tarball URL')
     reviewed = reviewed_path.read_bytes()
-    with urllib.request.urlopen(url, timeout=60) as response:
-        online = response.read()
+    if metadata['dist']['integrity'] != reviewed_integrity or sri(reviewed) != reviewed_integrity:
+        raise ValueError('Reviewed integrity differs from npm metadata or the preserved archive')
+    online = registry_bytes(url, timeout=60)
     local_files = file_list(reviewed, version)
     online_files = file_list(online, version)
     report = {
