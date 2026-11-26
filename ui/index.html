@@ -3403,6 +3403,53 @@
       const r = await call('installFromUrl', { url, ...scopeParams });
       setModalBusy(false);
       if (!r.ok) { showModalError(r.message); return; }
+      // stdio 卡片的 command/args 等于本机命令执行：必须让用户看到实际命令并显式确认后才连接。
+      if (r.detail?.requiresManualConfirmation) {
+        const commands = Array.isArray(r.detail.launchCommands) ? r.detail.launchCommands : [];
+        if (!commands.length) {
+          showModalError(t('该 stdio 连接器未提供可确认的启动命令，已阻止连接'));
+          closeModal(); await refresh();
+          return;
+        }
+        // 逐条确认：多 stdio server 的卡片必须每条都看到实际命令，
+        // 并各自回传指纹，确保"确认的那条"与"将执行的那条"一致。
+        for (const cmd of commands) {
+          const commandLine = [cmd.command, ...(Array.isArray(cmd.args) ? cmd.args : [])].join(' ');
+          // 环境变量必须连值一起展示：NODE_OPTIONS / LD_* 这类能改变"加载什么代码"，
+          // 只给键名等于让用户在看不到完整命令的情况下签字（盲签）。
+          const envItems = Array.isArray(cmd.envDisplay) ? cmd.envDisplay : [];
+          const dangerous = envItems.filter((e) => e.dangerous);
+          const safeItems = envItems.filter((e) => !e.dangerous);
+          let envBlock = '';
+          if (dangerous.length) {
+            envBlock += '\n\n' + t('⚠ 以下环境变量会影响代码加载，将按原值传入：') +
+              dangerous.map((e) => '\n  ' + e.key + '=' + e.display).join('');
+          }
+          if (safeItems.length) {
+            envBlock += '\n\n' + t('其他环境变量（已脱敏）：') +
+              safeItems.map((e) => '\n  ' + e.key + '=' + e.display).join('');
+          }
+          const confirmed = await confirmDialog({
+            title: t('确认 stdio 启动命令') + (commands.length > 1 ? ' (' + (commands.indexOf(cmd) + 1) + '/' + commands.length + ')' : ''),
+            message: t('该连接器来自远端描述，连接时将在此机器执行以下命令：') +
+              '\n\n' + (cmd.serverName || cmd.serverKey || 'server') + ': ' + commandLine + envBlock +
+              '\n\n' + t('仅在你信任该来源时才继续。确认后请到已安装页手动连接。'),
+            confirmLabel: t('我已确认并安装'),
+            cancelLabel: t('取消'),
+          });
+          if (!confirmed) {
+            showToast(t('连接器已安装但未确认启动命令；在确认前无法连接。如不再需要请在已安装页移除'), true);
+            closeModal(); await refresh();
+            return;
+          }
+          const confirmedResult = await call('confirmStdioLaunch', {
+            connectorId: r.detail.connectorId,
+            serverKey: cmd.serverKey,
+            acknowledgedFingerprint: cmd.fingerprint,
+          });
+          if (!confirmedResult.ok) { showModalError(confirmedResult.message); return; }
+        }
+      }
       markCommunityCtaEligible();
       closeModal(); showToast(r.message, true); await refresh();
     },

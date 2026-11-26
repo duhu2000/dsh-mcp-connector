@@ -15,6 +15,9 @@ test('精简模式只注册两个入口，默认保留全部旧工具且卸载�
   const full = captureTools();
   const compact = captureTools({}, { compact: true });
   assert.equal(full.tools.size, 25);
+  // stdio 启动命令确认刻意不暴露为对话工具：否则模型可自行串联 installFromUrl → confirm → connect，
+  // 把「用户确认」降级成「模型可调用的函数」。确认只能经由 UI（web 路由 + 物理点击）。
+  assert.equal(full.tools.has('mcp_connector_confirm_from_url'), false);
   assert.deepEqual([...compact.tools.keys()], ['mcp_connector_discover', 'mcp_connector_session_tools']);
   assert.equal(compact.tools.has('mcp_connector_configure'), false);
   const schemas = (tools) => JSON.stringify([...tools.values()].map(({ name, description, parameters }) => ({ name, description, parameters })));

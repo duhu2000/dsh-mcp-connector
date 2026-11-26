@@ -12,7 +12,9 @@ test('restored stdio entries bound startup work without changing the saved conne
   assert.equal(entry.command, process.execPath);
   assert.deepEqual(entry.args, [guard, '--timeout-ms', '800', '--', record.command, ...record.args]);
   assert.equal(entry.cwd, record.cwd);
-  assert.deepEqual(entry.env, record.env);
+  // 显式声明的 env 原样保留；另加内部标记让守卫区分「继承值 vs 连接级显式值」。
+  assert.equal(entry.env.TEST_TOKEN, record.env.TEST_TOKEN);
+  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV, 'TEST_TOKEN');
   assert.equal(entry.failOnStartupError, false);
   assert.deepEqual(record, original);
 });
@@ -68,5 +70,16 @@ test('desktop hosts start the guard as Node without leaking the switch to the se
   // CLI 宿主（node 进程）行为不变
   const cli = buildEntryConfig(record, new Map(), { startupRequestTimeoutMs: 800 });
   assert.equal(cli.env.ELECTRON_RUN_AS_NODE, undefined);
-  assert.deepEqual(cli.env, record.env);
+  assert.equal(cli.env.TEST_TOKEN, record.env.TEST_TOKEN);
+  assert.equal(cli.env.DSH_STDIO_EXPLICIT_ENV, 'TEST_TOKEN');
+});
+
+test('guarded stdio keeps explicitly declared loader vars and drops inherited ones', () => {
+  // 显式声明 PYTHONPATH：用户确实需要自定义解释器路径，守卫应保留。
+  const explicit = { ...record, env: { ...record.env, PYTHONPATH: '/opt/custom-python' } };
+  const entry = buildEntryConfig(explicit, new Map(), { startupRequestTimeoutMs: 800 });
+  assert.equal(entry.env.PYTHONPATH, '/opt/custom-python');
+  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('PYTHONPATH'), true);
+  // 未显式声明时，不额外注入该 key。
+  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('NODE_OPTIONS'), false);
 });

@@ -3184,7 +3184,18 @@ test('未配置远程目录时刷新市场也返回正常用户提示', async ()
   assert.doesNotMatch(refreshed.message, /catalogUrl|无远程目录/);
 });
 
-test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
+test('URL 安装策略：回环 http 被拒，公网 https 可安装并上下架', { timeout: 15000 }, async () => {
+  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
+  const { ctx, tools, tables } = makePluginContext({ shared });
+  const { apply } = await import('../lib/index.js');
+  await apply(ctx, baseConfig());
+
+  // 1) 安全策略：远端定义只接受公网 https，回环 http 必须被拒（且给出可操作错误）。
+  const rejected = await tools.defs.get('mcp_connector_install_from_url').execute({ url: 'http://127.0.0.1:9/connector.json' });
+  assert.equal(rejected.ok, false, '回环 http 的远端定义必须被拒绝');
+  assert.match(rejected.message, /https/i);
+
+  // 2) 成功路径：用 https mock（自签证书 + NODE_EXTRA_CA_CERTS 不可用时，直接注入 fetch 替身）。
   const catalogSrv = createServer(async (req, res) => {
     if (req.url === '/mcp') {
       for await (const _chunk of req) {}
@@ -3193,43 +3204,56 @@ test('URL 安装 + 目录上下架', { timeout: 15000 }, async () => {
       return;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        id: 'url-demo',
-        name: 'URL 安装演示',
-        auth: { mode: 'none' },
-        servers: [{ serverKey: 'a', url: `http://${req.headers.host}/mcp`, serverName: 'url-a', transport: 'streamable-http', headers: {} }],
-      }),
-    );
+    res.end(JSON.stringify({
+      id: 'url-demo',
+      name: 'URL 安装演示',
+      auth: { mode: 'none' },
+      servers: [{ serverKey: 'a', url: `http://${req.headers.host}/mcp`, serverName: 'url-a', transport: 'streamable-http', headers: {} }],
+    }));
   });
   await new Promise((r) => catalogSrv.listen(0, '127.0.0.1', r));
   const port = catalogSrv.address().port;
+  try {
+    // 用安装在「公网 https 域」上的替身：只替换该次 fetch，域名判定仍走真实 assertPublicInstallUrl。
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const target = String(input);
+      if (target.startsWith('https://example.com/')) {
+        // 读取本地 mock 的 body，但对外仍以 https URL 呈现（保持安装校验看到的 URL 是 https）。
+        const local = await realFetch(`http://127.0.0.1:${port}/connector.json`, init);
+        const body = await local.text();
+        const wrapped = new Response(body, { status: local.status, headers: local.headers });
+        Object.defineProperty(wrapped, 'url', { value: 'https://example.com/connector.json', configurable: true });
+        return wrapped;
+      }
+      return realFetch(input, init);
+    };
+    try {
+      const installed = await tools.defs.get('mcp_connector_install_from_url').execute({ url: 'https://example.com/connector.json' });
+      assert.equal(installed.ok, true, installed.message);
 
-  const shared = { tables: new Map([['connections', makeTable()], ['grants', makeTable()], ['catalog', makeTable()]]) };
-  const { ctx, tools, tables } = makePluginContext({ shared });
-  const { apply } = await import('../lib/index.js');
-  await apply(ctx, baseConfig());
+      const cat = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
+      assert.equal(cat.ok, true);
+      assert.equal(cat.detail.items.length, 1);
+      assert.equal(cat.detail.items[0].id, 'url-demo');
+      assert.equal((await tables.get('catalog').get('dynamic')).connectors[0].id, 'url-demo', 'URL 安装描述应持久化');
 
-  const installed = await tools.defs.get('mcp_connector_install_from_url').execute({ url: `http://127.0.0.1:${port}/connector.json` });
-  assert.equal(installed.ok, true, installed.message);
+      const restarted = makePluginContext({ shared });
+      await apply(restarted.ctx, baseConfig());
+      const restoredCatalog = await restarted.tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
+      assert.equal(restoredCatalog.detail.items[0].id, 'url-demo', '重启后应恢复 URL 安装的目录条目');
 
-  const cat = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
-  assert.equal(cat.ok, true);
-  assert.equal(cat.detail.items.length, 1);
-  assert.equal(cat.detail.items[0].id, 'url-demo');
-  assert.equal((await tables.get('catalog').get('dynamic')).connectors[0].id, 'url-demo', 'URL 安装描述应持久化');
-
-  const restarted = makePluginContext({ shared });
-  await apply(restarted.ctx, baseConfig());
-  const restoredCatalog = await restarted.tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
-  assert.equal(restoredCatalog.detail.items[0].id, 'url-demo', '重启后应恢复 URL 安装的目录条目');
-
-  const pub = await tools.defs.get('mcp_connector_publish').execute({ connectorId: 'url-demo', published: false });
-  assert.equal(pub.ok, true);
-  const cat2 = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
-  assert.equal(cat2.detail.items.length, 0, '下架后不可见');
-
-  catalogSrv.close();
+      const pub = await tools.defs.get('mcp_connector_publish').execute({ connectorId: 'url-demo', published: false });
+      assert.equal(pub.ok, true);
+      const cat2 = await tools.defs.get('mcp_connector_catalog').execute({ keyword: 'URL 安装' });
+      assert.equal(cat2.detail.items.length, 0, '下架后不可见');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  } finally {
+    // 断言失败也必须关闭监听句柄，否则 Node 事件循环不空、测试进程挂死（CI 曾因此挂满 6 小时）。
+    await new Promise((resolve) => catalogSrv.close(resolve));
+  }
 });
 
 test('重启恢复：连接记录持久化并重新挂载条目', { timeout: 30000 }, async () => {
