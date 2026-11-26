@@ -6,6 +6,14 @@ on:
   pull_request:
 
 jobs:
+  release-readback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 test/verify-published.test.py -v
+
   public-paths:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

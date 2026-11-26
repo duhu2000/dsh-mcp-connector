@@ -49,6 +49,12 @@ jobs:
           done
           echo "::error::Published dist.integrity did not match the reviewed tarball"
           exit 1
+      - name: Compare the npm download with the reviewed tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'Commit: %s | Tag: %s\n' "$(git rev-parse HEAD)" "$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/verify-published.py "${GITHUB_REF_NAME#v}" "$REVIEWED_TGZ" "$REVIEWED_INTEGRITY" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
