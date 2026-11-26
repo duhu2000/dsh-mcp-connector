@@ -292,3 +292,47 @@ test('dispose 清理待触发的 tools/change 合并窗口', async () => {
   assert.equal(host.definitionsCalls, 0, 'dispose 后窗口不再刷新');
   assert.deepEqual([...host.denied(agent)], [], 'dispose 释放 restriction');
 });
+
+test('窗口内工具消失后以同名重注册，旧激活失效（#292 回归）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  assert.deepEqual([...host.denied(agent)], [], '激活后工具可见');
+
+  // 同一个 50ms 合并窗口内注销又重注册：窗口结束时工具名又出现，
+  // 但旧激活不得继承给重注册后的工具。
+  host.setNames([]);
+  host.setNames([read]);
+  await sleep(120);
+  assert.deepEqual([...host.denied(agent)], [read], '窗口内消失重注册后旧激活失效');
+  assert.equal(controller.status(agent).activeCount, 0);
+  const guard = [...host.guards][0];
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  controller.dispose();
+});
+
+test('窗口内无关 tools/change 不影响已激活工具', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+
+  for (let i = 0; i < 10; i += 1) host.setNames([read, `mcp__acme__tool${i}`]);
+  await sleep(120);
+  assert.deepEqual([...host.denied(agent)].sort(), ['mcp__acme__tool9']);
+  assert.equal(controller.status(agent).activeCount, 1, '已激活工具在突发中保持激活');
+  const guard = [...host.guards][0];
+  assert.equal(guard({ name: read, agent }), undefined);
+  controller.dispose();
+});
