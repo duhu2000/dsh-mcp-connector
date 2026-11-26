@@ -74,12 +74,18 @@ test('desktop hosts start the guard as Node without leaking the switch to the se
   assert.equal(cli.env.DSH_STDIO_EXPLICIT_ENV, 'TEST_TOKEN');
 });
 
-test('guarded stdio keeps explicitly declared loader vars and drops inherited ones', () => {
-  // 显式声明 PYTHONPATH：用户确实需要自定义解释器路径，守卫应保留。
+test('guarded stdio never exempts loader vars, even when declared explicitly', () => {
+  // 安全策略：危险加载器变量（NODE_OPTIONS / LD_* / PYTHONPATH …）**不因显式声明而豁免**。
+  //
+  // 原实现让显式 key 先短路，于是远端卡片只要在 servers[].env 里写
+  // NODE_OPTIONS=--require=/evil.js，就会被拼进 DSH_STDIO_EXPLICIT_ENV 并跳过剥离，
+  // 等于任意代码执行（实测缺陷 S-4）。现在 DSH_STDIO_EXPLICIT_ENV 只上报非危险键，
+  // 守卫侧也会先判危险模式，形成双保险。
   const explicit = { ...record, env: { ...record.env, PYTHONPATH: '/opt/custom-python' } };
   const entry = buildEntryConfig(explicit, new Map(), { startupRequestTimeoutMs: 800 });
-  assert.equal(entry.env.PYTHONPATH, '/opt/custom-python');
-  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('PYTHONPATH'), true);
-  // 未显式声明时，不额外注入该 key。
+  // env 值本身仍随条目传下去（由守卫决定删不删），但**不能**被列为豁免键。
+  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('PYTHONPATH'), false);
   assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('NODE_OPTIONS'), false);
+  // 普通业务变量仍然可以显式豁免。
+  assert.equal(entry.env.DSH_STDIO_EXPLICIT_ENV.includes('TEST_TOKEN'), true);
 });

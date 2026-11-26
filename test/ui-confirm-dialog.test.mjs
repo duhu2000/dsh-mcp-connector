@@ -61,9 +61,12 @@ test('lib/client.js 不再出现原生 confirm/alert/prompt 调用', () => {
   assert.doesNotMatch(code, /window\.alert/);
 });
 
-test('12 处确认均使用 await confirmDialog，且脚本仍可解析（async 上下文正确）', () => {
+test('13 处确认均使用 await confirmDialog，且脚本仍可解析（async 上下文正确）', () => {
   const sites = [...scriptCode.matchAll(/await confirmDialog\(/g)];
-  assert.equal(sites.length, 12, '既有确认和语言切换丢弃编辑确认均使用内嵌对话框');
+  // 12 处为既有确认（治理策略、连接作用域、本地覆盖、断开等）与语言切换丢弃编辑确认；
+  // 第 13 处是远端动态卡片的 stdio 启动命令确认（安装后必须在界面里显式确认才能连接），
+  // 它同样必须走自绘对话框，否则桌面壳关窗后又会丢键盘焦点。
+  assert.equal(sites.length, 13, '12 处既有确认 + stdio 启动命令确认 + 语言切换丢弃编辑确认均使用内嵌对话框');
   // node 解析阶段就会拒绝「非 async 函数里 await」，因此能构造出函数即证明每个
   // 调用点的 async 上下文都正确。
   assert.doesNotThrow(() => new Function(scriptCode), '内联脚本必须能被解析');
