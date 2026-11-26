@@ -48,7 +48,7 @@ Host 已观察到
 - 工具未被 Host 观察、已删除或重命名时，不能激活；已消失的激活项会在 `tools/change` 后清理，新工具不会自动继承旧激活。
 - 搜索结果来自最后成功缓存；激活只改变可见性，不代表当前业务调用必然成功。
 
-更底层的状态机、威胁模型和后续阶段见 [Issue #111 设计文档](https://github.com/duhu2000/dsh-mcp-connector/blob/main/docs/DESIGN-SESSION-DYNAMIC-TOOL-INJECTION.md)。
+检查可见范围时，先核对[工作区作用域](CONNECTION-SCOPES.md)，再核对[工具治理规则](TOOL-GOVERNANCE.md)。
 
 <a name="企查查企业数据智能按需模式开发分支预览"></a>
 
@@ -66,7 +66,7 @@ Host 已观察到
 
 **回退：**“新会话使用兼容模式”只改变后续会话的默认值；“停用智能层”恢复当前进程的原有工具视图并释放加载状态，仍保留原有权限限制和模式记录。若需重启后也保持兼容，请先确认兼容默认，再停用智能层。运行中的会话或在途操作会阻止不安全的启停；写入默认模式失败时撤回本次新挂载。
 
-生产启用需要目标环境的授权和独立审核。真实模型请求的 Token 用量和任务效果仍待对照实测。
+启用前，请先取得目标环境的授权和独立业务审核。实际模型请求的 Token 用量需要在目标环境测量。
 
 <a name="可信只读证据交付尚未发布"></a>
 
@@ -82,15 +82,15 @@ Host 已观察到
 | `payload` | `version:1`、`purpose:"dsh-read-only-evidence-v1"`、`accountRef`、`groupId`、`profileBinding`、正整数 `revision`、`issuedAt`、`notBefore`、`expiresAt`、`reviews`（最多 1024 条）。所有时间为 UTC epoch 毫秒 |
 | `reviews[]` | `version:1`、`accountRef`、`groupId`、`sourceId`、`definitionFingerprint`、`enabled`、`validFrom`、`expiresAt`、`review:{effect:"read-only",evidenceHash,reviewedAt,reviewerHash}`；四种哈希均为 64 位小写十六进制。sourceId 和完整指纹取自现有受认证 inspect 的 `source`，不从清洗缓存重建 |
 
-包内审核范围必须匹配本期当前账号/六服务组及目标 profile；审核有效期不能超出包的有效期，审核时间不能晚于签发时间。每条审核的 reviewerHash 必填。证据 dossier 由独立审核方保管，包只携带摘要和结论，不携带 schema、业务响应样本、OAuth 凭据或来源等价关系。公钥/签名只能证明签发者及内容完整性，不能代替业务上的只读核验。
+审核范围必须匹配当前账号、六服务组和目标 profile。单条审核的有效期不能超出证据包有效期，审核时间不能晚于签发时间，每条审核都须有 `reviewerHash`。管理员交付已签名的摘要和结论，业务响应、凭据及审核原件由独立审核方保管。确认多个来源等价需要另外审核。
 
 签发方通过包的公共 API `readOnlyEvidenceSigningBytes(payload)` 取得精确字节：UTF-8 字符串 `dsh-read-only-evidence-v1` + 换行 + `canonicalSourceJson(payload)`。规范化按对象键排序、数组保序，无空白；禁止非 JSON 值和额外字段。签名必须发生在独立审核环境；插件不提供签发接口。交付文件先写同目录临时文件、刷盘，再原子替换正式文件，避免读取半包；对 `trust.json` 的管理始终由 profile 管理员在网页之外完成。
 
 证据包是**完整快照**。更高 revision 删除/禁用某条审核即可撤回；删除证据文件或移除/禁用公钥也会使其不可用。正常启动后已核验的只读记录自动供 prepare 使用，无需用户逐条保存；本地人工撤回具有优先级，重新启用仍需当前可信证据并显式确认。只读核验不会批准来源等价关系，也不会放宽 Workspace、手动启用或治理限制。
 
-已接收版本下限保存在独立 smart domain 的 `evidence_receipts/`，按账号/组隔离，原子硬链接发布且不覆盖；只保存绑定、版本、内容摘要和校验和。重启后拒绝旧版本及同版本不同内容；已签名、范围正确的过期/未来包也会推进版本下限，恢复时须发送更高 revision。不要删除接收记录来回退授权。公钥轮换保留 profileBinding，并交付更高版本的新签名包；本地撤回不因重启或新包消失。
+管理员应保留 smart domain 的 `evidence_receipts/` 和 profile 的绑定标识。插件记住每个账号和服务组已接收的版本下限，重启后继续拒绝旧版本及同版本不同内容。范围正确且签名有效的过期包或未来生效包也会推进版本下限。恢复访问或轮换公钥时，保留 `profileBinding`，交付更高 `revision` 的有效签名包。
 
-证据读取有大小/条数/文件类型上限，缺失、损坏、写盘失败均拒绝；接受没有内存专用回退。推理和派发边界同步复核，文件监控及 1 秒轮询同步收窄空闲 lookup 视图，拒绝派发时也刷新 schema/lookup；不承诺撤销已经入站的在途调用。存储要求与原 smart domain 相同：本地原子硬链接文件系统；Windows 不承诺整机断电耐久性。版本下限基于仍完整的本地接收记录，不能对整个 profile/信任根被人为回退或同进程恶意代码作隔离保证。
+目标存储须支持本地原子硬链接。文件缺失、损坏或接收记录写入失败时，prepare 会拒绝加载。撤回后，后续推理和派发会重新检查审批；已入站的调用可能继续完成。保管好整个 profile 及信任根，Windows 的接收记录不提供整机断电耐久性保证。
 
 <a name="development-preview-english"></a>
 
@@ -102,8 +102,8 @@ Compatibility is the default. Use Smart tools, preview the six-service scope and
 
 Existing and pre-enablement blank sessions retain their mode. Forks/subagents inherit mode but never prepared tools. Restart restores the saved default and session snapshots, while loading state is always cleared. Read-only approvals must bind complete raw-definition fingerprints; equivalence approvals remain separate. Neither is inferred from tool names, hints, cached schemas or the mode confirmation. Existing Workspace, manual activation, governance and Host approval boundaries remain authoritative.
 
-For persistent rollback, first confirm Compatibility for new sessions, then disable the smart layer to restore current-process tool views. Disabling alone does not erase the saved smart default. Busy sessions block unsafe mount/unmount; a failed policy write rolls back a newly mounted layer. Real approvals and provider A/B acceptance remain pending.
+For persistent rollback, first confirm Compatibility for new sessions, then disable the smart layer to restore current-process tool views. Disabling alone does not erase the saved smart default. Busy sessions block unsafe mount/unmount; a failed policy write rolls back a newly mounted layer.
 
 An administrator provisions scoped Ed25519 public keys in `<profile>/smart-mode-evidence/trust.json` and atomically delivers an independently signed full snapshot as `bundle.json`. The table above defines the strict v1 protocol; `readOnlyEvidenceSigningBytes(payload)` is the public canonical-byte helper for an external signer. No private key, signing endpoint, trust installation API, remote download or schema/sample storage is provided.
 
-Verified records automatically feed preparation; local manual withdrawals override them. Every inference/dispatch admission rechecks evidence, expiry and the durable revision floor. File watching and a one-second fallback narrow idle lookup views. Withdrawals cannot cancel already-admitted calls. Missing or invalid evidence and receipt-write failures deny preparation. Higher signed revisions replace the entire approval snapshot; older revisions or changed content at the same revision cannot regain authority after restart while the local receipts remain intact. Real review dossiers, production trust provisioning and actual read-only/source approvals remain pending.
+Verified records automatically feed preparation; local manual withdrawals override them. Every inference/dispatch admission rechecks evidence, expiry and the durable revision floor. File watching and a one-second fallback narrow idle lookup views. Withdrawals cannot cancel already-admitted calls. Missing or invalid evidence and receipt-write failures deny preparation. Higher signed revisions replace the entire approval snapshot; older revisions or changed content at the same revision cannot regain authority after restart while the local receipts remain intact.

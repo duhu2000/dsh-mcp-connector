@@ -154,7 +154,11 @@ jobs:
           p.version = smartModeQaVersion(p.version, { pullRequest: Number(process.env.PR_NUMBER),
           buildNumber: Date.now(), commit: process.env.PR_HEAD_SHA });
           fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");'
-      - run: npm pack --ignore-scripts
+      - name: Verify the exact PR archive before uploading
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: npm run pack:reviewed -- . --pr
       - run: shasum -a 256 dsh-mcp-connector-*.tgz > SHA256SUMS.txt
       - uses: actions/upload-artifact@v7
         with:

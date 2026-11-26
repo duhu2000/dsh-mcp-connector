@@ -33,7 +33,26 @@
     "docs/CLI-PROVIDERS.md",
     "docs/USER-GUIDE.md",
     "docs/tutorials",
-    "docs/screenshots",
+    "docs/screenshots/01-market-overview.jpg",
+    "docs/screenshots/02-connector-detail.jpg",
+    "docs/screenshots/03-tool-discovery.jpg",
+    "docs/screenshots/04-json-import.jpg",
+    "docs/screenshots/05-unified-tool-search.png",
+    "docs/screenshots/06-tool-parameters.png",
+    "docs/screenshots/07-connection-diagnostics.png",
+    "docs/screenshots/08-ten-recommendations.jpg",
+    "docs/screenshots/README.md",
+    "docs/screenshots/assets.json",
+    "docs/screenshots/en/01-market-overview.jpg",
+    "docs/screenshots/en/02-connector-detail.jpg",
+    "docs/screenshots/en/03-tool-discovery.jpg",
+    "docs/screenshots/en/04-json-import.jpg",
+    "docs/screenshots/en/05-unified-tool-search.png",
+    "docs/screenshots/en/06-tool-parameters.png",
+    "docs/screenshots/en/07-connection-diagnostics.png",
+    "docs/screenshots/en/08-ten-recommendations.jpg",
+    "docs/screenshots/en/assets.json",
+    "docs/screenshots/en/demo.gif",
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
@@ -70,11 +89,13 @@
     "storefront:check": "node scripts/check-storefront-screenshots.mjs",
     "verify-pack": "node scripts/verify-pack.mjs",
     "docs:tutorial-links:check": "node scripts/check-tutorial-links.mjs",
-    "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:tutorial-links:check",
-    "prepublishOnly": "npm run check",
+    "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:links:check",
+    "prepublishOnly": "npm run check && git diff --exit-code --name-status HEAD -- .",
     "docs:sync": "node scripts/sync-product-docs.mjs",
     "storefront:capture": "node scripts/capture-storefront.mjs && node scripts/capture-storefront.mjs --locale=en",
-    "storefront:freshness": "node scripts/check-media-freshness.mjs"
+    "storefront:freshness": "node scripts/check-media-freshness.mjs",
+    "pack:reviewed": "node scripts/verify-pack.mjs --pack-to",
+    "docs:links:check": "node scripts/check-repository-links.mjs"
   },
   "keywords": [
     "deepseek-harness",
@@ -156,12 +177,12 @@
     }
   },
   "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-client-ui-conversation": "*",
     "@deepseek-ai/dsh-client-ui-layout": "*",
     "@deepseek-ai/dsh-mcp-client": "^0.1.1-rc.2 || >=0.2.0-rc.1 <0.3.0-0",
     "@deepseek-ai/dsh-storage-domain": "*",
     "@deepseek-ai/schemastery": "^3.18.1",
-    "@deepseek-ai/cordis": "^4.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -174,7 +195,10 @@
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/dsh-storage": "^0.1.0-rc.7",
     "@deepseek-ai/dsh-storage-domain": "^0.1.0-rc.7",
-    "@deepseek-ai/schemastery": "^3.18.1"
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "github-slugger": "2.0.0",
+    "mdast-util-from-markdown": "2.1.0",
+    "mdast-util-to-string": "4.0.0"
   },
   "engines": {
     "node": ">=20"
