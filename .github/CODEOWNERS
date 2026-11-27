@@ -3,6 +3,7 @@
 /.github/workflows/ @duhu2000 @IronNebula512
 /package.json @duhu2000 @IronNebula512
 /scripts/check-public-paths.mjs @duhu2000 @IronNebula512
+/scripts/install-public-pre-push.mjs @duhu2000 @IronNebula512
 /scripts/retired-public-paths.json @duhu2000 @IronNebula512
 /scripts/verify-pack.mjs @duhu2000 @IronNebula512
 /scripts/verify-pack-archive.py @duhu2000 @IronNebula512
