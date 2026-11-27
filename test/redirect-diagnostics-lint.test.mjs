@@ -63,7 +63,7 @@ test('既有失败代码的诊断未被本次改动影响', () => {
 // ---------------------------------------------------------------- lint 覆盖
 
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-const linted = new Set([...String(packageJson.scripts?.lint ?? '').matchAll(/node --check (\\S+)/g)].map((m) => m[1]));
+const linted = new Set([...String(packageJson.scripts?.lint ?? '').matchAll(/node --check (\S+)/g)].map((m) => m[1]));
 
 test('新增的携凭据跳转模块必须进 lint 列表', () => {
   assert.ok(linted.has('lib/credentialed-fetch.js'),
