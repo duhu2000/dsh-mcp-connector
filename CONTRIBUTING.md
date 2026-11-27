@@ -16,6 +16,26 @@ Stage the files and run `npm run public:check` before committing. Before pushing
 
 随 npm 分发的截图应在 `package.json` 的 `files` 中逐名列出；仅用于公开文档的图片可放在分发截图目录之外。检查已归档路径使用小写 Git 相对路径的 SHA-256，不需要私有仓库。发布仍按现有流程审查实际 tgz。
 
+### 安装本地推送检查 / Install the local pre-push check
+
+从可信的公开基线检出本项目，在每个团队或 AI 使用的克隆中执行：
+```sh
+git fetch origin
+npm run public:hooks:install
+```
+
+如果 `origin` 是自己的 fork，先获取公开上游的 `main`，再用 `npm run public:hooks:install -- upstream/main`。安装时将检查脚本和退役路径清单复制至 Git 的 hooks 目录，关联 worktree 共用此 hook。工作区里的脚本改动不会影响已安装的检查。如果已有 `pre-push` 或自定义 hooks 目录，安装器会保留原设置。需要整合时，由现有 `pre-push` 调用受信任的检查器副本，传入 `--pre-push refs/remotes/upstream/main`（替换为实际的公开上游引用），并转交 Git 提供的标准输入。
+
+此克隆的每次 push 都会检查，包括推向 fork。公开上游 `main` 已有的文件路径视为已登记。`docs/` 中新增的文件，以及任意目录中新出现的常见文档、图片、日志和压缩包，需确认可公开后才推送。仅登记本次要公开的精确 Git 路径：
+
+```sh
+git config --local --add dshPublic.documentPath docs/getting-started.md
+```
+
+本地登记不豁免原有退役路径、私有路径和截图清单检查。更新公开基线时先 fetch。检查器更新后，从可信版本重新安装。此 hook 检查 Git 文件路径，发布前仍需核对正文、PR 文案和附件。
+
+Install the hook once per clone with `npm run public:hooks:install`. In a fork, fetch the public upstream and pass `upstream/main`. Register new public documents and attachments by exact Git path in local Git config after reviewing them. Review file contents and any materials you attach separately.
+
 ## 参与方式
 
 - 报告安全漏洞：请遵循 [安全报告政策](https://github.com/duhu2000/dsh-mcp-connector/blob/main/SECURITY.md)，使用 [私密报告入口](https://github.com/duhu2000/dsh-mcp-connector/security/advisories/new)，勿公开提交利用细节。
