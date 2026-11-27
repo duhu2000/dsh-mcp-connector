@@ -22,6 +22,15 @@ for (const name of ['webStartup', 'webRuntime']) {
         admit: () => ({ peer: {} }),
       });
       assert.equal((await request(routes, 'trusted.example')).status, 200);
+      if (name === 'webStartup') {
+        const stopAuthentication = ctx.provide('connection.authentication', {});
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(routes.size, 3);
+        assert.equal((await request(routes, 'trusted.example')).status, 403);
+        await stopAuthentication();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal((await request(routes, 'trusted.example')).status, 200);
+      }
       await stopConnection();
       assert.equal((await request(routes, 'trusted.example')).status, 503);
       stop();
@@ -33,7 +42,7 @@ for (const name of ['webStartup', 'webRuntime']) {
   });
 }
 
-function harness(connection = {}) {
+function harness(connection = {}, authentication) {
   const callbacks = new Map();
   const routes = new Map();
   const ctx = { inject(deps, callback) {
@@ -47,6 +56,13 @@ function harness(connection = {}) {
     callbacks.get(name)({
       [name]: { trustedHosts },
       get(key) { assert.equal(key, 'connection'); return connection; },
+      inject(deps, callback) {
+        assert.deepEqual(deps, ['connection.authentication']);
+        if (authentication) callback({
+          get(key) { assert.equal(key, 'connection'); return connection; },
+          effect(fn) { effects.push(fn()); },
+        });
+      },
       webServer: { register(route) {
         assert.ok(!routes.has(route.path), 'no duplicate routes');
         routes.set(route.path, route);
@@ -58,9 +74,9 @@ function harness(connection = {}) {
   } };
 }
 
-async function request(routes, host, origin = 'http://' + host) {
+async function request(routes, host, origin = 'http://' + host, headers = {}) {
   const req = {
-    method: 'POST', headers: { host, origin },
+    method: 'POST', headers: { host, origin, ...headers },
     async *[Symbol.asyncIterator]() {
       yield Buffer.from('{"method":"versionStatus"}');
     },
@@ -141,6 +157,60 @@ test('the current Connection controls access without falling back to trustedHost
       admission = result;
       assert.equal((await request(h.routes, host)).status, status);
     }
+  } finally {
+    stop();
+  }
+});
+
+test('provider-owned sessions admit only the browser credential selected by DSH', async () => {
+  const host = 'configured.example:6731';
+  const origin = 'http://' + host;
+  const cookieName = 'dsh-auth-' + 'a'.repeat(43);
+  const web = cookieName + '=v1.browser.signature';
+  const desktop = 'dsh-desktop-session=desktop-fixture';
+  const api = cookieName + '=v2.api.signature';
+  const fakeBrowser = cookieName + '=v1.forged.signature';
+  const browserPeer = { id: 'in-process', principal: { kind: 'owner' } };
+  const calls = [];
+  const h = harness({
+    browserPeer,
+    admit(req) {
+      calls.push(req.headers);
+      if (req.headers.host !== host || req.headers.origin !== origin ||
+          req.headers['sec-fetch-site'] === 'cross-site') return { rejection: 403 };
+      const selected = req.headers.cookie?.split(';').map(pair => pair.trim())
+        .find(pair => pair.startsWith(cookieName + '=') || pair.startsWith('dsh-desktop-session='));
+      const id = selected === web ? 'web' : selected === desktop ? 'desktop' :
+        selected === api || req.headers.authorization === 'synthetic-api' ? 'api' : undefined;
+      if (!id) return { rejection: 401 };
+      // A second service call can wrap the same Peer in a different object.
+      return { peer: { id, principal: { kind: 'owner' } } };
+    },
+  }, {});
+  const stop = h.activate('webStartup');
+  try {
+    const allowed = await request(h.routes, host, origin, {
+      cookie: 'irrelevant=value; ' + web, authorization: 'synthetic-api', 'sec-fetch-site': 'same-origin',
+    });
+    assert.equal(allowed.status, 200);
+    assert.deepEqual(calls, [
+      { host, origin, cookie: 'irrelevant=value; ' + web, authorization: 'synthetic-api', 'sec-fetch-site': 'same-origin' },
+      { host, origin, cookie: web, 'sec-fetch-site': 'same-origin' },
+    ]);
+    assert.equal((await request(h.routes, host, origin, { cookie: desktop })).status, 200);
+    assert.equal((await request(h.routes, host, origin, { cookie: web + '; ' + api })).status, 200);
+
+    for (const cookie of [api, api + '; ' + fakeBrowser, api + '; ' + web]) {
+      assert.equal((await request(h.routes, host, origin, { cookie })).status, 403);
+    }
+    assert.equal((await request(h.routes, host, origin, {
+      cookie: fakeBrowser, authorization: 'synthetic-api',
+    })).status, 403);
+    assert.equal((await request(h.routes, host, origin, { cookie: fakeBrowser })).status, 401);
+    assert.equal((await request(h.routes, host, origin)).status, 401);
+    assert.equal((await request(h.routes, 'untrusted.example', undefined, { cookie: web })).status, 403);
+    assert.equal((await request(h.routes, host, 'http://other.example', { cookie: web })).status, 403);
+    assert.equal((await request(h.routes, host, origin, { cookie: web, 'sec-fetch-site': 'cross-site' })).status, 403);
   } finally {
     stop();
   }
