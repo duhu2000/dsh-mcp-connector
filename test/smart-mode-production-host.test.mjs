@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 import { networkInterfaces } from 'node:os';
-import { get } from 'node:http';
+import { Agent, get } from 'node:http';
 import { SmartModeStore } from '../lib/smart-mode-store.js';
 import { host } from '../scripts/fixtures/smart-mode-profile.mjs';
 import { productionHarness } from '../scripts/fixtures/smart-mode-production.mjs';
@@ -80,12 +80,14 @@ contract('authenticated Smart Control follows a non-loopback listener across OS-
   const first = await productionHarness(t, { bindHost });
   const firstPort = new URL(first.origin).port;
   assert.ok(Number(firstPort) > 0);
+  const agent = new Agent();
+  t.after(() => agent.destroy());
 
   async function checkReads(fixture, headers, status, scenario = 'valid browser session') {
     for (const path of ['', 'capabilities']) {
-      // Use node:http to preserve the exact Host header on the wire.
+      // Use a direct node:http agent to preserve the exact Host header on the wire.
       const response = await new Promise((resolve, reject) => {
-        get(new URL(path, fixture.url), { headers, signal: AbortSignal.timeout(5000) }, resolve).on('error', reject);
+        get(new URL(path, fixture.url), { agent, headers, signal: AbortSignal.timeout(5000) }, resolve).on('error', reject);
       });
       const chunks = [];
       for await (const chunk of response) chunks.push(chunk);

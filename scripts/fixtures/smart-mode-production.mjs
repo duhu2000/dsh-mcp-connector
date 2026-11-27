@@ -4,12 +4,10 @@ import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import * as fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import { Agent, fetch as undiciFetch } from 'undici';
 import { apply, Config } from '../../lib/index.js';
 import { sourceFixture } from './source-selection.mjs';
 import { profileHarness, temporaryProfile, host, tick, bounded } from './smart-mode-profile.mjs';
-
-// Independent listeners can overlap in one test while fetch is mocked.
-const fetchNative = globalThis.fetch;
 
 /** Actual normal apply(), Host HTTP/Connection/SessionController, Native and
  * JSONL. Only connector KV, file-upload/attachment and loader fixtures are
@@ -83,10 +81,14 @@ export async function productionHarness(t, options = {}) {
     throw new Error(`production dependencies: ${JSON.stringify(dependencyNames.map((name) => [name, Boolean(root.get(name))]))}`, { cause: error });
   });
   const origin = services.webServer.getOrigin();
+  // Always reach this isolated listener directly, independent of the runner's proxy environment.
+  const dispatcher = new Agent();
+  t.after(() => dispatcher.destroy());
+  const fetchHost = (url, init) => undiciFetch(url, { ...init, dispatcher });
   let metadataCalls = 0;
   const fetchMock = t.mock.method(globalThis, 'fetch', async (url, init = {}) => {
     const target = new URL(typeof url === 'string' || url instanceof URL ? url : url.url);
-    if (target.origin === origin) return fetchNative(url, init);
+    if (target.origin === origin) return fetchHost(url, init);
     assert.equal(target.origin, 'https://agent.qcc.com', 'no unrelated network is permitted');
     const request = JSON.parse(init.body ?? '{}'); metadataCalls++;
     if (request.method === 'notifications/initialized' || init.method === 'DELETE') return new Response(null, { status: 202 });
@@ -101,7 +103,7 @@ export async function productionHarness(t, options = {}) {
     if (services.connection.authorizeIndex(req, res)) { res.writeHead(200); res.end('synthetic host'); }
   } });
   let cookie;
-  const signed = await fetchNative(services.connection.authenticatedUrl(origin), { redirect: 'manual' });
+  const signed = await fetchHost(services.connection.authenticatedUrl(origin), { redirect: 'manual' });
   cookie = signed.headers.get('set-cookie')?.split(';')[0]; assert.ok(cookie);
   const config = implementation.Config({ catalogUrl: '', persistSecrets: true, openBrowser: false, account: 'default',
     __grantJournalDir: join(path, 'grant-journal'), ...options.config });
@@ -126,22 +128,22 @@ export async function productionHarness(t, options = {}) {
   let nonce;
   if (options.smartControl !== false) {
     await waitFor(async () => {
-      const response = await fetchNative(`${url}capabilities`, { headers: { cookie } });
+      const response = await fetchHost(`${url}capabilities`, { headers: { cookie } });
       await response.arrayBuffer();
       assert.notEqual(response.status, 403, 'DSH browser session was refused by Smart Control');
       return response.status === 200;
     });
-    const page = await (await fetchNative(url, { headers: { cookie } })).text();
+    const page = await (await fetchHost(url, { headers: { cookie } })).text();
     nonce = page.match(/name="control-nonce" content="([a-f0-9]+)"/)?.[1]; assert.ok(nonce);
   }
   async function rpc(method, params = {}, headers = {}) {
-    const response = await fetchNative(`${url}api`, { method: 'POST', headers: {
+    const response = await fetchHost(`${url}api`, { method: 'POST', headers: {
       origin, cookie, 'content-type': 'application/json', 'x-mcp-control-nonce': nonce, ...headers,
     }, body: JSON.stringify({ method, params }) });
     return { status: response.status, ...(await response.json()) };
   }
   async function legacy(method, params = {}) {
-    return (await fetchNative(`${origin}/mcp-connector/api`, { method: 'POST', headers: { origin, cookie, 'content-type': 'application/json' },
+    return (await fetchHost(`${origin}/mcp-connector/api`, { method: 'POST', headers: { origin, cookie, 'content-type': 'application/json' },
       body: JSON.stringify({ method, params }) })).json();
   }
   async function prompt(sessionId, content = 'Synthetic owner input; reply OK only.', extra = {}) {
@@ -156,7 +158,7 @@ export async function productionHarness(t, options = {}) {
   };
   return { h, path, services, url, origin, cookie, nonce, rpc, legacy, prompt, logs, maps, tables, config, workspaceRows, waitFor, pluginContext,
     async operatorCookie() {
-      const response = await fetchNative(services.connection.authenticatedUrl(`${origin}/connect`), { redirect: 'manual' });
+      const response = await fetchHost(services.connection.authenticatedUrl(`${origin}/connect`), { redirect: 'manual' });
       return response.headers.get('set-cookie')?.split(';')[0];
     },
     async enable() {
