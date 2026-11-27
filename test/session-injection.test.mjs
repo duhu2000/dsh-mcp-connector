@@ -5,8 +5,11 @@ import {
   normalizeInjectionMode,
 } from '../lib/session-injection.js';
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function sessionHost(initialNames) {
   let names = [...initialNames];
+  let definitionsCalls = 0;
   const guards = new Set();
   const listeners = new Map();
   const agents = [];
@@ -14,7 +17,7 @@ function sessionHost(initialNames) {
     for (const listener of listeners.get(event) ?? []) listener(payload);
   };
   const ctx = { tools: {
-    definitions: () => names.map((name) => ({ name })),
+    definitions() { definitionsCalls += 1; return names.map((name) => ({ name })); },
     guard(fn) { guards.add(fn); return () => guards.delete(fn); },
     restrict() {},
   } };
@@ -42,6 +45,8 @@ function sessionHost(initialNames) {
     ctx, agentCtx, agents, guards, emit, makeAgent,
     denied(agent) { return new Set([...agent.restrictions].flatMap((layer) => [...layer])); },
     setNames(next) { names = [...next]; emit('tools/change'); },
+    get definitionsCalls() { return definitionsCalls; },
+    resetDefinitionsCalls() { definitionsCalls = 0; },
   };
 }
 
@@ -144,7 +149,7 @@ test('激活需要确认和最新 revision，且不能越过作用域或治理�
   controller.dispose();
 });
 
-test('tools/change 新工具保持隐藏、消失工具清理激活，不同 restriction 始终取交集', () => {
+test('tools/change 新工具保持隐藏、消失工具清理激活，不同 restriction 始终取交集', async () => {
   const read = 'mcp__acme__read';
   const write = 'mcp__acme__write';
   const host = sessionHost([read]);
@@ -159,11 +164,15 @@ test('tools/change 新工具保持隐藏、消失工具清理激活，不同 res
   assert.deepEqual([...host.denied(agent)], [read], '释放会话层不能释放上游拒绝');
 
   host.setNames([read, write]);
+  // tools/change 走 50ms 固定窗口合并：窗口到期前可见性保持旧状态。
+  assert.deepEqual([...host.denied(agent)], [read], '合并窗口内不做同步刷新');
+  await sleep(120);
   assert.deepEqual([...host.denied(agent)].sort(), [read, write], '新工具不继承旧激活');
   upstreamDeny();
   assert.deepEqual([...host.denied(agent)], [write]);
 
   host.setNames([write]);
+  await sleep(120);
   const status = controller.status(agent);
   assert.equal(status.activeCount, 0);
   assert.equal(status.revision, 2, '已消失的精确工具激活被清理');
@@ -187,5 +196,204 @@ test('Agent disposed 立即清理 restriction 与内存激活', () => {
   assert.throws(() => controller.activate(agent, {
     connectionKey: 'acme', publicNames: [read], expectedRevision: 1, confirmed: true,
   }), /revision=0/, '销毁后不继承原会话 revision');
+  controller.dispose();
+});
+
+test('tools/change 突发在 50ms 固定窗口内只刷新一次，窗口后重新武装', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  host.resetDefinitionsCalls();
+
+  // 模拟冷启动 syncTools() 逐个注册：20 个事件同步到达。
+  for (let i = 0; i < 20; i += 1) host.setNames([read, `mcp__acme__tool${i}`]);
+  assert.equal(host.definitionsCalls, 0, '突发期间不做同步刷新');
+  assert.deepEqual([...host.denied(agent)], [read], '窗口到期前可见性保持旧状态');
+  // Fail-closed 不变量：合并窗口内 guard 仍在工具执行前同步拦截未激活工具。
+  const guard = [...host.guards][0];
+  assert.match(guard({ name: 'mcp__acme__tool0', agent }), /未在当前会话激活/);
+
+  const deadline = Date.now() + 1000;
+  while (host.definitionsCalls === 0 && Date.now() < deadline) await sleep(10);
+  assert.equal(host.definitionsCalls, 1, '一次突发只触发一次合并刷新');
+  assert.deepEqual([...host.denied(agent)].sort(), [read, 'mcp__acme__tool19'].sort());
+  await sleep(120);
+  assert.equal(host.definitionsCalls, 1, '窗口外无重复刷新');
+
+  // 第二次突发在窗口结束后重新武装。
+  host.resetDefinitionsCalls();
+  host.setNames([read, 'mcp__acme__tool19', 'mcp__acme__tool20']);
+  assert.equal(host.definitionsCalls, 0, '新窗口内不做同步刷新');
+  const secondDeadline = Date.now() + 1000;
+  while (host.definitionsCalls === 0 && Date.now() < secondDeadline) await sleep(10);
+  assert.equal(host.definitionsCalls, 1, '第二次突发触发一次合并刷新');
+  assert.deepEqual(
+    [...host.denied(agent)].sort(),
+    [read, 'mcp__acme__tool19', 'mcp__acme__tool20'].sort(),
+  );
+  controller.dispose();
+});
+
+test('窗口内持续到来的 tools/change 不会饿死刷新', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  host.resetDefinitionsCalls();
+
+  // 每 30ms 到达一个事件，持续 300ms：固定窗口仍按窗口到期刷新，
+  // trailing debounce 会在持续突发期间一次也不刷新。
+  for (let i = 0; i < 10; i += 1) {
+    host.setNames([read, `mcp__acme__tool${i}`]);
+    await sleep(30);
+  }
+  assert.ok(host.definitionsCalls >= 2, `持续突发期间仍刷新，实际 ${host.definitionsCalls} 次`);
+  controller.dispose();
+});
+
+test('显式 refresh 会消费待触发的合并窗口，不产生重复刷新', async () => {
+  const read = 'mcp__acme__read';
+  const write = 'mcp__acme__write';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  host.resetDefinitionsCalls();
+
+  host.setNames([read, write]);
+  assert.equal(host.definitionsCalls, 0, 'tools/change 只排队不刷新');
+  controller.refresh();
+  assert.equal(host.definitionsCalls, 1, '显式变更同步刷新');
+  assert.deepEqual([...host.denied(agent)].sort(), [read, write]);
+  await sleep(120);
+  assert.equal(host.definitionsCalls, 1, '显式刷新后窗口不再触发第二次刷新');
+  controller.dispose();
+});
+
+test('dispose 清理待触发的 tools/change 合并窗口', async () => {
+  const read = 'mcp__acme__read';
+  const write = 'mcp__acme__write';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  host.resetDefinitionsCalls();
+
+  host.setNames([read, write]);
+  controller.dispose();
+  await sleep(120);
+  assert.equal(host.definitionsCalls, 0, 'dispose 后窗口不再刷新');
+  assert.deepEqual([...host.denied(agent)], [], 'dispose 释放 restriction');
+});
+
+test('窗口内工具消失后以同名重注册，旧激活失效（#292 回归）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  assert.deepEqual([...host.denied(agent)], [], '激活后工具可见');
+
+  // 同一个 50ms 合并窗口内注销又重注册：窗口结束时工具名又出现，
+  // 但旧激活不得继承给重注册后的工具。
+  host.setNames([]);
+  host.setNames([read]);
+  await sleep(120);
+  assert.deepEqual([...host.denied(agent)], [read], '窗口内消失重注册后旧激活失效');
+  assert.equal(controller.status(agent).activeCount, 0);
+  const guard = [...host.guards][0];
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  controller.dispose();
+});
+
+test('窗口内无关 tools/change 不影响已激活工具', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+
+  for (let i = 0; i < 10; i += 1) host.setNames([read, `mcp__acme__tool${i}`]);
+  await sleep(120);
+  assert.deepEqual([...host.denied(agent)].sort(), ['mcp__acme__tool9']);
+  assert.equal(controller.status(agent).activeCount, 1, '已激活工具在突发中保持激活');
+  const guard = [...host.guards][0];
+  assert.equal(guard({ name: read, agent }), undefined);
+  controller.dispose();
+});
+
+test('窗口内工具消失后重注册，旧激活在定时器触发前已失效（#294 跟进）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  const guard = [...host.guards][0];
+  assert.equal(guard({ name: read, agent }), undefined, '激活后 guard 放行');
+
+  // 同一个 50ms 合并窗口内注销又重注册：定时器尚未触发。
+  host.setNames([]);
+  host.setNames([read]);
+  // 旧激活必须已经失效，guard 立即拦截；可见性仍按窗口批量，restriction
+  // 要等窗口到期后才更新。
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  assert.equal(controller.status(agent).activeCount, 0);
+  assert.deepEqual([...host.denied(agent)], [], '窗口内可见性尚未刷新');
+  await sleep(120);
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  assert.deepEqual([...host.denied(agent)], [read], '窗口到期后可见性也收回');
+  assert.equal(controller.status(agent).activeCount, 0);
+  controller.dispose();
+});
+
+test('窗口内用最新 revision 重新激活，刷新后新激活仍有效（#294 跟进）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  const guard = [...host.guards][0];
+
+  host.setNames([]);
+  host.setNames([read]);
+  // 旧激活已立即失效。
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  // 用最新 revision 重新确认激活（定时器尚未触发）：返回的 activated 与
+  // activeCount 必须一致，不得出现 activated 含工具但 activeCount 为 0。
+  const result = controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read],
+    expectedRevision: controller.status(agent).revision, confirmed: true,
+  });
+  assert.deepEqual(result.activated, [read]);
+  assert.equal(result.activeCount, 1);
+  assert.equal(controller.status(agent).activeCount, 1);
+  assert.equal(guard({ name: read, agent }), undefined);
+  await sleep(120);
+  assert.equal(controller.status(agent).activeCount, 1, '窗口到期后新激活仍有效');
+  assert.deepEqual([...host.denied(agent)], []);
+  assert.equal(guard({ name: read, agent }), undefined);
   controller.dispose();
 });

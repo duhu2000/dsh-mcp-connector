@@ -101,13 +101,27 @@ for (const delivery of ['native', 'microtask', 'immediate']) {
               },
             };
             const settle = async () => {
-              for (let i = 0; i < 50 && pending; i += 1) {
-                await new Promise((done) => setImmediate(done));
+              // Session visibility refreshes on tools/change through a 50ms
+              // fixed coalescing window, and a refresh that changes a mask
+              // re-notifies, which can arm one more window. Wait for
+              // quiescence: drain the pending notifications, then wait out a
+              // window and check that no further Host tool enumeration
+              // happened. A read that lands after the wait is a deferred
+              // refresh, not a hidden background rescan.
+              for (let round = 0; round < 10; round += 1) {
+                for (let i = 0; i < 50 && pending; i += 1) {
+                  await new Promise((done) => setImmediate(done));
+                }
+                assert.equal(pending, 0, 'notifications must reach quiescence');
+                const before = reads;
+                await new Promise((done) => setTimeout(done, 70));
+                for (let i = 0; i < 50 && pending; i += 1) {
+                  await new Promise((done) => setImmediate(done));
+                }
+                assert.equal(pending, 0, 'notifications must reach quiescence');
+                if (reads === before) return;
               }
-              assert.equal(pending, 0, 'notifications must reach quiescence');
-              const before = reads;
-              await new Promise((done) => setImmediate(done));
-              assert.equal(reads, before, 'no hidden background rescan');
+              assert.fail('visibility did not converge after coalescing windows');
             };
             const common = { getRecords: () => records, workspaceIdForAgent: (agent) => agent.workspaceId };
             controllers.push(
