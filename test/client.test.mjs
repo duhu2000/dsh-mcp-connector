@@ -1331,7 +1331,7 @@ test('没有工作空间时给出明确错误，不静默失败', async () => {
 
 test('市场弹框具备主题与键盘可访问性样式', async () => {
   const source = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8');
-  assert.match(source, /prefers-color-scheme: dark/);
+  assert.match(source, /\.mcpConnectorMarketPanel\s*\{\s*background: light-dark\(/);
   assert.match(source, /aria-modal/);
   assert.match(source, /event\.key !== "Escape"/);
   assert.match(source, /mcpConnectorMarketClose:focus-visible/);
@@ -1382,6 +1382,8 @@ test('从设置快捷打开时弹框 Portal 到 body 并高于 DSH 设置层', a
   assert.equal(rendered, portal);
   assert.equal(portal.target, body, '必须逃出 shell.overlay 的 z-index:20 堆叠上下文');
   assert.ok(portal.node.props.style.zIndex > 1000, '必须高于 DSH Settings 的 z-index:1000');
+  const iframe = portal.node.props.children.props.children.find(child => child?.type === 'iframe');
+  assert.equal(iframe.props.style.colorScheme, 'inherit');
 });
 
 test('版本检查支持强制刷新且不会被旧缓存隐藏 Provider 更新', async () => {
