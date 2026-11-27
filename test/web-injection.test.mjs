@@ -215,3 +215,23 @@ test('provider-owned sessions admit only the browser credential selected by DSH'
     stop();
   }
 });
+
+test('provider unavailability preserves 503 during either browser admission', async () => {
+  const host = 'configured.example:6731';
+  const origin = 'http://' + host;
+  const cookie = 'dsh-auth-' + 'a'.repeat(43) + '=v1.browser.signature';
+  const peer = { id: 'web', principal: { kind: 'owner' } };
+
+  for (const admissions of [[{ rejection: 503 }], [{ peer }, { rejection: 503 }]]) {
+    const h = harness({ admit() { return admissions.shift(); } }, {});
+    const stop = h.activate('webStartup');
+    try {
+      const res = await request(h.routes, host, origin, { cookie });
+      assert.equal(res.status, 503);
+      assert.equal(JSON.parse(res.body).message, 'DSH session authentication unavailable');
+      assert.equal(admissions.length, 0);
+    } finally {
+      stop();
+    }
+  }
+});
