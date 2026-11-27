@@ -122,6 +122,17 @@ jobs:
       - run: >-
           npm install --prefix .smart-host-runtime --ignore-scripts --no-audit --no-fund
           @deepseek-ai/dsh@0.2.2-rc.1
+      - name: Install pre-admit DSH Connection
+        run: >-
+          npm install --prefix .legacy-web-host-runtime --ignore-scripts --no-audit --no-fund
+          @deepseek-ai/dsh-client-connection@0.1.5-rc.3
+          @deepseek-ai/dsh-credentials@0.1.5-rc.3
+          @deepseek-ai/cordis@4.0.2
+      - name: Connector web admission against current and pre-admit DSH
+        env:
+          DSH_WEB_TEST_ANCHOR: ${{ github.workspace }}/.smart-host-runtime/package.json
+          DSH_WEB_LEGACY_TEST_ANCHOR: ${{ github.workspace }}/.legacy-web-host-runtime/package.json
+        run: node --test test/web-dsh-host.test.mjs
       - name: Offline contracts must run without skips
         run: node scripts/run-smart-mode-qa.mjs check --anchor .smart-host-runtime/package.json
       - name: Nested MCP arguments against the real Host and loopback HTTP

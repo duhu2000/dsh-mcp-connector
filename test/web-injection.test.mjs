@@ -87,12 +87,12 @@ test('legacy Connection preserves trusted hosts and disposes and remounts routes
   assert.equal(h.routes.size, 0);
 });
 
-test('webStartup requires admission even when legacy trust is also configured', async () => {
+test('legacy Connection prefers webStartup trust and falls back when webStartup unloads', async () => {
   const h = harness();
   const oldStop = h.activate('webRuntime', ['old.example']);
   const newStop = h.activate('webStartup', ['new.example']);
-  assert.equal((await request(h.routes, 'new.example')).status, 503);
-  assert.equal((await request(h.routes, 'old.example')).status, 503);
+  assert.equal((await request(h.routes, 'new.example')).status, 200);
+  assert.equal((await request(h.routes, 'old.example')).status, 403);
   newStop();
   assert.equal((await request(h.routes, 'old.example')).status, 200);
   oldStop();
@@ -103,17 +103,31 @@ test('legacy service arriving after new service does not override new trust', as
   const h = harness();
   const newStop = h.activate('webStartup', ['new.example']);
   const oldStop = h.activate('webRuntime', ['old.example']);
-  assert.equal((await request(h.routes, 'old.example')).status, 503);
+  assert.equal((await request(h.routes, 'old.example')).status, 403);
   oldStop();
   assert.equal(h.routes.size, 3);
   newStop();
   assert.equal(h.routes.size, 0);
 });
 
+test('requestRejection authenticates webStartup requests on hosts that predate admit', async () => {
+  const connection = { requestRejection() { return this.rejection; } };
+  const h = harness(connection);
+  const stop = h.activate('webStartup', ['configured.example:6731']);
+  try {
+    for (const [rejection, status] of [[403, 403], [401, 401], [undefined, 200]]) {
+      connection.rejection = rejection;
+      assert.equal((await request(h.routes, 'configured.example:6731')).status, status);
+    }
+  } finally {
+    stop();
+  }
+});
+
 test('the current Connection controls access without falling back to trustedHosts', async () => {
   const browserPeer = { principal: { kind: 'owner' }, signal: new AbortController().signal };
   let admission;
-  const h = harness({ browserPeer, admit() { return admission; } });
+  const h = harness({ browserPeer, admit() { return admission; }, requestRejection() { return undefined; } });
   const stop = h.activate('webStartup', ['configured.example:6731']);
   const host = 'configured.example:6731';
   try {

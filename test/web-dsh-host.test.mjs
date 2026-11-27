@@ -6,6 +6,7 @@ import { injectWebRoutes } from '../lib/web.js';
 
 // Resolve an isolated DSH install's program files only. Credentials stay in memory.
 const anchor = process.env.DSH_WEB_TEST_ANCHOR;
+const legacyAnchor = process.env.DSH_WEB_LEGACY_TEST_ANCHOR;
 
 function response() {
   return {
@@ -14,7 +15,7 @@ function response() {
   };
 }
 
-test('DSH Connection admits signed browser sessions on the bind IP and configured hosts', { skip: !anchor }, async (t) => {
+async function mountHost(t, anchor, { bindIp, trustedHosts }) {
   const require = createRequire(anchor);
   const load = (name) => import(pathToFileURL(require.resolve(name)).href);
   const { Context } = await load('@deepseek-ai/cordis');
@@ -22,8 +23,6 @@ test('DSH Connection admits signed browser sessions on the bind IP and configure
   const ctx = new Context();
   t.after(() => ctx.fiber.dispose());
 
-  const bindIp = '192.0.2.10';
-  const trustedHosts = ['trusted.example', 'pinned.example:6731'];
   const routes = new Map();
   ctx.provide('webServer', {
     host: bindIp, port: 0, protocol: 'http:',
@@ -81,6 +80,14 @@ test('DSH Connection admits signed browser sessions on the bind IP and configure
     return results;
   }
 
+  return { connection, browserCookie, statuses, dispatches: () => dispatches, subscriptions: () => subscriptions };
+}
+
+test('DSH Connection admits signed browser sessions on the bind IP and configured hosts', { skip: !anchor }, async (t) => {
+  const bindIp = '192.0.2.10';
+  const { browserCookie, statuses, dispatches, subscriptions } = await mountHost(t, anchor, {
+    bindIp, trustedHosts: ['trusted.example', 'pinned.example:6731'],
+  });
   const host = `${bindIp}:6731`;
   const otherPort = `${bindIp}:48152`;
   const cookie = browserCookie(host);
@@ -92,12 +99,32 @@ test('DSH Connection admits signed browser sessions on the bind IP and configure
   assert.deepEqual(await statuses(host, { cookie, 'sec-fetch-site': 'cross-site' }), [403, 403, 403]);
   assert.deepEqual(await statuses('unlisted.example:6731'), [403, 403, 403]);
   assert.deepEqual(await statuses('pinned.example:48152'), [403, 403, 403]);
-  assert.equal(dispatches, 0);
-  assert.equal(subscriptions, 0);
+  assert.equal(dispatches(), 0);
+  assert.equal(subscriptions(), 0);
 
   for (const authority of [host, otherPort, 'trusted.example:48152', 'pinned.example:6731', '127.0.0.1:6731']) {
     assert.deepEqual(await statuses(authority, { cookie: browserCookie(authority) }), [200, 200, 200]);
   }
-  assert.equal(dispatches, 5);
-  assert.equal(subscriptions, 5);
+  assert.equal(dispatches(), 5);
+  assert.equal(subscriptions(), 5);
+});
+
+test('older DSH webStartup authenticates all Connector routes before Connection.admit existed', { skip: !legacyAnchor }, async (t) => {
+  const host = '127.0.0.1:6731';
+  const { connection, browserCookie, statuses, dispatches, subscriptions } = await mountHost(t, legacyAnchor, {
+    bindIp: '127.0.0.1', trustedHosts: ['pinned.example:6731'],
+  });
+  assert.equal(typeof connection.admit, 'undefined');
+  assert.equal(typeof connection.requestRejection, 'function');
+
+  const cookie = browserCookie(host);
+  assert.deepEqual(await statuses(host, { cookie }), [200, 200, 200]);
+  assert.deepEqual(await statuses(host), [401, 401, 401]);
+  assert.deepEqual(await statuses(host, { cookie: `${cookie}invalid` }), [401, 401, 401]);
+  assert.deepEqual(await statuses(host, { cookie, origin: 'http://127.0.0.1:48152' }), [403, 403, 403]);
+  assert.deepEqual(await statuses(host, { cookie, 'sec-fetch-site': 'cross-site' }), [403, 403, 403]);
+  assert.deepEqual(await statuses('pinned.example:48152'), [403, 403, 403]);
+  assert.deepEqual(await statuses('pinned.example:6731', { cookie: browserCookie('pinned.example:6731') }), [200, 200, 200]);
+  assert.equal(dispatches(), 2);
+  assert.equal(subscriptions(), 2);
 });
