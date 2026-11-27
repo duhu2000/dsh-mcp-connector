@@ -57,6 +57,126 @@
     "registry:build": "node scripts/build-registry.mjs",
     "registry:validate": "node scripts/probe-connector.mjs catalog/catalog.json --validate-only",
     "dev:ui": "node scripts/ui-harness.mjs",
-    "market:check": "node scripts/check-market-registration.mjs"
+    "market:check": "node scripts/check-market-registration.mjs",
+    "market:rank:live": "node scripts/check-market-search-rank.mjs --strict",
+    "distribution:check:live": "node scripts/check-distribution-sync.mjs --strict-sync",
+    "registry:stats:sync": "node scripts/sync-registry-stats.mjs",
+    "docs:check": "node scripts/check-readme-version.mjs && node scripts/sync-product-docs.mjs --check",
+    "docs:first-use:check": "node scripts/check-first-use-docs.mjs",
+    "marketing:check": "node scripts/check-marketing-metadata.mjs",
+    "marketing:check:github": "node scripts/check-marketing-metadata.mjs --live-github",
+    "marketing:check:npm": "node scripts/check-marketing-metadata.mjs --live-npm",
+    "marketing:check:live": "node scripts/check-marketing-metadata.mjs --live",
+    "storefront:check": "node scripts/check-storefront-screenshots.mjs",
+    "verify-pack": "node scripts/verify-pack.mjs",
+    "docs:tutorial-links:check": "node scripts/check-tutorial-links.mjs",
+    "check": "npm run lint && npm run docs:check && npm run docs:first-use:check && npm run marketing:check && npm run storefront:check && npm test && npm run verify-pack && npm run docs:tutorial-links:check",
+    "prepublishOnly": "npm run check",
+    "docs:sync": "node scripts/sync-product-docs.mjs",
+    "storefront:capture": "node scripts/capture-storefront.mjs && node scripts/capture-storefront.mjs --locale=en",
+    "storefront:freshness": "node scripts/check-media-freshness.mjs"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "mcp",
+    "mcp-client",
+    "mcp-server",
+    "mcp-connector",
+    "mcp-marketplace",
+    "model-context-protocol",
+    "mcp-hub",
+    "mcp-manager",
+    "mcp-registry",
+    "mcp-tools",
+    "mcp-store",
+    "remote-mcp",
+    "streamable-http",
+    "stdio",
+    "connector",
+    "connection",
+    "connection-manager",
+    "marketplace",
+    "plugin",
+    "extension",
+    "integration",
+    "agent-skills",
+    "skill-extension",
+    "ai-tools",
+    "llm-tools",
+    "ai-agents",
+    "oauth",
+    "oauth2",
+    "pkce",
+    "api-key",
+    "json-import",
+    "enterprise-data",
+    "qichacha",
+    "qcc",
+    "tools",
+    "prompts",
+    "MCP连接器",
+    "连接器",
+    "连接管理",
+    "技能扩展",
+    "插件",
+    "扩展",
+    "企查查",
+    "data-marketplace",
+    "data-sources",
+    "open-data"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duhu2000/dsh-mcp-connector.git"
+  },
+  "homepage": "https://github.com/duhu2000/dsh-mcp-connector#readme",
+  "bugs": {
+    "url": "https://github.com/duhu2000/dsh-mcp-connector/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-ui-conversation": "*",
+    "@deepseek-ai/dsh-client-ui-layout": "*",
+    "@deepseek-ai/dsh-mcp-client": "^0.1.1-rc.2 || >=0.2.0-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-storage-domain": "*",
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "cross-spawn": "^7.0.6",
+    "undici": "^6.29.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-storage": "^0.1.0-rc.7",
+    "@deepseek-ai/dsh-storage-domain": "^0.1.0-rc.7",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
