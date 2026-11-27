@@ -336,3 +336,64 @@ test('窗口内无关 tools/change 不影响已激活工具', async () => {
   assert.equal(guard({ name: read, agent }), undefined);
   controller.dispose();
 });
+
+test('窗口内工具消失后重注册，旧激活在定时器触发前已失效（#294 跟进）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  const guard = [...host.guards][0];
+  assert.equal(guard({ name: read, agent }), undefined, '激活后 guard 放行');
+
+  // 同一个 50ms 合并窗口内注销又重注册：定时器尚未触发。
+  host.setNames([]);
+  host.setNames([read]);
+  // 旧激活必须已经失效，guard 立即拦截；可见性仍按窗口批量，restriction
+  // 要等窗口到期后才更新。
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  assert.equal(controller.status(agent).activeCount, 0);
+  assert.deepEqual([...host.denied(agent)], [], '窗口内可见性尚未刷新');
+  await sleep(120);
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  assert.deepEqual([...host.denied(agent)], [read], '窗口到期后可见性也收回');
+  assert.equal(controller.status(agent).activeCount, 0);
+  controller.dispose();
+});
+
+test('窗口内用最新 revision 重新激活，刷新后新激活仍有效（#294 跟进）', async () => {
+  const read = 'mcp__acme__read';
+  const host = sessionHost([read]);
+  const agent = host.makeAgent('agent');
+  const record = { key: 'acme', name: 'Acme', serverName: 'acme', enabled: true, injectionMode: 'session' };
+  const controller = createSessionToolInjectionController(host.ctx, { getRecords: () => [record] });
+  controller.mountAgents(host.agentCtx);
+  controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read], expectedRevision: 0, confirmed: true,
+  });
+  const guard = [...host.guards][0];
+
+  host.setNames([]);
+  host.setNames([read]);
+  // 旧激活已立即失效。
+  assert.match(guard({ name: read, agent }), /未在当前会话激活/);
+  // 用最新 revision 重新确认激活（定时器尚未触发）：返回的 activated 与
+  // activeCount 必须一致，不得出现 activated 含工具但 activeCount 为 0。
+  const result = controller.activate(agent, {
+    connectionKey: 'acme', publicNames: [read],
+    expectedRevision: controller.status(agent).revision, confirmed: true,
+  });
+  assert.deepEqual(result.activated, [read]);
+  assert.equal(result.activeCount, 1);
+  assert.equal(controller.status(agent).activeCount, 1);
+  assert.equal(guard({ name: read, agent }), undefined);
+  await sleep(120);
+  assert.equal(controller.status(agent).activeCount, 1, '窗口到期后新激活仍有效');
+  assert.deepEqual([...host.denied(agent)], []);
+  assert.equal(guard({ name: read, agent }), undefined);
+  controller.dispose();
+});
