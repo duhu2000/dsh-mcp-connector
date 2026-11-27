@@ -8,6 +8,9 @@ import { apply, Config } from '../../lib/index.js';
 import { sourceFixture } from './source-selection.mjs';
 import { profileHarness, temporaryProfile, host, tick, bounded } from './smart-mode-profile.mjs';
 
+// Independent listeners can overlap in one test while fetch is mocked.
+const fetchNative = globalThis.fetch;
+
 /** Actual normal apply(), Host HTTP/Connection/SessionController, Native and
  * JSONL. Only connector KV, file-upload/attachment and loader fixtures are
  * synthetic. No real credential, tool body, model adapter or service endpoint.
@@ -68,7 +71,7 @@ export async function productionHarness(t, options = {}) {
   root.provide('fs', {});
   root.plugin((await load('dsh-typert-registry')).TypertRegistry);
   root.plugin((await load('dsh-api-remote-access')).RemoteAccessService);
-  root.plugin((await load('dsh-host-webserver')).WebServer, { host: '127.0.0.1', port: 0 });
+  root.plugin((await load('dsh-host-webserver')).WebServer, { host: options.bindHost ?? '127.0.0.1', port: 0 });
   const connectionFiber = root.plugin(await load('dsh-client-connection'));
   await bounded(connectionFiber.await()).catch((error) => { throw new Error(`Host Connection startup failed: ${error.message}`); });
   root.plugin((await load('dsh-api-gateway')).TypertGatewayService, {});
@@ -80,7 +83,6 @@ export async function productionHarness(t, options = {}) {
     throw new Error(`production dependencies: ${JSON.stringify(dependencyNames.map((name) => [name, Boolean(root.get(name))]))}`, { cause: error });
   });
   const origin = services.webServer.getOrigin();
-  const fetchNative = globalThis.fetch;
   let metadataCalls = 0;
   const fetchMock = t.mock.method(globalThis, 'fetch', async (url, init = {}) => {
     const target = new URL(typeof url === 'string' || url instanceof URL ? url : url.url);
@@ -123,7 +125,12 @@ export async function productionHarness(t, options = {}) {
   const url = `${origin}/mcp-connector/smart-control/`;
   let nonce;
   if (options.smartControl !== false) {
-    await waitFor(async () => (await fetchNative(`${url}capabilities`, { headers: { cookie } })).status === 200);
+    await waitFor(async () => {
+      const response = await fetchNative(`${url}capabilities`, { headers: { cookie } });
+      await response.arrayBuffer();
+      assert.notEqual(response.status, 403, 'DSH browser session was refused by Smart Control');
+      return response.status === 200;
+    });
     const page = await (await fetchNative(url, { headers: { cookie } })).text();
     nonce = page.match(/name="control-nonce" content="([a-f0-9]+)"/)?.[1]; assert.ok(nonce);
   }
@@ -147,7 +154,7 @@ export async function productionHarness(t, options = {}) {
     await fiber.dispose();
     fetchMock.mock.restore();
   };
-  return { h, path, services, url, origin, cookie, rpc, legacy, prompt, logs, maps, tables, config, workspaceRows, waitFor, pluginContext,
+  return { h, path, services, url, origin, cookie, nonce, rpc, legacy, prompt, logs, maps, tables, config, workspaceRows, waitFor, pluginContext,
     async operatorCookie() {
       const response = await fetchNative(services.connection.authenticatedUrl(`${origin}/connect`), { redirect: 'manual' });
       return response.headers.get('set-cookie')?.split(';')[0];
