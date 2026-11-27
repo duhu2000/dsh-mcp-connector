@@ -4,16 +4,27 @@ on:
     - cron: '20 3 * * *'
   workflow_dispatch:
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 concurrency:
   group: npm-download-trend
   cancel-in-progress: false
 jobs:
   refresh:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - name: Require automatic PR credential
+        env:
+          AUTO_PR_PUBLIC_REPO_PAT: ${{ secrets.AUTO_PR_PUBLIC_REPO_PAT }}
+        run: |
+          if [ -z "$AUTO_PR_PUBLIC_REPO_PAT" ]; then
+            echo '::error::Configure the AUTO_PR_PUBLIC_REPO_PAT repository secret before publishing automated PRs.'
+            exit 1
+          fi
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -25,8 +36,10 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/trend-render" --ignore-scripts --no-audit --no-fund @resvg/resvg-js@2.6.2
           RENDER_MODULE="$RUNNER_TEMP/trend-render/node_modules/@resvg/resvg-js" node -e 'const fs=require("node:fs");const {Resvg}=require(process.env.RENDER_MODULE);fs.writeFileSync("docs/metrics/npm-downloads.png",new Resvg(fs.readFileSync("docs/metrics/npm-downloads.svg")).render().asPng())'
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
         with:
+          token: ${{ secrets.AUTO_PR_PUBLIC_REPO_PAT }}
+          base: main
           branch: automation/npm-download-trend
           commit-message: 'QMCP-2014 refresh npm download trend'
           title: 'QMCP-2014 refresh npm download trend'

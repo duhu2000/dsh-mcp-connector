@@ -6,7 +6,7 @@ on:
     - cron: '12 * * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sync-registry-product-stats
@@ -14,11 +14,21 @@ concurrency:
 
 jobs:
   sync:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - name: Require automatic PR credential
+        env:
+          AUTO_PR_PUBLIC_REPO_PAT: ${{ secrets.AUTO_PR_PUBLIC_REPO_PAT }}
+        run: |
+          if [ -z "$AUTO_PR_PUBLIC_REPO_PAT" ]; then
+            echo '::error::Configure the AUTO_PR_PUBLIC_REPO_PAT repository secret before publishing automated PRs.'
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
           ref: main
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -30,14 +40,18 @@ jobs:
         run: |
           node --test test/registry-stats-sync.test.mjs
           git diff --check
-      - name: Commit changed product copy
-        run: |
-          if git diff --quiet -- README.md README.en.md docs/registry-stats.json; then
-            echo "Registry product copy is already current"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md README.en.md docs/registry-stats.json
-          git commit -m "QMCP-2014 docs: sync Registry connector counts [skip ci]"
-          git push
+      - name: Create or update the Registry stats pull request
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+        with:
+          token: ${{ secrets.AUTO_PR_PUBLIC_REPO_PAT }}
+          base: main
+          branch: automation/registry-stats
+          delete-branch: true
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          commit-message: 'QMCP-2014 docs: sync Registry connector counts'
+          title: 'QMCP-2014 docs: sync Registry connector counts'
+          body: 'Synchronize the bilingual README statistics, category overview, and local snapshot from the public Registry.'
+          add-paths: |
+            README.md
+            README.en.md
+            docs/registry-stats.json
