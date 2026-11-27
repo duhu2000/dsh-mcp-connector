@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
+import { networkInterfaces } from 'node:os';
+import { Agent, get } from 'node:http';
 import { SmartModeStore } from '../lib/smart-mode-store.js';
 import { host } from '../scripts/fixtures/smart-mode-profile.mjs';
 import { productionHarness } from '../scripts/fixtures/smart-mode-production.mjs';
@@ -69,6 +71,66 @@ contract('real signed browser cookie is required and normal workspace placement 
   const store = await SmartModeStore.open({ profileDir: f.path });
   try { assert.equal((await store.readSnapshot(forged.sessionId)).mode, 'compat'); } finally { await store.close(); }
   assert.deepEqual(f.h.errors, []);
+});
+
+contract('authenticated Smart Control follows a non-loopback listener across OS-assigned ports', async (t) => {
+  const bindHost = Object.values(networkInterfaces()).flat()
+    .find((address) => address?.family === 'IPv4' && !address.internal)?.address;
+  assert.ok(bindHost, 'a non-loopback IPv4 interface is required for this Host contract');
+  const first = await productionHarness(t, { bindHost });
+  const firstPort = new URL(first.origin).port;
+  assert.ok(Number(firstPort) > 0);
+  const agent = new Agent();
+  t.after(() => agent.destroy());
+
+  async function checkReads(fixture, headers, status, scenario = 'valid browser session') {
+    for (const path of ['', 'capabilities']) {
+      // Use a direct node:http agent to preserve the exact Host header on the wire.
+      const response = await new Promise((resolve, reject) => {
+        get(new URL(path, fixture.url), { agent, headers, signal: AbortSignal.timeout(5000) }, resolve).on('error', reject);
+      });
+      const chunks = [];
+      for await (const chunk of response) chunks.push(chunk);
+      assert.equal(response.statusCode, status, `${scenario} at ${path || 'control page'}`);
+      if (status === 403) assert.equal(JSON.parse(Buffer.concat(chunks)).code, 'CONTROL_FORBIDDEN');
+    }
+  }
+
+  const browser = { cookie: first.cookie };
+  await checkReads(first, browser, 200);
+  const operator = await first.operatorCookie();
+  assert.ok(operator);
+  for (const [scenario, headers] of [
+    ['untrusted Host', { ...browser, host: 'untrusted.example.invalid' }],
+    ['mismatched Origin', { ...browser, origin: 'http://foreign.example.invalid' }],
+    ['cross-site request', { ...browser, origin: first.origin, 'sec-fetch-site': 'cross-site' }],
+    ['missing session', {}],
+    ['invalid session', { cookie: `${first.cookie}invalid` }],
+    ['API operator session', { cookie: operator }],
+  ]) await checkReads(first, headers, 403, scenario);
+  assert.equal((await first.rpc('state')).status, 200);
+
+  for (const headers of [
+    { ...browser, 'x-mcp-control-nonce': first.nonce },
+    { ...browser, origin: first.origin },
+  ]) {
+    const response = await fetch(`${first.url}api`, {
+      method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: '{"method":"state"}',
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).code, 'CONTROL_CSRF_REJECTED');
+  }
+
+  // Keep the first listener bound so the second port assignment is distinct.
+  await t.test('a second listener admits its own browser session', async (secondTest) => {
+    const second = await productionHarness(secondTest, { bindHost });
+    const secondPort = new URL(second.origin).port;
+    assert.ok(Number(secondPort) > 0);
+    assert.notEqual(secondPort, firstPort);
+    await checkReads(second, { cookie: second.cookie }, 200);
+    await checkReads(second, browser, 403, 'session from the first listener');
+    assert.equal((await second.rpc('state')).status, 200);
+  });
 });
 
 contract('a real disk write failure rolls back newly mounted restrictions before retry', async (t) => {
