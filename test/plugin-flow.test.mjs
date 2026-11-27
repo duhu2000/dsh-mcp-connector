@@ -105,9 +105,11 @@ function makePluginContext({ shared, loaderHooks, workspaces, withWeb = false } 
     },
   };
   const routes = new Map();
+  const legacyConnection = {};
   if (withWeb) ctx.inject = (dependencies, callback) => {
     if (dependencies.includes('webServer') && dependencies.includes('webRuntime')) callback({
       effect: ctx.effect,
+      get: (name) => name === 'connection' ? legacyConnection : undefined,
       webRuntime: {}, webServer: { register(route) { routes.set(route.path, route.handler); return () => routes.delete(route.path); } },
     });
   };
