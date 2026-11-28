@@ -30,6 +30,7 @@ async function startServer(handler) {
         method: req.method,
         url: req.url,
         body,
+        headers: req.headers,
         sessionId: req.headers['mcp-session-id'] ?? null,
         apiKey: req.headers['x-api-key'] ?? null,
       };
@@ -74,23 +75,41 @@ test('同源 303 之后连接校验按 Fetch 规范改用 GET', async () => {
     const result = await validateConnectionRecord(record, { timeoutMs: 4000 });
     assert.equal(result.ok, true, `303 后校验应通过，实际：${result.kind} ${result.message}`);
     assert.deepEqual(server.requests.map((r) => `${r.method} ${r.url}`), ['POST /mcp', 'GET /mcp2']);
+    assert.equal(server.requests[1].headers['content-type'], undefined);
   } finally { await server.close(); }
 });
 
-test('301/302/303 改用 GET 并丢弃请求体，307/308 保留 POST 与请求体', async () => {
+test('POST 遇到 301/302/303 时清除请求体及其头，307/308 保留两者', async () => {
+  const bodyHeaders = {
+    'content-encoding': 'identity',
+    'content-language': 'en',
+    'content-location': '/mcp',
+  };
   for (const [status, expectedMethod] of [[301, 'GET'], [302, 'GET'], [303, 'GET'], [307, 'POST'], [308, 'POST']]) {
     const server = await startServer(({ url, body }, req, res) => {
       if (url === '/mcp') return reply(res, status, '', { location: '/mcp2' });
       return mcpSession(res, body);
     });
     try {
-      const record = { transport: 'streamable-http', url: `${server.base}/mcp`, auth: { mode: 'none' } };
+      const record = {
+        transport: 'streamable-http',
+        url: `${server.base}/mcp`,
+        auth: { mode: 'api-key', apiKeyHeader: 'x-api-key', apiKeyValue: 'test-key' },
+        headers: bodyHeaders,
+      };
       await listMcpTools(record, { timeoutMs: 4000, retryCount: 0 }).catch(() => {});
       const hop = server.requests.find((r) => r.url === '/mcp2');
       assert.ok(hop, `${status} 应跟随同源跳转`);
       assert.equal(hop.method, expectedMethod, `${status} 后方法应为 ${expectedMethod}`);
-      if (expectedMethod === 'GET') assert.equal(hop.body, '', `${status} 后不应携带请求体`);
-      else assert.notEqual(hop.body, '', `${status} 后应保留请求体`);
+      const rewritesMethod = expectedMethod === 'GET';
+      assert.equal(hop.body === '', rewritesMethod, `${status} 后请求体状态异常`);
+      for (const [name, value] of Object.entries(bodyHeaders)) {
+        assert.equal(hop.headers[name], rewritesMethod ? undefined : value, `${status} 后 ${name} 异常`);
+      }
+      assert.equal(hop.headers['content-type'], rewritesMethod ? undefined : 'application/json');
+      const expectedLength = rewritesMethod ? undefined : String(Buffer.byteLength(hop.body));
+      assert.equal(hop.headers['content-length'], expectedLength);
+      assert.equal(hop.apiKey, 'test-key');
     } finally { await server.close(); }
   }
 });
@@ -113,6 +132,24 @@ test('同源跳转后会话关闭 DELETE 真正到达端点', async () => {
     assert.equal(deletes[0].url, '/mcp');
     assert.equal(deletes[1].url, '/mcp2', 'DELETE 必须跟到真实端点');
     assert.equal(deletes[1].sessionId, 'sess-XYZ', 'DELETE 必须带会话 ID');
+  } finally { await server.close(); }
+});
+
+test('同源 303 后读取会话关闭回执时改用 GET', async () => {
+  const server = await startServer(({ method, url, body }, req, res) => {
+    if (url === '/mcp' && method === 'DELETE') return reply(res, 303, '', { location: '/receipt' });
+    if (url === '/mcp') return mcpSession(res, body, 'sess-303');
+    if (url === '/receipt') return reply(res, method === 'GET' ? 200 : 405);
+    return reply(res, 404, '{}');
+  });
+  try {
+    const record = { transport: 'streamable-http', url: `${server.base}/mcp`, auth: { mode: 'none' } };
+    const listed = await listMcpTools(record, { timeoutMs: 4000, retryCount: 0 });
+    assert.equal(listed.tools.length, 1);
+    const [close, receipt] = server.requests.slice(-2);
+    assert.deepEqual([close.method, close.url, close.sessionId], ['DELETE', '/mcp', 'sess-303']);
+    assert.deepEqual([receipt.method, receipt.url, receipt.body], ['GET', '/receipt', '']);
+    assert.equal(receipt.headers['content-type'], undefined);
   } finally { await server.close(); }
 });
 
