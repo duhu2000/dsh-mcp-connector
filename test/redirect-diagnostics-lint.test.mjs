@@ -12,19 +12,23 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 
+import { REDIRECT_ERROR_CODES } from '../lib/credentialed-fetch.js';
 import { buildHealthSummary, failureAction, stageLabel } from '../lib/diagnostics.js';
 import { createTranslator, DEFAULT_LOCALE } from '../lib/i18n/index.js';
+import { EN_DICTIONARY } from '../lib/i18n/locales/en.js';
+import { classifyConnectionError, validateConnectionRecord } from '../lib/mcp-validation.js';
 
 const t = createTranslator(DEFAULT_LOCALE);
 const record = { key: 'demo-main', connectorId: 'demo', serverKey: 'main', serverName: 'demo', enabled: true };
 
 /** 取单条失败结果对应的诊断。 */
-function diagnosticFor(kind, overrides = {}) {
+function diagnosticFor(kind, overrides = {}, translate = t) {
   return buildHealthSummary({
     connectorId: 'demo',
     records: [record],
     results: [{ ok: false, kind, serverKey: 'main', serverName: 'demo', ...overrides }],
     checkedAt: 1,
+    t: translate,
   }).diagnostic;
 }
 
@@ -40,8 +44,43 @@ test('重定向的建议动作不能等同于 network', () => {
   const redirect = diagnosticFor('redirect');
   const network = diagnosticFor('network');
   assert.notEqual(redirect.action, network.action, '两者建议动作相同会导致用户去排查网络');
-  assert.match(redirect.action, /最终地址/, '应引导用户直接填写最终地址');
+  assert.match(redirect.action, /服务方公布的可信 MCP 端点/);
   assert.notEqual(failureAction(t, 'redirect'), failureAction(t, 'network'));
+});
+
+test('按重定向错误代码给出中英文建议，覆盖连接校验和工具发现', () => {
+  const en = createTranslator('en', { en: EN_DICTIONARY });
+  const cases = [
+    [REDIRECT_ERROR_CODES.CROSS_ORIGIN, /协议、主机和端口/, /scheme, host, and port/],
+    [REDIRECT_ERROR_CODES.TOO_MANY, /检查重定向链/, /check the redirect chain/],
+    [REDIRECT_ERROR_CODES.INVALID, /修正 Location 响应头/, /correct the Location response header/],
+  ];
+
+  for (const [code, actionZh, actionEn] of cases) {
+    const cause = Object.assign(new Error('redirect rejected'), { code });
+    const classified = classifyConnectionError(new Error('request failed', { cause }));
+    assert.equal(classified.kind, 'redirect');
+    assert.equal(classified.code, code);
+    for (const stage of [undefined, 'tool-discovery']) {
+      const diagnostic = diagnosticFor(classified.kind, { ...classified, stage });
+      assert.equal(diagnostic.code, code);
+      assert.equal(diagnostic.stage, stage ?? 'configuration');
+      assert.match(diagnostic.action, actionZh);
+      assert.match(diagnostic.action, /可信 MCP 端点/);
+      assert.match(diagnosticFor(classified.kind, { ...classified, stage }, en).action, actionEn);
+    }
+  }
+  assert.equal(diagnosticFor('redirect', { stage: 'tool-discovery' }).action, failureAction(t, 'redirect'));
+  assert.equal(diagnosticFor('network', { stage: 'tool-discovery' }).action, failureAction(t, 'tool-list'));
+});
+
+test('连接校验结果保留缺少 Location 的重定向错误代码', async () => {
+  const result = await validateConnectionRecord({ ...record, url: 'https://mcp.example.com/mcp' }, {
+    fetchImpl: async () => new Response(null, { status: 302 }),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, 'redirect');
+  assert.equal(result.code, REDIRECT_ERROR_CODES.INVALID);
 });
 
 test('未识别的失败代码仍回退到 network 建议', () => {
