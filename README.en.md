@@ -163,7 +163,7 @@ As of 2026-11-26, the public Registry publishes 143 connector descriptors. After
 | Connection diagnostics and last-success cache |  |
 | ![Connection diagnostics](https://raw.githubusercontent.com/duhu2000/dsh-mcp-connector/main/docs/screenshots/en/07-connection-diagnostics.png) |  |
 
-<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.122 (2026-11-26), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
+<!-- generated:media -->English UI screenshots and GIF were captured from v0.2.123 (2026-11-28), using the credential-free Mock harness. Provider content retains its original language. They demonstrate UI, not real business acceptance; counts are fixtures. See [asset provenance](docs/screenshots/README.md).<!-- /generated:media -->
 
 ## Installation
 
