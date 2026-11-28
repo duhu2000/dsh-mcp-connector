@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMockQccServer } from './mock-oauth-server.mjs';
 import { DEFAULT_CATALOG_URL, DEFAULT_CATALOG_FALLBACK_URLS } from '../lib/constants.js';
+import { REDIRECT_ERROR_CODES } from '../lib/credentialed-fetch.js';
 import { catalogRecordSchema } from '../lib/schema.js';
 
 /* ───────────────────────── fake cordis ctx ───────────────────────── */
@@ -261,6 +262,9 @@ test('#218 tool discovery failures retain handshake health and separate diagnost
     if (failure === 'protocol') return new Response(JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -32601, message: 'tools/list unavailable' } }));
     if (failure === 'auth') return new Response(null, { status: 403 });
     if (failure === 'rate-limit') return new Response(null, { status: 429, headers: { 'retry-after': '600' } });
+    if (failure === REDIRECT_ERROR_CODES.TOO_MANY) {
+      return new Response(null, { status: 308, headers: { location: '/next' } });
+    }
   });
   const host = makePluginContext({ withWeb: true });
   const { apply } = await import('../lib/index.js');
@@ -270,13 +274,17 @@ test('#218 tool discovery failures retain handshake health and separate diagnost
     await apply(host.ctx, baseConfig());
     assert.equal((await execute('configure', { name: 'review', serverName: 'review', url: 'https://review.example/mcp' })).ok, true);
     assert.equal((await execute('tools_list', target)).ok, true);
-    for (failure of ['timeout', 'protocol', 'auth', 'rate-limit']) {
+    for (failure of ['timeout', 'protocol', 'auth', 'rate-limit', REDIRECT_ERROR_CODES.TOO_MANY]) {
       const listed = await execute('tools_list', target);
       assert.equal(listed.ok, false, failure);
       assert.equal(listed.detail.connectionState, 'healthy', failure);
       assert.equal(listed.detail.diagnostic.code, 'ok', failure);
       assert.equal(listed.detail.discoveryDiagnostic.stage, 'tool-discovery', failure);
       assert.equal(listed.detail.discoveryDiagnostic.code, failure);
+      if (failure === REDIRECT_ERROR_CODES.TOO_MANY) {
+        assert.equal(listed.detail.servers[0].errorKind, 'redirect');
+        assert.match(listed.detail.discoveryDiagnostic.action, /检查重定向链/);
+      }
       assert.equal(listed.detail.servers[0].cached, true);
       assert.deepEqual(listed.detail.servers[0].tools.map((tool) => tool.name), ['probe_echo']);
       // A subsequent connection check must not erase the separate discovery failure.
@@ -291,6 +299,7 @@ test('#218 tool discovery failures retain handshake health and separate diagnost
       const cached = await host.webCall('toolsList', { ...target, cachedOnly: true });
       assert.equal(cached.detail.connectionState, 'healthy');
       assert.equal(cached.detail.discoveryDiagnostic.code, failure);
+      assert.equal(cached.detail.discoveryDiagnostic.action, listed.detail.discoveryDiagnostic.action);
       assert.equal(requests, checkpoint, 'cached refresh must not perform network requests');
     }
     rejectHandshake = true;
